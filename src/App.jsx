@@ -486,30 +486,6 @@ function TeamsView({equipos,players,ligas,palmares,onGoToPlayer,openTeamId,onCle
             ))}
           </div>
         </div>
-
-        {/* Palmarés */}
-        {teamPalmares.length>0&&(
-          <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
-            <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:"0 0 16px"}}>🏆 Palmarés</h2>
-            <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
-              {teamPalmares.map((p,i)=>{
-                const liga=ligaMap[p.id_liga];
-                const [bg,color]=TIPO_COLORS[liga?.tipo]||["#fff7ed","#c2410c"];
-                return(
-                  <div key={i} style={{display:"flex",alignItems:"center",gap:"14px",padding:"12px 16px",background:"#fffbeb",borderRadius:"12px",border:"1.5px solid #fde68a"}}>
-                    <div style={{fontSize:"24px"}}>🥇</div>
-                    <div style={{flex:1}}>
-                      <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{liga?.nombre||p.id_liga}</div>
-                      <div style={{fontSize:"12px",color:"#92400e",marginTop:"2px",fontWeight:600}}>Temporada {p.temporada}</div>
-                    </div>
-                    <span style={{background:bg,color,fontSize:"11px",fontWeight:700,padding:"3px 10px",borderRadius:"20px"}}>{TIPO_LABELS[liga?.tipo]||liga?.tipo||""}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px",flexWrap:"wrap",gap:"10px"}}>
             <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>Plantilla <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({squad.length})</span></h2>
