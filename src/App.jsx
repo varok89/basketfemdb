@@ -394,7 +394,10 @@ function PlayersView({players,equipos,ligas,onReload,onGoToTeam,openPlayerId,onC
                   <div style={{fontWeight:700,fontSize:"15px",color:"#1e293b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>
                   <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"1px",display:"flex",alignItems:"center"}}><FlagImg country={p.nacionalidad||""}/>{p.nacionalidad||"—"}{p.altura_cm?` · ${p.altura_cm} cm`:""}</div>
                 </div>
-                {p.posicion&&<span style={posStyle(p.posicion)}>{p.posicion}</span>}
+                <div style={{display:"flex",gap:"4px",flexShrink:0,flexDirection:"column",alignItems:"flex-end"}}>
+                  {p.posicion&&<span style={posStyle(p.posicion)}>{p.posicion}</span>}
+                  {p.posicion2&&<span style={posStyle(p.posicion2)}>{p.posicion2}</span>}
+                </div>
               </div>
               <div style={{borderTop:"1px solid #f1f5f9",paddingTop:"10px"}}>
                 {lastEq?(<>
