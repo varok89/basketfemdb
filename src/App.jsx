@@ -33,7 +33,7 @@ function toBase64(file) {
 /* ── Banderas ────────────────────────────────────────────── */
 const COUNTRY_CODES = {
   "espana":"es","spain":"es","france":"fr","francia":"fr","italy":"it","italia":"it",
-  "germany":"de","alemania":"de",  "usa":"us","eeuu":"us","ee.uu.":"us","estados unidos":"us",
+  "germany":"de","alemania":"de","usa":"us","eeuu":"us","ee.uu.":"us","estados unidos":"us",
   "turkey":"tr","turquia":"tr","turquía":"tr","russia":"ru","rusia":"ru",
   "hungary":"hu","hungria":"hu","hungría":"hu","greece":"gr","grecia":"gr",
   "israel":"il","australia":"au","sweden":"se","suecia":"se","china":"cn",
@@ -59,7 +59,7 @@ const COUNTRY_CODES = {
   "austria":"at","moldova":"md","albania":"al","kosovo":"xk","belarus":"by","bielorrusia":"by",
   "venezuela":"ve","colombia":"co","peru":"pe","perú":"pe","chile":"cl","uruguay":"uy","bolivia":"bo",
   "ivory coast":"ci","costa de marfil":"ci","south korea":"kr","corea del sur":"kr",
-  "japan":"jp","ethiopia":"et","etiopía":"et",
+  "japan":"jp","ethiopia":"et","etiopía":"et","bosnia y herzegovina","bih"
 };
 
 function countryCode(c) {
