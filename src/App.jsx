@@ -220,6 +220,12 @@ function PlayersView({players,equipos,ligas,onReload,onGoToTeam,openPlayerId,onC
 
   const equipoMap = useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap   = useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
+
+  // Palmarés del equipo seleccionado
+  const teamPalmares = useMemo(()=>{
+    if(!selId) return [];
+    return (palmares||[]).filter(p=>p.id_equipo===selId).sort((a,b)=>b.temporada.localeCompare(a.temporada));
+  },[selId,palmares]);
   const selected  = players.find(p=>p.id_jugadora===selId)||null;
 
   const playerTipos = useMemo(()=>{
@@ -413,7 +419,7 @@ function PlayersView({players,equipos,ligas,onReload,onGoToTeam,openPlayerId,onC
 }
 
 /* ── TeamsView ───────────────────────────────────────────── */
-function TeamsView({equipos,players,ligas,onGoToPlayer,openTeamId,onClearTeam}){
+function TeamsView({equipos,players,ligas,palmares,onGoToPlayer,openTeamId,onClearTeam}){
   const [search,setSearch]             = useState("");
   const [filterLeague,setFilterLeague] = useState("");
   const [filterSeason,setFilterSeason] = useState(null);
@@ -480,6 +486,30 @@ function TeamsView({equipos,players,ligas,onGoToPlayer,openTeamId,onClearTeam}){
             ))}
           </div>
         </div>
+
+        {/* Palmarés */}
+        {teamPalmares.length>0&&(
+          <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
+            <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:"0 0 16px"}}>🏆 Palmarés</h2>
+            <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+              {teamPalmares.map((p,i)=>{
+                const liga=ligaMap[p.id_liga];
+                const [bg,color]=TIPO_COLORS[liga?.tipo]||["#fff7ed","#c2410c"];
+                return(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:"14px",padding:"12px 16px",background:"#fffbeb",borderRadius:"12px",border:"1.5px solid #fde68a"}}>
+                    <div style={{fontSize:"24px"}}>🥇</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{liga?.nombre||p.id_liga}</div>
+                      <div style={{fontSize:"12px",color:"#92400e",marginTop:"2px",fontWeight:600}}>Temporada {p.temporada}</div>
+                    </div>
+                    <span style={{background:bg,color,fontSize:"11px",fontWeight:700,padding:"3px 10px",borderRadius:"20px"}}>{TIPO_LABELS[liga?.tipo]||liga?.tipo||""}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px",flexWrap:"wrap",gap:"10px"}}>
             <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>Plantilla <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({squad.length})</span></h2>
@@ -695,6 +725,7 @@ export default function App(){
   const [players,setPlayers] = useState([]);
   const [equipos,setEquipos] = useState([]);
   const [ligas,setLigas]     = useState([]);
+  const [palmares,setPalmares] = useState([]);
   const [loading,setLoading] = useState(true);
   const [error,setError]     = useState(null);
   const [tab,setTab]         = useState("jugadoras");
@@ -707,11 +738,12 @@ export default function App(){
   const loadAll = async()=>{
     setLoading(true);setError(null);
     try{
-      const [rJ,rE,rL,rT]=await Promise.all([
+      const [rJ,rE,rL,rT,rP]=await Promise.all([
         supabase.from("jugadoras").select("*").order("id_jugadora"),
         supabase.from("equipos").select("*").order("id_equipo"),
         supabase.from("ligas").select("*").order("id_liga"),
         supabase.from("temporadas").select("*").order("id"),
+        supabase.from("palmares").select("*").then(r=>r).catch(()=>({data:[]})),
       ]);
       if(rJ.error)throw rJ.error;if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rT.error)throw rT.error;
       const sbp={};
@@ -719,6 +751,7 @@ export default function App(){
       setPlayers((rJ.data||[]).map(j=>({...j,seasons:sbp[j.id_jugadora]||[]})));
       setEquipos(rE.data||[]);
       setLigas(rL.data||[]);
+      setPalmares(rP?.data||[]);
     }catch(e){setError(e.message||"Error cargando datos");}
     setLoading(false);
   };
@@ -764,7 +797,7 @@ export default function App(){
       </div>
       <div style={{paddingTop:"8px"}}>
         {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} onReload={loadAll} onGoToTeam={goToTeam} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)}/>}
-        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} onGoToPlayer={goToPlayer} openTeamId={openTeamId} onClearTeam={()=>setOpenTeamId(null)}/>}
+        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} onGoToPlayer={goToPlayer} openTeamId={openTeamId} onClearTeam={()=>setOpenTeamId(null)}/>}
         {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} onGoToTeam={goToTeam}/>}
       </div>
     </div>
