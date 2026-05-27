@@ -435,7 +435,10 @@ function TeamsView({equipos,players,ligas,palmares,onGoToPlayer,openTeamId,onCle
   useEffect(()=>{if(openTeamId){setSelId(openTeamId);setSelYear(null);onClearTeam();}},[openTeamId]);
 
   const equipoMap = useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
-  const ligaMap   = useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
+  const teamPalmares = useMemo(()=>{
+  if(!selId) return [];
+  return (palmares||[]).filter(p=>p.id_equipo===selId).sort((a,b)=>b.temporada.localeCompare(a.temporada));
+},[selId,palmares]);
 
   const teamIndex = useMemo(()=>{
     const map={};
