@@ -62,7 +62,7 @@ const COUNTRY_CODES = {
   "austria":"at","moldova":"md","albania":"al","kosovo":"xk","belarus":"by","bielorrusia":"by",
   "venezuela":"ve","colombia":"co","peru":"pe","perú":"pe","chile":"cl","uruguay":"uy","bolivia":"bo",
   "ivory coast":"ci","costa de marfil":"ci","south korea":"kr","corea del sur":"kr",
-  "japan":"jp","ethiopia":"et","etiopía":"et",
+  "japan":"jp","ethiopia":"et","etiopía":"et","jamaica":"jm",
 };
 
 function countryCode(c) {
