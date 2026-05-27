@@ -51,7 +51,6 @@ const COUNTRY_CODES = {
   "cuba":"cu","mexico":"mx","méxico":"mx","uganda":"ug",
   "slovenia":"si","eslovenia":"si","slovakia":"sk","eslovaquia":"sk",
   "montenegro":"me","north macedonia":"mk","macedonia":"mk","bulgaria":"bg",
-  "bosnia":"ba","bosnia herzegovina":"ba","bosnia y herzegovina":"ba",
   "jamaica":"jm","paraguay":"py",
   "kazajistan":"kz","kazajistán":"kz","kazakhstan":"kz","kazajstan":"kz",
   "macedonia del norte":"mk","north macedonia":"mk","macedonia":"mk",
@@ -305,7 +304,8 @@ function PlayersView({players,equipos,ligas,onReload,onGoToTeam,openPlayerId,onC
           <div style={{flex:1}}>
             <h1 style={{fontWeight:800,fontSize:"21px",color:"#1e293b",margin:"0 0 8px"}}>{selected.nombre}</h1>
             <div style={{display:"flex",gap:"8px",flexWrap:"wrap",marginBottom:"12px"}}>
-              {selected.posicion&&<span style={posStyle(selected.posicion)}>{selected.posicion}</span>}
+                              {selected.posicion&&<span style={posStyle(selected.posicion)}>{selected.posicion}</span>}
+                {selected.posicion2&&<span style={posStyle(selected.posicion2)}>{selected.posicion2}</span>}
               {selected.nacionalidad&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center"}}><FlagImg country={selected.nacionalidad}/>{selected.nacionalidad}</span>}
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
