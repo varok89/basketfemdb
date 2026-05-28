@@ -511,25 +511,6 @@ function TeamsView({equipos,players,ligas,palmares,onGoToPlayer,openTeamId,onCle
             ))}
           </div>
         </div>
-        {(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length>0&&(
-          <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
-            <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:"0 0 14px"}}>🏆 Palmarés <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length})</span></h2>
-            <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
-              {(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).sort((a,b)=>b.temporada.localeCompare(a.temporada)).map((p,i)=>{
-                const liga=ligaMap[p.id_liga];
-                return(
-                  <div key={i} style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",background:"#fffbeb",borderRadius:"12px",border:"1.5px solid #fed7aa"}}>
-                    <span style={{fontSize:"22px"}}>🏆</span>
-                    <div style={{flex:1}}>
-                      <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{p.temporada}</div>
-                      {liga&&<div style={{fontSize:"12px",color:"#94a3b8",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{liga.pais&&<FlagImg country={liga.pais}/>}{liga.nombre}</div>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
         <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px",flexWrap:"wrap",gap:"10px"}}>
             <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>Plantilla <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({squad.length})</span></h2>
@@ -554,6 +535,25 @@ function TeamsView({equipos,players,ligas,palmares,onGoToPlayer,openTeamId,onCle
               ))}
             </div>}
         </div>
+        {(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length>0&&(
+          <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginTop:"14px"}}>
+            <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:"0 0 14px"}}>🏆 Palmarés <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length})</span></h2>
+            <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+              {(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).sort((a,b)=>b.temporada.localeCompare(a.temporada)).map((p,i)=>{
+                const liga=ligaMap[p.id_liga];
+                return(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",background:"#fffbeb",borderRadius:"12px",border:"1.5px solid #fed7aa"}}>
+                    <LeagueBadge liga={liga} size={40}/>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{p.temporada}</div>
+                      {liga&&<div style={{fontSize:"12px",color:"#94a3b8",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{liga.pais&&<FlagImg country={liga.pais}/>}{liga.nombre}</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
