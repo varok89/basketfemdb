@@ -5,6 +5,25 @@ const SUPABASE_URL = "https://qvtxqckuolacvnvrvysu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF2dHhxY2t1b2xhY3ZudnJ2eXN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzQ3OTYsImV4cCI6MjA5MzgxMDc5Nn0.0B93gvnlkGPTstRQKskzvUQOdDHeQ1vr2dwS97lhCjQ";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+/* inject bounce keyframe once */
+if (!document.getElementById("bfdb-styles")) {
+  const s = document.createElement("style");
+  s.id = "bfdb-styles";
+  s.textContent = `
+    @keyframes bounce {
+      0%,100% { transform: translateY(0) scaleX(1) scaleY(1); animation-timing-function: cubic-bezier(0.215,0.61,0.355,1); }
+      40%      { transform: translateY(-32px) scaleX(0.95) scaleY(1.05); animation-timing-function: cubic-bezier(0.755,0.05,0.855,0.06); }
+      70%      { transform: translateY(-16px) scaleX(0.95) scaleY(1.05); animation-timing-function: cubic-bezier(0.755,0.05,0.855,0.06); }
+      90%      { transform: translateY(-4px); }
+    }
+    @keyframes shadow {
+      0%,100% { transform: scaleX(1); opacity: 0.3; }
+      40%,70%  { transform: scaleX(0.5); opacity: 0.1; }
+    }
+  `;
+  document.head.appendChild(s);
+}
+
 const POSITIONS  = ["Base","Escolta","Alero","Ala-Pívot","Pívot"];
 const TIPO_LABELS = { liga:"Liga", copacont:"Copa Continental", copadom:"Copa Nacional", internacional:"Internacional" };
 const TIPO_COLORS = {
@@ -764,7 +783,7 @@ export default function App(){
 
   if(loading) return(
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f1f5f9",fontFamily:"system-ui,sans-serif"}}>
-      <div style={{textAlign:"center",color:"#94a3b8"}}><div style={{fontSize:"48px",marginBottom:"12px",animation:"spin 1s linear infinite",display:"inline-block"}}>🏀</div><div style={{fontWeight:700,fontSize:"16px",color:"#f97316",marginTop:"8px"}}>BasketFem DB</div><div style={{fontSize:"13px",marginTop:"4px"}}>Cargando datos...</div></div>
+      <div style={{textAlign:"center",color:"#94a3b8"}}><div style={{display:"inline-block",animation:"bounce 0.7s infinite"}}><span style={{fontSize:"52px",lineHeight:1}}>🏀</span></div><div style={{width:"40px",height:"6px",background:"#cbd5e1",borderRadius:"50%",margin:"4px auto 0",animation:"shadow 0.7s infinite"}}></div><div style={{fontWeight:700,fontSize:"16px",color:"#f97316",marginTop:"14px"}}>BasketFem DB</div><div style={{fontSize:"13px",marginTop:"4px"}}>Cargando datos...</div></div>
     </div>
   );
 
