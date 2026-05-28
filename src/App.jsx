@@ -554,19 +554,37 @@ function TeamsView({equipos,players,ligas,palmares,onGoToPlayer,openTeamId,onCle
         {(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length>0&&(
           <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginTop:"14px"}}>
             <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:"0 0 14px"}}>🏆 Palmarés <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length})</span></h2>
-            <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
-              {(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).sort((a,b)=>b.temporada.localeCompare(a.temporada)).map((p,i)=>{
-                const liga=ligaMap[p.id_liga];
-                return(
-                  <div key={i} onClick={()=>setSelYear(p.temporada)} style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",background:"#fffbeb",borderRadius:"12px",border:"1.5px solid #fed7aa",cursor:"pointer",transition:"all 0.15s"}} onMouseEnter={e=>{e.currentTarget.style.background="#fef3c7";e.currentTarget.style.borderColor="#f59e0b";}} onMouseLeave={e=>{e.currentTarget.style.background="#fffbeb";e.currentTarget.style.borderColor="#fed7aa";}}>
-                    <LeagueBadge liga={liga} size={40}/>
-                    <div style={{flex:1}}>
-                      <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{p.temporada}</div>
-                      {liga&&<div style={{fontSize:"12px",color:"#94a3b8",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{liga.pais&&<FlagImg country={liga.pais}/>}{liga.nombre}</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:"16px"}}>
+              {(()=>{
+                const pal=(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo);
+                const byLiga={};
+                pal.forEach(p=>{const k=p.id_liga;if(!byLiga[k])byLiga[k]=[];byLiga[k].push(p);});
+                return Object.entries(byLiga).map(([id_liga,entries])=>{
+                  const liga=ligaMap[id_liga];
+                  const sorted=[...entries].sort((a,b)=>b.temporada.localeCompare(a.temporada));
+                  return(
+                    <div key={id_liga}>
+                      <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"8px"}}>
+                        <LeagueBadge liga={liga} size={32}/>
+                        <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{liga?.nombre||id_liga}</span>
+                        {liga?.pais&&<FlagImg country={liga.pais}/>}
+                        <span style={{background:"#fed7aa",color:"#b45309",fontSize:"11px",fontWeight:700,padding:"2px 8px",borderRadius:"20px"}}>{sorted.length}x</span>
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:"6px",paddingLeft:"8px",borderLeft:"3px solid #fed7aa"}}>
+                        {sorted.map((p,i)=>(
+                          <div key={i} onClick={()=>setSelYear(p.temporada)}
+                            style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 12px",background:"#fffbeb",borderRadius:"10px",border:"1.5px solid #fed7aa",cursor:"pointer",transition:"all 0.15s"}}
+                            onMouseEnter={e=>{e.currentTarget.style.background="#fef3c7";e.currentTarget.style.borderColor="#f59e0b";}}
+                            onMouseLeave={e=>{e.currentTarget.style.background="#fffbeb";e.currentTarget.style.borderColor="#fed7aa";}}>
+                            <span style={{fontSize:"18px"}}>🏆</span>
+                            <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{p.temporada}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
           </div>
         )}
