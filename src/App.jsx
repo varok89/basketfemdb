@@ -6,11 +6,12 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const POSITIONS  = ["Base","Escolta","Alero","Ala-Pívot","Pívot"];
-const TIPO_LABELS = { liga:"Liga", copacont:"Copa Continental", copadom:"Copa Nacional" };
+const TIPO_LABELS = { liga:"Liga", copacont:"Copa Continental", copadom:"Copa Nacional", internacional:"Internacional" };
 const TIPO_COLORS = {
   liga:    ["#dbeafe","#1d4ed8"],
   copacont:["#f3e8ff","#7c3aed"],
   copadom: ["#dcfce7","#15803d"],
+  internacional: ["#e0f2fe","#0369a1"],
 };
 
 const calcAge = d => d ? Math.floor((Date.now()-new Date(d))/(365.25*24*3600*1000)) : null;
@@ -592,7 +593,7 @@ function LeaguesView({ligas,players,equipos,onGoToTeam}){
 
   const filtered = ligas.filter(l=>!search||l.nombre?.toLowerCase().includes(search.toLowerCase()));
   const ligasByTipo = useMemo(()=>{
-    const g={liga:[],copacont:[],copadom:[],other:[]};
+    const g={liga:[],copacont:[],copadom:[],internacional:[],other:[]};
     filtered.forEach(l=>{if(g[l.tipo])g[l.tipo].push(l);else g.other.push(l);});
     return g;
   },[filtered]);
@@ -651,7 +652,7 @@ function LeaguesView({ligas,players,equipos,onGoToTeam}){
     );
   }
 
-  const GRUPOS=[["liga","Liga"],["copacont","Copa Continental"],["copadom","Copa Nacional"],["other","Otras"]];
+  const GRUPOS=[["liga","Liga"],["copacont","Copa Continental"],["copadom","Copa Nacional"],["internacional","Internacional"],["other","Otras"]];
   return(
     <div style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
       <input style={{width:"100%",border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 16px",fontSize:"14px",color:"#1e293b",outline:"none",background:"#fff",marginBottom:"20px",boxSizing:"border-box"}}
