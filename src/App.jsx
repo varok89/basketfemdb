@@ -228,6 +228,7 @@ function PlayersView({players,equipos,ligas,onReload,onGoToTeam,openPlayerId,onC
 
   const equipoMap = useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap   = useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
+  const ligaMap   = useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
   const selected  = players.find(p=>p.id_jugadora===selId)||null;
 
   const playerTipos = useMemo(()=>{
@@ -422,7 +423,7 @@ function PlayersView({players,equipos,ligas,onReload,onGoToTeam,openPlayerId,onC
 }
 
 /* ── TeamsView ───────────────────────────────────────────── */
-function TeamsView({equipos,players,ligas,onGoToPlayer,openTeamId,onClearTeam}){
+function TeamsView({equipos,players,ligas,palmares,onGoToPlayer,openTeamId,onClearTeam}){
   const [search,setSearch]             = useState("");
   const [filterLeague,setFilterLeague] = useState("");
   const [filterSeason,setFilterSeason] = useState(null);
@@ -432,6 +433,7 @@ function TeamsView({equipos,players,ligas,onGoToPlayer,openTeamId,onClearTeam}){
   useEffect(()=>{if(openTeamId){setSelId(openTeamId);setSelYear(null);onClearTeam();}},[openTeamId]);
 
   const equipoMap = useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
+  const ligaMap   = useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
   const ligaMap   = useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
 
   const teamIndex = useMemo(()=>{
@@ -489,6 +491,25 @@ function TeamsView({equipos,players,ligas,onGoToPlayer,openTeamId,onClearTeam}){
             ))}
           </div>
         </div>
+        {(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length>0&&(
+          <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
+            <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:"0 0 14px"}}>🏆 Palmarés <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length})</span></h2>
+            <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+              {(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).sort((a,b)=>b.temporada.localeCompare(a.temporada)).map((p,i)=>{
+                const liga=ligaMap[p.id_liga];
+                return(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",background:"#fffbeb",borderRadius:"12px",border:"1.5px solid #fed7aa"}}>
+                    <span style={{fontSize:"22px"}}>🏆</span>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{p.temporada}</div>
+                      {liga&&<div style={{fontSize:"12px",color:"#94a3b8",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{liga.pais&&<FlagImg country={liga.pais}/>}{liga.nombre}</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px",flexWrap:"wrap",gap:"10px"}}>
             <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>Plantilla <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({squad.length})</span></h2>
@@ -569,6 +590,7 @@ function LeaguesView({ligas,players,equipos,onGoToTeam}){
   const [search,setSearch]   = useState("");
 
   const equipoMap = useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
+  const ligaMap   = useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
   const selected  = ligas.find(l=>l.id_liga===selId)||null;
 
   const {years,teamsByYear} = useMemo(()=>{
@@ -704,6 +726,7 @@ export default function App(){
   const [players,setPlayers] = useState([]);
   const [equipos,setEquipos] = useState([]);
   const [ligas,setLigas]     = useState([]);
+  const [palmares,setPalmares] = useState([]);
   const [loading,setLoading] = useState(true);
   const [error,setError]     = useState(null);
   const [tab,setTab]         = useState("jugadoras");
@@ -716,11 +739,12 @@ export default function App(){
   const loadAll = async()=>{
     setLoading(true);setError(null);
     try{
-      const [rJ,rE,rL,rT]=await Promise.all([
+      const [rJ,rE,rL,rT,rP]=await Promise.all([
         supabase.from("jugadoras").select("*").order("id_jugadora"),
         supabase.from("equipos").select("*").order("id_equipo"),
         supabase.from("ligas").select("*").order("id_liga"),
         supabase.from("temporadas").select("*").order("id"),
+        supabase.from("palmares").select("*").order("temporada"),
       ]);
       if(rJ.error)throw rJ.error;if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rT.error)throw rT.error;
       const sbp={};
@@ -728,6 +752,7 @@ export default function App(){
       setPlayers((rJ.data||[]).map(j=>({...j,seasons:sbp[j.id_jugadora]||[]})));
       setEquipos(rE.data||[]);
       setLigas(rL.data||[]);
+      setPalmares(rP.data||[]);
     }catch(e){setError(e.message||"Error cargando datos");}
     setLoading(false);
   };
@@ -773,7 +798,7 @@ export default function App(){
       </div>
       <div style={{paddingTop:"8px"}}>
         {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} onReload={loadAll} onGoToTeam={goToTeam} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)}/>}
-        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} onGoToPlayer={goToPlayer} openTeamId={openTeamId} onClearTeam={()=>setOpenTeamId(null)}/>}
+        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} onGoToPlayer={goToPlayer} openTeamId={openTeamId} onClearTeam={()=>setOpenTeamId(null)}/>}
         {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} onGoToTeam={goToTeam}/>}
       </div>
     </div>
