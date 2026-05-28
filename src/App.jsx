@@ -573,11 +573,10 @@ function TeamsView({equipos,players,ligas,palmares,onGoToPlayer,openTeamId,onCle
                       <div style={{display:"flex",flexDirection:"column",gap:"6px",paddingLeft:"8px",borderLeft:"3px solid #fed7aa"}}>
                         {sorted.map((p,i)=>(
                           <div key={i} onClick={()=>setSelYear(p.temporada)}
-                            style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 12px",background:"#fffbeb",borderRadius:"10px",border:"1.5px solid #fed7aa",cursor:"pointer",transition:"all 0.15s"}}
+                            style={{display:"flex",alignItems:"center",gap:"10px",padding:"6px 12px",background:"#fffbeb",borderRadius:"10px",border:"1.5px solid #fed7aa",cursor:"pointer",transition:"all 0.15s"}}
                             onMouseEnter={e=>{e.currentTarget.style.background="#fef3c7";e.currentTarget.style.borderColor="#f59e0b";}}
                             onMouseLeave={e=>{e.currentTarget.style.background="#fffbeb";e.currentTarget.style.borderColor="#fed7aa";}}>
-                            <span style={{fontSize:"18px"}}>🏆</span>
-                            <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{p.temporada}</span>
+                            <span style={{fontWeight:700,fontSize:"13px",color:"#1e293b"}}>{p.temporada}</span>
                           </div>
                         ))}
                       </div>
