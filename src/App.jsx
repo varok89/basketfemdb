@@ -74,7 +74,7 @@ function countryCode(c) {
 function FlagImg({ country }) {
   if (!country) return null;
   const norm = country.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
-  if (norm === "europa" || norm === "europe" || norm === "eu") return <img src="https://flagpedia.net/data/flags/w160/eu.webp" width={20} height={13} alt="Europa" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",flexShrink:0,marginRight:"4px"}}/>;
+  if (norm === "europa" || norm === "europe" || norm === "eu") return <img src="https://flagcdn.com/20x15/eu.png" width={20} height={15} alt="Europa" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",flexShrink:0,marginRight:"4px"}}/>;
   const code = countryCode(country);
   if (!code) return null;
   return <img src={`https://flagpedia.net/data/flags/w160/${code}.webp`} width={20} height={13} alt={country}
@@ -764,7 +764,7 @@ export default function App(){
 
   if(loading) return(
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f1f5f9",fontFamily:"system-ui,sans-serif"}}>
-      <div style={{textAlign:"center",color:"#94a3b8"}}><div style={{fontSize:"48px",marginBottom:"12px"}}>⏳</div><div style={{fontWeight:600}}>Cargando desde Supabase...</div></div>
+      <div style={{textAlign:"center",color:"#94a3b8"}}><div style={{fontSize:"48px",marginBottom:"12px",animation:"spin 1s linear infinite",display:"inline-block"}}>🏀</div><div style={{fontWeight:700,fontSize:"16px",color:"#f97316",marginTop:"8px"}}>BasketFem DB</div><div style={{fontSize:"13px",marginTop:"4px"}}>Cargando datos...</div></div>
     </div>
   );
 
