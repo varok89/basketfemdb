@@ -501,6 +501,7 @@ function TeamsView({equipos,players,ligas,palmares,onGoToPlayer,openTeamId,onCle
                 {eq.año_fundacion&&<span style={{background:"#fff7ed",color:"#c2410c",fontSize:"12px",fontWeight:700,padding:"3px 10px",borderRadius:"20px"}}>Est. {eq.año_fundacion}</span>}
               </div>
             </div>
+            {(()=>{const pal=(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo);if(!pal.length)return null;const counts={};pal.forEach(p=>{const n=ligaMap[p.id_liga]?.nombre||p.id_liga;counts[n]=(counts[n]||0)+1;});return(<div style={{display:"flex",flexDirection:"column",gap:"6px",alignItems:"flex-end",flexShrink:0}}>{Object.entries(counts).map(([nombre,n])=>(<span key={nombre} style={{background:"#fffbeb",border:"1.5px solid #fed7aa",color:"#b45309",fontSize:"12px",fontWeight:700,padding:"4px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🏆 {n}x {nombre}</span>))}</div>);})()}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px",marginTop:"18px"}}>
             {[[years.length,"Temporadas"],[new Set(selected.players.map(({player})=>player.id_jugadora)).size,"Jugadoras únicas"],[selected.players.length,"Apariciones"]].map(([v,l])=>(
@@ -542,7 +543,7 @@ function TeamsView({equipos,players,ligas,palmares,onGoToPlayer,openTeamId,onCle
               {(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).sort((a,b)=>b.temporada.localeCompare(a.temporada)).map((p,i)=>{
                 const liga=ligaMap[p.id_liga];
                 return(
-                  <div key={i} style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",background:"#fffbeb",borderRadius:"12px",border:"1.5px solid #fed7aa"}}>
+                  <div key={i} onClick={()=>setSelYear(p.temporada)} style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",background:"#fffbeb",borderRadius:"12px",border:"1.5px solid #fed7aa",cursor:"pointer",transition:"all 0.15s"}} onMouseEnter={e=>{e.currentTarget.style.background="#fef3c7";e.currentTarget.style.borderColor="#f59e0b";}} onMouseLeave={e=>{e.currentTarget.style.background="#fffbeb";e.currentTarget.style.borderColor="#fed7aa";}}>
                     <LeagueBadge liga={liga} size={40}/>
                     <div style={{flex:1}}>
                       <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{p.temporada}</div>
