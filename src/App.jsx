@@ -327,7 +327,8 @@ function PlayersView({players,equipos,ligas,palmares,onReload,onGoToTeam,openPla
               <h1 style={{fontWeight:800,fontSize:"21px",color:"#1e293b",margin:0}}>{selected.nombre}</h1>
               {(()=>{
                 const titles={};
-                (selected.seasons||[]).forEach(s=>{
+                const uniquePairs=[...new Map((selected.seasons||[]).map(s=>[s.id_equipo+"_"+s.temporada,s])).values()];
+                uniquePairs.forEach(s=>{
                   (palmares||[]).filter(p=>p.id_equipo===s.id_equipo&&p.temporada===s.temporada).forEach(p=>{
                     const n=ligaMap[p.id_liga]?.nombre||p.id_liga;
                     titles[n]=(titles[n]||0)+1;
