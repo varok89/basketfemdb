@@ -72,6 +72,9 @@ function countryCode(c) {
 }
 
 function FlagImg({ country }) {
+  if (!country) return null;
+  const norm = country.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
+  if (norm === "europa" || norm === "europe") return <span style={{fontSize:"14px",lineHeight:1,marginRight:"4px",verticalAlign:"middle"}}>🇪🇺</span>;
   const code = countryCode(country);
   if (!code) return null;
   return <img src={`https://flagpedia.net/data/flags/w160/${code}.webp`} width={20} height={13} alt={country}
