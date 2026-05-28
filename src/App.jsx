@@ -793,11 +793,11 @@ export default function App(){
     setLoading(true);setError(null);
     try{
       const [rJ,rE,rL,rT,rP]=await Promise.all([
-        supabase.from("jugadoras").select("*").order("id_jugadora"),
-        supabase.from("equipos").select("*").order("id_equipo"),
-        supabase.from("ligas").select("*").order("id_liga"),
+        supabase.from("jugadoras").select("*").order("id_jugadora").limit(10000),
+        supabase.from("equipos").select("*").order("id_equipo").limit(10000),
+        supabase.from("ligas").select("*").order("id_liga").limit(10000),
         supabase.from("temporadas").select("*").order("id").limit(10000),
-        supabase.from("palmares").select("*").order("temporada"),
+        supabase.from("palmares").select("*").order("temporada").limit(10000),
       ]);
       if(rJ.error)throw rJ.error;if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rT.error)throw rT.error;
       const sbp={};
