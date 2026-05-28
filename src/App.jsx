@@ -74,7 +74,7 @@ function countryCode(c) {
 function FlagImg({ country }) {
   if (!country) return null;
   const norm = country.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
-  if (norm === "europa" || norm === "europe") return <span style={{fontSize:"14px",lineHeight:1,marginRight:"4px",verticalAlign:"middle"}}>🇪🇺</span>;
+  if (norm === "europa" || norm === "europe" || norm === "eu") return <img src="https://flagpedia.net/data/flags/w160/eu.webp" width={20} height={13} alt="Europa" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",flexShrink:0,marginRight:"4px"}}/>;
   const code = countryCode(country);
   if (!code) return null;
   return <img src={`https://flagpedia.net/data/flags/w160/${code}.webp`} width={20} height={13} alt={country}
