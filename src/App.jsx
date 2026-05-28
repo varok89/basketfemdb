@@ -223,6 +223,11 @@ function PlayersView({players,equipos,ligas,onReload,onGoToTeam,openPlayerId,onC
 
   const equipoMap = useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap   = useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
+
+  const teamPalmares = useMemo(()=>{
+    if(!selId) return [];
+    return (palmares||[]).filter(p=>p.id_equipo===selId).sort((a,b)=>b.temporada.localeCompare(a.temporada));
+  },[selId,palmares]);
   const selected  = players.find(p=>p.id_jugadora===selId)||null;
 
   const playerTipos = useMemo(()=>{
