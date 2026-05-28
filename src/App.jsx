@@ -166,7 +166,7 @@ function EmptyState({icon,text,sub}){return(
 
 /* ── Formularios ─────────────────────────────────────────── */
 function PlayerForm({initial,onSave,onCancel,saving}){
-  const [f,setF]=useState({nombre:"",posicion:"Base",posicion2:"",nacionalidad:"",fecha_nac:"",altura_cm:"",foto:null,...initial});
+  const [f,setF]=useState({nombre:"",posicion:"Base",posicion2:"",nacionalidad:"",nacionalidad2:"",fecha_nac:"",altura_cm:"",foto:null,...initial});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
   return(<div>
     <PhotoPicker value={f.foto} onChange={v=>setF(p=>({...p,foto:v}))}/>
@@ -178,6 +178,9 @@ function PlayerForm({initial,onSave,onCancel,saving}){
     <Fld label="2ª Posición (opcional)"><select style={inp} value={f.posicion2} onChange={set("posicion2")}><option value="">— Ninguna —</option>{POSITIONS.map(p=><option key={p}>{p}</option>)}</select></Fld>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
       <Fld label="Nacionalidad"><input style={inp} value={f.nacionalidad} onChange={set("nacionalidad")} placeholder="España"/></Fld>
+      <Fld label="2ª Nacionalidad"><input style={inp} value={f.nacionalidad2||""} onChange={set("nacionalidad2")} placeholder="Opcional"/></Fld>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
       <Fld label="Fecha nac."><input style={inp} type="date" value={f.fecha_nac||""} onChange={set("fecha_nac")}/></Fld>
     </div>
     <div style={{display:"flex",gap:"10px",marginTop:"8px"}}>
@@ -257,13 +260,13 @@ function PlayersView({players,equipos,ligas,onReload,onGoToTeam,openPlayerId,onC
     setSaving(true);
     try{const{data}=await supabase.from("jugadoras").select("id_jugadora").order("id_jugadora",{ascending:false}).limit(1);
       const newId=`J${String(parseInt((data?.[0]?.id_jugadora||"J000").slice(1))+1).padStart(3,"0")}`;
-      await supabase.from("jugadoras").insert({id_jugadora:newId,nombre:f.nombre,posicion:f.posicion,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null});
+      await supabase.from("jugadoras").insert({id_jugadora:newId,nombre:f.nombre,posicion:f.posicion,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null});
       await onReload();setModal(null);}catch(e){alert("Error: "+e.message);}
     setSaving(false);
   };
   const updPlayer=async f=>{
     setSaving(true);
-    try{await supabase.from("jugadoras").update({nombre:f.nombre,posicion:f.posicion,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null}).eq("id_jugadora",selId);
+    try{await supabase.from("jugadoras").update({nombre:f.nombre,posicion:f.posicion,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null}).eq("id_jugadora",selId);
       await onReload();setModal(null);}catch(e){alert("Error: "+e.message);}
     setSaving(false);
   };
@@ -303,6 +306,7 @@ function PlayersView({players,equipos,ligas,onReload,onGoToTeam,openPlayerId,onC
               {selected.posicion&&<span style={posStyle(selected.posicion)}>{selected.posicion}</span>}
               {selected.posicion2&&<span style={posStyle(selected.posicion2)}>{selected.posicion2}</span>}
               {selected.nacionalidad&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center"}}><FlagImg country={selected.nacionalidad}/>{selected.nacionalidad}</span>}
+              {selected.nacionalidad2&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center"}}><FlagImg country={selected.nacionalidad2}/>{selected.nacionalidad2}</span>}
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
               {selected.altura_cm&&<div style={{fontSize:"13px"}}><span style={{color:"#94a3b8"}}>Altura: </span><span style={{fontWeight:600,color:"#334155"}}>{selected.altura_cm} cm</span></div>}
@@ -392,7 +396,7 @@ function PlayersView({players,equipos,ligas,onReload,onGoToTeam,openPlayerId,onC
                 <Avatar photo={p.foto} name={p.nombre} size={48} fontSize={18}/>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontWeight:700,fontSize:"15px",color:"#1e293b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>
-                  <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"1px",display:"flex",alignItems:"center"}}><FlagImg country={p.nacionalidad||""}/>{p.nacionalidad||"—"}{p.altura_cm?` · ${p.altura_cm} cm`:""}</div>
+                  <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"1px",display:"flex",alignItems:"center",gap:"2px"}}><FlagImg country={p.nacionalidad||""}/>{p.nacionalidad||"—"}{p.nacionalidad2&&<><span style={{margin:"0 2px"}}>/</span><FlagImg country={p.nacionalidad2}/>{p.nacionalidad2}</>}{p.altura_cm?` · ${p.altura_cm} cm`:""}</div>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:"4px",alignItems:"flex-end",flexShrink:0}}>{p.posicion&&<span style={posStyle(p.posicion)}>{p.posicion}</span>}{p.posicion2&&<span style={posStyle(p.posicion2)}>{p.posicion2}</span>}</div>
               </div>
