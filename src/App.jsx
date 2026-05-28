@@ -305,8 +305,7 @@ function PlayersView({players,equipos,ligas,onReload,onGoToTeam,openPlayerId,onC
             <div style={{display:"flex",gap:"8px",flexWrap:"wrap",marginBottom:"12px"}}>
               {selected.posicion&&<span style={posStyle(selected.posicion)}>{selected.posicion}</span>}
               {selected.posicion2&&<span style={posStyle(selected.posicion2)}>{selected.posicion2}</span>}
-              {selected.nacionalidad&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center"}}><FlagImg country={selected.nacionalidad}/>{selected.nacionalidad}</span>}
-              {selected.nacionalidad2&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center"}}><FlagImg country={selected.nacionalidad2}/>{selected.nacionalidad2}</span>}
+              {(selected.nacionalidad||selected.nacionalidad2)&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",padding:"3px 8px",borderRadius:"20px",display:"inline-flex",alignItems:"center",gap:"4px"}}>{selected.nacionalidad&&<FlagImg country={selected.nacionalidad}/>}{selected.nacionalidad2&&<FlagImg country={selected.nacionalidad2}/>}</span>}
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
               {selected.altura_cm&&<div style={{fontSize:"13px"}}><span style={{color:"#94a3b8"}}>Altura: </span><span style={{fontWeight:600,color:"#334155"}}>{selected.altura_cm} cm</span></div>}
@@ -396,7 +395,7 @@ function PlayersView({players,equipos,ligas,onReload,onGoToTeam,openPlayerId,onC
                 <Avatar photo={p.foto} name={p.nombre} size={48} fontSize={18}/>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontWeight:700,fontSize:"15px",color:"#1e293b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>
-                  <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"1px",display:"flex",alignItems:"center",gap:"2px"}}><FlagImg country={p.nacionalidad||""}/>{p.nacionalidad||"—"}{p.nacionalidad2&&<><span style={{margin:"0 2px"}}>/</span><FlagImg country={p.nacionalidad2}/>{p.nacionalidad2}</>}{p.altura_cm?` · ${p.altura_cm} cm`:""}</div>
+                  <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"1px",display:"flex",alignItems:"center",gap:"3px"}}>{p.nacionalidad&&<FlagImg country={p.nacionalidad}/>}{p.nacionalidad2&&<FlagImg country={p.nacionalidad2}/>}{p.altura_cm&&<span>{p.nacionalidad||p.nacionalidad2?" · ":""}{p.altura_cm} cm</span>}</div>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:"4px",alignItems:"flex-end",flexShrink:0}}>{p.posicion&&<span style={posStyle(p.posicion)}>{p.posicion}</span>}{p.posicion2&&<span style={posStyle(p.posicion2)}>{p.posicion2}</span>}</div>
               </div>
@@ -507,7 +506,7 @@ function TeamsView({equipos,players,ligas,onGoToPlayer,openTeamId,onClearTeam}){
                   <Avatar photo={player.foto} name={player.nombre} size={44} fontSize={16}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontWeight:700,fontSize:"14px",color:"#f97316"}}>{player.nombre}</div>
-                    <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center"}}><FlagImg country={player.nacionalidad||""}/>{player.nacionalidad||"—"}{player.altura_cm?` · ${player.altura_cm} cm`:""}</div>
+                    <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"3px"}}>{player.nacionalidad&&<FlagImg country={player.nacionalidad}/>}{player.nacionalidad2&&<FlagImg country={player.nacionalidad2}/>}{player.altura_cm&&<span>{player.nacionalidad||player.nacionalidad2?" · ":""}{player.altura_cm} cm</span>}</div>
                   </div>
                   <div style={{display:"flex",flexDirection:"column",gap:"4px",alignItems:"flex-end",flexShrink:0}}><span style={posStyle(player.posicion||"")}>{player.posicion||"—"}</span>{player.posicion2&&<span style={posStyle(player.posicion2)}>{player.posicion2}</span>}</div>
                 </div>
