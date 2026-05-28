@@ -165,7 +165,7 @@ function EmptyState({icon,text,sub}){return(
 
 /* ── Formularios ─────────────────────────────────────────── */
 function PlayerForm({initial,onSave,onCancel,saving}){
-  const [f,setF]=useState({nombre:"",posicion:"Base",nacionalidad:"",fecha_nac:"",altura_cm:"",foto:null,...initial});
+  const [f,setF]=useState({nombre:"",posicion:"Base",posicion2:"",nacionalidad:"",fecha_nac:"",altura_cm:"",foto:null,...initial});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
   return(<div>
     <PhotoPicker value={f.foto} onChange={v=>setF(p=>({...p,foto:v}))}/>
@@ -174,6 +174,7 @@ function PlayerForm({initial,onSave,onCancel,saving}){
       <Fld label="Posición"><select style={inp} value={f.posicion} onChange={set("posicion")}>{POSITIONS.map(p=><option key={p}>{p}</option>)}</select></Fld>
       <Fld label="Altura (cm)"><input style={inp} type="number" value={f.altura_cm} onChange={set("altura_cm")} placeholder="180"/></Fld>
     </div>
+    <Fld label="2ª Posición (opcional)"><select style={inp} value={f.posicion2} onChange={set("posicion2")}><option value="">— Ninguna —</option>{POSITIONS.map(p=><option key={p}>{p}</option>)}</select></Fld>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
       <Fld label="Nacionalidad"><input style={inp} value={f.nacionalidad} onChange={set("nacionalidad")} placeholder="España"/></Fld>
       <Fld label="Fecha nac."><input style={inp} type="date" value={f.fecha_nac||""} onChange={set("fecha_nac")}/></Fld>
@@ -248,20 +249,20 @@ function PlayersView({players,equipos,ligas,onReload,onGoToTeam,openPlayerId,onC
   const filtered = players.filter(p=>{
     const q=search.toLowerCase();
     return(!q||p.nombre?.toLowerCase().includes(q)||p.id_jugadora?.toLowerCase().includes(q)||p.nacionalidad?.toLowerCase().includes(q)||p.seasons?.some(s=>equipoMap[s.id_equipo]?.nombre?.toLowerCase().includes(q)))
-      &&(!filterPos||p.posicion===filterPos);
+      &&(!filterPos||p.posicion===filterPos||p.posicion2===filterPos);
   }).sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"));
 
   const addPlayer=async f=>{
     setSaving(true);
     try{const{data}=await supabase.from("jugadoras").select("id_jugadora").order("id_jugadora",{ascending:false}).limit(1);
       const newId=`J${String(parseInt((data?.[0]?.id_jugadora||"J000").slice(1))+1).padStart(3,"0")}`;
-      await supabase.from("jugadoras").insert({id_jugadora:newId,nombre:f.nombre,posicion:f.posicion,nacionalidad:f.nacionalidad,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null});
+      await supabase.from("jugadoras").insert({id_jugadora:newId,nombre:f.nombre,posicion:f.posicion,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null});
       await onReload();setModal(null);}catch(e){alert("Error: "+e.message);}
     setSaving(false);
   };
   const updPlayer=async f=>{
     setSaving(true);
-    try{await supabase.from("jugadoras").update({nombre:f.nombre,posicion:f.posicion,nacionalidad:f.nacionalidad,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null}).eq("id_jugadora",selId);
+    try{await supabase.from("jugadoras").update({nombre:f.nombre,posicion:f.posicion,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null}).eq("id_jugadora",selId);
       await onReload();setModal(null);}catch(e){alert("Error: "+e.message);}
     setSaving(false);
   };
@@ -299,6 +300,7 @@ function PlayersView({players,equipos,ligas,onReload,onGoToTeam,openPlayerId,onC
             <h1 style={{fontWeight:800,fontSize:"21px",color:"#1e293b",margin:"0 0 8px"}}>{selected.nombre}</h1>
             <div style={{display:"flex",gap:"8px",flexWrap:"wrap",marginBottom:"12px"}}>
               {selected.posicion&&<span style={posStyle(selected.posicion)}>{selected.posicion}</span>}
+              {selected.posicion2&&<span style={posStyle(selected.posicion2)}>{selected.posicion2}</span>}
               {selected.nacionalidad&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center"}}><FlagImg country={selected.nacionalidad}/>{selected.nacionalidad}</span>}
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
