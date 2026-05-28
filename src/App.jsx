@@ -393,7 +393,7 @@ function PlayersView({players,equipos,ligas,onReload,onGoToTeam,openPlayerId,onC
                   <div style={{fontWeight:700,fontSize:"15px",color:"#1e293b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>
                   <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"1px",display:"flex",alignItems:"center"}}><FlagImg country={p.nacionalidad||""}/>{p.nacionalidad||"—"}{p.altura_cm?` · ${p.altura_cm} cm`:""}</div>
                 </div>
-                {p.posicion&&<span style={posStyle(p.posicion)}>{p.posicion}</span>}
+                <div style={{display:"flex",flexDirection:"column",gap:"4px",alignItems:"flex-end",flexShrink:0}}>{p.posicion&&<span style={posStyle(p.posicion)}>{p.posicion}</span>}{p.posicion2&&<span style={posStyle(p.posicion2)}>{p.posicion2}</span>}</div>
               </div>
               <div style={{borderTop:"1px solid #f1f5f9",paddingTop:"10px"}}>
                 {lastEq?(<>
@@ -504,7 +504,7 @@ function TeamsView({equipos,players,ligas,onGoToPlayer,openTeamId,onClearTeam}){
                     <div style={{fontWeight:700,fontSize:"14px",color:"#f97316"}}>{player.nombre}</div>
                     <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center"}}><FlagImg country={player.nacionalidad||""}/>{player.nacionalidad||"—"}{player.altura_cm?` · ${player.altura_cm} cm`:""}</div>
                   </div>
-                  <span style={posStyle(player.posicion||"")}>{player.posicion||"—"}</span>
+                  <div style={{display:"flex",flexDirection:"column",gap:"4px",alignItems:"flex-end",flexShrink:0}}><span style={posStyle(player.posicion||"")}>{player.posicion||"—"}</span>{player.posicion2&&<span style={posStyle(player.posicion2)}>{player.posicion2}</span>}</div>
                 </div>
               ))}
             </div>}
