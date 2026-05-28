@@ -5,6 +5,20 @@ const SUPABASE_URL = "https://qvtxqckuolacvnvrvysu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF2dHhxY2t1b2xhY3ZudnJ2eXN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzQ3OTYsImV4cCI6MjA5MzgxMDc5Nn0.0B93gvnlkGPTstRQKskzvUQOdDHeQ1vr2dwS97lhCjQ";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+async function fetchAll(table, opts={}) {
+  const {order="id", ascending=true} = opts;
+  let all = [], from = 0;
+  const PAGE = 1000;
+  while (true) {
+    const {data, error} = await supabase.from(table).select("*").order(order,{ascending}).range(from, from+PAGE-1);
+    if (error) throw error;
+    all = all.concat(data||[]);
+    if (!data || data.length < PAGE) break;
+    from += PAGE;
+  }
+  return {data: all};
+}
+
 /* inject bounce keyframe once */
 if (!document.getElementById("bfdb-styles")) {
   const s = document.createElement("style");
@@ -793,11 +807,11 @@ export default function App(){
     setLoading(true);setError(null);
     try{
       const [rJ,rE,rL,rT,rP]=await Promise.all([
-        supabase.from("jugadoras").select("*").order("id_jugadora").limit(10000),
-        supabase.from("equipos").select("*").order("id_equipo").limit(10000),
-        supabase.from("ligas").select("*").order("id_liga").limit(10000),
-        supabase.from("temporadas").select("*").order("id").limit(10000),
-        supabase.from("palmares").select("*").order("temporada").limit(10000),
+        fetchAll("jugadoras",{order:"id_jugadora"}),
+        fetchAll("equipos",{order:"id_equipo"}),
+        fetchAll("ligas",{order:"id_liga"}),
+        fetchAll("temporadas",{order:"id"}),
+        fetchAll("palmares",{order:"temporada"}),
       ]);
       if(rJ.error)throw rJ.error;if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rT.error)throw rT.error;
       const sbp={};
