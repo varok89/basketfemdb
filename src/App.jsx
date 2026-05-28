@@ -797,7 +797,7 @@ export default function App(){
         supabase.from("jugadoras").select("*").order("id_jugadora"),
         supabase.from("equipos").select("*").order("id_equipo"),
         supabase.from("ligas").select("*").order("id_liga"),
-        supabase.from("temporadas").select("*").order("id"),
+        supabase.from("temporadas").select("*").order("id").limit(10000),
         supabase.from("palmares").select("*").order("temporada"),
       ]);
       if(rJ.error)throw rJ.error;if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rT.error)throw rT.error;
