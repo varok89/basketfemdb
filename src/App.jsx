@@ -235,7 +235,7 @@ function SeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
   </div>);}
 
 /* ── PlayersView ─────────────────────────────────────────── */
-function PlayersView({players,equipos,ligas,onReload,onGoToTeam,openPlayerId,onClearPlayer}){
+function PlayersView({players,equipos,ligas,palmares,onReload,onGoToTeam,openPlayerId,onClearPlayer}){
   const [search,setSearch]         = useState("");
   const [filterPos,setFilterPos]   = useState("");
   const [selId,setSelId]           = useState(openPlayerId||null);
@@ -323,7 +323,21 @@ function PlayersView({players,equipos,ligas,onReload,onGoToTeam,openPlayerId,onC
         <div style={{display:"flex",alignItems:"flex-start",gap:"20px"}}>
           <Avatar photo={selected.foto} name={selected.nombre} size={90} fontSize={30}/>
           <div style={{flex:1}}>
-            <h1 style={{fontWeight:800,fontSize:"21px",color:"#1e293b",margin:"0 0 8px"}}>{selected.nombre}</h1>
+            <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"12px",marginBottom:"8px"}}>
+              <h1 style={{fontWeight:800,fontSize:"21px",color:"#1e293b",margin:0}}>{selected.nombre}</h1>
+              {(()=>{
+                const titles={};
+                (selected.seasons||[]).forEach(s=>{
+                  (palmares||[]).filter(p=>p.id_equipo===s.id_equipo&&p.temporada===s.temporada).forEach(p=>{
+                    const n=ligaMap[p.id_liga]?.nombre||p.id_liga;
+                    titles[n]=(titles[n]||0)+1;
+                  });
+                });
+                const entries=Object.entries(titles);
+                if(!entries.length)return null;
+                return(<div style={{display:"flex",flexDirection:"column",gap:"4px",alignItems:"flex-end",flexShrink:0}}>{entries.map(([n,c])=>(<span key={n} style={{background:"#fffbeb",border:"1.5px solid #fed7aa",color:"#b45309",fontSize:"11px",fontWeight:700,padding:"3px 8px",borderRadius:"20px",whiteSpace:"nowrap"}}>🏆 {c}x {n}</span>))}</div>);
+              })()}
+            </div>
             <div style={{display:"flex",gap:"8px",flexWrap:"wrap",marginBottom:"12px"}}>
               {selected.posicion&&<span style={posStyle(selected.posicion)}>{selected.posicion}</span>}
               {selected.posicion2&&<span style={posStyle(selected.posicion2)}>{selected.posicion2}</span>}
@@ -818,7 +832,7 @@ export default function App(){
         </div>
       </div>
       <div style={{paddingTop:"8px"}}>
-        {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} onReload={loadAll} onGoToTeam={goToTeam} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)}/>}
+        {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} onReload={loadAll} onGoToTeam={goToTeam} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)}/>}
         {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} onGoToPlayer={goToPlayer} openTeamId={openTeamId} onClearTeam={()=>setOpenTeamId(null)}/>}
         {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} onGoToTeam={goToTeam}/>}
       </div>
