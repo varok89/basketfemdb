@@ -629,7 +629,7 @@ export default function App(){
         supabase.from("equipos").select("*").order("id_equipo"),
         supabase.from("ligas").select("*").order("id_liga"),
         supabase.from("temporadas").select("*").order("id"),
-        (async()=>{try{return await supabase.from("palmares").select("*");}catch{return{data:[]};}}()),
+        (async()=>{try{return await supabase.from("palmares").select("*");}catch(e){return{data:[]};}}()),
       ]);
       if(rJ.error)throw rJ.error;if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rT.error)throw rT.error;
       const sbp={};
