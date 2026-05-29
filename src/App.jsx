@@ -482,7 +482,7 @@ function PlayersView({players,equipos,ligas,palmares,onReload,onGoToTeam,openPla
 }
 
 /* ── TeamsView ───────────────────────────────────────────── */
-function TeamsView({equipos,players,ligas,palmares,onGoToPlayer,openTeamId,onClearTeam}){
+function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlayer,openTeamId,onClearTeam}){
   const [search,setSearch]             = useState("");
   const [filterLeague,setFilterLeague] = useState("");
   const [filterSeason,setFilterSeason] = useState(null);
@@ -493,6 +493,7 @@ function TeamsView({equipos,players,ligas,palmares,onGoToPlayer,openTeamId,onCle
 
   const equipoMap = useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap   = useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
+  const coachMap  = useMemo(()=>{const m={};(coaches||[]).forEach(c=>m[c.id_coach]=c);return m;},[coaches]);
 
   const teamIndex = useMemo(()=>{
     const map={};
@@ -574,6 +575,37 @@ function TeamsView({equipos,players,ligas,palmares,onGoToPlayer,openTeamId,onCle
               ))}
             </div>}
         </div>
+        {(()=>{
+          const staff=(tempCoach||[]).filter(tc=>tc.id_equipo===eq.id_equipo&&tc.temporada===effectiveYear).sort((a,b)=>(a.orden||0)-(b.orden||0));
+          if(!staff.length)return null;
+          return(
+            <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginTop:"14px"}}>
+              <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:"0 0 14px"}}>🎽 Cuerpo técnico <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({staff.length})</span></h2>
+              <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+                {staff.map((tc,i)=>{
+                  const coach=coachMap[tc.id_coach];
+                  if(!coach)return null;
+                  const isPlayer=!!coach.id_jugadora;
+                  return(
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",background:"#f8fafc",borderRadius:"12px",border:"1.5px solid #e2e8f0"}}>
+                      <Avatar photo={coach.foto} name={coach.nombre} size={44} fontSize={16}/>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b",display:"flex",alignItems:"center",gap:"6px"}}>
+                          {coach.nombre}
+                          {isPlayer&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"10px",fontWeight:700,padding:"2px 7px",borderRadius:"20px"}}>ex jugadora</span>}
+                        </div>
+                        <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"3px"}}>
+                          {coach.nacionalidad&&<FlagImg country={coach.nacionalidad}/>}
+                          {coach.nacionalidad2&&<FlagImg country={coach.nacionalidad2}/>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
         {(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length>0&&(
           <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginTop:"14px"}}>
             <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:"0 0 14px"}}>🏆 Palmarés <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length})</span></h2>
@@ -803,6 +835,8 @@ export default function App(){
   const [equipos,setEquipos] = useState([]);
   const [ligas,setLigas]     = useState([]);
   const [palmares,setPalmares] = useState([]);
+  const [coaches,setCoaches]     = useState([]);
+  const [tempCoach,setTempCoach] = useState([]);
   const [loading,setLoading] = useState(true);
   const [error,setError]     = useState(null);
   const [tab,setTab]         = useState("jugadoras");
@@ -815,12 +849,14 @@ export default function App(){
   const loadAll = async()=>{
     setLoading(true);setError(null);
     try{
-      const [rJ,rE,rL,rT,rP]=await Promise.all([
+      const [rJ,rE,rL,rT,rP,rC,rTC]=await Promise.all([
         fetchAll("jugadoras",{order:"id_jugadora"}),
         fetchAll("equipos",{order:"id_equipo"}),
         fetchAll("ligas",{order:"id_liga"}),
         fetchAll("temporadas",{order:"id"}),
         fetchAll("palmares",{order:"temporada"}),
+        fetchAll("coach",{order:"id_coach"}),
+        fetchAll("temporadas_coach",{order:"id"}),
       ]);
       if(rJ.error)throw rJ.error;if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rT.error)throw rT.error;
       const sbp={};
@@ -829,6 +865,8 @@ export default function App(){
       setEquipos(rE.data||[]);
       setLigas(rL.data||[]);
       setPalmares(rP.data||[]);
+      setCoaches(rC.data||[]);
+      setTempCoach(rTC.data||[]);
     }catch(e){setError(e.message||"Error cargando datos");}
     setLoading(false);
   };
@@ -874,7 +912,7 @@ export default function App(){
       </div>
       <div style={{paddingTop:"8px"}}>
         {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} onReload={loadAll} onGoToTeam={goToTeam} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)}/>}
-        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} onGoToPlayer={goToPlayer} openTeamId={openTeamId} onClearTeam={()=>setOpenTeamId(null)}/>}
+        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} openTeamId={openTeamId} onClearTeam={()=>setOpenTeamId(null)}/>}
         {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} onGoToTeam={goToTeam}/>}
       </div>
     </div>
