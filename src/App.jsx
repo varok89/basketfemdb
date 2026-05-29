@@ -901,36 +901,58 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,onGoToPlayer,onGoT
             </div>
           </div>
         </div>
-        {/* Historial */}
+        {/* Historial unificado */}
         <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
-          <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:"0 0 14px"}}>Historial <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({coachSeasons.length})</span></h2>
-          {coachSeasons.length===0
-            ?<div style={{textAlign:"center",padding:"30px",color:"#94a3b8",fontSize:"14px"}}>Sin temporadas registradas</div>
-            :<div style={{position:"relative"}}>
-              <div style={{position:"absolute",left:"11px",top:"10px",bottom:"10px",width:"2px",background:"#bfdbfe"}}/>
-              <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
-                {coachSeasons.map((s,i)=>{
-                  const eq=equipoMap[s.id_equipo],lig=ligaMap[s.id_liga];
-                  return(
-                    <div key={s.id} style={{display:"flex",gap:"16px",alignItems:"flex-start",paddingLeft:"32px",position:"relative"}}>
-                      <div style={{position:"absolute",left:"6px",top:"14px",width:"12px",height:"12px",borderRadius:"50%",background:i===0?"#3b82f6":"#93c5fd",border:"3px solid #fff",boxShadow:`0 0 0 2px ${i===0?"#3b82f6":"#93c5fd"}`}}/>
-                      <div style={{flex:1,background:"#eff6ff",borderRadius:"12px",padding:"12px 14px",border:"1.5px solid #bfdbfe",cursor:"pointer"}}
-                        onClick={()=>onGoToTeam(s.id_equipo,s.temporada)}
-                        onMouseEnter={e=>{e.currentTarget.style.background="#dbeafe";e.currentTarget.style.borderColor="#93c5fd";}}
-                        onMouseLeave={e=>{e.currentTarget.style.background="#eff6ff";e.currentTarget.style.borderColor="#bfdbfe";}}>
-                        <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-                          <TeamBadge team={eq} size={30}/>
-                          <div>
-                            <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{s.temporada} · <span style={{color:"#3b82f6"}}>{eq?.nombre||s.id_equipo}</span></div>
-                            <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{eq?.pais&&<FlagImg country={eq.pais}/>}{lig?.nombre||s.id_liga}</div>
+          {(()=>{
+            const playSeasonsRaw=playerProfile?[...(playerProfile.seasons||[])]:[];
+            const playSeasons=playSeasonsRaw.map(s=>({...s,_type:"player"}));
+            const coachS=coachSeasons.map(s=>({...s,_type:"coach"}));
+            const merged=[...playSeasons,...coachS].sort((a,b)=>b.temporada.localeCompare(a.temporada));
+            const hasPlay=playSeasons.length>0;
+            const total=merged.length;
+            return(
+              <>
+                <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:"0 0 14px"}}>Historial <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({total})</span></h2>
+                {hasPlay&&<div style={{display:"flex",gap:"12px",marginBottom:"12px",fontSize:"12px",color:"#64748b",alignItems:"center"}}>
+                  <span style={{display:"flex",alignItems:"center",gap:"4px"}}><span style={{width:10,height:10,borderRadius:"50%",background:"#f97316",display:"inline-block"}}/> Jugadora</span>
+                  <span style={{display:"flex",alignItems:"center",gap:"4px"}}><span style={{width:10,height:10,borderRadius:"50%",background:"#3b82f6",display:"inline-block"}}/> Entrenadora</span>
+                </div>}
+                {merged.length===0
+                  ?<div style={{textAlign:"center",padding:"30px",color:"#94a3b8",fontSize:"14px"}}>Sin temporadas registradas</div>
+                  :<div style={{position:"relative"}}>
+                    <div style={{position:"absolute",left:"11px",top:"10px",bottom:"10px",width:"2px",background:hasPlay?"linear-gradient(to bottom,#fed7aa,#bfdbfe)":"#bfdbfe"}}/>
+                    <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
+                      {merged.map((s,i)=>{
+                        const isCoach=s._type==="coach";
+                        const eq=equipoMap[s.id_equipo],lig=ligaMap[s.id_liga];
+                        const dotColor=isCoach?"#3b82f6":"#f97316";
+                        return(
+                          <div key={(isCoach?"c":"p")+s.id} style={{display:"flex",gap:"16px",alignItems:"flex-start",paddingLeft:"32px",position:"relative"}}>
+                            <div style={{position:"absolute",left:"6px",top:"14px",width:"12px",height:"12px",borderRadius:"50%",background:dotColor,border:"3px solid #fff",boxShadow:`0 0 0 2px ${dotColor}`}}/>
+                            <div style={{flex:1,background:isCoach?"#eff6ff":"#f8fafc",borderRadius:"12px",padding:"12px 14px",border:`1.5px solid ${isCoach?"#bfdbfe":"#e2e8f0"}`,cursor:"pointer"}}
+                              onClick={()=>onGoToTeam(s.id_equipo,s.temporada)}
+                              onMouseEnter={e=>{e.currentTarget.style.background=isCoach?"#dbeafe":"#fff7ed";e.currentTarget.style.borderColor=isCoach?"#93c5fd":"#fb923c";}}
+                              onMouseLeave={e=>{e.currentTarget.style.background=isCoach?"#eff6ff":"#f8fafc";e.currentTarget.style.borderColor=isCoach?"#bfdbfe":"#e2e8f0";}}>
+                              <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+                                <TeamBadge team={eq} size={30}/>
+                                <div>
+                                  <div style={{display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
+                                    <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{s.temporada} · </span>
+                                    <span style={{color:isCoach?"#3b82f6":"#f97316",fontWeight:700,textDecoration:"underline"}}>{eq?.nombre||s.id_equipo}</span>
+                                    {isCoach&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"10px",fontWeight:700,padding:"1px 6px",borderRadius:"20px"}}>🎽 Entrenadora</span>}
+                                  </div>
+                                  <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{eq?.pais&&<FlagImg country={eq.pais}/>}{lig?.nombre||s.id_liga}</div>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
-            </div>}
+                  </div>}
+              </>
+            );
+          })()}
         </div>
       </div>
     );
