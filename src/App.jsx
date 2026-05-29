@@ -97,6 +97,7 @@ const COUNTRY_CODES = {
   "venezuela":"ve","colombia":"co","peru":"pe","perú":"pe","chile":"cl","uruguay":"uy","bolivia":"bo",
   "ivory coast":"ci","costa de marfil":"ci","south korea":"kr","corea del sur":"kr",
   "japan":"jp","ethiopia":"et","etiopía":"et",
+  "camerun":"cm","camerún":"cm","cameroon":"cm",
 };
 
 function countryCode(c) {
