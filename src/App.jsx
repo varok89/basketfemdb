@@ -560,35 +560,37 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
             </div>
             {(()=>{const pal=(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo);if(!pal.length)return null;const counts={};pal.forEach(p=>{const n=ligaMap[p.id_liga]?.nombre||p.id_liga;counts[n]=(counts[n]||0)+1;});return(<div style={{display:"flex",flexDirection:"column",gap:"6px",alignItems:"flex-end",flexShrink:0}}>{Object.entries(counts).map(([nombre,n])=>(<span key={nombre} style={{background:"#fffbeb",border:"1.5px solid #fed7aa",color:"#b45309",fontSize:"12px",fontWeight:700,padding:"4px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🏆 {n}x {nombre}</span>))}</div>);})()}
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px",marginTop:"18px"}}>
-            {[[years.length,"Temporadas"],[new Set(selected.players.map(({player})=>player.id_jugadora)).size,"Jugadoras únicas"],[selected.players.length,"Apariciones"]].map(([v,l])=>(
-              <div key={l} style={{background:"#f8fafc",borderRadius:"12px",padding:"12px",textAlign:"center"}}>
-                <div style={{fontSize:"22px",fontWeight:800,color:"#1e293b"}}>{v}</div>
-                <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"2px"}}>{l}</div>
-              </div>
-            ))}
+          <div style={{display:"flex",gap:"16px",marginTop:"14px",flexWrap:"wrap",alignItems:"flex-start"}}>
+            <div style={{display:"flex",gap:"8px",flex:1,flexWrap:"wrap"}}>
+              {[[years.length,"Temporadas"],[new Set(selected.players.map(({player})=>player.id_jugadora)).size,"Jugadoras únicas"],[selected.players.length,"Apariciones"]].map(([v,l])=>(
+                <div key={l} style={{background:"#f8fafc",borderRadius:"10px",padding:"8px 12px",textAlign:"center",minWidth:"70px"}}>
+                  <div style={{fontSize:"16px",fontWeight:800,color:"#1e293b"}}>{v}</div>
+                  <div style={{fontSize:"10px",color:"#94a3b8",marginTop:"1px"}}>{l}</div>
+                </div>
+              ))}
+            </div>
+            {(()=>{
+              const staff=(tempCoach||[]).filter(tc=>tc.id_equipo===eq.id_equipo&&tc.temporada===effectiveYear).sort((a,b)=>(a.orden||0)-(b.orden||0));
+              if(!staff.length)return null;
+              return(
+                <div style={{display:"flex",gap:"8px",flexShrink:0}}>
+                  {staff.map((tc,i)=>{
+                    const coach=coachMap[tc.id_coach];
+                    if(!coach)return null;
+                    return(
+                      <div key={i} onClick={()=>onGoToCoach(coach.id_coach)}
+                        style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"3px",cursor:"pointer",padding:"5px 8px",borderRadius:"10px",background:"#f8fafc",border:"1.5px solid #e2e8f0",transition:"all 0.15s"}}
+                        onMouseEnter={e=>{e.currentTarget.style.borderColor="#93c5fd";e.currentTarget.style.background="#eff6ff";}}
+                        onMouseLeave={e=>{e.currentTarget.style.borderColor="#e2e8f0";e.currentTarget.style.background="#f8fafc";}}>
+                        <Avatar photo={coach.foto} name={coach.nombre} size={36} fontSize={13}/>
+                        <span style={{fontSize:"9px",color:"#94a3b8",fontWeight:600}}>Coach</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
-          {(()=>{
-            const staff=(tempCoach||[]).filter(tc=>tc.id_equipo===eq.id_equipo&&tc.temporada===effectiveYear).sort((a,b)=>(a.orden||0)-(b.orden||0));
-            if(!staff.length)return null;
-            return(
-              <div style={{display:"flex",gap:"10px",marginTop:"14px",flexWrap:"wrap"}}>
-                {staff.map((tc,i)=>{
-                  const coach=coachMap[tc.id_coach];
-                  if(!coach)return null;
-                  return(
-                    <div key={i} onClick={()=>onGoToCoach(coach.id_coach)}
-                      style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"4px",cursor:"pointer",padding:"6px 10px",borderRadius:"12px",background:"#f8fafc",border:"1.5px solid #e2e8f0",transition:"all 0.15s"}}
-                      onMouseEnter={e=>{e.currentTarget.style.borderColor="#93c5fd";e.currentTarget.style.background="#eff6ff";}}
-                      onMouseLeave={e=>{e.currentTarget.style.borderColor="#e2e8f0";e.currentTarget.style.background="#f8fafc";}}>
-                      <Avatar photo={coach.foto} name={coach.nombre} size={44} fontSize={16}/>
-                      <span style={{fontSize:"10px",color:"#94a3b8",fontWeight:600}}>Coach</span>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
         </div>
         <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px",flexWrap:"wrap",gap:"10px"}}>
