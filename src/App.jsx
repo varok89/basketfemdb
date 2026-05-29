@@ -568,6 +568,27 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
               </div>
             ))}
           </div>
+          {(()=>{
+            const staff=(tempCoach||[]).filter(tc=>tc.id_equipo===eq.id_equipo&&tc.temporada===effectiveYear).sort((a,b)=>(a.orden||0)-(b.orden||0));
+            if(!staff.length)return null;
+            return(
+              <div style={{display:"flex",gap:"10px",marginTop:"14px",flexWrap:"wrap"}}>
+                {staff.map((tc,i)=>{
+                  const coach=coachMap[tc.id_coach];
+                  if(!coach)return null;
+                  return(
+                    <div key={i} onClick={()=>onGoToCoach(coach.id_coach)}
+                      style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"4px",cursor:"pointer",padding:"6px 10px",borderRadius:"12px",background:"#f8fafc",border:"1.5px solid #e2e8f0",transition:"all 0.15s"}}
+                      onMouseEnter={e=>{e.currentTarget.style.borderColor="#93c5fd";e.currentTarget.style.background="#eff6ff";}}
+                      onMouseLeave={e=>{e.currentTarget.style.borderColor="#e2e8f0";e.currentTarget.style.background="#f8fafc";}}>
+                      <Avatar photo={coach.foto} name={coach.nombre} size={44} fontSize={16}/>
+                      <span style={{fontSize:"10px",color:"#94a3b8",fontWeight:600}}>Coach</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
         <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px",flexWrap:"wrap",gap:"10px"}}>
@@ -593,40 +614,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
               ))}
             </div>}
         </div>
-        {(()=>{
-          const staff=(tempCoach||[]).filter(tc=>tc.id_equipo===eq.id_equipo&&tc.temporada===effectiveYear).sort((a,b)=>(a.orden||0)-(b.orden||0));
-          if(!staff.length)return null;
-          return(
-            <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginTop:"14px"}}>
-              <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:"0 0 14px"}}>🎽 Cuerpo técnico <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({staff.length})</span></h2>
-              <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
-                {staff.map((tc,i)=>{
-                  const coach=coachMap[tc.id_coach];
-                  if(!coach)return null;
-                  const isPlayer=!!coach.id_jugadora;
-                  return(
-                    <div key={i} onClick={()=>onGoToCoach(coach.id_coach)}
-                      style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",background:"#f8fafc",borderRadius:"12px",border:"1.5px solid #e2e8f0",cursor:"pointer",transition:"all 0.15s"}}
-                      onMouseEnter={e=>{e.currentTarget.style.borderColor="#93c5fd";e.currentTarget.style.background="#eff6ff";}}
-                      onMouseLeave={e=>{e.currentTarget.style.borderColor="#e2e8f0";e.currentTarget.style.background="#f8fafc";}}>
-                      <Avatar photo={coach.foto} name={coach.nombre} size={44} fontSize={16}/>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b",display:"flex",alignItems:"center",gap:"6px"}}>
-                          {coach.nombre}
-                          {isPlayer&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"10px",fontWeight:700,padding:"2px 7px",borderRadius:"20px"}}>ex jugadora</span>}
-                        </div>
-                        <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"3px"}}>
-                          {coach.nacionalidad&&<FlagImg country={coach.nacionalidad}/>}
-                          {coach.nacionalidad2&&<FlagImg country={coach.nacionalidad2}/>}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })()}
+
         {(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length>0&&(
           <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginTop:"14px"}}>
             <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:"0 0 14px"}}>🏆 Palmarés <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length})</span></h2>
