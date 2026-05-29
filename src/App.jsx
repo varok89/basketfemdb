@@ -417,7 +417,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
                               <div style={{display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
                                 <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{s.temporada} · </span>
                                 <span style={{color:isCoach?"#3b82f6":"#f97316",fontWeight:700,textDecoration:"underline"}}>{eq?.nombre||s.id_equipo}</span>
-                                {isCoach&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"10px",fontWeight:700,padding:"1px 6px",borderRadius:"20px"}}>🎽 Entrenadora</span>}
+                                {isCoach&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"10px",fontWeight:700,padding:"1px 6px",borderRadius:"20px"}}>🎽 Coach</span>}
                               </div>
                               <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{eq?.pais&&<FlagImg country={eq.pais}/>}{lig?.nombre||s.id_liga}</div>
                             </div>
@@ -929,7 +929,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,onGoToPlayer,onGoT
                                   <div style={{display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
                                     <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{s.temporada} · </span>
                                     <span style={{color:isCoach?"#3b82f6":"#f97316",fontWeight:700,textDecoration:"underline"}}>{eq?.nombre||s.id_equipo}</span>
-                                    {isCoach&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"10px",fontWeight:700,padding:"1px 6px",borderRadius:"20px"}}>🎽 Entrenadora</span>}
+                                    {isCoach&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"10px",fontWeight:700,padding:"1px 6px",borderRadius:"20px"}}>🎽 Coach</span>}
                                   </div>
                                   <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{eq?.pais&&<FlagImg country={eq.pais}/>}{lig?.nombre||s.id_liga}</div>
                                 </div>
