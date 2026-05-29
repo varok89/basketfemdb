@@ -966,39 +966,6 @@ export default function App(){
         <strong>Error de conexión</strong><br/>{error}
         <button onClick={loadAll} style={{marginTop:"16px",background:"#ef4444",color:"#fff",border:"none",borderRadius:"8px",padding:"10px 20px",cursor:"pointer",fontWeight:700,fontSize:"13px",display:"block",margin:"16px auto 0"}}>Reintentar</button>
       </div>
-    {(()=>{
-      const coachRecord=(coaches||[]).find(c=>String(c.id_jugadora)===String(selected.id_jugadora));
-      if(!coachRecord)return null;
-      const coachSeasons=(tempCoach||[]).filter(tc=>tc.id_coach===coachRecord.id_coach).sort((a,b)=>b.temporada.localeCompare(a.temporada));
-      if(!coachSeasons.length)return null;
-      return(
-        <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
-          <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:"0 0 14px"}}>🎽 Como entrenadora <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({coachSeasons.length})</span></h2>
-          <div style={{position:"relative"}}>
-            <div style={{position:"absolute",left:"11px",top:"10px",bottom:"10px",width:"2px",background:"#bfdbfe"}}/>
-            <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
-              {coachSeasons.map((s,i)=>{
-                const eq=equipoMap[s.id_equipo],lig=ligaMap[s.id_liga];
-                return(
-                  <div key={s.id} style={{display:"flex",gap:"16px",alignItems:"flex-start",paddingLeft:"32px",position:"relative"}}>
-                    <div style={{position:"absolute",left:"6px",top:"14px",width:"12px",height:"12px",borderRadius:"50%",background:i===0?"#3b82f6":"#93c5fd",border:"3px solid #fff",boxShadow:`0 0 0 2px ${i===0?"#3b82f6":"#93c5fd"}`}}/>
-                    <div style={{flex:1,background:"#eff6ff",borderRadius:"12px",padding:"12px 14px",border:"1.5px solid #bfdbfe"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-                        <TeamBadge team={eq} size={30}/>
-                        <div>
-                          <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{s.temporada} · <span style={{color:"#3b82f6"}}>{eq?.nombre||s.id_equipo}</span></div>
-                          <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{eq?.pais&&<FlagImg country={eq.pais}/>}{lig?.nombre||s.id_liga}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      );
-    })()}
     </div>
   );
 
