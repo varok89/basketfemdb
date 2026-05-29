@@ -251,7 +251,7 @@ function SeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
   </div>);}
 
 /* ── PlayersView ─────────────────────────────────────────── */
-function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,onGoToTeam,openPlayerId,onClearPlayer}){
+function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,onGoToTeam,onGoToCoach,openPlayerId,onClearPlayer}){
   const [search,setSearch]         = useState("");
   const [filterPos,setFilterPos]   = useState("");
   const [filterNac,setFilterNac]   = useState("");
@@ -367,6 +367,16 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
               {selected.altura_cm&&<div style={{fontSize:"13px"}}><span style={{color:"#94a3b8"}}>Altura: </span><span style={{fontWeight:600,color:"#334155"}}>{selected.altura_cm} cm</span></div>}
               {selected.fecha_nac&&<div style={{fontSize:"13px"}}><span style={{color:"#94a3b8"}}>Edad: </span><span style={{fontWeight:600,color:"#334155"}}>{calcAge(selected.fecha_nac)} años</span></div>}
             </div>
+            {(()=>{
+              const coachRecord=(coaches||[]).find(c=>String(c.id_jugadora)===String(selected.id_jugadora));
+              if(!coachRecord)return null;
+              return(
+                <button onClick={()=>onGoToCoach(coachRecord.id_coach)}
+                  style={{marginTop:"12px",background:"#eff6ff",color:"#1d4ed8",border:"1.5px solid #bfdbfe",borderRadius:"20px",padding:"6px 16px",fontSize:"12px",fontWeight:700,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:"6px"}}>
+                  🎽 Ver como entrenadora
+                </button>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -888,14 +898,8 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,onGoToPlayer,onGoT
           <div style={{display:"flex",alignItems:"flex-start",gap:"20px",flexWrap:"wrap"}}>
             <Avatar photo={coach.foto} name={coach.nombre} size={80} fontSize={28}/>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"12px",marginBottom:"10px"}}>
+              <div style={{marginBottom:"10px"}}>
                 <h1 style={{fontWeight:800,fontSize:"21px",color:"#1e293b",margin:0}}>{coach.nombre}</h1>
-                {isExPlayer&&playerProfile&&(
-                  <button onClick={()=>onGoToPlayer(coach.id_jugadora)}
-                    style={{background:"#dbeafe",color:"#1d4ed8",border:"none",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,cursor:"pointer",flexShrink:0,whiteSpace:"nowrap"}}>
-                    👩‍🏀 Ver como jugadora
-                  </button>
-                )}
               </div>
               <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"10px"}}>
                 {isExPlayer&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"12px",fontWeight:700,padding:"3px 10px",borderRadius:"20px"}}>Ex jugadora</span>}
@@ -910,6 +914,12 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,onGoToPlayer,onGoT
                 {age&&<span>Edad: <strong style={{color:"#1e293b"}}>{age} años</strong></span>}
                 <span>Temporadas: <strong style={{color:"#1e293b"}}>{coachSeasons.length}</strong></span>
               </div>
+              {isExPlayer&&playerProfile&&(
+                <button onClick={()=>onGoToPlayer(coach.id_jugadora)}
+                  style={{marginTop:"12px",background:"#fff7ed",color:"#c2410c",border:"1.5px solid #fed7aa",borderRadius:"20px",padding:"6px 16px",fontSize:"12px",fontWeight:700,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:"6px"}}>
+                  👩‍🏀 Ver como jugadora
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1097,7 +1107,7 @@ export default function App(){
         </div>
       </div>
       <div style={{paddingTop:"8px"}}>
-        {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)}/>}
+        {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)}/>}
         {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}}/>}
         {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} onGoToTeam={goToTeam}/>}
         {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)}/>}
