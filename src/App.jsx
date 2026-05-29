@@ -251,7 +251,7 @@ function SeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
   </div>);}
 
 /* ── PlayersView ─────────────────────────────────────────── */
-function PlayersView({players,equipos,ligas,palmares,onReload,onGoToTeam,openPlayerId,onClearPlayer}){
+function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,onGoToTeam,openPlayerId,onClearPlayer}){
   const [search,setSearch]         = useState("");
   const [filterPos,setFilterPos]   = useState("");
   const [filterNac,setFilterNac]   = useState("");
@@ -414,6 +414,39 @@ function PlayersView({players,equipos,ligas,palmares,onReload,onGoToTeam,openPla
           </div>}
       </div>
 
+    {(()=>{
+      const coachRecord=(coaches||[]).find(c=>String(c.id_jugadora)===String(selected.id_jugadora));
+      if(!coachRecord)return null;
+      const coachSeasons=(tempCoach||[]).filter(tc=>tc.id_coach===coachRecord.id_coach).sort((a,b)=>b.temporada.localeCompare(a.temporada));
+      if(!coachSeasons.length)return null;
+      return(
+        <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
+          <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:"0 0 14px"}}>🎽 Como entrenadora <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({coachSeasons.length})</span></h2>
+          <div style={{position:"relative"}}>
+            <div style={{position:"absolute",left:"11px",top:"10px",bottom:"10px",width:"2px",background:"#bfdbfe"}}/>
+            <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
+              {coachSeasons.map((s,i)=>{
+                const eq=equipoMap[s.id_equipo],lig=ligaMap[s.id_liga];
+                return(
+                  <div key={s.id} style={{display:"flex",gap:"16px",alignItems:"flex-start",paddingLeft:"32px",position:"relative"}}>
+                    <div style={{position:"absolute",left:"6px",top:"14px",width:"12px",height:"12px",borderRadius:"50%",background:i===0?"#3b82f6":"#93c5fd",border:"3px solid #fff",boxShadow:`0 0 0 2px ${i===0?"#3b82f6":"#93c5fd"}`}}/>
+                    <div style={{flex:1,background:"#eff6ff",borderRadius:"12px",padding:"12px 14px",border:"1.5px solid #bfdbfe"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+                        <TeamBadge team={eq} size={30}/>
+                        <div>
+                          <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{s.temporada} · <span style={{color:"#3b82f6"}}>{eq?.nombre||s.id_equipo}</span></div>
+                          <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{eq?.pais&&<FlagImg country={eq.pais}/>}{lig?.nombre||s.id_liga}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    })()}
     </div>
   );
 
@@ -829,6 +862,51 @@ function LeaguesView({ligas,players,equipos,onGoToTeam}){
   );
 }
 
+/* ── CoachesView ────────────────────────────────────────── */
+function CoachesView({coaches,tempCoach,equipos,ligas,players}){
+  const [search,setSearch]=useState("");
+  const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
+  const ligaMap  =useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
+  const playerMap=useMemo(()=>{const m={};players.forEach(p=>m[String(p.id_jugadora)]=p);return m;},[players]);
+  const filtered=useMemo(()=>(coaches||[]).filter(c=>!search||c.nombre.toLowerCase().includes(search.toLowerCase())).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")),[coaches,search]);
+  return(
+    <div style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
+      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar entrenadora..."
+        style={{width:"100%",border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"14px",color:"#1e293b",outline:"none",background:"#fff",boxSizing:"border-box",marginBottom:"16px"}}/>
+      <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
+        {filtered.map(coach=>{
+          const coachSeasons=(tempCoach||[]).filter(tc=>tc.id_coach===coach.id_coach).sort((a,b)=>b.temporada.localeCompare(a.temporada));
+          const lastSeason=coachSeasons[0];
+          const lastEq=lastSeason?equipoMap[lastSeason.id_equipo]:null;
+          const isExPlayer=!!coach.id_jugadora;
+          return(
+            <div key={coach.id_coach} style={{background:"#fff",borderRadius:"16px",padding:"16px 20px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",display:"flex",alignItems:"center",gap:"14px"}}>
+              <Avatar photo={coach.foto} name={coach.nombre} size={52} fontSize={18}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}>
+                  <span style={{fontWeight:700,fontSize:"15px",color:"#1e293b"}}>{coach.nombre}</span>
+                  {isExPlayer&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"10px",fontWeight:700,padding:"2px 7px",borderRadius:"20px"}}>ex jugadora</span>}
+                </div>
+                <div style={{fontSize:"12px",color:"#94a3b8",marginTop:"3px",display:"flex",alignItems:"center",gap:"3px"}}>
+                  {coach.nacionalidad&&<FlagImg country={coach.nacionalidad}/>}
+                  {coach.nacionalidad2&&<FlagImg country={coach.nacionalidad2}/>}
+                </div>
+                {lastEq&&<div style={{fontSize:"12px",color:"#64748b",marginTop:"4px",display:"flex",alignItems:"center",gap:"6px"}}>
+                  <TeamBadge team={lastEq} size={18}/>{lastSeason.temporada} · {lastEq.nombre}
+                </div>}
+              </div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <div style={{fontWeight:700,fontSize:"18px",color:"#1e293b"}}>{coachSeasons.length}</div>
+                <div style={{fontSize:"11px",color:"#94a3b8"}}>temporadas</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ── App ─────────────────────────────────────────────────── */
 export default function App(){
   const [players,setPlayers] = useState([]);
@@ -873,7 +951,7 @@ export default function App(){
 
   useEffect(()=>{loadAll();},[]);
 
-  const TABS=[["jugadoras","👩‍🏀","Jugadoras"],["equipos","🏟️","Equipos"],["ligas","🏆","Ligas"]];
+  const TABS=[["jugadoras","👩‍🏀","Jugadoras"],["equipos","🏟️","Equipos"],["ligas","🏆","Ligas"],["cuerpo_tecnico","🎽","Cuerpo Técnico"]];
 
   if(loading) return(
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f1f5f9",fontFamily:"system-ui,sans-serif"}}>
@@ -888,6 +966,39 @@ export default function App(){
         <strong>Error de conexión</strong><br/>{error}
         <button onClick={loadAll} style={{marginTop:"16px",background:"#ef4444",color:"#fff",border:"none",borderRadius:"8px",padding:"10px 20px",cursor:"pointer",fontWeight:700,fontSize:"13px",display:"block",margin:"16px auto 0"}}>Reintentar</button>
       </div>
+    {(()=>{
+      const coachRecord=(coaches||[]).find(c=>String(c.id_jugadora)===String(selected.id_jugadora));
+      if(!coachRecord)return null;
+      const coachSeasons=(tempCoach||[]).filter(tc=>tc.id_coach===coachRecord.id_coach).sort((a,b)=>b.temporada.localeCompare(a.temporada));
+      if(!coachSeasons.length)return null;
+      return(
+        <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
+          <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:"0 0 14px"}}>🎽 Como entrenadora <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({coachSeasons.length})</span></h2>
+          <div style={{position:"relative"}}>
+            <div style={{position:"absolute",left:"11px",top:"10px",bottom:"10px",width:"2px",background:"#bfdbfe"}}/>
+            <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
+              {coachSeasons.map((s,i)=>{
+                const eq=equipoMap[s.id_equipo],lig=ligaMap[s.id_liga];
+                return(
+                  <div key={s.id} style={{display:"flex",gap:"16px",alignItems:"flex-start",paddingLeft:"32px",position:"relative"}}>
+                    <div style={{position:"absolute",left:"6px",top:"14px",width:"12px",height:"12px",borderRadius:"50%",background:i===0?"#3b82f6":"#93c5fd",border:"3px solid #fff",boxShadow:`0 0 0 2px ${i===0?"#3b82f6":"#93c5fd"}`}}/>
+                    <div style={{flex:1,background:"#eff6ff",borderRadius:"12px",padding:"12px 14px",border:"1.5px solid #bfdbfe"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+                        <TeamBadge team={eq} size={30}/>
+                        <div>
+                          <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{s.temporada} · <span style={{color:"#3b82f6"}}>{eq?.nombre||s.id_equipo}</span></div>
+                          <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{eq?.pais&&<FlagImg country={eq.pais}/>}{lig?.nombre||s.id_liga}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    })()}
     </div>
   );
 
@@ -911,9 +1022,10 @@ export default function App(){
         </div>
       </div>
       <div style={{paddingTop:"8px"}}>
-        {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} onReload={loadAll} onGoToTeam={goToTeam} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)}/>}
+        {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)}/>}
         {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} openTeamId={openTeamId} onClearTeam={()=>setOpenTeamId(null)}/>}
         {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} onGoToTeam={goToTeam}/>}
+        {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players}/>}
       </div>
     </div>
   );
