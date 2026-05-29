@@ -986,39 +986,67 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,onGoToPlayer,onGoT
   }
 
   /* ── LIST ── */
+  const [filterNac,setFilterNac]=useState("");
+  const [filterLiga,setFilterLiga]=useState("");
+  const allNacs=useMemo(()=>[...new Set((coaches||[]).flatMap(c=>[c.nacionalidad,c.nacionalidad2]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es")),[coaches]);
+  const allLigas=useMemo(()=>[...new Set((tempCoach||[]).map(tc=>ligaMap[tc.id_liga]?.nombre).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es")),[tempCoach,ligaMap]);
+  const filteredList=useMemo(()=>filtered.filter(coach=>{
+    if(filterNac&&coach.nacionalidad!==filterNac&&coach.nacionalidad2!==filterNac)return false;
+    if(filterLiga&&!(tempCoach||[]).some(tc=>tc.id_coach===coach.id_coach&&ligaMap[tc.id_liga]?.nombre===filterLiga))return false;
+    return true;
+  }),[filtered,filterNac,filterLiga,tempCoach,ligaMap]);
+
   return(
-    <div style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
-      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar entrenadora/or..."
-        style={{width:"100%",border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"14px",color:"#1e293b",outline:"none",background:"#fff",boxSizing:"border-box",marginBottom:"16px"}}/>
-      <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
-        {filtered.map(coach=>{
+    <div style={{maxWidth:"1000px",margin:"0 auto",padding:"20px"}}>
+      <div style={{display:"flex",gap:"10px",marginBottom:"14px",flexWrap:"wrap"}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Nombre, equipo..."
+          style={{flex:1,minWidth:"180px",border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"14px",color:"#1e293b",outline:"none",background:"#fff"}}/>
+        <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}} value={filterLiga} onChange={e=>setFilterLiga(e.target.value)}>
+          <option value="">Todas las ligas</option>
+          {allLigas.map(l=><option key={l} value={l}>{l}</option>)}
+        </select>
+        <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}} value={filterNac} onChange={e=>setFilterNac(e.target.value)}>
+          <option value="">Todas las nacionalidades</option>
+          {allNacs.map(n=><option key={n} value={n}>{n}</option>)}
+        </select>
+      </div>
+      <div style={{fontSize:"13px",color:"#94a3b8",marginBottom:"12px"}}>{filteredList.length} entrenador{filteredList.length!==1?"es":"a"}</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:"12px"}}>
+        {filteredList.map(coach=>{
           const coachSeasons=(tempCoach||[]).filter(tc=>tc.id_coach===coach.id_coach).sort((a,b)=>b.temporada.localeCompare(a.temporada));
           const lastSeason=coachSeasons[0];
           const lastEq=lastSeason?equipoMap[lastSeason.id_equipo]:null;
+          const lastLig=lastSeason?ligaMap[lastSeason.id_liga]:null;
           const isExPlayer=!!coach.id_jugadora;
           return(
             <div key={coach.id_coach} onClick={()=>setSelId(coach.id_coach)}
-              style={{background:"#fff",borderRadius:"16px",padding:"16px 20px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",display:"flex",alignItems:"center",gap:"14px",cursor:"pointer",transition:"all 0.15s"}}
-              onMouseEnter={e=>{e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,0.12)";e.currentTarget.style.transform="translateY(-1px)";}}
-              onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 1px 6px rgba(0,0,0,0.07)";e.currentTarget.style.transform="none";}}>
-              <Avatar photo={coach.foto} name={coach.nombre} size={52} fontSize={18}/>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}>
-                  <span style={{fontWeight:700,fontSize:"15px",color:"#1e293b"}}>{coach.nombre}</span>
-                  {isExPlayer&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"10px",fontWeight:700,padding:"2px 7px",borderRadius:"20px"}}>ex jugadora</span>}
+              style={{background:"#fff",borderRadius:"16px",padding:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",cursor:"pointer",border:"2px solid transparent",transition:"all 0.15s"}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor="#3b82f6";e.currentTarget.style.boxShadow="0 4px 18px rgba(59,130,246,0.18)";}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor="transparent";e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.06)";}}>
+              <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"12px"}}>
+                <Avatar photo={coach.foto} name={coach.nombre} size={48} fontSize={18}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:700,fontSize:"15px",color:"#1e293b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{coach.nombre}</div>
+                  <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"1px",display:"flex",alignItems:"center",gap:"3px"}}>
+                    {coach.nacionalidad&&<FlagImg country={coach.nacionalidad}/>}
+                    {coach.nacionalidad2&&<FlagImg country={coach.nacionalidad2}/>}
+                  </div>
                 </div>
-                <div style={{fontSize:"12px",color:"#94a3b8",marginTop:"3px",display:"flex",alignItems:"center",gap:"3px"}}>
-                  {coach.nacionalidad&&<FlagImg country={coach.nacionalidad}/>}
-                  {coach.nacionalidad2&&<FlagImg country={coach.nacionalidad2}/>}
-                </div>
-                {lastEq&&<div style={{fontSize:"12px",color:"#64748b",marginTop:"4px",display:"flex",alignItems:"center",gap:"6px"}}>
-                  <TeamBadge team={lastEq} size={18}/>{lastSeason.temporada} · {lastEq.nombre}
-                </div>}
+                {isExPlayer&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"10px",fontWeight:700,padding:"2px 7px",borderRadius:"20px",flexShrink:0}}>ex jugadora</span>}
               </div>
-              <div style={{textAlign:"right",flexShrink:0}}>
-                <div style={{fontWeight:700,fontSize:"18px",color:"#1e293b"}}>{coachSeasons.length}</div>
-                <div style={{fontSize:"11px",color:"#94a3b8"}}>temporadas</div>
+              <div style={{borderTop:"1px solid #f1f5f9",paddingTop:"10px"}}>
+                {lastEq?(<>
+                  <div style={{fontSize:"11px",color:"#94a3b8",marginBottom:"4px"}}>Último equipo</div>
+                  <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                    <TeamBadge team={lastEq} size={26}/>
+                    <div>
+                      <div style={{fontSize:"13px",fontWeight:600,color:"#334155"}}>{lastSeason.temporada} · {lastEq.nombre}</div>
+                      <div style={{fontSize:"11px",color:"#94a3b8"}}>{lastLig?.nombre||lastSeason.id_liga}</div>
+                    </div>
+                  </div>
+                </>):<div style={{fontSize:"12px",color:"#cbd5e1",fontStyle:"italic"}}>Sin temporadas</div>}
               </div>
+              <div style={{marginTop:"10px",fontSize:"12px",color:"#3b82f6",fontWeight:600}}>{coachSeasons.length} temporada{coachSeasons.length!==1?"s":""}</div>
             </div>
           );
         })}
