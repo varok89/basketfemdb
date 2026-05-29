@@ -921,7 +921,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,onGoToPlayer,onGoT
                 {isExPlayer&&playerProfile&&(
                   <button onClick={()=>onGoToPlayer(coach.id_jugadora)}
                     style={{background:"#fff7ed",color:"#c2410c",border:"1.5px solid #fed7aa",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:"4px",flexShrink:0}}>
-                    Jugadora
+                    🏀 Jugadora
                   </button>
                 )}
               </div>
