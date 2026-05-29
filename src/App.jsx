@@ -98,6 +98,7 @@ const COUNTRY_CODES = {
   "ivory coast":"ci","costa de marfil":"ci","south korea":"kr","corea del sur":"kr",
   "japan":"jp","ethiopia":"et","etiopía":"et",
   "camerun":"cm","camerún":"cm","cameroon":"cm",
+  "bosnia":"ba","bosnia y herzegovina":"ba","bosnia-herzegovina":"ba","bosnia and herzegovina":"ba",
 };
 
 function countryCode(c) {
