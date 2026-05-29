@@ -583,7 +583,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
               ))}
             </div>
             {(()=>{
-              const staff=(tempCoach||[]).filter(tc=>tc.id_equipo===eq.id_equipo&&tc.temporada===effectiveYear).sort((a,b)=>(a.orden||0)-(b.orden||0));
+              const staff=(tempCoach||[]).filter(tc=>tc.id_equipo===eq.id_equipo&&tc.temporada===effectiveYear).sort((a,b)=>parseInt(a.orden||0)-parseInt(b.orden||0));
               if(!staff.length)return null;
               const lastIdx=staff.length-1;
               return(
