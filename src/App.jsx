@@ -879,11 +879,20 @@ function LeaguesView({ligas,players,equipos,onGoToTeam}){
 function CoachesView({coaches,tempCoach,equipos,ligas,players,onGoToPlayer,onGoToTeam,openCoachId,onClearCoach}){
   const [search,setSearch]=useState("");
   const [selId,setSelId]  =useState(openCoachId||null);
+  const [filterNac,setFilterNac]=useState("");
+  const [filterLiga,setFilterLiga]=useState("");
   useEffect(()=>{if(openCoachId){setSelId(openCoachId);onClearCoach();}},[openCoachId]);
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap  =useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
   const playerMap=useMemo(()=>{const m={};players.forEach(p=>m[String(p.id_jugadora)]=p);return m;},[players]);
   const filtered=useMemo(()=>(coaches||[]).filter(c=>!search||c.nombre.toLowerCase().includes(search.toLowerCase())).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")),[coaches,search]);
+  const allNacs=useMemo(()=>[...new Set((coaches||[]).flatMap(c=>[c.nacionalidad,c.nacionalidad2]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es")),[coaches]);
+  const allLigas=useMemo(()=>[...new Set((tempCoach||[]).map(tc=>ligaMap[tc.id_liga]?.nombre).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es")),[tempCoach,ligaMap]);
+  const filteredList=useMemo(()=>filtered.filter(coach=>{
+    if(filterNac&&coach.nacionalidad!==filterNac&&coach.nacionalidad2!==filterNac)return false;
+    if(filterLiga&&!(tempCoach||[]).some(tc=>tc.id_coach===coach.id_coach&&ligaMap[tc.id_liga]?.nombre===filterLiga))return false;
+    return true;
+  }),[filtered,filterNac,filterLiga,tempCoach,ligaMap]);
 
   /* ── DETAIL ── */
   if(selId){
@@ -986,16 +995,6 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,onGoToPlayer,onGoT
   }
 
   /* ── LIST ── */
-  const [filterNac,setFilterNac]=useState("");
-  const [filterLiga,setFilterLiga]=useState("");
-  const allNacs=useMemo(()=>[...new Set((coaches||[]).flatMap(c=>[c.nacionalidad,c.nacionalidad2]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es")),[coaches]);
-  const allLigas=useMemo(()=>[...new Set((tempCoach||[]).map(tc=>ligaMap[tc.id_liga]?.nombre).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es")),[tempCoach,ligaMap]);
-  const filteredList=useMemo(()=>filtered.filter(coach=>{
-    if(filterNac&&coach.nacionalidad!==filterNac&&coach.nacionalidad2!==filterNac)return false;
-    if(filterLiga&&!(tempCoach||[]).some(tc=>tc.id_coach===coach.id_coach&&ligaMap[tc.id_liga]?.nombre===filterLiga))return false;
-    return true;
-  }),[filtered,filterNac,filterLiga,tempCoach,ligaMap]);
-
   return(
     <div style={{maxWidth:"1000px",margin:"0 auto",padding:"20px"}}>
       <div style={{display:"flex",gap:"10px",marginBottom:"14px",flexWrap:"wrap"}}>
