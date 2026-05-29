@@ -515,7 +515,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
 }
 
 /* ── TeamsView ───────────────────────────────────────────── */
-function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlayer,openTeamId,onClearTeam}){
+function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlayer,onGoToCoach,openTeamId,onClearTeam}){
   const [search,setSearch]             = useState("");
   const [filterLeague,setFilterLeague] = useState("");
   const [filterSeason,setFilterSeason] = useState(null);
@@ -620,7 +620,10 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
                   if(!coach)return null;
                   const isPlayer=!!coach.id_jugadora;
                   return(
-                    <div key={i} style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",background:"#f8fafc",borderRadius:"12px",border:"1.5px solid #e2e8f0"}}>
+                    <div key={i} onClick={()=>onGoToCoach(coach.id_coach)}
+                      style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",background:"#f8fafc",borderRadius:"12px",border:"1.5px solid #e2e8f0",cursor:"pointer",transition:"all 0.15s"}}
+                      onMouseEnter={e=>{e.currentTarget.style.borderColor="#93c5fd";e.currentTarget.style.background="#eff6ff";}}
+                      onMouseLeave={e=>{e.currentTarget.style.borderColor="#e2e8f0";e.currentTarget.style.background="#f8fafc";}}>
                       <Avatar photo={coach.foto} name={coach.nombre} size={44} fontSize={16}/>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b",display:"flex",alignItems:"center",gap:"6px"}}>
@@ -863,9 +866,10 @@ function LeaguesView({ligas,players,equipos,onGoToTeam}){
 }
 
 /* ── CoachesView ────────────────────────────────────────── */
-function CoachesView({coaches,tempCoach,equipos,ligas,players,onGoToPlayer,onGoToTeam}){
+function CoachesView({coaches,tempCoach,equipos,ligas,players,onGoToPlayer,onGoToTeam,openCoachId,onClearCoach}){
   const [search,setSearch]=useState("");
-  const [selId,setSelId]  =useState(null);
+  const [selId,setSelId]  =useState(openCoachId||null);
+  useEffect(()=>{if(openCoachId){setSelId(openCoachId);onClearCoach();}},[openCoachId]);
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap  =useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
   const playerMap=useMemo(()=>{const m={};players.forEach(p=>m[String(p.id_jugadora)]=p);return m;},[players]);
@@ -1002,9 +1006,11 @@ export default function App(){
   const [tab,setTab]         = useState("jugadoras");
   const [openPlayerId,setOpenPlayerId] = useState(null);
   const [openTeamId,setOpenTeamId]     = useState(null);
+  const [openCoachId,setOpenCoachId]   = useState(null);
 
   const goToTeam   = id=>{setOpenTeamId(id);setOpenPlayerId(null);setTab("equipos");};
   const goToPlayer = id=>{setOpenPlayerId(id);setOpenTeamId(null);setTab("jugadoras");};
+  const goToCoach  = id=>{setOpenCoachId(id);setTab("cuerpo_tecnico");};
 
   const loadAll = async()=>{
     setLoading(true);setError(null);
@@ -1072,9 +1078,9 @@ export default function App(){
       </div>
       <div style={{paddingTop:"8px"}}>
         {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)}/>}
-        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} openTeamId={openTeamId} onClearTeam={()=>setOpenTeamId(null)}/>}
+        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} openTeamId={openTeamId} onClearTeam={()=>setOpenTeamId(null)}/>}
         {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} onGoToTeam={goToTeam}/>}
-        {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam}/>}
+        {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)}/>}
       </div>
     </div>
   );
