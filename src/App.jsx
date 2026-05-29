@@ -945,6 +945,8 @@ export default function App(){
       setPalmares(rP.data||[]);
       setCoaches(rC.data||[]);
       setTempCoach(rTC.data||[]);
+      console.log("COACHES:", rC.data);
+      console.log("TEMP_COACH:", rTC.data);
     }catch(e){setError(e.message||"Error cargando datos");}
     setLoading(false);
   };
