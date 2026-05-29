@@ -252,6 +252,7 @@ function SeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
 function PlayersView({players,equipos,ligas,palmares,onReload,onGoToTeam,openPlayerId,onClearPlayer}){
   const [search,setSearch]         = useState("");
   const [filterPos,setFilterPos]   = useState("");
+  const [filterNac,setFilterNac]   = useState("");
   const [selId,setSelId]           = useState(openPlayerId||null);
   const [modal,setModal]           = useState(null);
   const [editSeason,setEditSeason] = useState(null);
@@ -286,10 +287,12 @@ function PlayersView({players,equipos,ligas,palmares,onReload,onGoToTeam,openPla
     return currentTipo ? all.filter(s=>ligaMap[s.id_liga]?.tipo===currentTipo) : all;
   },[selected,currentTipo,ligaMap]);
 
+  const allNacs = useMemo(()=>[...new Set(players.flatMap(p=>[p.nacionalidad,p.nacionalidad2]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es")),[players]);
   const filtered = players.filter(p=>{
     const q=search.toLowerCase();
     return(!q||p.nombre?.toLowerCase().includes(q)||p.id_jugadora?.toLowerCase().includes(q)||p.nacionalidad?.toLowerCase().includes(q)||p.seasons?.some(s=>equipoMap[s.id_equipo]?.nombre?.toLowerCase().includes(q)))
-      &&(!filterPos||p.posicion===filterPos||p.posicion2===filterPos);
+      &&(!filterPos||p.posicion===filterPos||p.posicion2===filterPos)
+      &&(!filterNac||p.nacionalidad===filterNac||p.nacionalidad2===filterNac);
   }).sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"));
 
   const addPlayer=async f=>{
@@ -429,6 +432,10 @@ function PlayersView({players,equipos,ligas,palmares,onReload,onGoToTeam,openPla
         <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}} value={filterPos} onChange={e=>setFilterPos(e.target.value)}>
           <option value="">Todas las posiciones</option>
           {POSITIONS.map(p=><option key={p}>{p}</option>)}
+        </select>
+        <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}} value={filterNac} onChange={e=>setFilterNac(e.target.value)}>
+          <option value="">Todas las nacionalidades</option>
+          {allNacs.map(n=><option key={n} value={n}>{n}</option>)}
         </select>
       </div>
       <div style={{fontSize:"13px",color:"#94a3b8",marginBottom:"12px"}}>{filtered.length} jugadora{filtered.length!==1?"s":""}</div>
