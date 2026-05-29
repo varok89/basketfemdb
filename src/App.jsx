@@ -585,18 +585,21 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
             {(()=>{
               const staff=(tempCoach||[]).filter(tc=>tc.id_equipo===eq.id_equipo&&tc.temporada===effectiveYear).sort((a,b)=>(a.orden||0)-(b.orden||0));
               if(!staff.length)return null;
+              const lastIdx=staff.length-1;
               return(
-                <div style={{display:"flex",gap:"8px",flexShrink:0}}>
+                <div style={{display:"flex",gap:"8px",flexShrink:0,alignItems:"flex-end"}}>
                   {staff.map((tc,i)=>{
                     const coach=coachMap[tc.id_coach];
                     if(!coach)return null;
+                    const isLast=i===lastIdx;
+                    const sz=isLast?52:36;
                     return(
                       <div key={i} onClick={()=>onGoToCoach(coach.id_coach)}
-                        style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"3px",cursor:"pointer",padding:"5px 8px",borderRadius:"10px",background:"#f8fafc",border:"1.5px solid #e2e8f0",transition:"all 0.15s"}}
-                        onMouseEnter={e=>{e.currentTarget.style.borderColor="#93c5fd";e.currentTarget.style.background="#eff6ff";}}
-                        onMouseLeave={e=>{e.currentTarget.style.borderColor="#e2e8f0";e.currentTarget.style.background="#f8fafc";}}>
-                        <Avatar photo={coach.foto} name={coach.nombre} size={36} fontSize={13}/>
-                        <span style={{fontSize:"9px",color:"#94a3b8",fontWeight:600}}>Coach</span>
+                        style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"3px",cursor:"pointer",padding:isLast?"7px 10px":"5px 8px",borderRadius:"10px",background:isLast?"#eff6ff":"#f8fafc",border:`1.5px solid ${isLast?"#93c5fd":"#e2e8f0"}`,transition:"all 0.15s"}}
+                        onMouseEnter={e=>{e.currentTarget.style.borderColor="#3b82f6";e.currentTarget.style.background="#dbeafe";}}
+                        onMouseLeave={e=>{e.currentTarget.style.borderColor=isLast?"#93c5fd":"#e2e8f0";e.currentTarget.style.background=isLast?"#eff6ff":"#f8fafc";}}>
+                        <Avatar photo={coach.foto} name={coach.nombre} size={sz} fontSize={isLast?18:13}/>
+                        <span style={{fontSize:"9px",color:isLast?"#3b82f6":"#94a3b8",fontWeight:700}}>Coach</span>
                       </div>
                     );
                   })}
@@ -876,7 +879,7 @@ function LeaguesView({ligas,players,equipos,onGoToTeam}){
 }
 
 /* ── CoachesView ────────────────────────────────────────── */
-function CoachesView({coaches,tempCoach,equipos,ligas,players,onGoToPlayer,onGoToTeam,openCoachId,onClearCoach}){
+function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPlayer,onGoToTeam,openCoachId,onClearCoach}){
   const [search,setSearch]=useState("");
   const [selId,setSelId]  =useState(openCoachId||null);
   const [filterNac,setFilterNac]=useState("");
@@ -910,8 +913,22 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,onGoToPlayer,onGoT
           <div style={{display:"flex",alignItems:"flex-start",gap:"20px",flexWrap:"wrap"}}>
             <Avatar photo={coach.foto} name={coach.nombre} size={80} fontSize={28}/>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{marginBottom:"10px"}}>
+              <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"12px",marginBottom:"10px"}}>
                 <h1 style={{fontWeight:800,fontSize:"21px",color:"#1e293b",margin:0}}>{coach.nombre}</h1>
+                {(()=>{
+                  const titles={};const seen=new Set();
+                  const uniquePairs=[...new Map(coachSeasons.map(s=>[s.id_equipo+"_"+s.temporada,s])).values()];
+                  uniquePairs.forEach(s=>{
+                    (palmares||[]).filter(p=>p.id_equipo===s.id_equipo&&p.temporada===s.temporada).forEach(p=>{
+                      if(seen.has(p.id))return;seen.add(p.id);
+                      const n=ligaMap[p.id_liga]?.nombre||p.id_liga;
+                      titles[n]=(titles[n]||0)+1;
+                    });
+                  });
+                  const entries=Object.entries(titles);
+                  if(!entries.length)return null;
+                  return(<div style={{display:"flex",flexDirection:"column",gap:"4px",alignItems:"flex-end",flexShrink:0}}>{entries.map(([n,c])=>(<span key={n} style={{background:"#fffbeb",border:"1.5px solid #fed7aa",color:"#b45309",fontSize:"11px",fontWeight:700,padding:"3px 8px",borderRadius:"20px",whiteSpace:"nowrap"}}>🏆 {c}x {n}</span>))}</div>);
+                })()}
               </div>
               <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"10px"}}>
                 {isExPlayer&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"12px",fontWeight:700,padding:"3px 10px",borderRadius:"20px"}}>Ex jugadora</span>}
@@ -1142,7 +1159,7 @@ export default function App(){
         {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)}/>}
         {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}}/>}
         {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} onGoToTeam={goToTeam}/>}
-        {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)}/>}
+        {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)}/>}
       </div>
     </div>
   );
