@@ -254,7 +254,8 @@ function SeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
 function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,onGoToTeam,onGoToCoach,openPlayerId,onClearPlayer}){
   const [search,setSearch]         = useState("");
   const [filterPos,setFilterPos]   = useState("");
-  const [filterNac,setFilterNac]   = useState("");
+  const [filterNacs,setFilterNacs] = useState(new Set());
+  const [filterLiga,setFilterLiga] = useState("");
   const [selId,setSelId]           = useState(openPlayerId||null);
   const [modal,setModal]           = useState(null);
   const [editSeason,setEditSeason] = useState(null);
@@ -290,11 +291,22 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   },[selected,currentTipo,ligaMap]);
 
   const allNacs = useMemo(()=>[...new Set(players.flatMap(p=>[p.nacionalidad,p.nacionalidad2]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es")),[players]);
+  const allLigasPlayer = useMemo(()=>{
+    const ligsSet=new Set();
+    players.forEach(p=>{
+      const lastS=[...(p.seasons||[])].sort((a,b)=>b.temporada.localeCompare(a.temporada))[0];
+      if(lastS){const l=ligaMap[lastS.id_liga];if(l?.nombre)ligsSet.add(l.nombre);}
+    });
+    return [...ligsSet].sort((a,b)=>a.localeCompare(b,"es"));
+  },[players,ligaMap]);
   const filtered = players.filter(p=>{
     const q=search.toLowerCase();
+    const lastS=[...(p.seasons||[])].sort((a,b)=>b.temporada.localeCompare(a.temporada))[0];
+    const lastLigNombre=lastS?ligaMap[lastS.id_liga]?.nombre:null;
     return(!q||p.nombre?.toLowerCase().includes(q)||p.id_jugadora?.toLowerCase().includes(q)||p.nacionalidad?.toLowerCase().includes(q)||p.seasons?.some(s=>equipoMap[s.id_equipo]?.nombre?.toLowerCase().includes(q)))
       &&(!filterPos||p.posicion===filterPos||p.posicion2===filterPos)
-      &&(!filterNac||p.nacionalidad===filterNac||p.nacionalidad2===filterNac);
+      &&(filterNacs.size===0||filterNacs.has(p.nacionalidad)||filterNacs.has(p.nacionalidad2))
+      &&(!filterLiga||lastLigNombre===filterLiga);
   }).sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"));
 
   const addPlayer=async f=>{
@@ -466,10 +478,32 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           <option value="">Todas las posiciones</option>
           {POSITIONS.map(p=><option key={p}>{p}</option>)}
         </select>
-        <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}} value={filterNac} onChange={e=>setFilterNac(e.target.value)}>
-          <option value="">Todas las nacionalidades</option>
-          {allNacs.map(n=><option key={n} value={n}>{n}</option>)}
+        <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}} value={filterLiga} onChange={e=>setFilterLiga(e.target.value)}>
+          <option value="">Todas las ligas</option>
+          {allLigasPlayer.map(l=><option key={l} value={l}>{l}</option>)}
         </select>
+      </div>
+      {filterNacs.size>0&&(
+        <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"8px"}}>
+          {[...filterNacs].map(n=>(
+            <span key={n} onClick={()=>setFilterNacs(prev=>{const s=new Set(prev);s.delete(n);return s;})}
+              style={{background:"#f97316",color:"#fff",fontSize:"12px",fontWeight:700,padding:"4px 10px",borderRadius:"20px",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:"4px"}}>
+              <FlagImg country={n}/>{n} ✕
+            </span>
+          ))}
+          <span onClick={()=>setFilterNacs(new Set())} style={{background:"#f1f5f9",color:"#64748b",fontSize:"12px",fontWeight:600,padding:"4px 10px",borderRadius:"20px",cursor:"pointer"}}>Limpiar</span>
+        </div>
+      )}
+      <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"12px"}}>
+        {allNacs.map(n=>{
+          const active=filterNacs.has(n);
+          return(
+            <span key={n} onClick={()=>setFilterNacs(prev=>{const s=new Set(prev);active?s.delete(n):s.add(n);return s;})}
+              style={{display:"inline-flex",alignItems:"center",gap:"3px",padding:"4px 10px",borderRadius:"20px",fontSize:"12px",fontWeight:600,cursor:"pointer",border:`1.5px solid ${active?"#f97316":"#e2e8f0"}`,background:active?"#fff7ed":"#f8fafc",color:active?"#f97316":"#64748b",transition:"all 0.15s"}}>
+              <FlagImg country={n}/>{n}
+            </span>
+          );
+        })}
       </div>
       <div style={{fontSize:"13px",color:"#94a3b8",marginBottom:"12px"}}>{filtered.length} jugadora{filtered.length!==1?"s":""}</div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:"12px"}}>
