@@ -256,6 +256,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   const [filterPos,setFilterPos]   = useState("");
   const [filterNacs,setFilterNacs] = useState(new Set());
   const [filterLiga,setFilterLiga] = useState("");
+  const [filterTemp,setFilterTemp] = useState("");
   const [selId,setSelId]           = useState(openPlayerId||null);
   const [modal,setModal]           = useState(null);
   const [editSeason,setEditSeason] = useState(null);
@@ -299,6 +300,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     });
     return [...ligsSet].sort((a,b)=>a.localeCompare(b,"es"));
   },[players,ligaMap]);
+  const allTemps = useMemo(()=>[...new Set(players.flatMap(p=>(p.seasons||[]).map(s=>s.temporada)).filter(Boolean))].sort((a,b)=>b.localeCompare(a)),[players]);
   const filtered = players.filter(p=>{
     const q=search.toLowerCase();
     const lastS=[...(p.seasons||[])].sort((a,b)=>b.temporada.localeCompare(a.temporada))[0];
@@ -306,7 +308,8 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     return(!q||p.nombre?.toLowerCase().includes(q)||p.id_jugadora?.toLowerCase().includes(q)||p.nacionalidad?.toLowerCase().includes(q)||p.seasons?.some(s=>equipoMap[s.id_equipo]?.nombre?.toLowerCase().includes(q)))
       &&(!filterPos||p.posicion===filterPos||p.posicion2===filterPos)
       &&(filterNacs.size===0||filterNacs.has(p.nacionalidad)||filterNacs.has(p.nacionalidad2))
-      &&(!filterLiga||lastLigNombre===filterLiga);
+      &&(!filterLiga||lastLigNombre===filterLiga)
+      &&(!filterTemp||(p.seasons||[]).some(s=>s.temporada===filterTemp));
   }).sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"));
 
   const addPlayer=async f=>{
@@ -482,29 +485,26 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           <option value="">Todas las ligas</option>
           {allLigasPlayer.map(l=><option key={l} value={l}>{l}</option>)}
         </select>
+        <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}} value={filterTemp} onChange={e=>setFilterTemp(e.target.value)}>
+          <option value="">Todas las temporadas</option>
+          {allTemps.map(t=><option key={t} value={t}>{t}</option>)}
+        </select>
+        <select multiple style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"6px 10px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none",minHeight:"42px",maxHeight:"42px"}}
+          onChange={e=>{const vals=new Set([...e.target.selectedOptions].map(o=>o.value));setFilterNacs(vals);}}>
+          {allNacs.map(n=><option key={n} value={n} selected={filterNacs.has(n)}>{n}</option>)}
+        </select>
       </div>
       {filterNacs.size>0&&(
-        <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"8px"}}>
+        <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"8px",alignItems:"center"}}>
+          <span style={{fontSize:"12px",color:"#64748b"}}>Nac.:</span>
           {[...filterNacs].map(n=>(
-            <span key={n} onClick={()=>setFilterNacs(prev=>{const s=new Set(prev);s.delete(n);return s;})}
-              style={{background:"#f97316",color:"#fff",fontSize:"12px",fontWeight:700,padding:"4px 10px",borderRadius:"20px",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:"4px"}}>
-              <FlagImg country={n}/>{n} ✕
-            </span>
-          ))}
-          <span onClick={()=>setFilterNacs(new Set())} style={{background:"#f1f5f9",color:"#64748b",fontSize:"12px",fontWeight:600,padding:"4px 10px",borderRadius:"20px",cursor:"pointer"}}>Limpiar</span>
-        </div>
-      )}
-      <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"12px"}}>
-        {allNacs.map(n=>{
-          const active=filterNacs.has(n);
-          return(
-            <span key={n} onClick={()=>setFilterNacs(prev=>{const s=new Set(prev);active?s.delete(n):s.add(n);return s;})}
-              style={{display:"inline-flex",alignItems:"center",gap:"3px",padding:"4px 10px",borderRadius:"20px",fontSize:"12px",fontWeight:600,cursor:"pointer",border:`1.5px solid ${active?"#f97316":"#e2e8f0"}`,background:active?"#fff7ed":"#f8fafc",color:active?"#f97316":"#64748b",transition:"all 0.15s"}}>
+            <span key={n} style={{background:"#fff7ed",border:"1.5px solid #fed7aa",color:"#f97316",fontSize:"11px",fontWeight:700,padding:"2px 8px",borderRadius:"20px",display:"inline-flex",alignItems:"center",gap:"3px"}}>
               <FlagImg country={n}/>{n}
             </span>
-          );
-        })}
-      </div>
+          ))}
+          <span onClick={()=>setFilterNacs(new Set())} style={{background:"#f1f5f9",color:"#64748b",fontSize:"11px",fontWeight:600,padding:"2px 8px",borderRadius:"20px",cursor:"pointer"}}>✕ Limpiar</span>
+        </div>
+      )}
       <div style={{fontSize:"13px",color:"#94a3b8",marginBottom:"12px"}}>{filtered.length} jugadora{filtered.length!==1?"s":""}</div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:"12px"}}>
         {filtered.map(p=>{
