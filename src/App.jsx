@@ -99,6 +99,10 @@ const COUNTRY_CODES = {
   "japan":"jp","ethiopia":"et","etiopía":"et",
   "camerun":"cm","camerún":"cm","cameroon":"cm",
   "bosnia":"ba","bosnia y herzegovina":"ba","bosnia-herzegovina":"ba","bosnia and herzegovina":"ba",
+  "georgia":"ge",
+  "kenia":"ke","kenya":"ke",
+  "nueva zelanda":"nz","new zealand":"nz",
+  "puerto rico":"pr",
 };
 
 function countryCode(c) {
