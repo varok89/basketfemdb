@@ -250,6 +250,43 @@ function SeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
     </div>
   </div>);}
 
+/* ── NacDropdown ────────────────────────────────────────── */
+function NacDropdown({allNacs,filterNacs,setFilterNacs}){
+  const [open,setOpen]=useState(false);
+  const ref=useRef();
+  useEffect(()=>{
+    const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
+    document.addEventListener("mousedown",h);return()=>document.removeEventListener("mousedown",h);
+  },[]);
+  const label=filterNacs.size===0?"Todas las nacionalidades":`${filterNacs.size} seleccionada${filterNacs.size>1?"s":""}`;
+  return(
+    <div ref={ref} style={{position:"relative",flexShrink:0}}>
+      <div onClick={()=>setOpen(o=>!o)} style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:filterNacs.size>0?"#f97316":"#475569",background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",whiteSpace:"nowrap",fontWeight:filterNacs.size>0?700:400,minWidth:"200px"}}>
+        {label}<span style={{marginLeft:"auto",fontSize:"10px"}}>▼</span>
+      </div>
+      {open&&(
+        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,zIndex:100,background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:"12px",boxShadow:"0 8px 24px rgba(0,0,0,0.12)",minWidth:"220px",maxHeight:"260px",overflowY:"auto",padding:"8px 0"}}>
+          <div onClick={()=>setFilterNacs(new Set())} style={{padding:"8px 14px",fontSize:"12px",color:"#94a3b8",cursor:"pointer",fontWeight:600,borderBottom:"1px solid #f1f5f9"}}>
+            Limpiar selección
+          </div>
+          {allNacs.map(n=>{
+            const checked=filterNacs.has(n);
+            return(
+              <label key={n} style={{display:"flex",alignItems:"center",gap:"8px",padding:"7px 14px",cursor:"pointer",background:checked?"#fff7ed":"transparent"}}
+                onMouseEnter={e=>e.currentTarget.style.background=checked?"#fff7ed":"#f8fafc"}
+                onMouseLeave={e=>e.currentTarget.style.background=checked?"#fff7ed":"transparent"}>
+                <input type="checkbox" checked={checked} onChange={()=>setFilterNacs(prev=>{const s=new Set(prev);checked?s.delete(n):s.add(n);return s;})} style={{accentColor:"#f97316",width:"14px",height:"14px",flexShrink:0}}/>
+                <FlagImg country={n}/>
+                <span style={{fontSize:"13px",color:"#1e293b",fontWeight:checked?600:400}}>{n}</span>
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── PlayersView ─────────────────────────────────────────── */
 function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,onGoToTeam,onGoToCoach,openPlayerId,onClearPlayer}){
   const [search,setSearch]         = useState("");
@@ -489,41 +526,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           <option value="">Todas las temporadas</option>
           {allTemps.map(t=><option key={t} value={t}>{t}</option>)}
         </select>
-        {(()=>{
-          const [open,setOpen]=React.useState(false);
-          const ref=React.useRef();
-          React.useEffect(()=>{
-            const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
-            document.addEventListener("mousedown",h);return()=>document.removeEventListener("mousedown",h);
-          },[]);
-          const label=filterNacs.size===0?"Todas las nacionalidades":`${filterNacs.size} seleccionada${filterNacs.size>1?"s":""}`;
-          return(
-            <div ref={ref} style={{position:"relative",flexShrink:0}}>
-              <div onClick={()=>setOpen(o=>!o)} style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:filterNacs.size>0?"#f97316":"#475569",background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",whiteSpace:"nowrap",fontWeight:filterNacs.size>0?700:400}}>
-                {label}<span style={{marginLeft:"auto",fontSize:"10px"}}>▼</span>
-              </div>
-              {open&&(
-                <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,zIndex:100,background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:"12px",boxShadow:"0 8px 24px rgba(0,0,0,0.12)",minWidth:"220px",maxHeight:"260px",overflowY:"auto",padding:"8px 0"}}>
-                  <div onClick={()=>setFilterNacs(new Set())} style={{padding:"8px 14px",fontSize:"12px",color:"#94a3b8",cursor:"pointer",fontWeight:600,borderBottom:"1px solid #f1f5f9"}}>
-                    Limpiar selección
-                  </div>
-                  {allNacs.map(n=>{
-                    const checked=filterNacs.has(n);
-                    return(
-                      <label key={n} style={{display:"flex",alignItems:"center",gap:"8px",padding:"7px 14px",cursor:"pointer",background:checked?"#fff7ed":"transparent"}}
-                        onMouseEnter={e=>e.currentTarget.style.background=checked?"#fff7ed":"#f8fafc"}
-                        onMouseLeave={e=>e.currentTarget.style.background=checked?"#fff7ed":"transparent"}>
-                        <input type="checkbox" checked={checked} onChange={()=>setFilterNacs(prev=>{const s=new Set(prev);checked?s.delete(n):s.add(n);return s;})} style={{accentColor:"#f97316",width:"14px",height:"14px",flexShrink:0}}/>
-                        <FlagImg country={n}/>
-                        <span style={{fontSize:"13px",color:"#1e293b",fontWeight:checked?600:400}}>{n}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })()}
+        <NacDropdown allNacs={allNacs} filterNacs={filterNacs} setFilterNacs={setFilterNacs}/>
       </div>
       {filterNacs.size>0&&(
         <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"8px",alignItems:"center"}}>
