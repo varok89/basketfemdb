@@ -1359,6 +1359,46 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
   );
 }
 
+/* ── Landing ────────────────────────────────────────────── */
+function Landing({onEnter}){
+  return(
+    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"system-ui,sans-serif",padding:"20px"}}>
+      <div style={{maxWidth:"560px",width:"100%",textAlign:"center"}}>
+        <div style={{fontSize:"64px",marginBottom:"16px",animation:"bounce 0.7s infinite"}}>🏀</div>
+        <div style={{width:"40px",height:"6px",background:"#cbd5e1",borderRadius:"50%",margin:"4px auto 28px",animation:"shadow 0.7s infinite"}}/>
+        <div style={{fontWeight:900,fontSize:"32px",color:"#fff",letterSpacing:"-1px",marginBottom:"4px"}}>
+          BasketFem<span style={{color:"#f97316"}}> DB</span>
+        </div>
+        <div style={{fontSize:"14px",color:"#94a3b8",marginBottom:"36px",fontWeight:500}}>Base de datos del baloncesto femenino</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"36px",textAlign:"left"}}>
+          {[["👩‍🏀","Jugadoras","Fichas completas con historial de temporadas"],["🏟️","Equipos","Plantillas, palmarés y cuerpo técnico"],["🏆","Ligas","Competiciones nacionales e internacionales"],["📋","Cuerpo Técnico","Entrenadores y entrenadoras"]].map(([e,t,d])=>(
+            <div key={t} style={{background:"rgba(255,255,255,0.05)",borderRadius:"14px",padding:"14px",border:"1px solid rgba(255,255,255,0.08)"}}>
+              <div style={{fontSize:"22px",marginBottom:"6px"}}>{e}</div>
+              <div style={{fontWeight:700,fontSize:"13px",color:"#f1f5f9",marginBottom:"3px"}}>{t}</div>
+              <div style={{fontSize:"11px",color:"#64748b",lineHeight:"1.4"}}>{d}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{background:"rgba(255,255,255,0.04)",borderRadius:"14px",padding:"16px 20px",marginBottom:"24px",border:"1px solid rgba(255,255,255,0.07)",textAlign:"left"}}>
+          <div style={{fontWeight:700,fontSize:"12px",color:"#94a3b8",marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Aviso legal</div>
+          <p style={{fontSize:"12px",color:"#64748b",lineHeight:"1.6",margin:0}}>
+            Los datos mostrados en esta aplicación son de carácter público y han sido obtenidos de fuentes oficiales como webs de federaciones deportivas. Esta plataforma no tiene ánimo de lucro y su uso es exclusivamente informativo. Si eres jugadora, entrenadora o representante de algún club y deseas solicitar la modificación o eliminación de tus datos, contacta con nosotros en <span style={{color:"#f97316",fontWeight:600}}>basketfemdb@gmail.com</span>.
+          </p>
+        </div>
+        <button onClick={onEnter}
+          style={{background:"#f97316",color:"#fff",border:"none",borderRadius:"14px",padding:"14px 40px",fontSize:"15px",fontWeight:800,cursor:"pointer",width:"100%",letterSpacing:"0.3px",transition:"all 0.15s"}}
+          onMouseEnter={e=>e.currentTarget.style.background="#ea6c0a"}
+          onMouseLeave={e=>e.currentTarget.style.background="#f97316"}>
+          Entrar a la base de datos →
+        </button>
+        <div style={{fontSize:"11px",color:"#475569",marginTop:"12px"}}>
+          Al acceder aceptas el uso informativo de los datos según se describe arriba.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── App ─────────────────────────────────────────────────── */
 export default function App(){
   const [players,setPlayers] = useState([]);
@@ -1369,6 +1409,13 @@ export default function App(){
   const [tempCoach,setTempCoach] = useState([]);
   const [loading,setLoading] = useState(true);
   const [error,setError]     = useState(null);
+  const [showLanding,setShowLanding] = useState(()=>{
+    try{return !localStorage.getItem("bfdb_accepted");}catch{return true;}
+  });
+  const handleEnter=()=>{
+    try{localStorage.setItem("bfdb_accepted","1");}catch{}
+    setShowLanding(false);
+  };
   const [tab,setTab]         = useState("jugadoras");
   const [openPlayerId,setOpenPlayerId] = useState(null);
   const [openTeamId,setOpenTeamId]     = useState(null);
@@ -1407,6 +1454,8 @@ export default function App(){
   useEffect(()=>{loadAll();},[]);
 
   const TABS=[["jugadoras","👩‍🏀","Jugadoras"],["equipos","🏟️","Equipos"],["ligas","🏆","Ligas"],["cuerpo_tecnico","📋","Cuerpo Técnico"]];
+
+  if(showLanding) return <Landing onEnter={handleEnter}/>;
 
   if(loading) return(
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f1f5f9",fontFamily:"system-ui,sans-serif"}}>
