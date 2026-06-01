@@ -402,13 +402,13 @@ function SeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
   </div>);}
 
 const STATUS_BADGE = {
-  cantera: <span title="Formada en España" style={{background:"#f0fdf4",color:"#15803d",border:"1.5px solid #86efac",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap"}}>🌱 Cantera</span>,
+  cantera: null,
   europea: <span title="Jugadora europea" style={{background:"#eff6ff",color:"#1d4ed8",border:"1.5px solid #bfdbfe",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap",display:"inline-flex",alignItems:"center"}}><img src="https://flagcdn.com/20x15/eu.png" width={16} height={12} alt="EU" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",marginRight:"3px"}}/>Europea</span>,
   acp:     <span title="Acuerdo de Cotonú" style={{background:"#fefce8",color:"#a16207",border:"1.5px solid #fde68a",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap"}}>🤝 ACP</span>,
   extra:   <span title="Extracomunitaria" style={{background:"#f8fafc",color:"#64748b",border:"1.5px solid #cbd5e1",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap"}}>🌍 Extra</span>,
 };
 const STATUS_BADGE_LG = {
-  cantera: <span title="Formada en España" style={{background:"#f0fdf4",color:"#15803d",border:"1.5px solid #86efac",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🌱 Cantera</span>,
+  cantera: null,
   europea: <span title="Jugadora europea" style={{background:"#eff6ff",color:"#1d4ed8",border:"1.5px solid #bfdbfe",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap",display:"inline-flex",alignItems:"center"}}><img src="https://flagcdn.com/20x15/eu.png" width={16} height={12} alt="EU" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",marginRight:"3px"}}/>Europea</span>,
   acp:     <span title="Acuerdo de Cotonú" style={{background:"#fefce8",color:"#a16207",border:"1.5px solid #fde68a",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🤝 Cotonú</span>,
   extra:   <span title="Extracomunitaria" style={{background:"#f8fafc",color:"#64748b",border:"1.5px solid #cbd5e1",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🌍 Extra</span>,
@@ -417,7 +417,7 @@ const ACP_BADGE = STATUS_BADGE.acp;
 
 /* ── StatusDropdown ─────────────────────────────────────── */
 const STATUS_OPTIONS = [
-  {value:"cantera", label:"Cantera",   icon:<span style={{marginRight:"4px"}}>🌱</span>},
+  {value:"cantera", label:"Nacional (España)", icon:<span style={{marginRight:"4px"}}>🇪🇸</span>},
   {value:"europea", label:"Europea",  icon:<img src="https://flagcdn.com/20x15/eu.png" width={16} height={12} alt="EU" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",marginRight:"4px"}}/>},
   {value:"acp",     label:"ACP / Cotonú", icon:<span style={{marginRight:"4px"}}>🤝</span>},
   {value:"extra",   label:"Extracomunitaria", icon:<span style={{marginRight:"4px"}}>🌍</span>},
