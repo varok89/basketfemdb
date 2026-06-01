@@ -232,6 +232,26 @@ function isACP(nacionalidad) {
   return ACP_COUNTRIES.has(n);
 }
 
+const EU_COUNTRIES = new Set([
+  "espana","espana","spain","france","francia","italy","italia","germany","alemania",
+  "portugal","netherlands","paises bajos","paises bajos","holanda","belgium","belgica","belgica",
+  "switzerland","suiza","sweden","suecia","norway","noruega","denmark","dinamarca",
+  "finland","finlandia","ireland","irlanda","iceland","islandia","greece","grecia",
+  "poland","polonia","czech republic","republica checa","republica checa","chequia","r. checa",
+  "slovakia","eslovaquia","hungary","hungria","hungria","romania","rumania","rumania",
+  "bulgaria","croatia","croacia","slovenia","eslovenia","estonia","latvia","letonia",
+  "lithuania","lituania","luxembourg","luxemburgo","cyprus","chipre","malta","austria",
+]);
+function playerStatus(nac,nac2){
+  const norm=s=>s?.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").trim()||"";
+  const n1=norm(nac),n2=norm(nac2);
+  if(n1==="espana"||n1==="spain")return "cantera";
+  if(EU_COUNTRIES.has(n1)||EU_COUNTRIES.has(n2))return "europea";
+  if(ACP_COUNTRIES.has(n1)||ACP_COUNTRIES.has(n2))return "acp";
+  if(n1)return "extra";
+  return null;
+}
+
 function countryCode(c) {
   if (!c) return null;
   return COUNTRY_CODES[c.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim()] || null;
@@ -381,7 +401,19 @@ function SeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
     </div>
   </div>);}
 
-const ACP_BADGE = <span title="Acuerdo de Cotonú" style={{background:"#f0fdf4",color:"#15803d",border:"1.5px solid #86efac",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap",letterSpacing:"0.3px"}}>🤝 ACP</span>;
+const STATUS_BADGE = {
+  cantera: <span title="Formada en España" style={{background:"#f0fdf4",color:"#15803d",border:"1.5px solid #86efac",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap"}}>🌱 Cantera</span>,
+  europea: <span title="Jugadora europea" style={{background:"#eff6ff",color:"#1d4ed8",border:"1.5px solid #bfdbfe",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap"}}>🇪🇺 Europea</span>,
+  acp:     <span title="Acuerdo de Cotonú" style={{background:"#fefce8",color:"#a16207",border:"1.5px solid #fde68a",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap"}}>🤝 ACP</span>,
+  extra:   <span title="Extracomunitaria" style={{background:"#f8fafc",color:"#64748b",border:"1.5px solid #cbd5e1",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap"}}>🌍 Extra</span>,
+};
+const STATUS_BADGE_LG = {
+  cantera: <span title="Formada en España" style={{background:"#f0fdf4",color:"#15803d",border:"1.5px solid #86efac",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🌱 Cantera</span>,
+  europea: <span title="Jugadora europea" style={{background:"#eff6ff",color:"#1d4ed8",border:"1.5px solid #bfdbfe",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🇪🇺 Europea</span>,
+  acp:     <span title="Acuerdo de Cotonú" style={{background:"#fefce8",color:"#a16207",border:"1.5px solid #fde68a",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🤝 Cotonú</span>,
+  extra:   <span title="Extracomunitaria" style={{background:"#f8fafc",color:"#64748b",border:"1.5px solid #cbd5e1",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🌍 Extra</span>,
+};
+const ACP_BADGE = STATUS_BADGE.acp;
 
 /* ── NacDropdown ────────────────────────────────────────── */
 function NacDropdown({allNacs,filterNacs,setFilterNacs}){
@@ -427,6 +459,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   const [filterNacs,setFilterNacs] = useState(new Set());
   const [filterLiga,setFilterLiga] = useState("");
   const [filterTemp,setFilterTemp] = useState("");
+  const [filterStatus,setFilterStatus] = useState("");
   const [selId,setSelId]           = useState(openPlayerId||null);
   const [modal,setModal]           = useState(null);
   const [editSeason,setEditSeason] = useState(null);
@@ -479,7 +512,8 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
       &&(!filterPos||p.posicion===filterPos||p.posicion2===filterPos)
       &&(filterNacs.size===0||filterNacs.has(p.nacionalidad)||filterNacs.has(p.nacionalidad2))
       &&(!filterLiga||lastLigNombre===filterLiga)
-      &&(!filterTemp||(p.seasons||[]).some(s=>s.temporada===filterTemp));
+      &&(!filterTemp||(p.seasons||[]).some(s=>s.temporada===filterTemp))
+      &&(!filterStatus||playerStatus(p.nacionalidad,p.nacionalidad2)===filterStatus);
   }).sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"));
 
   const addPlayer=async f=>{
@@ -546,7 +580,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
             <div style={{display:"flex",gap:"8px",flexWrap:"wrap",marginBottom:"12px"}}>
               {selected.posicion&&<span style={posStyle(selected.posicion)}>{selected.posicion}</span>}
               {selected.posicion2&&<span style={posStyle(selected.posicion2)}>{selected.posicion2}</span>}
-              {(isACP(selected.nacionalidad)||isACP(selected.nacionalidad2))&&<span title="Acuerdo de Cotonú" style={{background:"#f0fdf4",color:"#15803d",border:"1.5px solid #86efac",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🤝 Cotonú</span>}
+              {STATUS_BADGE_LG[playerStatus(selected.nacionalidad,selected.nacionalidad2)]}
               {(selected.nacionalidad||selected.nacionalidad2)&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",padding:"3px 8px",borderRadius:"20px",display:"inline-flex",alignItems:"center",gap:"4px"}}>{selected.nacionalidad&&<FlagImg country={selected.nacionalidad}/>}{selected.nacionalidad2&&<FlagImg country={selected.nacionalidad2}/>}</span>}
             </div>
             {(()=>{
@@ -660,6 +694,13 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           <option value="">Todas las temporadas</option>
           {allTemps.map(t=><option key={t} value={t}>{t}</option>)}
         </select>
+        <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}} value={filterStatus} onChange={e=>setFilterStatus(e.target.value)}>
+          <option value="">Todas las categorías</option>
+          <option value="cantera">🌱 Cantera</option>
+          <option value="europea">🇪🇺 Europea</option>
+          <option value="acp">🤝 ACP / Cotonú</option>
+          <option value="extra">🌍 Extracomunitaria</option>
+        </select>
         <NacDropdown allNacs={allNacs} filterNacs={filterNacs} setFilterNacs={setFilterNacs}/>
       </div>
       {filterNacs.size>0&&(
@@ -690,7 +731,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
                   <div style={{fontWeight:700,fontSize:"15px",color:"#1e293b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>
                   <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"1px",display:"flex",alignItems:"center",gap:"3px"}}>{p.nacionalidad&&<FlagImg country={p.nacionalidad}/>}{p.nacionalidad2&&<FlagImg country={p.nacionalidad2}/>}{p.altura_cm&&<span>{p.nacionalidad||p.nacionalidad2?" · ":""}{p.altura_cm} cm</span>}</div>
                 </div>
-                <div style={{display:"flex",flexDirection:"column",gap:"4px",alignItems:"flex-end",flexShrink:0}}>{p.posicion&&<span style={posStyle(p.posicion)}>{p.posicion}</span>}{p.posicion2&&<span style={posStyle(p.posicion2)}>{p.posicion2}</span>}{(isACP(p.nacionalidad)||isACP(p.nacionalidad2))&&ACP_BADGE}</div>
+                <div style={{display:"flex",flexDirection:"column",gap:"4px",alignItems:"flex-end",flexShrink:0}}>{p.posicion&&<span style={posStyle(p.posicion)}>{p.posicion}</span>}{p.posicion2&&<span style={posStyle(p.posicion2)}>{p.posicion2}</span>}{STATUS_BADGE[playerStatus(p.nacionalidad,p.nacionalidad2)]}</div>
               </div>
               <div style={{borderTop:"1px solid #f1f5f9",paddingTop:"10px"}}>
                 {lastEq?(<>
