@@ -1303,8 +1303,8 @@ function LeaguesView({ligas,players,equipos,palmares,onGoToTeam,isAdmin,onReload
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}}>
           <button onClick={()=>{setSelId(null);setSelYear(null);}} style={{background:"none",border:"none",color:"#fb923c",fontSize:"15px",cursor:"pointer",fontWeight:600,padding:0}}>← Volver</button>
           {isAdmin&&<div style={{display:"flex",gap:"8px"}}>
-            <button onClick={()=>setTeamModal("editTeam")} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>✏️ Editar</button>
-            <button onClick={()=>setDelItem("team")} style={{background:"#fee2e2",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#ef4444"}}>🗑️</button>
+            <button onClick={()=>setLigaModal("edit")} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>✏️ Editar</button>
+            <button onClick={()=>setDelLiga(true)} style={{background:"#fee2e2",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#ef4444"}}>🗑️</button>
           </div>}
         </div>
         {isAdmin&&delLiga&&<ConfirmDel msg="¿Eliminar esta liga?" onCancel={()=>setDelLiga(false)} onConfirm={delLigaFn}/>}
