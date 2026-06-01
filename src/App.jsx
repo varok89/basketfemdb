@@ -210,6 +210,28 @@ const COUNTRY_CODES = {
   "fiji":"fj","fiyi":"fj",
 };
 
+const ACP_COUNTRIES = new Set([
+  /* África */
+  "angola","benin","botswana","burkina faso","burundi","camerun","camerún","cabo verde","republica centroafricana","chad",
+  "comoras","congo","republica democratica del congo","republic of the congo","djibouti","guinea ecuatorial","eritrea",
+  "etiopia","etiopía","gabon","gabón","gambia","ghana","guinea","guinea-bisau","guinea-bissau","costa de marfil",
+  "kenia","kenya","lesoto","liberia","madagascar","malawi","mali","mauritania","mauricio","mozambique","namibia",
+  "niger","nigeria","ruanda","santo tome y principe","senegal","seychelles","sierra leona","somalia","sudafrica","sudáfrica",
+  "sudan","suazilandia","eswatini","tanzania","togo","uganda","zambia","zimbabwe",
+  /* Caribe */
+  "antigua y barbuda","bahamas","barbados","belice","dominica","republica dominicana","república dominicana",
+  "granada","guyana","haiti","haití","jamaica","san cristobal y nieves","santa lucia","san vicente y las granadinas",
+  "surinam","suriname","trinidad y tobago","trinidad and tobago",
+  /* Pacífico */
+  "fiji","fiyi","kiribati","islas marshall","micronesia","nauru","palau","papua nueva guinea",
+  "samoa","islas salomon","tonga","tuvalu","vanuatu","timor oriental",
+]);
+function isACP(nacionalidad) {
+  if(!nacionalidad)return false;
+  const n=nacionalidad.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").trim();
+  return ACP_COUNTRIES.has(n);
+}
+
 function countryCode(c) {
   if (!c) return null;
   return COUNTRY_CODES[c.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim()] || null;
@@ -358,6 +380,8 @@ function SeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
       <button onClick={()=>ok&&onSave(f)} disabled={saving||!ok} style={{flex:1,background:ok?"#f97316":"#fed7aa",color:"#fff",border:"none",borderRadius:"10px",padding:"11px",cursor:ok?"pointer":"not-allowed",fontWeight:700}}>{saving?"Guardando...":"Guardar"}</button>
     </div>
   </div>);}
+
+const ACP_BADGE = <span title="Acuerdo de Cotonú" style={{background:"#f0fdf4",color:"#15803d",border:"1.5px solid #86efac",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap",letterSpacing:"0.3px"}}>🤝 ACP</span>;
 
 /* ── NacDropdown ────────────────────────────────────────── */
 function NacDropdown({allNacs,filterNacs,setFilterNacs}){
@@ -522,6 +546,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
             <div style={{display:"flex",gap:"8px",flexWrap:"wrap",marginBottom:"12px"}}>
               {selected.posicion&&<span style={posStyle(selected.posicion)}>{selected.posicion}</span>}
               {selected.posicion2&&<span style={posStyle(selected.posicion2)}>{selected.posicion2}</span>}
+              {(isACP(selected.nacionalidad)||isACP(selected.nacionalidad2))&&<span title="Acuerdo de Cotonú" style={{background:"#f0fdf4",color:"#15803d",border:"1.5px solid #86efac",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🤝 Cotonú</span>}
               {(selected.nacionalidad||selected.nacionalidad2)&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",padding:"3px 8px",borderRadius:"20px",display:"inline-flex",alignItems:"center",gap:"4px"}}>{selected.nacionalidad&&<FlagImg country={selected.nacionalidad}/>}{selected.nacionalidad2&&<FlagImg country={selected.nacionalidad2}/>}</span>}
             </div>
             {(()=>{
@@ -665,7 +690,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
                   <div style={{fontWeight:700,fontSize:"15px",color:"#1e293b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>
                   <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"1px",display:"flex",alignItems:"center",gap:"3px"}}>{p.nacionalidad&&<FlagImg country={p.nacionalidad}/>}{p.nacionalidad2&&<FlagImg country={p.nacionalidad2}/>}{p.altura_cm&&<span>{p.nacionalidad||p.nacionalidad2?" · ":""}{p.altura_cm} cm</span>}</div>
                 </div>
-                <div style={{display:"flex",flexDirection:"column",gap:"4px",alignItems:"flex-end",flexShrink:0}}>{p.posicion&&<span style={posStyle(p.posicion)}>{p.posicion}</span>}{p.posicion2&&<span style={posStyle(p.posicion2)}>{p.posicion2}</span>}</div>
+                <div style={{display:"flex",flexDirection:"column",gap:"4px",alignItems:"flex-end",flexShrink:0}}>{p.posicion&&<span style={posStyle(p.posicion)}>{p.posicion}</span>}{p.posicion2&&<span style={posStyle(p.posicion2)}>{p.posicion2}</span>}{(isACP(p.nacionalidad)||isACP(p.nacionalidad2))&&ACP_BADGE}</div>
               </div>
               <div style={{borderTop:"1px solid #f1f5f9",paddingTop:"10px"}}>
                 {lastEq?(<>
