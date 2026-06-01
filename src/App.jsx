@@ -403,13 +403,13 @@ function SeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
 
 const STATUS_BADGE = {
   cantera: <span title="Formada en España" style={{background:"#f0fdf4",color:"#15803d",border:"1.5px solid #86efac",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap"}}>🌱 Cantera</span>,
-  europea: <span title="Jugadora europea" style={{background:"#eff6ff",color:"#1d4ed8",border:"1.5px solid #bfdbfe",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap"}}>🇪🇺 Europea</span>,
+  europea: <span title="Jugadora europea" style={{background:"#eff6ff",color:"#1d4ed8",border:"1.5px solid #bfdbfe",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap",display:"inline-flex",alignItems:"center"}}><img src="https://flagcdn.com/20x15/eu.png" width={16} height={12} alt="EU" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",marginRight:"3px"}}/>Europea</span>,
   acp:     <span title="Acuerdo de Cotonú" style={{background:"#fefce8",color:"#a16207",border:"1.5px solid #fde68a",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap"}}>🤝 ACP</span>,
   extra:   <span title="Extracomunitaria" style={{background:"#f8fafc",color:"#64748b",border:"1.5px solid #cbd5e1",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap"}}>🌍 Extra</span>,
 };
 const STATUS_BADGE_LG = {
   cantera: <span title="Formada en España" style={{background:"#f0fdf4",color:"#15803d",border:"1.5px solid #86efac",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🌱 Cantera</span>,
-  europea: <span title="Jugadora europea" style={{background:"#eff6ff",color:"#1d4ed8",border:"1.5px solid #bfdbfe",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🇪🇺 Europea</span>,
+  europea: <span title="Jugadora europea" style={{background:"#eff6ff",color:"#1d4ed8",border:"1.5px solid #bfdbfe",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap",display:"inline-flex",alignItems:"center"}}><img src="https://flagcdn.com/20x15/eu.png" width={16} height={12} alt="EU" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",marginRight:"3px"}}/>Europea</span>,
   acp:     <span title="Acuerdo de Cotonú" style={{background:"#fefce8",color:"#a16207",border:"1.5px solid #fde68a",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🤝 Cotonú</span>,
   extra:   <span title="Extracomunitaria" style={{background:"#f8fafc",color:"#64748b",border:"1.5px solid #cbd5e1",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🌍 Extra</span>,
 };
@@ -870,7 +870,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
                     <div style={{fontWeight:700,fontSize:"14px",color:"#f97316"}}>{player.nombre}</div>
                     <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"3px"}}>{player.nacionalidad&&<FlagImg country={player.nacionalidad}/>}{player.nacionalidad2&&<FlagImg country={player.nacionalidad2}/>}{player.altura_cm&&<span>{player.nacionalidad||player.nacionalidad2?" · ":""}{player.altura_cm} cm</span>}</div>
                   </div>
-                  <div style={{display:"flex",flexDirection:"column",gap:"4px",alignItems:"flex-end",flexShrink:0}}><span style={posStyle(player.posicion||"")}>{player.posicion||"—"}</span>{player.posicion2&&<span style={posStyle(player.posicion2)}>{player.posicion2}</span>}</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:"4px",alignItems:"flex-end",flexShrink:0}}><span style={posStyle(player.posicion||"")}>{player.posicion||"—"}</span>{player.posicion2&&<span style={posStyle(player.posicion2)}>{player.posicion2}</span>}{STATUS_BADGE[playerStatus(player.nacionalidad,player.nacionalidad2)]}</div>
                 </div>
               ))}
             </div>}
