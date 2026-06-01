@@ -834,6 +834,47 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   );
 }
 
+/* ── TeamForm ───────────────────────────────────────────── */
+function TeamForm({initial,onSave,onCancel,saving}){
+  const [f,setF]=useState({nombre:'',ciudad:'',pais:'',año_fundacion:'',escudo:'',tipo:'equipo',...(initial||{})});
+  const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
+  const inp={width:'100%',border:'1.5px solid #e2e8f0',borderRadius:'10px',padding:'9px 12px',fontSize:'14px',outline:'none',boxSizing:'border-box'};
+  return(<div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
+    <Fld label='Nombre *'><input style={inp} value={f.nombre||''} onChange={set('nombre')} placeholder='Perfumerías Avenida'/></Fld>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+      <Fld label='Ciudad'><input style={inp} value={f.ciudad||''} onChange={set('ciudad')} placeholder='Salamanca'/></Fld>
+      <Fld label='País'><input style={inp} value={f.pais||''} onChange={set('pais')} placeholder='España'/></Fld>
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+      <Fld label='Año fundación'><input style={inp} type='number' value={f.año_fundacion||''} onChange={set('año_fundacion')} placeholder='1994'/></Fld>
+      <Fld label='Tipo'><select style={inp} value={f.tipo||'equipo'} onChange={set('tipo')}><option value='equipo'>Club</option><option value='seleccion'>Selección</option></select></Fld>
+    </div>
+    <Fld label='URL Escudo'><input style={inp} value={f.escudo||''} onChange={set('escudo')} placeholder='https://...'/></Fld>
+    <div style={{display:'flex',gap:'10px',justifyContent:'flex-end',marginTop:'8px'}}>
+      <button onClick={onCancel} style={{background:'#f1f5f9',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:600,cursor:'pointer'}}>Cancelar</button>
+      <button onClick={()=>onSave(f)} disabled={saving||!f.nombre} style={{background:'#f97316',color:'#fff',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:700,cursor:'pointer'}}>{saving?'Guardando...':'Guardar'}</button>
+    </div>
+  </div>);
+}
+
+/* ── PalmaresForm ────────────────────────────────────────── */
+function PalmaresForm({initial,ligas,onSave,onCancel,saving}){
+  const [f,setF]=useState({id_liga:'',temporada:'',...(initial||{})});
+  const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
+  const inp={width:'100%',border:'1.5px solid #e2e8f0',borderRadius:'10px',padding:'9px 12px',fontSize:'14px',outline:'none',boxSizing:'border-box'};
+  return(<div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
+    <Fld label='Liga *'><select style={inp} value={f.id_liga||''} onChange={set('id_liga')}>
+      <option value=''>Seleccionar liga...</option>
+      {(ligas||[]).map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}</option>)}
+    </select></Fld>
+    <Fld label='Temporada *'><input style={inp} value={f.temporada||''} onChange={set('temporada')} placeholder='2024-25'/></Fld>
+    <div style={{display:'flex',gap:'10px',justifyContent:'flex-end',marginTop:'8px'}}>
+      <button onClick={onCancel} style={{background:'#f1f5f9',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:600,cursor:'pointer'}}>Cancelar</button>
+      <button onClick={()=>onSave(f)} disabled={saving||!f.id_liga||!f.temporada} style={{background:'#f97316',color:'#fff',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:700,cursor:'pointer'}}>{saving?'Guardando...':'Guardar'}</button>
+    </div>
+  </div>);
+}
+
 /* ── TeamsView ───────────────────────────────────────────── */
 function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlayer,onGoToCoach,openTeamId,openTeamYear,onClearTeam,isAdmin,onReload}){
   const [search,setSearch]             = useState("");
