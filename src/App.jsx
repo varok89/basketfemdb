@@ -417,7 +417,7 @@ const ACP_BADGE = STATUS_BADGE.acp;
 
 /* ── StatusDropdown ─────────────────────────────────────── */
 const STATUS_OPTIONS = [
-  {value:"cantera", label:"Nacional (España)", icon:<span style={{marginRight:"4px"}}>🇪🇸</span>},
+  {value:"cantera", label:"Nacional (España)", icon:<FlagImg country="España"/>},
   {value:"europea", label:"Europea",  icon:<img src="https://flagcdn.com/20x15/eu.png" width={16} height={12} alt="EU" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",marginRight:"4px"}}/>},
   {value:"acp",     label:"ACP / Cotonú", icon:<span style={{marginRight:"4px"}}>🤝</span>},
   {value:"extra",   label:"Extracomunitaria", icon:<span style={{marginRight:"4px"}}>🌍</span>},
