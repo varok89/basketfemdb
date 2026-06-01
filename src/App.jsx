@@ -415,6 +415,51 @@ const STATUS_BADGE_LG = {
 };
 const ACP_BADGE = STATUS_BADGE.acp;
 
+/* ── StatusDropdown ─────────────────────────────────────── */
+const STATUS_OPTIONS = [
+  {value:"cantera", label:"Cantera",   icon:<span style={{marginRight:"4px"}}>🌱</span>},
+  {value:"europea", label:"Europea",  icon:<img src="https://flagcdn.com/20x15/eu.png" width={16} height={12} alt="EU" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",marginRight:"4px"}}/>},
+  {value:"acp",     label:"ACP / Cotonú", icon:<span style={{marginRight:"4px"}}>🤝</span>},
+  {value:"extra",   label:"Extracomunitaria", icon:<span style={{marginRight:"4px"}}>🌍</span>},
+];
+function StatusDropdown({filterStatus,setFilterStatus}){
+  const [open,setOpen]=useState(false);
+  const ref=useRef();
+  useEffect(()=>{
+    const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
+    document.addEventListener("mousedown",h);return()=>document.removeEventListener("mousedown",h);
+  },[]);
+  const selected=STATUS_OPTIONS.find(o=>o.value===filterStatus);
+  const label=selected?<span style={{display:"flex",alignItems:"center"}}>{selected.icon}{selected.label}</span>:"Todas las categorías";
+  return(
+    <div ref={ref} style={{position:"relative",flexShrink:0}}>
+      <div onClick={()=>setOpen(o=>!o)} style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:filterStatus?"#f97316":"#475569",background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",whiteSpace:"nowrap",fontWeight:filterStatus?700:400,minWidth:"190px"}}>
+        {label}<span style={{marginLeft:"auto",fontSize:"10px"}}>▼</span>
+      </div>
+      {open&&(
+        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,zIndex:100,background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:"12px",boxShadow:"0 8px 24px rgba(0,0,0,0.12)",minWidth:"210px",padding:"8px 0"}}>
+          <div onClick={()=>{setFilterStatus("");setOpen(false);}} style={{padding:"8px 14px",fontSize:"12px",color:"#94a3b8",cursor:"pointer",fontWeight:600,borderBottom:"1px solid #f1f5f9"}}>
+            Todas las categorías
+          </div>
+          {STATUS_OPTIONS.map(o=>{
+            const active=filterStatus===o.value;
+            return(
+              <div key={o.value} onClick={()=>{setFilterStatus(o.value);setOpen(false);}}
+                style={{display:"flex",alignItems:"center",gap:"8px",padding:"9px 14px",cursor:"pointer",background:active?"#fff7ed":"transparent",fontWeight:active?700:400}}
+                onMouseEnter={e=>e.currentTarget.style.background=active?"#fff7ed":"#f8fafc"}
+                onMouseLeave={e=>e.currentTarget.style.background=active?"#fff7ed":"transparent"}>
+                {o.icon}
+                <span style={{fontSize:"13px",color:"#1e293b"}}>{o.label}</span>
+                {active&&<span style={{marginLeft:"auto",color:"#f97316"}}>✓</span>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── NacDropdown ────────────────────────────────────────── */
 function NacDropdown({allNacs,filterNacs,setFilterNacs}){
   const [open,setOpen]=useState(false);
@@ -694,15 +739,15 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           <option value="">Todas las temporadas</option>
           {allTemps.map(t=><option key={t} value={t}>{t}</option>)}
         </select>
-        <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}} value={filterStatus} onChange={e=>setFilterStatus(e.target.value)}>
-          <option value="">Todas las categorías</option>
-          <option value="cantera">🌱 Cantera</option>
-          <option value="europea">EU Europea</option>
-          <option value="acp">🤝 ACP / Cotonú</option>
-          <option value="extra">🌍 Extracomunitaria</option>
-        </select>
+        <StatusDropdown filterStatus={filterStatus} setFilterStatus={setFilterStatus}/>
         <NacDropdown allNacs={allNacs} filterNacs={filterNacs} setFilterNacs={setFilterNacs}/>
       </div>
+      {(filterPos||filterLiga||filterTemp||filterStatus||filterNacs.size>0)&&(
+        <button onClick={()=>{setFilterPos("");setFilterLiga("");setFilterTemp("");setFilterStatus("");setFilterNacs(new Set());}}
+          style={{alignSelf:"flex-start",background:"#f1f5f9",color:"#64748b",border:"1.5px solid #e2e8f0",borderRadius:"20px",padding:"5px 14px",fontSize:"12px",fontWeight:700,cursor:"pointer",marginBottom:"4px"}}>
+          ✕ Limpiar filtros
+        </button>
+      )}
       {filterNacs.size>0&&(
         <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"8px",alignItems:"center"}}>
           <span style={{fontSize:"12px",color:"#64748b"}}>Nac.:</span>
