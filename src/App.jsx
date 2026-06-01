@@ -1356,6 +1356,31 @@ function LeaguesView({ligas,players,equipos,palmares,onGoToTeam,isAdmin,onReload
               ))}
             </div>}
         </div>
+        {(()=>{
+          const pal=(palmares||[]).filter(p=>p.id_liga===selId).sort((a,b)=>b.temporada.localeCompare(a.temporada));
+          if(!pal.length)return null;
+          return(
+            <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginTop:"14px"}}>
+              <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:"0 0 14px"}}>🏆 Campeones por temporada <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({pal.length})</span></h2>
+              <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+                {pal.map((p,i)=>{
+                  const eq=equipoMap[p.id_equipo];
+                  return(
+                    <div key={i} onClick={()=>onGoToTeam(eq?.id_equipo)}
+                      style={{display:"flex",alignItems:"center",gap:"14px",padding:"10px 14px",background:"#fffbeb",borderRadius:"12px",border:"1.5px solid #fed7aa",cursor:"pointer",transition:"all 0.15s"}}
+                      onMouseEnter={e=>{e.currentTarget.style.background="#fef3c7";e.currentTarget.style.borderColor="#f59e0b";}}
+                      onMouseLeave={e=>{e.currentTarget.style.background="#fffbeb";e.currentTarget.style.borderColor="#fed7aa";}}>
+                      <span style={{fontWeight:800,fontSize:"14px",color:"#b45309",minWidth:"72px"}}>{p.temporada}</span>
+                      <TeamBadge team={eq} size={32}/>
+                      <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{eq?.nombre||p.id_equipo}</span>
+                      {eq?.pais&&<span style={{marginLeft:"auto",display:"flex",alignItems:"center"}}><FlagImg country={eq.pais}/></span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
       </div>
     );
   }
