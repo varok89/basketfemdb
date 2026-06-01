@@ -697,7 +697,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
         <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}} value={filterStatus} onChange={e=>setFilterStatus(e.target.value)}>
           <option value="">Todas las categorías</option>
           <option value="cantera">🌱 Cantera</option>
-          <option value="europea">🇪🇺 Europea</option>
+          <option value="europea">EU Europea</option>
           <option value="acp">🤝 ACP / Cotonú</option>
           <option value="extra">🌍 Extracomunitaria</option>
         </select>
@@ -731,7 +731,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
                   <div style={{fontWeight:700,fontSize:"15px",color:"#1e293b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>
                   <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"1px",display:"flex",alignItems:"center",gap:"3px"}}>{p.nacionalidad&&<FlagImg country={p.nacionalidad}/>}{p.nacionalidad2&&<FlagImg country={p.nacionalidad2}/>}{p.altura_cm&&<span>{p.nacionalidad||p.nacionalidad2?" · ":""}{p.altura_cm} cm</span>}</div>
                 </div>
-                <div style={{display:"flex",flexDirection:"column",gap:"4px",alignItems:"flex-end",flexShrink:0}}>{p.posicion&&<span style={posStyle(p.posicion)}>{p.posicion}</span>}{p.posicion2&&<span style={posStyle(p.posicion2)}>{p.posicion2}</span>}{STATUS_BADGE[playerStatus(p.nacionalidad,p.nacionalidad2)]}</div>
+                <div style={{display:"flex",flexDirection:"column",gap:"3px",alignItems:"flex-end",flexShrink:0}}><div style={{display:"flex",gap:"3px",flexWrap:"wrap",justifyContent:"flex-end"}}>{p.posicion&&<span style={posStyle(p.posicion)}>{p.posicion}</span>}{p.posicion2&&<span style={posStyle(p.posicion2)}>{p.posicion2}</span>}</div>{STATUS_BADGE[playerStatus(p.nacionalidad,p.nacionalidad2)]}</div>
               </div>
               <div style={{borderTop:"1px solid #f1f5f9",paddingTop:"10px"}}>
                 {lastEq?(<>
@@ -870,7 +870,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
                     <div style={{fontWeight:700,fontSize:"14px",color:"#f97316"}}>{player.nombre}</div>
                     <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"3px"}}>{player.nacionalidad&&<FlagImg country={player.nacionalidad}/>}{player.nacionalidad2&&<FlagImg country={player.nacionalidad2}/>}{player.altura_cm&&<span>{player.nacionalidad||player.nacionalidad2?" · ":""}{player.altura_cm} cm</span>}</div>
                   </div>
-                  <div style={{display:"flex",flexDirection:"column",gap:"4px",alignItems:"flex-end",flexShrink:0}}><span style={posStyle(player.posicion||"")}>{player.posicion||"—"}</span>{player.posicion2&&<span style={posStyle(player.posicion2)}>{player.posicion2}</span>}{STATUS_BADGE[playerStatus(player.nacionalidad,player.nacionalidad2)]}</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:"3px",alignItems:"flex-end",flexShrink:0}}><div style={{display:"flex",gap:"3px",flexWrap:"wrap",justifyContent:"flex-end"}}>{player.posicion&&<span style={posStyle(player.posicion)}>{player.posicion}</span>}{player.posicion2&&<span style={posStyle(player.posicion2)}>{player.posicion2}</span>}</div>{STATUS_BADGE[playerStatus(player.nacionalidad,player.nacionalidad2)]}</div>
                 </div>
               ))}
             </div>}
