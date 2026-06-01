@@ -498,7 +498,7 @@ function NacDropdown({allNacs,filterNacs,setFilterNacs}){
 }
 
 /* ── PlayersView ─────────────────────────────────────────── */
-function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,onGoToTeam,onGoToCoach,openPlayerId,onClearPlayer}){
+function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,onGoToTeam,onGoToCoach,openPlayerId,onClearPlayer,isAdmin}){
   const [search,setSearch]         = useState("");
   const [filterPos,setFilterPos]   = useState("");
   const [filterNacs,setFilterNacs] = useState(new Set());
@@ -600,7 +600,22 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
 
   if(selected) return(
     <div style={{maxWidth:"700px",margin:"0 auto",padding:"20px"}}>
-      <button onClick={()=>{setSelId(null);setActiveTipo(null);}} style={{background:"none",border:"none",color:"#fb923c",fontSize:"15px",cursor:"pointer",marginBottom:"12px",fontWeight:600,padding:0}}>← Volver</button>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
+        <button onClick={()=>{setSelId(null);setActiveTipo(null);}} style={{background:"none",border:"none",color:"#fb923c",fontSize:"15px",cursor:"pointer",fontWeight:600,padding:0}}>← Volver</button>
+        {isAdmin&&!del&&(
+          <div style={{display:"flex",gap:"8px"}}>
+            <button onClick={()=>setModal("editPlayer")} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>✏️ Editar</button>
+            <button onClick={()=>setDel("player")} style={{background:"#fee2e2",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#ef4444"}}>🗑️</button>
+          </div>
+        )}
+        {isAdmin&&del&&(
+          <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
+            <span style={{fontSize:"13px",color:"#ef4444",fontWeight:600}}>¿Eliminar?</span>
+            <button onClick={del==="player"?delPlayer:()=>delSeason(del)} style={{background:"#ef4444",color:"#fff",border:"none",borderRadius:"8px",padding:"6px 14px",fontWeight:700,cursor:"pointer",fontSize:"13px"}}>Sí</button>
+            <button onClick={()=>setDel(null)} style={{background:"#f1f5f9",color:"#475569",border:"none",borderRadius:"8px",padding:"6px 14px",fontWeight:600,cursor:"pointer",fontSize:"13px"}}>No</button>
+          </div>
+        )}
+      </div>
 
       <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
         <div style={{display:"flex",alignItems:"flex-start",gap:"20px"}}>
@@ -650,8 +665,8 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
       </div>
       <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px",flexWrap:"wrap",gap:"10px"}}>
-          <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:"0 0 14px"}}>Historial <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({selected.seasons.length})</span></h2>
-
+          <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>Historial <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({selected.seasons.length})</span></h2>
+          {isAdmin&&<button onClick={()=>setModal("addSeason")} style={{background:"#f97316",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Temporada</button>}
         </div>
         {playerTipos.length>1&&(
           <div style={{marginBottom:"16px",paddingBottom:"14px",borderBottom:"1px solid #f1f5f9"}}>
@@ -692,10 +707,16 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
                           <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
                             <TeamBadge team={eq} size={30}/>
                             <div>
-                              <div style={{display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
-                                <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{s.temporada} · </span>
-                                <span style={{color:isCoach?"#3b82f6":"#f97316",fontWeight:700,textDecoration:"underline"}}>{eq?.nombre||s.id_equipo}</span>
-                                {isCoach&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"10px",fontWeight:700,padding:"1px 6px",borderRadius:"20px"}}>📋 Coach</span>}
+                              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"6px",flexWrap:"wrap"}}>
+                                <div style={{display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
+                                  <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{s.temporada} · </span>
+                                  <span style={{color:isCoach?"#3b82f6":"#f97316",fontWeight:700,textDecoration:"underline"}}>{eq?.nombre||s.id_equipo}</span>
+                                  {isCoach&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"10px",fontWeight:700,padding:"1px 6px",borderRadius:"20px"}}>📋 Coach</span>}
+                                </div>
+                                {isAdmin&&!isCoach&&<div style={{display:"flex",gap:"4px"}} onClick={e=>e.stopPropagation()}>
+                                  <button onClick={()=>setEditSeason(s)} style={{background:"#f1f5f9",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#475569"}}>✏️</button>
+                                  <button onClick={()=>setDel(s.id)} style={{background:"#fee2e2",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#ef4444"}}>🗑️</button>
+                                </div>}
                               </div>
                               <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{eq?.pais&&<FlagImg country={eq.pais}/>}{lig?.nombre||s.id_liga}</div>
                             </div>
@@ -710,11 +731,23 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           );
         })()}
       </div>
+      {isAdmin&&modal&&(
+        <Modal title={modal==="addSeason"?"Añadir temporada":modal==="editSeason"||editSeason?"Editar temporada":modal==="addPlayer"?"Nueva jugadora":"Editar jugadora"} onClose={()=>{setModal(null);setEditSeason(null);}}>
+          {(modal==="addSeason")&&<SeasonForm equipos={equipos} ligas={ligas} onSave={addSeason} onCancel={()=>setModal(null)} saving={saving}/>}
+          {(editSeason)&&<SeasonForm initial={editSeason} equipos={equipos} ligas={ligas} onSave={updSeason} onCancel={()=>{setEditSeason(null);}} saving={saving}/>}
+          {(modal==="addPlayer")&&<PlayerForm onSave={addPlayer} onCancel={()=>setModal(null)} saving={saving}/>}
+          {(modal==="editPlayer")&&<PlayerForm initial={selected} onSave={updPlayer} onCancel={()=>setModal(null)} saving={saving}/>}
+        </Modal>
+      )}
+      {isAdmin&&del&&del!=="player"&&(
+        <ConfirmDel msg="¿Eliminar esta temporada?" onCancel={()=>setDel(null)} onConfirm={()=>delSeason(del)}/>
+      )}
     </div>
   );
 
   return(
     <div style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
+      {isAdmin&&<div style={{display:"flex",justifyContent:"flex-end",marginBottom:"12px"}}><button onClick={()=>setModal("addPlayer")} style={{background:"#f97316",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Jugadora</button></div>}
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"12px",marginBottom:"20px"}}>
         {[["👩‍🏀",players.length,"Jugadoras"],["📋",players.reduce((n,p)=>n+(p.seasons?.length||0),0),"Temporadas"],["🌍",new Set(players.flatMap(p=>(p.seasons||[]).map(s=>s.id_equipo))).size,"Equipos únicos"]].map(([e,v,l])=>(
           <div key={l} style={{background:"#fff",borderRadius:"14px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",textAlign:"center"}}>
@@ -1399,6 +1432,36 @@ function Landing({onEnter}){
   );
 }
 
+/* ── LoginModal ─────────────────────────────────────────── */
+function LoginModal({onLogin,onClose,loading,error}){
+  const [email,setEmail]=useState("");
+  const [pass,setPass]=useState("");
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}
+      onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div style={{background:"#1e293b",borderRadius:"20px",padding:"32px",width:"340px",boxShadow:"0 20px 60px rgba(0,0,0,0.5)"}}>
+        <div style={{textAlign:"center",marginBottom:"24px"}}>
+          <div style={{fontSize:"32px",marginBottom:"8px"}}>🔐</div>
+          <div style={{fontWeight:800,fontSize:"18px",color:"#f1f5f9"}}>Acceso Admin</div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
+          <input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}
+            style={{background:"#0f172a",border:"1.5px solid #334155",borderRadius:"10px",padding:"10px 14px",fontSize:"14px",color:"#f1f5f9",outline:"none"}}
+            onKeyDown={e=>e.key==="Enter"&&onLogin(email,pass)}/>
+          <input type="password" placeholder="Contraseña" value={pass} onChange={e=>setPass(e.target.value)}
+            style={{background:"#0f172a",border:"1.5px solid #334155",borderRadius:"10px",padding:"10px 14px",fontSize:"14px",color:"#f1f5f9",outline:"none"}}
+            onKeyDown={e=>e.key==="Enter"&&onLogin(email,pass)}/>
+          {error&&<div style={{color:"#f87171",fontSize:"12px",textAlign:"center"}}>{error}</div>}
+          <button onClick={()=>onLogin(email,pass)} disabled={loading}
+            style={{background:"#f97316",color:"#fff",border:"none",borderRadius:"10px",padding:"11px",fontWeight:700,fontSize:"14px",cursor:"pointer",marginTop:"4px"}}>
+            {loading?"Entrando...":"Entrar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── App ─────────────────────────────────────────────────── */
 export default function App(){
   const [players,setPlayers] = useState([]);
@@ -1416,6 +1479,24 @@ export default function App(){
     try{localStorage.setItem("bfdb_accepted","1");}catch{}
     setShowLanding(false);
   };
+  const [isAdmin,setIsAdmin]       = useState(false);
+  const [showLogin,setShowLogin]   = useState(false);
+  const [loginErr,setLoginErr]     = useState("");
+  const [loginLoading,setLoginLoading] = useState(false);
+
+  useEffect(()=>{
+    supabase.auth.getSession().then(({data:{session}})=>{if(session)setIsAdmin(true);});
+    const {data:{subscription}} = supabase.auth.onAuthStateChange((_,session)=>setIsAdmin(!!session));
+    return ()=>subscription.unsubscribe();
+  },[]);
+
+  const handleLogin=async(email,password)=>{
+    setLoginLoading(true);setLoginErr("");
+    const {error}=await supabase.auth.signInWithPassword({email,password});
+    if(error){setLoginErr("Credenciales incorrectas");setLoginLoading(false);}
+    else{setShowLogin(false);setLoginLoading(false);}
+  };
+  const handleLogout=async()=>{await supabase.auth.signOut();setIsAdmin(false);};
   const [tab,setTab]         = useState("jugadoras");
   const [openPlayerId,setOpenPlayerId] = useState(null);
   const [openTeamId,setOpenTeamId]     = useState(null);
@@ -1456,6 +1537,7 @@ export default function App(){
   const TABS=[["jugadoras","👩‍🏀","Jugadoras"],["equipos","🏟️","Equipos"],["ligas","🏆","Ligas"],["cuerpo_tecnico","📋","Cuerpo Técnico"]];
 
   if(showLanding) return <Landing onEnter={handleEnter}/>;
+  if(showLogin) return <LoginModal onLogin={handleLogin} onClose={()=>{setShowLogin(false);setLoginErr("");}} loading={loginLoading} error={loginErr}/>;
 
   if(loading) return(
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f1f5f9",fontFamily:"system-ui,sans-serif"}}>
@@ -1489,14 +1571,18 @@ export default function App(){
               </button>
             ))}
             <button onClick={loadAll} title="Recargar" style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}}>🔄</button>
+            {isAdmin
+              ?<button onClick={handleLogout} title="Cerrar sesión admin" style={{background:"rgba(249,115,22,0.15)",color:"#fb923c",border:"1.5px solid rgba(249,115,22,0.3)",borderRadius:"10px",padding:"5px 10px",cursor:"pointer",fontSize:"12px",fontWeight:700}}>🔐 Admin</button>
+              :<button onClick={()=>setShowLogin(true)} title="Acceso admin" style={{background:"transparent",color:"#475569",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}}>🔒</button>
+            }
           </div>
         </div>
       </div>
       <div style={{paddingTop:"8px"}}>
-        {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)}/>}
-        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}}/>}
+        {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin}/>}
+        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin}/>}
         {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} onGoToTeam={goToTeam}/>}
-        {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)}/>}
+        {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin}/>}
       </div>
     </div>
   );
