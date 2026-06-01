@@ -1189,7 +1189,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
   if(selId){
     const coach=(coaches||[]).find(c=>c.id_coach===selId);
     if(!coach)return null;
-    const coachSeasons=(tempCoach||[]).filter(tc=>tc.id_coach===coach.id_coach).sort((a,b)=>b.temporada.localeCompare(a.temporada));
+    const coachSeasons=(tempCoach||[]).filter(tc=>tc.id_coach===coach.id_coach).sort((a,b)=>b.temporada.localeCompare(a.temporada)||parseInt(b.orden||0)-parseInt(a.orden||0));
     const isExPlayer=!!coach.id_jugadora;
     const playerProfile=isExPlayer?playerMap[String(coach.id_jugadora)]:null;
     const age=coach.fecha_nac?Math.floor((new Date()-new Date(coach.fecha_nac))/(365.25*24*3600*1000)):null;
@@ -1317,7 +1317,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
       <div style={{fontSize:"13px",color:"#94a3b8",marginBottom:"12px"}}>{filteredList.length} entrenador{filteredList.length!==1?"es":"a"}</div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:"12px"}}>
         {filteredList.map(coach=>{
-          const coachSeasons=(tempCoach||[]).filter(tc=>tc.id_coach===coach.id_coach).sort((a,b)=>b.temporada.localeCompare(a.temporada));
+          const coachSeasons=(tempCoach||[]).filter(tc=>tc.id_coach===coach.id_coach).sort((a,b)=>b.temporada.localeCompare(a.temporada)||parseInt(b.orden||0)-parseInt(a.orden||0));
           const lastSeason=coachSeasons[0];
           const lastEq=lastSeason?equipoMap[lastSeason.id_equipo]:null;
           const lastLig=lastSeason?ligaMap[lastSeason.id_liga]:null;
