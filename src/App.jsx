@@ -208,6 +208,10 @@ const COUNTRY_CODES = {
 
   /* Oceanía */
   "fiji":"fj","fiyi":"fj",
+  "union sovietica":"ru","union soviética":"ru","urss":"ru","ussr":"ru","soviet union":"ru",
+  "yugoslavia":"rs","checoslovaquia":"cz","czechoslovakia":"cz",
+  "alemania oriental":"de","rda":"de","east germany":"de",
+  "alemania occidental":"de","rfa":"de","west germany":"de",
 };
 
 const ACP_COUNTRIES = new Set([
@@ -911,7 +915,7 @@ function PalmaresForm({initial,ligas,onSave,onCancel,saving}){
 }
 
 /* ── TeamsView ───────────────────────────────────────────── */
-function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlayer,onGoToCoach,openTeamId,openTeamYear,onClearTeam,isAdmin,onReload}){
+function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlayer,onGoToCoach,onGoToLeague,openTeamId,openTeamYear,onClearTeam,isAdmin,onReload}){
   const [search,setSearch]             = useState("");
   const [filterLeague,setFilterLeague] = useState("");
   const [filterSeason,setFilterSeason] = useState(null);
@@ -1108,9 +1112,11 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
                   return(
                     <div key={id_liga}>
                       <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"8px"}}>
-                        <LeagueBadge liga={liga} size={32}/>
-                        <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{liga?.nombre||id_liga}</span>
-                        {liga?.pais&&<FlagImg country={liga.pais}/>}
+                        <div onClick={()=>liga&&onGoToLeague&&onGoToLeague(id_liga)} style={{display:"flex",alignItems:"center",gap:"8px",cursor:liga?"pointer":"default"}}>
+                          <LeagueBadge liga={liga} size={32}/>
+                          <span style={{fontWeight:700,fontSize:"14px",color:liga?"#f97316":"#1e293b",textDecoration:liga?"underline":"none"}}>{liga?.nombre||id_liga}</span>
+                          {liga?.pais&&<FlagImg country={liga.pais}/>}
+                        </div>
                         <span style={{background:"#fed7aa",color:"#b45309",fontSize:"11px",fontWeight:700,padding:"2px 8px",borderRadius:"20px"}}>{sorted.length}x</span>
                         {isAdmin&&<button onClick={()=>setPalModal("add")} style={{marginLeft:"auto",background:"#f97316",color:"#fff",border:"none",borderRadius:"8px",padding:"3px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>+ Título</button>}
                       </div>
@@ -1289,8 +1295,9 @@ function CoachSeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
 }
 
 /* ── LeaguesView ─────────────────────────────────────────── */
-function LeaguesView({ligas,players,equipos,palmares,onGoToTeam,isAdmin,onReload}){
-  const [selId,setSelId]     = useState(null);
+function LeaguesView({ligas,players,equipos,palmares,onGoToTeam,isAdmin,onReload,openLigaId,onClearLiga}){
+  const [selId,setSelId]     = useState(openLigaId||null);
+  useEffect(()=>{if(openLigaId){setSelId(openLigaId);onClearLiga&&onClearLiga();}},[openLigaId]);
   const [selYear,setSelYear] = useState(null);
   const [search,setSearch]   = useState("");
   const [ligaModal,setLigaModal] = useState(null);
@@ -1343,7 +1350,7 @@ function LeaguesView({ligas,players,equipos,palmares,onGoToTeam,isAdmin,onReload
   const filtered = ligas.filter(l=>!search||l.nombre?.toLowerCase().includes(search.toLowerCase()));
   const ligasByTipo = useMemo(()=>{
     const g={liga:[],copacont:[],copadom:[],internacional:[],other:[]};
-    filtered.forEach(l=>{if(g[l.tipo])g[l.tipo].push(l);else g.other.push(l);});
+    filtered.forEach(l=>{if(g[l.tipo])g[l.tipo].push(l);else if(l.pais&&l.pais.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')!=="espana")g.internacional.push(l);else g.other.push(l);});
     return g;
   },[filtered]);
 
@@ -1846,6 +1853,8 @@ export default function App(){
   const [openCoachId,setOpenCoachId]   = useState(null);
 
   const goToTeam   = (id,year=null)=>{setOpenTeamId(id);setOpenTeamYear(year);setOpenPlayerId(null);setTab("equipos");};
+  const [openLigaId,setOpenLigaId] = useState(null);
+  const goToLeague = id=>{setOpenLigaId(id);setTab("ligas");};
   const goToPlayer = id=>{setOpenPlayerId(id);setOpenTeamId(null);setTab("jugadoras");};
   const goToCoach  = id=>{setOpenCoachId(id);setTab("cuerpo_tecnico");};
 
@@ -1924,8 +1933,8 @@ export default function App(){
       </div>
       <div style={{paddingTop:"8px"}}>
         {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin}/>}
-        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll}/>}
-        {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll}/>}
+        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll}/>}
+        {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)}/>}
         {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll}/>}
       </div>
     </div>
