@@ -265,6 +265,7 @@ function FlagImg({ country }) {
   if (!country) return null;
   const norm = country.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
   if (norm === "europa" || norm === "europe" || norm === "eu") return <img src="https://flagcdn.com/20x15/eu.png" width={20} height={15} alt="Europa" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",flexShrink:0,marginRight:"4px"}}/>;
+  if (norm === "mundo" || norm === "world" || norm === "international" || norm === "internacional") return <span style={{fontSize:"14px",lineHeight:1,marginRight:"4px",verticalAlign:"middle"}}>🌍</span>;
   const code = countryCode(country);
   if (!code) return null;
   return <img src={`https://flagpedia.net/data/flags/w160/${code}.webp`} width={20} height={13} alt={country}
