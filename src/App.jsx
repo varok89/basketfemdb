@@ -1301,6 +1301,7 @@ function LeaguesView({ligas,players,equipos,palmares,onGoToTeam,isAdmin,onReload
   useEffect(()=>{if(openLigaId){setSelId(openLigaId);onClearLiga&&onClearLiga();}},[openLigaId]);
   const [selYear,setSelYear] = useState(null);
   const [search,setSearch]   = useState("");
+  const [filterTipoLiga,setFilterTipoLiga] = useState("");
   const [ligaModal,setLigaModal] = useState(null);
   const [saving,setSaving]   = useState(false);
   const [delLiga,setDelLiga] = useState(false);
@@ -1348,7 +1349,7 @@ function LeaguesView({ligas,players,equipos,palmares,onGoToTeam,isAdmin,onReload
     return s;
   },[selected,effectiveYear,players]);
 
-  const filtered = ligas.filter(l=>!search||l.nombre?.toLowerCase().includes(search.toLowerCase()));
+  const filtered = ligas.filter(l=>(!search||l.nombre?.toLowerCase().includes(search.toLowerCase()))&&(!filterTipoLiga||l.tipo===filterTipoLiga));
   const ligasByTipo = useMemo(()=>{
     const g={liga:[],copacont:[],copadom:[],internacional:[],other:[]};
     filtered.forEach(l=>{if(g[l.tipo])g[l.tipo].push(l);else if(l.pais&&l.pais.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')!=="espana")g.internacional.push(l);else g.other.push(l);});
@@ -1451,6 +1452,13 @@ function LeaguesView({ligas,players,equipos,palmares,onGoToTeam,isAdmin,onReload
       <div style={{display:"flex",gap:"10px",marginBottom:"16px",alignItems:"center"}}>
         <input style={{flex:1,border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 16px",fontSize:"14px",color:"#1e293b",outline:"none",background:"#fff",boxSizing:"border-box"}}
           placeholder="🔍 Buscar liga..." value={search} onChange={e=>setSearch(e.target.value)}/>
+        <select value={filterTipoLiga} onChange={e=>setFilterTipoLiga(e.target.value)} style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none",flexShrink:0}}>
+          <option value="">Todos los tipos</option>
+          <option value="liga">Liga</option>
+          <option value="copadom">Copa Nacional</option>
+          <option value="copacont">Copa Continental</option>
+          <option value="internacional">Internacional</option>
+        </select>
         {isAdmin&&<button onClick={()=>setLigaModal("add")} style={{background:"#f97316",color:"#fff",border:"none",borderRadius:"10px",padding:"10px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",whiteSpace:"nowrap"}}>+ Liga</button>}
       </div>
       {GRUPOS.map(([tipo,label])=>{
