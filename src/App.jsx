@@ -650,7 +650,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           <Avatar photo={selected.foto} name={selected.nombre} size={90} fontSize={30}/>
           <div style={{flex:1}}>
             <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"12px",marginBottom:"8px"}}>
-              <h1 style={{fontWeight:800,fontSize:"21px",color:"#1e293b",margin:0}}>{selected.nombre}</h1>
+              <div><h1 style={{fontWeight:800,fontSize:"21px",color:"#1e293b",margin:0}}>{selected.nombre}</h1>{isAdmin&&<span style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{selected.id_jugadora}</span>}</div>
               {(()=>{
                 const titles={};
                 const uniquePairs=[...new Map((selected.seasons||[]).map(s=>[s.id_equipo+"_"+s.temporada,s])).values()];
@@ -1008,7 +1008,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
           <div style={{display:"flex",alignItems:"center",gap:"20px",flexWrap:"wrap"}}>
             <TeamBadge team={eq} size={80}/>
             <div style={{flex:1,minWidth:"180px"}}>
-              <h1 style={{fontWeight:800,fontSize:"22px",color:"#1e293b",margin:"0 0 10px"}}>{eq.nombre}</h1>
+              <div><h1 style={{fontWeight:800,fontSize:"22px",color:"#1e293b",margin:"0 0 4px"}}>{eq.nombre}</h1>{isAdmin&&<span style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{eq.id_equipo}</span>}</div>
               <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
                 {eq.pais&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center"}}><FlagImg country={eq.pais}/>{eq.pais}</span>}
                 {eq.ciudad&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px"}}>📍 {eq.ciudad}</span>}
@@ -1090,9 +1090,14 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
             <div style={{display:"flex",flexDirection:"column",gap:"16px"}}>
               {(()=>{
                 const pal=(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo);
+                const TIPO_ORDER={copacont:0,liga:1,copadom:2,internacional:3};
                 const byLiga={};
                 pal.forEach(p=>{const k=p.id_liga;if(!byLiga[k])byLiga[k]=[];byLiga[k].push(p);});
-                return Object.entries(byLiga).map(([id_liga,entries])=>{
+                return Object.entries(byLiga).sort(([a],[b])=>{
+                  const ta=TIPO_ORDER[ligaMap[a]?.tipo??'']??9;
+                  const tb=TIPO_ORDER[ligaMap[b]?.tipo??'']??9;
+                  return ta-tb||(ligaMap[a]?.nombre||'').localeCompare(ligaMap[b]?.nombre||'');
+                }).map(([id_liga,entries])=>{
                   const liga=ligaMap[id_liga];
                   const sorted=[...entries].sort((a,b)=>b.temporada.localeCompare(a.temporada));
                   return(
@@ -1351,7 +1356,7 @@ function LeaguesView({ligas,players,equipos,palmares,onGoToTeam,isAdmin,onReload
           <div style={{display:"flex",alignItems:"center",gap:"20px",flexWrap:"wrap"}}>
             <LeagueBadge liga={selected} size={72}/>
             <div style={{flex:1,minWidth:"180px"}}>
-              <h1 style={{fontWeight:800,fontSize:"22px",color:"#1e293b",margin:"0 0 10px"}}>{selected.nombre}</h1>
+              <div><h1 style={{fontWeight:800,fontSize:"22px",color:"#1e293b",margin:"0 0 4px"}}>{selected.nombre}</h1>{isAdmin&&<span style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{selected.id_liga}</span>}</div>
               <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
                 {selected.pais&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center"}}><FlagImg country={selected.pais}/>{selected.pais}</span>}
                 {selected.tipo&&<span style={{background:bg,color,fontSize:"12px",fontWeight:700,padding:"3px 10px",borderRadius:"20px"}}>{TIPO_LABELS[selected.tipo]||selected.tipo}</span>}
@@ -1558,7 +1563,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
             <Avatar photo={coach.foto} name={coach.nombre} size={80} fontSize={28}/>
             <div style={{flex:1,minWidth:0}}>
               <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"12px",marginBottom:"10px"}}>
-                <h1 style={{fontWeight:800,fontSize:"21px",color:"#1e293b",margin:0}}>{coach.nombre}</h1>
+                <div><h1 style={{fontWeight:800,fontSize:"21px",color:"#1e293b",margin:0}}>{coach.nombre}</h1>{isAdmin&&<span style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{coach.id_coach}</span>}</div>
                 {(()=>{
                   const titles={};const seen=new Set();
                   const uniquePairs=[...new Map(coachSeasons.map(s=>[s.id_equipo+"_"+s.temporada,s])).values()];
