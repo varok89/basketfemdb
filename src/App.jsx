@@ -915,6 +915,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
   const [search,setSearch]             = useState("");
   const [filterLeague,setFilterLeague] = useState("");
   const [filterSeason,setFilterSeason] = useState(null);
+  const [filterTipo,setFilterTipo]     = useState("");
   const [selId,setSelId]               = useState(openTeamId||null);
   const [selYear,setSelYear]           = useState(null);
   const [teamModal,setTeamModal]       = useState(null);
@@ -982,7 +983,8 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
     const matchSearch=!search||eq.nombre?.toLowerCase().includes(search.toLowerCase())||eq.id_equipo?.toLowerCase().includes(search.toLowerCase());
     const matchLeague=!filterLeague||pl.some(({season})=>ligaMap[season.id_liga]?.nombre===filterLeague);
     const matchSeason=!filterSeason||years.has(filterSeason);
-    return matchSearch&&matchLeague&&matchSeason;
+    const matchTipo=!filterTipo||eq.tipo===filterTipo;
+    return matchSearch&&matchLeague&&matchSeason&&matchTipo;
   });
 
   const selected    = selId?teamIndex.find(t=>t.eq.id_equipo===selId):null;
@@ -1141,6 +1143,11 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
       <div style={{display:"flex",gap:"10px",marginBottom:"14px",flexWrap:"wrap"}}>
         <input style={{flex:1,minWidth:"180px",border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"14px",color:"#1e293b",outline:"none",background:"#fff"}}
           placeholder="🔍 Buscar equipo..." value={search} onChange={e=>setSearch(e.target.value)}/>
+        <select value={filterTipo} onChange={e=>setFilterTipo(e.target.value)} style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}}>
+          <option value="">Clubs y Selecciones</option>
+          <option value="equipo">🏟️ Clubs</option>
+          <option value="seleccion">🌍 Selecciones</option>
+        </select>
         <select value={filterLeague} onChange={e=>setFilterLeague(e.target.value)} style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}}>
           <option value="">Todas las ligas</option>
           {allLeagues.map(l=><option key={l} value={l}>{l}</option>)}
