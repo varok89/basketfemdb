@@ -1142,6 +1142,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
           {allSeasons.map(s=><option key={s} value={s}>{s}{s===latestSeason?" (actual)":""}</option>)}
         </select>
       </div>
+      {isAdmin&&teamModal==="addTeam"&&<Modal title="Nuevo equipo" onClose={()=>setTeamModal(null)}><TeamForm onSave={saveTeam} onCancel={()=>setTeamModal(null)} saving={saving}/></Modal>}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
         <span style={{fontSize:"13px",color:"#94a3b8"}}>{filtered.length} equipo{filtered.length!==1?"s":""}</span>
         {isAdmin&&<button onClick={()=>setTeamModal("addTeam")} style={{background:"#f97316",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Equipo</button>}
