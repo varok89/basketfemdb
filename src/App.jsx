@@ -840,7 +840,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           const last=allS.find(s=>ligaMap[s.id_liga]?.tipo==="liga")||allS[0];
           const lastEq=last?equipoMap[last.id_equipo]:null;
           return(
-            <div key={p.id_jugadora} onClick={()=>{setSelId(p.id_jugadora);setActiveTipo(null);}}
+            <div key={p.id_jugadora} onClick={()=>{setSelId(p.id_jugadora);setActiveTipo(null);window.scrollTo({top:0,behavior:"smooth"});}}
               style={{background:"#fff",borderRadius:"16px",padding:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",cursor:"pointer",border:"2px solid transparent",transition:"all 0.15s"}}
               onMouseEnter={e=>{e.currentTarget.style.borderColor="#fb923c";e.currentTarget.style.boxShadow="0 4px 18px rgba(249,115,22,0.18)";}}
               onMouseLeave={e=>{e.currentTarget.style.borderColor="transparent";e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.06)";}}>
@@ -1193,7 +1193,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
                   const uniq=new Set(pl.map(({player})=>player.id_jugadora)).size;
                   const latestY=[...yrs].sort((a,b)=>b.localeCompare(a))[0];
                   return(
-                    <div key={eq.id_equipo} onClick={()=>{setSelId(eq.id_equipo);setSelYear(null);}}
+                    <div key={eq.id_equipo} onClick={()=>{setSelId(eq.id_equipo);setSelYear(null);window.scrollTo({top:0,behavior:"smooth"});}}
                       style={{background:"#fff",borderRadius:"16px",padding:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",cursor:"pointer",border:"2px solid transparent",transition:"all 0.15s"}}
                       onMouseEnter={e=>{e.currentTarget.style.borderColor=bg;e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,0.12)";}}
                       onMouseLeave={e=>{e.currentTarget.style.borderColor="transparent";e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.06)";}}>
@@ -1476,7 +1476,7 @@ function LeaguesView({ligas,players,equipos,palmares,onGoToTeam,isAdmin,onReload
                 const teamSet=new Set(),yearSet=new Set();
                 players.forEach(p=>(p.seasons||[]).forEach(s=>{if(s.id_liga===l.id_liga){teamSet.add(s.id_equipo);yearSet.add(s.temporada);}}));
                 return(
-                  <div key={l.id_liga} onClick={()=>{setSelId(l.id_liga);setSelYear(null);}}
+                  <div key={l.id_liga} onClick={()=>{setSelId(l.id_liga);setSelYear(null);window.scrollTo({top:0,behavior:"smooth"});}}
                     style={{background:"#fff",borderRadius:"16px",padding:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",cursor:"pointer",border:"2px solid transparent",transition:"all 0.15s",display:"flex",alignItems:"center",gap:"14px"}}
                     onMouseEnter={e=>{e.currentTarget.style.borderColor=color;e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,0.10)";}}
                     onMouseLeave={e=>{e.currentTarget.style.borderColor="transparent";e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.06)";}}>
@@ -1713,7 +1713,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
           const lastLig=lastSeason?ligaMap[lastSeason.id_liga]:null;
           const isExPlayer=!!coach.id_jugadora;
           return(
-            <div key={coach.id_coach} onClick={()=>setSelId(coach.id_coach)}
+            <div key={coach.id_coach} onClick={()=>{setSelId(coach.id_coach);window.scrollTo({top:0,behavior:"smooth"});}}
               style={{background:"#fff",borderRadius:"16px",padding:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",cursor:"pointer",border:"2px solid transparent",transition:"all 0.15s"}}
               onMouseEnter={e=>{e.currentTarget.style.borderColor="#3b82f6";e.currentTarget.style.boxShadow="0 4px 18px rgba(59,130,246,0.18)";}}
               onMouseLeave={e=>{e.currentTarget.style.borderColor="transparent";e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.06)";}}>
@@ -1861,11 +1861,12 @@ export default function App(){
   const [openTeamYear,setOpenTeamYear] = useState(null);
   const [openCoachId,setOpenCoachId]   = useState(null);
 
-  const goToTeam   = (id,year=null)=>{setOpenTeamId(id);setOpenTeamYear(year);setOpenPlayerId(null);setTab("equipos");};
+  const scrollTop  = ()=>window.scrollTo({top:0,behavior:"smooth"});
+  const goToTeam   = (id,year=null)=>{setOpenTeamId(id);setOpenTeamYear(year);setOpenPlayerId(null);setTab("equipos");scrollTop();};
   const [openLigaId,setOpenLigaId] = useState(null);
-  const goToLeague = id=>{setOpenLigaId(id);setTab("ligas");};
-  const goToPlayer = id=>{setOpenPlayerId(id);setOpenTeamId(null);setTab("jugadoras");};
-  const goToCoach  = id=>{setOpenCoachId(id);setTab("cuerpo_tecnico");};
+  const goToLeague = id=>{setOpenLigaId(id);setTab("ligas");scrollTop();};
+  const goToPlayer = id=>{setOpenPlayerId(id);setOpenTeamId(null);setTab("jugadoras");scrollTop();};
+  const goToCoach  = id=>{setOpenCoachId(id);setTab("cuerpo_tecnico");scrollTop();};
 
   const loadAll = async()=>{
     setLoading(isFirstLoad);setError(null);
