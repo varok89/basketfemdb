@@ -1084,7 +1084,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
         {isAdmin&&teamModal&&<Modal title={teamModal==="addTeam"?"Nuevo equipo":"Editar equipo"} onClose={()=>setTeamModal(null)}>
           <TeamForm initial={teamModal!=="addTeam"?eq:null} onSave={saveTeam} onCancel={()=>setTeamModal(null)} saving={saving}/>
         </Modal>}
-        {(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length>0&&(
+        {(isAdmin||(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length>0)&&(
           <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginTop:"14px"}}>
             <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:"0 0 14px"}}>🏆 Palmarés <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length})</span></h2>
             <div style={{display:"flex",flexDirection:"column",gap:"16px"}}>
