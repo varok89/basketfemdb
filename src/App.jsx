@@ -1086,7 +1086,10 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
         </Modal>}
         {(isAdmin||(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length>0)&&(
           <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginTop:"14px"}}>
-            <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:"0 0 14px"}}>🏆 Palmarés <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length})</span></h2>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
+              <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>🏆 Palmarés <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length})</span></h2>
+              {isAdmin&&<button onClick={()=>setPalModal("add")} style={{background:"#f97316",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Título</button>}
+            </div>
             <div style={{display:"flex",flexDirection:"column",gap:"16px"}}>
               {(()=>{
                 const pal=(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo);
