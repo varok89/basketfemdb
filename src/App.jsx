@@ -327,19 +327,27 @@ function ConfirmDel({msg,onCancel,onConfirm}){return(
 );}
 
 function PhotoPicker({value,onChange}){
+  const [mode,setMode]=useState("url");
   const ref=useRef();
   const handleFile=async e=>{const f=e.target.files[0];if(!f)return;if(f.size>3*1024*1024){alert("Máx 3 MB");return;}onChange(await toBase64(f));};
+  const inp={width:"100%",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 12px",fontSize:"13px",outline:"none",boxSizing:"border-box"};
   return(
-    <div style={{marginBottom:"16px"}}>
+    <div style={{marginBottom:"8px"}}>
       <label style={{display:"block",fontSize:"12px",fontWeight:700,color:"#64748b",marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Foto</label>
-      <div style={{display:"flex",alignItems:"center",gap:"14px"}}>
-        {value?<img src={value} alt="" style={{width:60,height:60,borderRadius:"50%",objectFit:"cover",border:"3px solid #fb923c"}}/>
-          :<div style={{width:60,height:60,borderRadius:"50%",background:"#f1f5f9",border:"2px dashed #cbd5e1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"22px"}}>🖼️</div>}
-        <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
-          <button type="button" onClick={()=>ref.current.click()} style={{background:"#f8fafc",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"7px 12px",fontSize:"12px",color:"#475569",cursor:"pointer",fontWeight:600}}>📷 {value?"Cambiar":"Subir"}</button>
-          {value&&<button type="button" onClick={()=>onChange(null)} style={{background:"none",border:"none",fontSize:"11px",color:"#ef4444",cursor:"pointer",padding:0}}>Eliminar</button>}
+      <div style={{display:"flex",alignItems:"flex-start",gap:"14px"}}>
+        {value?<img src={value} alt="" style={{width:56,height:56,borderRadius:"50%",objectFit:"cover",border:"3px solid #fb923c",flexShrink:0}}/>
+          :<div style={{width:56,height:56,borderRadius:"50%",background:"#f1f5f9",border:"2px dashed #cbd5e1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",flexShrink:0}}>🖼️</div>}
+        <div style={{flex:1}}>
+          <div style={{display:"flex",gap:"6px",marginBottom:"8px"}}>
+            <button type="button" onClick={()=>setMode("url")} style={{background:mode==="url"?"#f97316":"#f1f5f9",color:mode==="url"?"#fff":"#475569",border:"none",borderRadius:"8px",padding:"5px 12px",fontSize:"12px",cursor:"pointer",fontWeight:600}}>URL</button>
+            <button type="button" onClick={()=>setMode("file")} style={{background:mode==="file"?"#f97316":"#f1f5f9",color:mode==="file"?"#fff":"#475569",border:"none",borderRadius:"8px",padding:"5px 12px",fontSize:"12px",cursor:"pointer",fontWeight:600}}>📷 Archivo</button>
+            {value&&<button type="button" onClick={()=>onChange(null)} style={{background:"none",border:"none",fontSize:"11px",color:"#ef4444",cursor:"pointer",marginLeft:"auto"}}>Eliminar</button>}
+          </div>
+          {mode==="url"
+            ?<input style={inp} value={value&&!value.startsWith("data:")?value:""} onChange={e=>onChange(e.target.value||null)} placeholder="https://ejemplo.com/foto.jpg"/>
+            :<><button type="button" onClick={()=>ref.current.click()} style={{background:"#f8fafc",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"7px 12px",fontSize:"12px",color:"#475569",cursor:"pointer",fontWeight:600,width:"100%"}}>Seleccionar archivo...</button>
+              <input ref={ref} type="file" accept="image/*" style={{display:"none"}} onChange={handleFile}/></>}
         </div>
-        <input ref={ref} type="file" accept="image/*" style={{display:"none"}} onChange={handleFile}/>
       </div>
     </div>
   );
@@ -510,6 +518,9 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   const [editSeason,setEditSeason] = useState(null);
   const [del,setDel]               = useState(null);
   const [saving,setSaving]         = useState(false);
+  const [seasonModal,setSeasonModal] = useState(null);
+  const [delCoachItem,setDelCoachItem] = useState(null);
+  const [saving3,setSaving3]       = useState(false);
   const [activeTipo,setActiveTipo] = useState(null);
   const photoRef = useRef();
 
@@ -594,6 +605,23 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   };
   const delSeason=async id=>{
     try{await supabase.from("temporadas").delete().eq("id",id);await onReload();setDel(null);}catch(e){alert("Error: "+e.message);}
+  };
+  const saveCoachSeasonInPlayer=async(f,coachId)=>{
+    setSaving3(true);
+    try{
+      if(seasonModal==="add"){
+        const {data}=await supabase.from("temporadas_coach").select("id").order("id",{ascending:false}).limit(1);
+        const newId=(data?.[0]?.id||0)+1;
+        await supabase.from("temporadas_coach").insert({id:newId,id_coach:coachId,...f,orden:parseInt(f.orden)||0});
+      } else {
+        await supabase.from("temporadas_coach").update({...f,orden:parseInt(f.orden)||0}).eq("id",seasonModal.id);
+      }
+      await onReload();setSeasonModal(null);
+    }catch(e){alert("Error: "+e.message);}
+    setSaving3(false);
+  };
+  const delCoachSeasonInPlayer=async(id)=>{
+    try{await supabase.from("temporadas_coach").delete().eq("id",id);await onReload();setDelCoachItem(null);}catch(e){alert("Error: "+e.message);}
   };
 
   if(players.length===0) return <EmptyState icon="👩‍🏀" text="No hay jugadoras" sub="Verifica la conexión con Supabase"/>;
@@ -732,6 +760,13 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           );
         })()}
       </div>
+      {isAdmin&&seasonModal&&(()=>{
+        const coachRecord=(coaches||[]).find(c=>String(c.id_jugadora)===String(selected.id_jugadora));
+        return coachRecord?(<Modal title={seasonModal==="add"?"Añadir temporada coach":"Editar temporada coach"} onClose={()=>setSeasonModal(null)}>
+          <CoachSeasonForm initial={seasonModal!=="add"?seasonModal:null} equipos={equipos} ligas={ligas} onSave={f=>saveCoachSeasonInPlayer(f,coachRecord.id_coach)} onCancel={()=>setSeasonModal(null)} saving={saving3}/>
+        </Modal>):null;
+      })()}
+      {isAdmin&&delCoachItem?.type==="season"&&<ConfirmDel msg="¿Eliminar esta temporada de coach?" onCancel={()=>setDelCoachItem(null)} onConfirm={()=>delCoachSeasonInPlayer(delCoachItem.id)}/>}
       {isAdmin&&modal&&(
         <Modal title={modal==="addSeason"?"Añadir temporada":modal==="editSeason"||editSeason?"Editar temporada":modal==="addPlayer"?"Nueva jugadora":"Editar jugadora"} onClose={()=>{setModal(null);setEditSeason(null);}}>
           {(modal==="addSeason")&&<SeasonForm equipos={equipos} ligas={ligas} onSave={addSeason} onCancel={()=>setModal(null)} saving={saving}/>}
