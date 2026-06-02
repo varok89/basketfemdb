@@ -1803,6 +1803,7 @@ export default function App(){
   const [tempCoach,setTempCoach] = useState([]);
   const [loading,setLoading] = useState(true);
   const [error,setError]     = useState(null);
+  const [isFirstLoad,setIsFirstLoad] = useState(true);
   const [showLanding,setShowLanding] = useState(()=>{
     try{return !localStorage.getItem("bfdb_accepted");}catch{return true;}
   });
@@ -1839,7 +1840,7 @@ export default function App(){
   const goToCoach  = id=>{setOpenCoachId(id);setTab("cuerpo_tecnico");};
 
   const loadAll = async()=>{
-    setLoading(true);setError(null);
+    setLoading(isFirstLoad);setError(null);
     try{
       const [rJ,rE,rL,rT,rP,rC,rTC]=await Promise.all([
         fetchAll("jugadoras",{order:"id_jugadora"}),
@@ -1859,6 +1860,7 @@ export default function App(){
       setPalmares(rP.data||[]);
       setCoaches(rC.data||[]);
       setTempCoach(rTC.data||[]);
+      setIsFirstLoad(false);
     }catch(e){setError(e.message||"Error cargando datos");}
     setLoading(false);
   };
