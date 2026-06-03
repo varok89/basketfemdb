@@ -795,6 +795,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
 
   return(
     <div style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
+      {isAdmin&&modal==="addPlayer"&&<Modal title="Nueva jugadora" onClose={()=>setModal(null)}><PlayerForm onSave={addPlayer} onCancel={()=>setModal(null)} saving={saving}/></Modal>}
       {isAdmin&&<div style={{display:"flex",justifyContent:"flex-end",marginBottom:"12px"}}><button onClick={()=>setModal("addPlayer")} style={{background:"#f97316",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Jugadora</button></div>}
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"12px",marginBottom:"20px"}}>
         {[["👩‍🏀",players.length,"Jugadoras"],["📋",players.reduce((n,p)=>n+(p.seasons?.length||0),0),"Temporadas"],["🌍",new Set(players.flatMap(p=>(p.seasons||[]).map(s=>s.id_equipo))).size,"Equipos únicos"]].map(([e,v,l])=>(
