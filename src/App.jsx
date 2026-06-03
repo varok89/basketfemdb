@@ -237,14 +237,21 @@ function isACP(nacionalidad) {
 }
 
 const EU_COUNTRIES = new Set([
-  "espana","espana","spain","france","francia","italy","italia","germany","alemania",
-  "portugal","netherlands","paises bajos","paises bajos","holanda","belgium","belgica","belgica",
+  /* UE + EEA */
+  "espana","spain","france","francia","italy","italia","germany","alemania",
+  "portugal","netherlands","paises bajos","holanda","belgium","belgica",
   "switzerland","suiza","sweden","suecia","norway","noruega","denmark","dinamarca",
   "finland","finlandia","ireland","irlanda","iceland","islandia","greece","grecia",
-  "poland","polonia","czech republic","republica checa","republica checa","chequia","r. checa",
-  "slovakia","eslovaquia","hungary","hungria","hungria","romania","rumania","rumania",
+  "poland","polonia","czech republic","republica checa","chequia","r. checa",
+  "slovakia","eslovaquia","hungary","hungria","romania","rumania",
   "bulgaria","croatia","croacia","slovenia","eslovenia","estonia","latvia","letonia",
   "lithuania","lituania","luxembourg","luxemburgo","cyprus","chipre","malta","austria",
+  /* Resto Europa continental */
+  "serbia","turquia","turkey","ucrania","ukraine","rusia","russia",
+  "georgia","armenia","azerbaijan","azerbaiyan",
+  "moldova","belarus","bielorrusia","albania","kosovo",
+  "montenegro","bosnia","bosnia y herzegovina","north macedonia","macedonia del norte","macedonia",
+  "andorra","monaco","san marino","liechtenstein",
 ]);
 function playerStatus(nac,nac2){
   const norm=s=>s?.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").trim()||"";
