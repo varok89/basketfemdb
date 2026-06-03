@@ -922,6 +922,29 @@ function PalmaresForm({initial,ligas,onSave,onCancel,saving}){
   </div>);
 }
 
+/* ── AddToSquadForm ─────────────────────────────────────── */
+function AddToSquadForm({initial,players,ligas,onSave,onCancel,saving}){
+  const [f,setF]=useState({id_jugadora:"",id_liga:"",temporada:initial?.temporada||"",...(initial||{})});
+  const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
+  const inp={width:"100%",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"14px",outline:"none",boxSizing:"border-box"};
+  const sorted=[...(players||[])].sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+  return(<div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
+    <Fld label="Jugadora *"><select style={inp} value={f.id_jugadora} onChange={set("id_jugadora")}>
+      <option value="">Seleccionar jugadora...</option>
+      {sorted.map(p=><option key={p.id_jugadora} value={p.id_jugadora}>{p.nombre}</option>)}
+    </select></Fld>
+    <Fld label="Liga *"><select style={inp} value={f.id_liga} onChange={set("id_liga")}>
+      <option value="">Seleccionar liga...</option>
+      {(ligas||[]).map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}</option>)}
+    </select></Fld>
+    <Fld label="Temporada *"><input style={inp} value={f.temporada} onChange={set("temporada")} placeholder="2025-26"/></Fld>
+    <div style={{display:"flex",gap:"10px",justifyContent:"flex-end",marginTop:"8px"}}>
+      <button onClick={onCancel} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"9px 20px",fontWeight:600,cursor:"pointer"}}>Cancelar</button>
+      <button onClick={()=>onSave(f)} disabled={saving||!f.id_jugadora||!f.id_liga||!f.temporada} style={{background:"#f97316",color:"#fff",border:"none",borderRadius:"10px",padding:"9px 20px",fontWeight:700,cursor:"pointer"}}>{saving?"Guardando...":"Guardar"}</button>
+    </div>
+  </div>);
+}
+
 /* ── TeamsView ───────────────────────────────────────────── */
 function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlayer,onGoToCoach,onGoToLeague,openTeamId,openTeamYear,onClearTeam,isAdmin,onReload}){
   const [search,setSearch]             = useState("");
@@ -932,6 +955,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
   const [selYear,setSelYear]           = useState(null);
   const [teamModal,setTeamModal]       = useState(null);
   const [palModal,setPalModal]         = useState(null);
+  const [squadModal,setSquadModal]     = useState(null);
   const [saving,setSaving]             = useState(false);
   const [delItem,setDelItem]           = useState(null);
 
@@ -946,6 +970,16 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
         await supabase.from("equipos").update(f).eq("id_equipo",selId);
       }
       await onReload();setTeamModal(null);
+    }catch(e){alert("Error: "+e.message);}
+    setSaving(false);
+  };
+  const saveSquad=async(f)=>{
+    setSaving(true);
+    try{
+      const allIds=players.flatMap(p=>p.seasons||[]).map(s=>parseInt(s.id)).filter(n=>!isNaN(n));
+      const newId=(Math.max(0,...allIds)+1);
+      await supabase.from("temporadas").insert({id:newId,id_jugadora:f.id_jugadora,id_equipo:eq.id_equipo,id_liga:f.id_liga,temporada:f.temporada});
+      await onReload();setSquadModal(null);
     }catch(e){alert("Error: "+e.message);}
     setSaving(false);
   };
@@ -1069,9 +1103,12 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
         <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px",flexWrap:"wrap",gap:"10px"}}>
             <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>Plantilla <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({squad.length})</span></h2>
-            {years.length>0&&<select value={effectiveYear||""} onChange={e=>setSelYear(e.target.value||null)} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}}>
-              {years.map(y=><option key={y} value={y}>{y}</option>)}
-            </select>}
+            <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
+              {isAdmin&&<button onClick={()=>setSquadModal({temporada:effectiveYear||"",id_liga:""})} style={{background:"#f97316",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Jugadora</button>}
+              {years.length>0&&<select value={effectiveYear||""} onChange={e=>setSelYear(e.target.value||null)} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}}>
+                {years.map(y=><option key={y} value={y}>{y}</option>)}
+              </select>}
+            </div>
           </div>
           {squad.length===0?<div style={{textAlign:"center",padding:"30px",color:"#94a3b8"}}>Sin jugadoras para esta temporada</div>
             :<div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
@@ -1092,6 +1129,9 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
         </div>
 
         {isAdmin&&delItem?.type==="palmares"&&<ConfirmDel msg="¿Eliminar este título?" onCancel={()=>setDelItem(null)} onConfirm={()=>delPalmares(delItem.id)}/>}
+        {isAdmin&&squadModal&&<Modal title="Añadir jugadora a plantilla" onClose={()=>setSquadModal(null)}>
+          <AddToSquadForm initial={squadModal} players={players} ligas={ligas} onSave={saveSquad} onCancel={()=>setSquadModal(null)} saving={saving}/>
+        </Modal>}
         {isAdmin&&palModal&&<Modal title={palModal==="add"?"Añadir título":"Editar título"} onClose={()=>setPalModal(null)}>
           <PalmaresForm initial={palModal!=="add"?palModal:null} ligas={ligas} onSave={savePalmares} onCancel={()=>setPalModal(null)} saving={saving}/>
         </Modal>}
