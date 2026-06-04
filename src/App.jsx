@@ -487,6 +487,108 @@ function StatusDropdown({filterStatus,setFilterStatus}){
   );
 }
 
+/* ── GlobalSearch ───────────────────────────────────────── */
+function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach}){
+  const [q,setQ]=useState("");
+  const [open,setOpen]=useState(false);
+  const ref=useRef();
+  useEffect(()=>{
+    const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
+    document.addEventListener("mousedown",h);return()=>document.removeEventListener("mousedown",h);
+  },[]);
+
+  const results=useMemo(()=>{
+    if(!q.trim()||q.length<2)return null;
+    const lq=q.toLowerCase();
+    const match=s=>s?.toLowerCase().includes(lq);
+    const r={jugadoras:[],equipos:[],ligas:[],coaches:[]};
+    (players||[]).forEach(p=>{if(match(p.nombre)||match(p.nacionalidad)||match(p.nacionalidad2))r.jugadoras.push(p);});
+    (equipos||[]).forEach(e=>{if(match(e.nombre)||match(e.ciudad)||match(e.pais))r.equipos.push(e);});
+    (ligas||[]).forEach(l=>{if(match(l.nombre)||match(l.pais))r.ligas.push(l);});
+    (coaches||[]).forEach(c=>{if(match(c.nombre)||match(c.nacionalidad))r.coaches.push(c);});
+    return r;
+  },[q,players,equipos,ligas,coaches]);
+
+  const total=results?Object.values(results).reduce((a,v)=>a+v.length,0):0;
+  const inp={width:"100%",background:"rgba(255,255,255,0.08)",border:"1.5px solid rgba(255,255,255,0.12)",borderRadius:"10px",padding:"7px 12px",fontSize:"13px",color:"#fff",outline:"none",boxSizing:"border-box"};
+
+  const go=(fn)=>{fn();setQ("");setOpen(false);};
+
+  return(
+    <div ref={ref} style={{position:"relative",flexShrink:0}}>
+      <div style={{display:"flex",alignItems:"center",gap:"6px",background:"rgba(255,255,255,0.08)",border:"1.5px solid rgba(255,255,255,0.12)",borderRadius:"10px",padding:"5px 10px"}}>
+        <span style={{fontSize:"13px",color:"#94a3b8"}}>🔍</span>
+        <input value={q} onChange={e=>{setQ(e.target.value);setOpen(true);}} onFocus={()=>q.length>=2&&setOpen(true)}
+          placeholder="Buscar..." style={{background:"transparent",border:"none",outline:"none",color:"#fff",fontSize:"13px",width:"160px"}}
+          onKeyDown={e=>{if(e.key==="Escape"){setQ("");setOpen(false);}}}/>
+        {q&&<button onClick={()=>{setQ("");setOpen(false);}} style={{background:"none",border:"none",color:"#64748b",cursor:"pointer",fontSize:"14px",lineHeight:1,padding:0}}>×</button>}
+      </div>
+      {open&&results&&total>0&&(
+        <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,zIndex:200,background:"#1e293b",border:"1px solid #334155",borderRadius:"14px",boxShadow:"0 12px 40px rgba(0,0,0,0.5)",width:"340px",maxHeight:"480px",overflowY:"auto"}}>
+          {results.jugadoras.length>0&&(<>
+            <div style={{padding:"10px 14px 6px",fontSize:"10px",color:"#64748b",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>👩‍🏀 Jugadoras ({results.jugadoras.length})</div>
+            {results.jugadoras.slice(0,6).map(p=>(
+              <div key={p.id_jugadora} onClick={()=>go(()=>onGoToPlayer(p.id_jugadora))}
+                style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 14px",cursor:"pointer",transition:"background 0.1s"}}
+                onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                <Avatar photo={p.foto} name={p.nombre} size={32} fontSize={12}/>
+                <div><div style={{fontSize:"13px",color:"#f1f5f9",fontWeight:600}}>{p.nombre}</div>
+                <div style={{fontSize:"11px",color:"#64748b"}}>{p.posicion}{p.posicion2?` · ${p.posicion2}`:""}</div></div>
+              </div>
+            ))}
+          </>)}
+          {results.equipos.length>0&&(<>
+            <div style={{padding:"10px 14px 6px",fontSize:"10px",color:"#64748b",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",borderTop:"1px solid #1e293b"}}>🏟️ Equipos ({results.equipos.length})</div>
+            {results.equipos.slice(0,4).map(e=>(
+              <div key={e.id_equipo} onClick={()=>go(()=>onGoToTeam(e.id_equipo))}
+                style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 14px",cursor:"pointer"}}
+                onMouseEnter={ev=>ev.currentTarget.style.background="rgba(255,255,255,0.06)"}
+                onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
+                <TeamBadge team={e} size={28}/>
+                <div><div style={{fontSize:"13px",color:"#f1f5f9",fontWeight:600}}>{e.nombre}</div>
+                <div style={{fontSize:"11px",color:"#64748b"}}>{e.ciudad||""}{e.pais?` · ${e.pais}`:""}</div></div>
+              </div>
+            ))}
+          </>)}
+          {results.ligas.length>0&&(<>
+            <div style={{padding:"10px 14px 6px",fontSize:"10px",color:"#64748b",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",borderTop:"1px solid #1e293b"}}>🏆 Ligas ({results.ligas.length})</div>
+            {results.ligas.slice(0,4).map(l=>(
+              <div key={l.id_liga} onClick={()=>go(()=>onGoToLeague(l.id_liga))}
+                style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 14px",cursor:"pointer"}}
+                onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                <LeagueBadge liga={l} size={28}/>
+                <div><div style={{fontSize:"13px",color:"#f1f5f9",fontWeight:600}}>{l.nombre}</div>
+                <div style={{fontSize:"11px",color:"#64748b"}}>{l.pais||""}</div></div>
+              </div>
+            ))}
+          </>)}
+          {results.coaches.length>0&&(<>
+            <div style={{padding:"10px 14px 6px",fontSize:"10px",color:"#64748b",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",borderTop:"1px solid #1e293b"}}>📋 Cuerpo Técnico ({results.coaches.length})</div>
+            {results.coaches.slice(0,4).map(c=>(
+              <div key={c.id_coach} onClick={()=>go(()=>onGoToCoach(c.id_coach))}
+                style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 14px",cursor:"pointer"}}
+                onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                <Avatar photo={c.foto} name={c.nombre} size={32} fontSize={12}/>
+                <div><div style={{fontSize:"13px",color:"#f1f5f9",fontWeight:600}}>{c.nombre}</div>
+                <div style={{fontSize:"11px",color:"#64748b"}}>{c.nacionalidad||""}</div></div>
+              </div>
+            ))}
+          </>)}
+          {total===0&&q.length>=2&&<div style={{padding:"16px 14px",fontSize:"13px",color:"#64748b",textAlign:"center"}}>Sin resultados para "{q}"</div>}
+        </div>
+      )}
+      {open&&results&&total===0&&q.length>=2&&(
+        <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,zIndex:200,background:"#1e293b",border:"1px solid #334155",borderRadius:"14px",padding:"16px 14px",width:"280px",fontSize:"13px",color:"#64748b",textAlign:"center"}}>
+          Sin resultados para "{q}"
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── NacDropdown ────────────────────────────────────────── */
 function NacDropdown({allNacs,filterNacs,setFilterNacs}){
   const [open,setOpen]=useState(false);
@@ -1988,6 +2090,8 @@ export default function App(){
             BasketFem <span style={{color:"#fb923c"}}>DB</span>
             <span style={{fontSize:"10px",color:"#22c55e",fontWeight:600,marginLeft:"8px",background:"rgba(34,197,94,0.15)",padding:"2px 8px",borderRadius:"10px"}}>● Supabase</span>
           </div>
+          <GlobalSearch players={players} equipos={equipos} ligas={ligas} coaches={coaches}
+            onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToCoach={goToCoach}/>
           <div style={{display:"flex",gap:"4px"}}>
             {TABS.map(([id,icon,label])=>(
               <button key={id} onClick={()=>setTab(id)} style={{background:tab===id?"#f97316":"transparent",color:tab===id?"#fff":"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",transition:"all 0.15s"}}>
@@ -1995,6 +2099,23 @@ export default function App(){
               </button>
             ))}
             <button onClick={loadAll} title="Recargar" style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}}>🔄</button>
+            {isAdmin&&<button title="Exportar datos" onClick={()=>{
+              const toCSV=(rows,cols)=>[cols.join(","),...rows.map(r=>cols.map(c=>{const v=r[c]??'';return typeof v==='string'&&v.includes(',')? `"${v}"`:v;}).join(","))].join("\n");
+              const tables=[
+                {name:"jugadoras",data:players.map(({seasons,...p})=>p),cols:["id_jugadora","nombre","posicion","posicion2","nacionalidad","nacionalidad2","fecha_nac","altura_cm","foto"]},
+                {name:"temporadas",data:players.flatMap(p=>p.seasons||[]),cols:["id","id_jugadora","id_equipo","id_liga","temporada","orden"]},
+                {name:"equipos",data:equipos,cols:["id_equipo","nombre","ciudad","pais","año_fundacion","escudo","tipo"]},
+                {name:"ligas",data:ligas,cols:["id_liga","nombre","pais","nivel","tipo","logo"]},
+                {name:"coaches",data:coaches,cols:["id_coach","nombre","nacionalidad","nacionalidad2","fecha_nac","foto","id_jugadora"]},
+                {name:"temporadas_coach",data:tempCoach,cols:["id","id_coach","id_equipo","id_liga","temporada","orden"]},
+                {name:"palmares",data:palmares,cols:["id","id_equipo","id_liga","temporada"]},
+              ];
+              tables.forEach(({name,data,cols})=>{
+                const blob=new Blob([toCSV(data,cols)],{type:"text/csv"});
+                const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+                a.download=`basketfemdb_${name}_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+              });
+            }} style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}} >📥</button>}
             <button onClick={()=>setShowLanding(true)} title="Información" style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"14px",fontWeight:700}}>ℹ</button>
             {isAdmin
               ?<button onClick={handleLogout} title="Cerrar sesión admin" style={{background:"rgba(249,115,22,0.15)",color:"#fb923c",border:"1.5px solid rgba(249,115,22,0.3)",borderRadius:"10px",padding:"5px 10px",cursor:"pointer",fontSize:"12px",fontWeight:700}}>🔐 Admin</button>
