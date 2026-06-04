@@ -612,7 +612,10 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   };
   const addSeason=async f=>{
     setSaving(true);
-    try{await supabase.from("temporadas").insert({id_jugadora:selId,id_equipo:f.id_equipo,id_liga:f.id_liga,temporada:f.temporada});
+    try{
+      const allIds=players.flatMap(p=>p.seasons||[]).map(s=>parseInt(s.id)).filter(n=>!isNaN(n));
+      const newId=(Math.max(0,...allIds)+1);
+      await supabase.from("temporadas").insert({id:newId,id_jugadora:selId,id_equipo:f.id_equipo,id_liga:f.id_liga,temporada:f.temporada});
       await onReload();setModal(null);}catch(e){alert("Error: "+e.message);}
     setSaving(false);
   };
@@ -1113,7 +1116,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px",flexWrap:"wrap",gap:"10px"}}>
             <div>
               <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>Plantilla <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({squad.length})</span></h2>
-              {(()=>{const ligasInYear=[...new Set((squad).map(({season})=>season.id_liga))];const l=ligasInYear.length===1?ligaMap[ligasInYear[0]]:null;return l?<div style={{fontSize:"12px",color:"#94a3b8",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}><FlagImg country={l.pais}/>{l.nombre}</div>:null;})()}
+              {(()=>{const ligasInYear=[...new Set((squad).map(({season})=>season.id_liga))];const l=ligasInYear.length===1?ligaMap[ligasInYear[0]]:null;return l?<div onClick={()=>onGoToLeague&&onGoToLeague(l.id_liga)} style={{fontSize:"12px",color:"#f97316",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px",cursor:"pointer",textDecoration:"underline"}}><FlagImg country={l.pais}/>{l.nombre}</div>:null;})()}
             </div>
             <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
               {isAdmin&&<button onClick={()=>setSquadModal({temporada:effectiveYear||"",id_liga:"",id_equipo:eq.id_equipo})} style={{background:"#f97316",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Jugadora</button>}
