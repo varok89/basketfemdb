@@ -208,6 +208,13 @@ const COUNTRY_CODES = {
 
   /* Oceanía */
   "fiji":"fj","fiyi":"fj",
+  "burundi":"bi",
+  "madagascar":"mg",
+  "rd congo":"cd","república democrática del congo":"cd","republica democratica del congo":"cd","rdc":"cd",
+  "ruanda":"rw","rwanda":"rw",
+  "samoa":"ws","samoa americana":"as",
+  "sudan del sur":"ss","sudán del sur":"ss","south sudan":"ss",
+  "tahiti":"pf","tahití":"pf","french polynesia":"pf","polinesia francesa":"pf",
   "union sovietica":"ru","union soviética":"ru","urss":"ru","ussr":"ru","soviet union":"ru",
   "yugoslavia":"rs","checoslovaquia":"cz","czechoslovakia":"cz",
   "alemania oriental":"de","rda":"de","east germany":"de",
