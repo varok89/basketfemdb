@@ -688,6 +688,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   const [filterTemp,setFilterTemp] = useState("");
   const [filterStatus,setFilterStatus] = useState("");
   const [selId,setSelId]           = useState(openPlayerId||null);
+  useEffect(()=>{const seg='jugadoras';window.history.replaceState({t:seg,id:selId},'',selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
   const [modal,setModal]           = useState(null);
   const [editSeason,setEditSeason] = useState(null);
   const [del,setDel]               = useState(null);
@@ -1119,6 +1120,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
   const [filterSeason,setFilterSeason] = useState(null);
   const [filterTipo,setFilterTipo]     = useState("");
   const [selId,setSelId]               = useState(openTeamId||null);
+  useEffect(()=>{const seg='equipos';window.history.replaceState({t:seg,id:selId},'',selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
   const [selYear,setSelYear]           = useState(null);
   const [teamModal,setTeamModal]       = useState(null);
   const [palModal,setPalModal]         = useState(null);
@@ -1515,6 +1517,7 @@ function CoachSeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
 /* ── LeaguesView ─────────────────────────────────────────── */
 function LeaguesView({ligas,players,equipos,palmares,onGoToTeam,isAdmin,onReload,openLigaId,onClearLiga,navHistory,onGoBack}){
   const [selId,setSelId]     = useState(openLigaId||null);
+  useEffect(()=>{const seg='ligas';window.history.replaceState({t:seg,id:selId},'',selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
   useEffect(()=>{if(openLigaId){setSelId(openLigaId);onClearLiga&&onClearLiga();}},[openLigaId]);
   const [selYear,setSelYear] = useState(null);
   const [search,setSearch]   = useState("");
@@ -1760,6 +1763,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
   };
   const [search,setSearch]=useState("");
   const [selId,setSelId]  =useState(openCoachId||null);
+  useEffect(()=>{const seg='coaches';window.history.replaceState({t:seg,id:selId},'',selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
   const [filterNac,setFilterNac]=useState("");
   const [filterLiga,setFilterLiga]=useState("");
   useEffect(()=>{if(openCoachId){setSelId(openCoachId);onClearCoach();}},[openCoachId]);
