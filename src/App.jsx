@@ -164,6 +164,7 @@ const COUNTRY_CODES = {
   "kenya":"ke","kenia":"ke",
   "ethiopia":"et","etiopia":"et","etiopía":"et",
   "ghana":"gh",
+  "sierra leona":"sl","sierra leone":"sl",
   "ivory coast":"ci","costa de marfil":"ci","cote d'ivoire":"ci",
   "egypt":"eg","egipto":"eg",
   "morocco":"ma","marruecos":"ma",
@@ -1917,6 +1918,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
           {allNacs.map(n=><option key={n} value={n}>{n}</option>)}
         </select>
       </div>
+      {isAdmin&&coachModal==="add"&&<Modal title="Nuevo coach" onClose={()=>setCoachModal(null)}><CoachForm players={players} onSave={saveCoach} onCancel={()=>setCoachModal(null)} saving={saving2}/></Modal>}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
         <span style={{fontSize:"13px",color:"#94a3b8"}}>{filteredList.length} entrenador{filteredList.length!==1?"es":"a"}</span>
         {isAdmin&&<button onClick={()=>setCoachModal("add")} style={{background:"#f97316",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Coach</button>}
