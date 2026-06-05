@@ -964,14 +964,30 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     <div style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
       {isAdmin&&modal==="addPlayer"&&<Modal title="Nueva jugadora" onClose={()=>setModal(null)}><PlayerForm onSave={addPlayer} onCancel={()=>setModal(null)} saving={saving}/></Modal>}
       {isAdmin&&<div style={{display:"flex",justifyContent:"flex-end",marginBottom:"12px"}}><button onClick={()=>setModal("addPlayer")} style={{background:"#f97316",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Jugadora</button></div>}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"12px",marginBottom:"20px"}}>
-        {[["👩‍🏀",players.length,"Jugadoras"],["📋",players.reduce((n,p)=>n+(p.seasons?.length||0),0),"Temporadas"],["🌍",new Set(players.flatMap(p=>(p.seasons||[]).map(s=>s.id_equipo))).size,"Equipos únicos"]].map(([e,v,l])=>(
-          <div key={l} style={{background:"#fff",borderRadius:"14px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",textAlign:"center"}}>
-            <div style={{fontSize:"20px",marginBottom:"4px"}}>{e}</div>
-            <div style={{fontSize:"24px",fontWeight:800,color:"#1e293b"}}>{v}</div>
-            <div style={{fontSize:"12px",color:"#94a3b8"}}>{l}</div>
-          </div>
-        ))}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"10px",marginBottom:"20px"}}>
+        {(()=>{
+          const nJugadoras=players.length;
+          const nEquipos=equipos.length;
+          const nLigas=ligas.length;
+          const nCoaches=coaches.length;
+          const nTemporadas=players.flatMap(p=>p.seasons||[]).length;
+          const nTempCoach=(tempCoach||[]).length;
+          const nPalmares=(palmares||[]).length;
+          const totalRegistros=nJugadoras+nEquipos+nLigas+nCoaches+nTemporadas+nTempCoach+nPalmares;
+          return [
+            ["👩‍🏀",nJugadoras,"Jugadoras"],
+            ["🏟️",nEquipos,"Equipos"],
+            ["🏆",nLigas,"Ligas"],
+            ["📋",nCoaches,"Coaches"],
+            ["🗂️",totalRegistros.toLocaleString("es"),"Registros totales"],
+          ].map(([e,v,l])=>(
+            <div key={l} style={{background:"#fff",borderRadius:"14px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",textAlign:"center"}}>
+              <div style={{fontSize:"20px",marginBottom:"4px"}}>{e}</div>
+              <div style={{fontSize:"24px",fontWeight:800,color:"#1e293b"}}>{v}</div>
+              <div style={{fontSize:"12px",color:"#94a3b8"}}>{l}</div>
+            </div>
+          ));
+        })()}
       </div>
       <div style={{display:"flex",gap:"8px",marginBottom:"8px",flexWrap:"wrap",alignItems:"stretch"}}>
         <input style={{flex:"1 1 200px",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 14px",fontSize:"13px",color:"#1e293b",outline:"none",background:"#fff",height:"40px",boxSizing:"border-box"}}
