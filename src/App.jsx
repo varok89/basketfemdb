@@ -853,8 +853,8 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
               return(
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"12px"}}>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",flex:1}}>
-                    {selected.altura_cm&&<div style={{fontSize:"13px",whiteSpace:"nowrap"}}><span style={{color:"#94a3b8"}}>Altura: </span><span style={{fontWeight:600,color:"#334155"}}>{selected.altura_cm} cm</span></div>}
-                    {selected.fecha_nac&&<div style={{fontSize:"13px",whiteSpace:"nowrap"}}><span style={{color:"#94a3b8"}}>Edad: </span><span style={{fontWeight:600,color:"#334155"}}>{calcAge(selected.fecha_nac)} años</span></div>}
+                    {selected.altura_cm&&<div style={{fontSize:"13px"}}><span style={{color:"#94a3b8"}}>Altura: </span><span style={{fontWeight:600,color:"#334155"}}>{selected.altura_cm} cm</span></div>}
+                    {selected.fecha_nac&&<div style={{fontSize:"13px"}}><span style={{color:"#94a3b8"}}>Edad: </span><span style={{fontWeight:600,color:"#334155"}}>{calcAge(selected.fecha_nac)} años</span></div>}
                   </div>
                   {coachRecord&&(
                     <button onClick={()=>onGoToCoach(coachRecord.id_coach)}
@@ -1666,10 +1666,10 @@ function LeaguesView({ligas,players,equipos,palmares,onGoToTeam,isAdmin,onReload
   return(
     <div className="bfdb-container" style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
       {isAdmin&&ligaModal==="add"&&<Modal title="Nueva liga" onClose={()=>setLigaModal(null)}><LeagueForm onSave={saveLiga} onCancel={()=>setLigaModal(null)} saving={saving}/></Modal>}
-      <div className="bfdb-ligas-filter" style={{display:"flex",gap:"10px",marginBottom:"16px",alignItems:"center"}}>
+      <div style={{display:"flex",gap:"10px",marginBottom:"16px",alignItems:"center"}}>
         <input style={{flex:1,border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 16px",fontSize:"14px",color:"#1e293b",outline:"none",background:"#fff",boxSizing:"border-box"}}
           placeholder="🔍 Buscar liga..." value={search} onChange={e=>setSearch(e.target.value)}/>
-        <select value={filterTipoLiga} onChange={e=>setFilterTipoLiga(e.target.value)} style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none",flexShrink:0,minWidth:0}}>
+        <select value={filterTipoLiga} onChange={e=>setFilterTipoLiga(e.target.value)} style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none",flexShrink:0}}>
           <option value="">Todos los tipos</option>
           <option value="liga">Liga</option>
           <option value="copadom">Copa Nacional</option>
@@ -1909,11 +1909,11 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
       <div style={{display:"flex",gap:"10px",marginBottom:"14px",flexWrap:"wrap"}}>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Nombre, equipo..."
           style={{flex:1,minWidth:"180px",border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"14px",color:"#1e293b",outline:"none",background:"#fff"}}/>
-        <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none",minWidth:0,flex:"1 1 auto"}} value={filterLiga} onChange={e=>setFilterLiga(e.target.value)}>
+        <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}} value={filterLiga} onChange={e=>setFilterLiga(e.target.value)}>
           <option value="">Todas las ligas</option>
           {allLigas.map(l=><option key={l} value={l}>{l}</option>)}
         </select>
-        <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none",minWidth:0,flex:"1 1 auto"}} value={filterNac} onChange={e=>setFilterNac(e.target.value)}>
+        <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}} value={filterNac} onChange={e=>setFilterNac(e.target.value)}>
           <option value="">Todas las nacionalidades</option>
           {allNacs.map(n=><option key={n} value={n}>{n}</option>)}
         </select>
@@ -2157,15 +2157,11 @@ export default function App(){
         .bfdb-header-actions { display: flex; align-items: center; gap: 2px; }
         .bfdb-tabs { order: 3; width: 100%; display: flex; justify-content: space-around; padding-bottom: 4px; }
         .bfdb-tabs button { flex: 1; font-size: 20px !important; padding: 6px 4px !important; }
-        .tab-label { display: none !important; }
         .bfdb-global-search { display: none !important; }
         .bfdb-stats-grid { grid-template-columns: repeat(3,1fr) !important; gap: 6px !important; }
         .bfdb-cards-grid { grid-template-columns: 1fr !important; }
-        .bfdb-player-badges { flex-direction: row !important; flex-wrap: wrap; gap: 3px !important; }
-        .bfdb-player-card-right { flex-shrink: 0; max-width: none !important; }
-        .bfdb-ligas-filter { flex-wrap: wrap !important; }
-        .bfdb-ligas-filter input { flex: 1 1 100% !important; }
-        .bfdb-ligas-filter select { flex: 1 1 auto !important; min-width: 0 !important; font-size: 12px !important; }
+        .bfdb-player-badges { flex-direction: row !important; flex-wrap: wrap; gap: 3px !important; max-width: 120px; }
+        .bfdb-player-card-right { flex-shrink: 0; max-width: 130px; }
         .bfdb-filter-row { gap: 6px !important; }
         .bfdb-filter-row select, .bfdb-filter-row input { flex: 1 1 calc(50% - 3px) !important; min-width: 0 !important; font-size: 12px !important; padding: 8px 8px !important; }
         .bfdb-container { padding: 10px !important; }
@@ -2188,7 +2184,7 @@ export default function App(){
           <div className="bfdb-tabs" style={{display:"flex",gap:"4px"}}>
             {TABS.map(([id,icon,label])=>(
               <button key={id} onClick={()=>setTab(id)} style={{background:tab===id?"#f97316":"transparent",color:tab===id?"#fff":"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",transition:"all 0.15s"}}>
-                <span>{icon}</span><span className="tab-label"> {label}</span>
+                {icon} {label}
               </button>
             ))}
             <button onClick={loadAll} title="Recargar" style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}}>🔄</button>
