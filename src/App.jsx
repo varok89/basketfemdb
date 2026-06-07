@@ -963,30 +963,14 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     <div className="bfdb-container" style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
       {isAdmin&&modal==="addPlayer"&&<Modal title="Nueva jugadora" onClose={()=>setModal(null)}><PlayerForm onSave={addPlayer} onCancel={()=>setModal(null)} saving={saving}/></Modal>}
       {isAdmin&&<div style={{display:"flex",justifyContent:"flex-end",marginBottom:"12px"}}><button onClick={()=>setModal("addPlayer")} style={{background:"#f97316",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Jugadora</button></div>}
-      <div className="bfdb-stats-grid" style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"8px",marginBottom:"16px"}}>
-        {(()=>{
-          const nJugadoras=players.length;
-          const nEquipos=equipos.length;
-          const nLigas=ligas.length;
-          const nCoaches=coaches.length;
-          const nTemporadas=players.flatMap(p=>p.seasons||[]).length;
-          const nTempCoach=(tempCoach||[]).length;
-          const nPalmares=(palmares||[]).length;
-          const totalRegistros=nJugadoras+nEquipos+nLigas+nCoaches+nTemporadas+nTempCoach+nPalmares;
-          return [
-            ["👩‍🏀",nJugadoras,"Jugadoras"],
-            ["🏟️",nEquipos,"Equipos"],
-            ["🏆",nLigas,"Ligas"],
-            ["📋",nCoaches,"Coaches"],
-            ["🗂️",totalRegistros.toLocaleString("es"),"Registros totales"],
-          ].map(([e,v,l])=>(
-            <div key={l} style={{background:"#fff",borderRadius:"14px",padding:"12px 8px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",textAlign:"center"}}>
-              <div style={{fontSize:"18px",marginBottom:"4px"}}>{e}</div>
-              <div style={{fontSize:"20px",fontWeight:800,color:"#1e293b"}}>{v}</div>
-              <div style={{fontSize:"11px",color:"#94a3b8",lineHeight:1.2}}>{l}</div>
-            </div>
-          ));
-        })()}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"12px",marginBottom:"20px"}}>
+        {[["👩‍🏀",players.length,"Jugadoras"],["📋",players.reduce((n,p)=>n+(p.seasons?.length||0),0),"Temporadas"],["🌍",new Set(players.flatMap(p=>(p.seasons||[]).map(s=>s.id_equipo))).size,"Equipos únicos"]].map(([e,v,l])=>(
+          <div key={l} style={{background:"#fff",borderRadius:"14px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",textAlign:"center"}}>
+            <div style={{fontSize:"20px",marginBottom:"4px"}}>{e}</div>
+            <div style={{fontSize:"24px",fontWeight:800,color:"#1e293b"}}>{v}</div>
+            <div style={{fontSize:"12px",color:"#94a3b8"}}>{l}</div>
+          </div>
+        ))}
       </div>
       <div className="bfdb-filter-row" style={{display:"flex",gap:"8px",marginBottom:"8px",flexWrap:"wrap",alignItems:"stretch"}}>
         <input style={{flex:"1 1 200px",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 14px",fontSize:"13px",color:"#1e293b",outline:"none",background:"#fff",height:"40px",boxSizing:"border-box"}}
@@ -1923,7 +1907,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
   return(
     <div style={{maxWidth:"1000px",margin:"0 auto",padding:"20px"}}>
       <div style={{display:"flex",gap:"10px",marginBottom:"14px",flexWrap:"wrap"}}>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Nombre, equipo..."
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Nombre de entrenador..."
           style={{flex:1,minWidth:"180px",border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"14px",color:"#1e293b",outline:"none",background:"#fff"}}/>
         <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}} value={filterLiga} onChange={e=>setFilterLiga(e.target.value)}>
           <option value="">Todas las ligas</option>
@@ -2172,12 +2156,18 @@ export default function App(){
         .bfdb-logo { margin-right: 0 !important; flex: 1; }
         .bfdb-header-actions { display: flex; align-items: center; gap: 2px; }
         .bfdb-tabs { order: 3; width: 100%; display: flex; justify-content: space-around; padding-bottom: 4px; }
-        .bfdb-tabs button { flex: 1; font-size: 20px !important; padding: 6px 4px !important; }
+        .bfdb-tabs button { flex: 1; font-size: 16px !important; padding: 8px 4px !important; }
+        .bfdb-tab-label { display: none !important; }
+        .bfdb-supabase-badge { display: none !important; }
         .bfdb-global-search { display: none !important; }
         .bfdb-stats-grid { grid-template-columns: repeat(3,1fr) !important; gap: 6px !important; }
+        .bfdb-stats-grid > div { padding: 10px 4px !important; }
+        .bfdb-stats-grid > div > div:first-child { font-size: 16px !important; }
+        .bfdb-stats-grid > div > div:nth-child(2) { font-size: 16px !important; }
         .bfdb-cards-grid { grid-template-columns: 1fr !important; }
         .bfdb-player-badges { flex-direction: row !important; flex-wrap: wrap; gap: 3px !important; max-width: 120px; }
-        .bfdb-player-card-right { flex-shrink: 0; max-width: 130px; }
+        .bfdb-player-card-right { flex-shrink: 0; max-width: 140px; }
+        .bfdb-player-badges span { font-size: 10px !important; padding: 2px 5px !important; }
         .bfdb-filter-row { gap: 6px !important; }
         .bfdb-filter-row select, .bfdb-filter-row input { flex: 1 1 calc(50% - 3px) !important; min-width: 0 !important; font-size: 12px !important; padding: 8px 8px !important; }
         .bfdb-container { padding: 10px !important; }
@@ -2192,7 +2182,7 @@ export default function App(){
             <span style={{fontSize:"22px"}}>🏀</span>
             <div style={{fontWeight:800,fontSize:"16px",letterSpacing:"-0.3px"}}>
               BasketFem <span style={{color:"#fb923c"}}>DB</span>
-              <span style={{fontSize:"10px",color:"#22c55e",fontWeight:600,marginLeft:"8px",background:"rgba(34,197,94,0.15)",padding:"2px 8px",borderRadius:"10px"}}>● Supabase</span>
+              <span className="bfdb-supabase-badge" style={{fontSize:"10px",color:"#22c55e",fontWeight:600,marginLeft:"8px",background:"rgba(34,197,94,0.15)",padding:"2px 8px",borderRadius:"10px"}}>● Supabase</span>
             </div>
           </div>
           <div className="bfdb-global-search"><GlobalSearch players={players} equipos={equipos} ligas={ligas} coaches={coaches}
@@ -2200,7 +2190,7 @@ export default function App(){
           <div className="bfdb-tabs" style={{display:"flex",gap:"4px"}}>
             {TABS.map(([id,icon,label])=>(
               <button key={id} onClick={()=>setTab(id)} style={{background:tab===id?"#f97316":"transparent",color:tab===id?"#fff":"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",transition:"all 0.15s"}}>
-                {icon} {label}
+                {icon}<span className="bfdb-tab-label"> {label}</span>
               </button>
             ))}
             <button onClick={loadAll} title="Recargar" style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}}>🔄</button>
