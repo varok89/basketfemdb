@@ -417,17 +417,79 @@ function SeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
     if(!eq) return ligas;
     const esSeleccion=eq.tipo==="seleccion";
     if(esSeleccion){
-      // Selecciones → ligas internacionales o continentales
-      return ligas.filter(l=>l.tipo==="internacional"||l.tipo==="copacont"||l.pais==="Europa"||l.pais==="Mundo"||l.pais==="International");
+      const norm2=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").trim();
+      const paisSel=norm2(eq.pais);
+      const PAISES_EUROPA2=["espana","france","italia","germany","alemania","portugal","holanda","belgica","suiza","suecia","noruega","dinamarca","finlandia","polonia","turquia","grecia","rusia","ucrania","rumania","hungria","chequia","eslovaquia","eslovenia","croacia","serbia","letonia","lituania","estonia","bielorrusia","georgia","azerbaiyan","moldavia","austria","irlanda","islandia","luxemburgo","chipre","malta","andorra","monaco","bulgaria","albania","kosovo","montenegro","bosnia","macedonia"];
+      const PAISES_AMERICAS2=["estados unidos","usa","canada","mexico","brasil","argentina","colombia","venezuela","peru","chile","ecuador","uruguay","bolivia","paraguay","cuba","republica dominicana","puerto rico","jamaica","panama","costa rica","guatemala","honduras","el salvador","nicaragua","guyana","surinam"];
+      const PAISES_AFRICA2=["nigeria","senegal","mali","camerun","angola","mozambique","uganda","kenia","etiopia","ghana","costa de marfil","marruecos","argelia","tunez","sudafrica","tanzania","ruanda","congo","zambia","zimbabwe","guinea","cabo verde","sierra leona","burkina faso","togo","benin","madagascar","burundi"];
+      const PAISES_ASIA2=["china","japon","corea del sur","israel","iran","kazajistan","uzbekistan","australia","nueva zelanda","india","filipinas","tailandia"];
+      const continentOf2=p=>{
+        if(PAISES_EUROPA2.some(x=>p.includes(x)))return"europa";
+        if(PAISES_AMERICAS2.some(x=>p.includes(x)))return"americas";
+        if(PAISES_AFRICA2.some(x=>p.includes(x)))return"africa";
+        if(PAISES_ASIA2.some(x=>p.includes(x)))return"asia";
+        return"otro";
+      };
+      const continenteSel=continentOf2(paisSel);
+      return ligas.filter(l=>{
+        const paisLiga=norm2(l.pais);
+        // Competiciones mundiales → siempre disponibles para todas las selecciones
+        if(paisLiga==="mundo"||paisLiga==="world"||paisLiga==="international"||paisLiga==="internacional") return true;
+        // Copa continental del mismo continente
+        if(l.tipo==="copacont"||l.tipo==="internacional"){
+          const continenteLiga=continentOf2(paisLiga);
+          if(continenteLiga===continenteSel) return true;
+          // Pais="Europa" → solo selecciones europeas
+          if(paisLiga==="europa"&&continenteSel==="europa") return true;
+          if(paisLiga==="americas"&&continenteSel==="americas") return true;
+          if(paisLiga==="africa"&&continenteSel==="africa") return true;
+          if(paisLiga==="asia"&&continenteSel==="asia") return true;
+        }
+        return false;
+      });
     }
-    // Clubs → ligas del mismo país
-    // Excepción: equipos de Canadá pueden jugar en ligas de USA (WNBA, NBA)
-    const paisEquipo=(eq.pais||"").toLowerCase();
+    // Clubs → ligas del mismo país + copas continentales del mismo continente
+    const norm=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").trim();
+    const paisEquipo=norm(eq.pais);
     const esCanada=paisEquipo.includes("canad");
+    const esUSA=paisEquipo.includes("estados unidos")||paisEquipo==="usa";
+
+    const PAISES_EUROPA=["espana","france","italia","germany","alemania","portugal","holanda","belgica","suiza","suecia","noruega","dinamarca","finlandia","polonia","turquia","grecia","rusia","ucrania","rumania","hungria","chequia","eslovaquia","eslovenia","croacia","serbia","letonia","lituania","estonia","bielorrusia","georgia","azerbaiyan","moldavia","austria","irlanda","islandia","luxemburgo","chipre","malta","andorra","monaco","liechtenstein","san marino","bulgaria","albania","kosovo","montenegro","bosnia","macedonia","islandia"];
+    const PAISES_AMERICAS=["estados unidos","usa","canada","mexico","brasil","argentina","colombia","venezuela","peru","chile","ecuador","uruguay","bolivia","paraguay","cuba","republica dominicana","puerto rico","jamaica","panama","costa rica","guatemala","honduras","el salvador","nicaragua","guyana","surinam","trinidad","bahamas","barbados"];
+    const PAISES_AFRICA=["nigeria","senegal","mali","camerun","angola","mozambique","uganda","kenia","etiopia","ghana","costa de marfil","marruecos","argelia","tunez","sudafrica","tanzania","ruanda","congo","zambia","zimbabwe","guinea","cabo verde","sierra leona","burkina faso","togo","benin","madagascar","burundi"];
+    const PAISES_ASIA=["china","japon","corea del sur","israel","iran","kazajistan","uzbekistan","australia","nueva zelanda","india","filipinas","tailandia"];
+
+    const continentOf=p=>{
+      if(PAISES_EUROPA.some(x=>p.includes(x)))return"europa";
+      if(PAISES_AMERICAS.some(x=>p.includes(x)))return"americas";
+      if(PAISES_AFRICA.some(x=>p.includes(x)))return"africa";
+      if(PAISES_ASIA.some(x=>p.includes(x)))return"asia";
+      return"otro";
+    };
+    const continenteEquipo=continentOf(paisEquipo);
+
+    const PAIS_LIGA_CONTINENTE={
+      "europa":"europa","europe":"europa",
+      "americas":"americas","america":"americas",
+      "africa":"africa","africa":"africa",
+      "asia":"asia","mundo":"mundo","world":"mundo","international":"mundo",
+    };
+
     return ligas.filter(l=>{
-      const paisLiga=(l.pais||"").toLowerCase();
+      const paisLiga=norm(l.pais);
+      // Misma liga del país
       if(paisLiga===paisEquipo) return true;
-      if(esCanada&&(paisLiga.includes("estados unidos")||paisLiga.includes("usa")||paisLiga==="us")) return true;
+      // Canadá ↔ USA
+      if(esCanada&&(paisLiga.includes("estados unidos")||paisLiga==="usa")) return true;
+      if(esUSA&&paisLiga.includes("canad")) return true;
+      // Copa continental del mismo continente
+      if(l.tipo==="copacont"){
+        const continenteLiga=continentOf(paisLiga)||PAIS_LIGA_CONTINENTE[paisLiga]||"otro";
+        if(continenteLiga===continenteEquipo) return true;
+        // Ligas con pais="Europa" → para equipos europeos
+        if(paisLiga==="europa"&&continenteEquipo==="europa") return true;
+        if(paisLiga==="americas"&&continenteEquipo==="americas") return true;
+      }
       return false;
     });
   },[f.id_equipo,equipos,ligas]);
