@@ -409,110 +409,18 @@ function PlayerForm({initial,onSave,onCancel,saving}){
 function SeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
   const [f,setF]=useState({temporada:"",id_equipo:"",id_liga:"",...initial});
   const ok=f.temporada.trim()&&f.id_equipo&&f.id_liga;
-
-  // Ligas filtradas según el equipo seleccionado
-  const ligasFiltradas=useMemo(()=>{
-    if(!f.id_equipo) return ligas;
-    const eq=equipos.find(e=>e.id_equipo===f.id_equipo);
-    if(!eq) return ligas;
-    const esSeleccion=eq.tipo==="seleccion";
-    if(esSeleccion){
-      const norm2=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").trim();
-      const paisSel=norm2(eq.pais);
-      const PAISES_EUROPA2=["espana","france","italia","germany","alemania","portugal","holanda","belgica","suiza","suecia","noruega","dinamarca","finlandia","polonia","turquia","grecia","rusia","ucrania","rumania","hungria","chequia","eslovaquia","eslovenia","croacia","serbia","letonia","lituania","estonia","bielorrusia","georgia","azerbaiyan","moldavia","austria","irlanda","islandia","luxemburgo","chipre","malta","andorra","monaco","bulgaria","albania","kosovo","montenegro","bosnia","macedonia"];
-      const PAISES_AMERICAS2=["estados unidos","usa","canada","mexico","brasil","argentina","colombia","venezuela","peru","chile","ecuador","uruguay","bolivia","paraguay","cuba","republica dominicana","puerto rico","jamaica","panama","costa rica","guatemala","honduras","el salvador","nicaragua","guyana","surinam"];
-      const PAISES_AFRICA2=["nigeria","senegal","mali","camerun","angola","mozambique","uganda","kenia","etiopia","ghana","costa de marfil","marruecos","argelia","tunez","sudafrica","tanzania","ruanda","congo","zambia","zimbabwe","guinea","cabo verde","sierra leona","burkina faso","togo","benin","madagascar","burundi"];
-      const PAISES_ASIA2=["china","japon","corea del sur","israel","iran","kazajistan","uzbekistan","australia","nueva zelanda","india","filipinas","tailandia"];
-      const continentOf2=p=>{
-        if(PAISES_EUROPA2.some(x=>p.includes(x)))return"europa";
-        if(PAISES_AMERICAS2.some(x=>p.includes(x)))return"americas";
-        if(PAISES_AFRICA2.some(x=>p.includes(x)))return"africa";
-        if(PAISES_ASIA2.some(x=>p.includes(x)))return"asia";
-        return"otro";
-      };
-      const continenteSel=continentOf2(paisSel);
-      return ligas.filter(l=>{
-        const paisLiga=norm2(l.pais);
-        // Competiciones mundiales → siempre disponibles para todas las selecciones
-        if(paisLiga==="mundo"||paisLiga==="world"||paisLiga==="international"||paisLiga==="internacional") return true;
-        // Copa continental del mismo continente
-        if(l.tipo==="copacont"||l.tipo==="internacional"){
-          const continenteLiga=continentOf2(paisLiga);
-          if(continenteLiga===continenteSel) return true;
-          // Pais="Europa" → solo selecciones europeas
-          if(paisLiga==="europa"&&continenteSel==="europa") return true;
-          if(paisLiga==="americas"&&continenteSel==="americas") return true;
-          if(paisLiga==="africa"&&continenteSel==="africa") return true;
-          if(paisLiga==="asia"&&continenteSel==="asia") return true;
-        }
-        return false;
-      });
-    }
-    // Clubs → ligas del mismo país + copas continentales del mismo continente
-    const norm=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").trim();
-    const paisEquipo=norm(eq.pais);
-    const esCanada=paisEquipo.includes("canad");
-    const esUSA=paisEquipo.includes("estados unidos")||paisEquipo==="usa";
-
-    const PAISES_EUROPA=["espana","france","italia","germany","alemania","portugal","holanda","belgica","suiza","suecia","noruega","dinamarca","finlandia","polonia","turquia","grecia","rusia","ucrania","rumania","hungria","chequia","eslovaquia","eslovenia","croacia","serbia","letonia","lituania","estonia","bielorrusia","georgia","azerbaiyan","moldavia","austria","irlanda","islandia","luxemburgo","chipre","malta","andorra","monaco","liechtenstein","san marino","bulgaria","albania","kosovo","montenegro","bosnia","macedonia","islandia"];
-    const PAISES_AMERICAS=["estados unidos","usa","canada","mexico","brasil","argentina","colombia","venezuela","peru","chile","ecuador","uruguay","bolivia","paraguay","cuba","republica dominicana","puerto rico","jamaica","panama","costa rica","guatemala","honduras","el salvador","nicaragua","guyana","surinam","trinidad","bahamas","barbados"];
-    const PAISES_AFRICA=["nigeria","senegal","mali","camerun","angola","mozambique","uganda","kenia","etiopia","ghana","costa de marfil","marruecos","argelia","tunez","sudafrica","tanzania","ruanda","congo","zambia","zimbabwe","guinea","cabo verde","sierra leona","burkina faso","togo","benin","madagascar","burundi"];
-    const PAISES_ASIA=["china","japon","corea del sur","israel","iran","kazajistan","uzbekistan","australia","nueva zelanda","india","filipinas","tailandia"];
-
-    const continentOf=p=>{
-      if(PAISES_EUROPA.some(x=>p.includes(x)))return"europa";
-      if(PAISES_AMERICAS.some(x=>p.includes(x)))return"americas";
-      if(PAISES_AFRICA.some(x=>p.includes(x)))return"africa";
-      if(PAISES_ASIA.some(x=>p.includes(x)))return"asia";
-      return"otro";
-    };
-    const continenteEquipo=continentOf(paisEquipo);
-
-    const PAIS_LIGA_CONTINENTE={
-      "europa":"europa","europe":"europa",
-      "americas":"americas","america":"americas",
-      "africa":"africa","africa":"africa",
-      "asia":"asia","mundo":"mundo","world":"mundo","international":"mundo",
-    };
-
-    return ligas.filter(l=>{
-      const paisLiga=norm(l.pais);
-      // Misma liga del país
-      if(paisLiga===paisEquipo) return true;
-      // Canadá ↔ USA
-      if(esCanada&&(paisLiga.includes("estados unidos")||paisLiga==="usa")) return true;
-      if(esUSA&&paisLiga.includes("canad")) return true;
-      // Copa continental del mismo continente
-      if(l.tipo==="copacont"){
-        const continenteLiga=continentOf(paisLiga)||PAIS_LIGA_CONTINENTE[paisLiga]||"otro";
-        if(continenteLiga===continenteEquipo) return true;
-        // Ligas con pais="Europa" → para equipos europeos
-        if(paisLiga==="europa"&&continenteEquipo==="europa") return true;
-        if(paisLiga==="americas"&&continenteEquipo==="americas") return true;
-      }
-      return false;
-    });
-  },[f.id_equipo,equipos,ligas]);
-
-  // Reset liga si ya no está disponible con el nuevo equipo
-  const handleEquipo=id=>{
-    const disponible=id?equipos.find(e=>e.id_equipo===id):null;
-    const ligaValida=f.id_liga&&ligasFiltradas.some(l=>l.id_liga===f.id_liga);
-    setF(p=>({...p,id_equipo:id,id_liga:ligaValida?p.id_liga:""}));
-  };
-
   return(<div>
     <Fld label="Temporada *"><input style={inp} value={f.temporada} onChange={e=>setF(p=>({...p,temporada:e.target.value}))} placeholder="2024-25"/></Fld>
     <Fld label="Equipo *">
-      <select style={inp} value={f.id_equipo} onChange={e=>handleEquipo(e.target.value)}>
+      <select style={inp} value={f.id_equipo} onChange={e=>setF(p=>({...p,id_equipo:e.target.value}))}>
         <option value="">— Selecciona equipo —</option>
         {[...equipos].sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(e=><option key={e.id_equipo} value={e.id_equipo}>{e.nombre}</option>)}
       </select>
     </Fld>
     <Fld label="Competición *">
-      <select style={inp} value={f.id_liga} onChange={e=>setF(p=>({...p,id_liga:e.target.value}))} disabled={!f.id_equipo}>
-        <option value="">{f.id_equipo?"— Selecciona competición —":"— Selecciona equipo primero —"}</option>
-        {ligasFiltradas.sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}</option>)}
+      <select style={inp} value={f.id_liga} onChange={e=>setF(p=>({...p,id_liga:e.target.value}))}>
+        <option value="">— Selecciona competición —</option>
+        {ligas.map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}</option>)}
       </select>
     </Fld>
     <div style={{display:"flex",gap:"10px",marginTop:"8px"}}>
@@ -1064,13 +972,13 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           const nTemporadas=players.flatMap(p=>p.seasons||[]).length;
           const nTempCoach=(tempCoach||[]).length;
           const nPalmares=(palmares||[]).length;
-          const total=nJugadoras+nEquipos+nLigas+nCoaches+nTemporadas+nTempCoach+nPalmares;
+          const totalRegistros=nJugadoras+nEquipos+nLigas+nCoaches+nTemporadas+nTempCoach+nPalmares;
           return [
             ["👩‍🏀",nJugadoras,"Jugadoras"],
             ["🏟️",nEquipos,"Equipos"],
             ["🏆",nLigas,"Ligas"],
             ["📋",nCoaches,"Coaches"],
-            ["🗂️",total.toLocaleString("es"),"Registros totales"],
+            ["🗂️",totalRegistros.toLocaleString("es"),"Registros totales"],
           ].map(([e,v,l])=>(
             <div key={l} style={{background:"#fff",borderRadius:"14px",padding:"12px 8px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",textAlign:"center"}}>
               <div style={{fontSize:"18px",marginBottom:"4px"}}>{e}</div>
@@ -2015,7 +1923,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
   return(
     <div style={{maxWidth:"1000px",margin:"0 auto",padding:"20px"}}>
       <div style={{display:"flex",gap:"10px",marginBottom:"14px",flexWrap:"wrap"}}>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Nombre de entrenador..."
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Nombre, equipo..."
           style={{flex:1,minWidth:"180px",border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"14px",color:"#1e293b",outline:"none",background:"#fff"}}/>
         <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}} value={filterLiga} onChange={e=>setFilterLiga(e.target.value)}>
           <option value="">Todas las ligas</option>
@@ -2264,18 +2172,12 @@ export default function App(){
         .bfdb-logo { margin-right: 0 !important; flex: 1; }
         .bfdb-header-actions { display: flex; align-items: center; gap: 2px; }
         .bfdb-tabs { order: 3; width: 100%; display: flex; justify-content: space-around; padding-bottom: 4px; }
-        .bfdb-tabs button { flex: 1; font-size: 16px !important; padding: 8px 4px !important; }
-        .bfdb-tab-label { display: none !important; }
-        .bfdb-supabase-badge { display: none !important; }
+        .bfdb-tabs button { flex: 1; font-size: 20px !important; padding: 6px 4px !important; }
         .bfdb-global-search { display: none !important; }
         .bfdb-stats-grid { grid-template-columns: repeat(3,1fr) !important; gap: 6px !important; }
-        .bfdb-stats-grid > div { padding: 10px 4px !important; }
-        .bfdb-stats-grid > div > div:first-child { font-size: 16px !important; }
-        .bfdb-stats-grid > div > div:nth-child(2) { font-size: 16px !important; }
         .bfdb-cards-grid { grid-template-columns: 1fr !important; }
         .bfdb-player-badges { flex-direction: row !important; flex-wrap: wrap; gap: 3px !important; max-width: 120px; }
-        .bfdb-player-card-right { flex-shrink: 0; max-width: 140px; }
-        .bfdb-player-badges span { font-size: 10px !important; padding: 2px 5px !important; }
+        .bfdb-player-card-right { flex-shrink: 0; max-width: 130px; }
         .bfdb-filter-row { gap: 6px !important; }
         .bfdb-filter-row select, .bfdb-filter-row input { flex: 1 1 calc(50% - 3px) !important; min-width: 0 !important; font-size: 12px !important; padding: 8px 8px !important; }
         .bfdb-container { padding: 10px !important; }
@@ -2290,7 +2192,7 @@ export default function App(){
             <span style={{fontSize:"22px"}}>🏀</span>
             <div style={{fontWeight:800,fontSize:"16px",letterSpacing:"-0.3px"}}>
               BasketFem <span style={{color:"#fb923c"}}>DB</span>
-              <span className="bfdb-supabase-badge" style={{fontSize:"10px",color:"#22c55e",fontWeight:600,marginLeft:"8px",background:"rgba(34,197,94,0.15)",padding:"2px 8px",borderRadius:"10px"}}>● Supabase</span>
+              <span style={{fontSize:"10px",color:"#22c55e",fontWeight:600,marginLeft:"8px",background:"rgba(34,197,94,0.15)",padding:"2px 8px",borderRadius:"10px"}}>● Supabase</span>
             </div>
           </div>
           <div className="bfdb-global-search"><GlobalSearch players={players} equipos={equipos} ligas={ligas} coaches={coaches}
@@ -2298,7 +2200,7 @@ export default function App(){
           <div className="bfdb-tabs" style={{display:"flex",gap:"4px"}}>
             {TABS.map(([id,icon,label])=>(
               <button key={id} onClick={()=>setTab(id)} style={{background:tab===id?"#f97316":"transparent",color:tab===id?"#fff":"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",transition:"all 0.15s"}}>
-                {icon}<span className="bfdb-tab-label"> {label}</span>
+                {icon} {label}
               </button>
             ))}
             <button onClick={loadAll} title="Recargar" style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}}>🔄</button>
