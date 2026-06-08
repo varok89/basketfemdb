@@ -409,18 +409,48 @@ function PlayerForm({initial,onSave,onCancel,saving}){
 function SeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
   const [f,setF]=useState({temporada:"",id_equipo:"",id_liga:"",...initial});
   const ok=f.temporada.trim()&&f.id_equipo&&f.id_liga;
+
+  // Ligas filtradas según el equipo seleccionado
+  const ligasFiltradas=useMemo(()=>{
+    if(!f.id_equipo) return ligas;
+    const eq=equipos.find(e=>e.id_equipo===f.id_equipo);
+    if(!eq) return ligas;
+    const esSeleccion=eq.tipo==="seleccion";
+    if(esSeleccion){
+      // Selecciones → ligas internacionales o continentales
+      return ligas.filter(l=>l.tipo==="internacional"||l.tipo==="copacont"||l.pais==="Europa"||l.pais==="Mundo"||l.pais==="International");
+    }
+    // Clubs → ligas del mismo país
+    // Excepción: equipos de Canadá pueden jugar en ligas de USA (WNBA, NBA)
+    const paisEquipo=(eq.pais||"").toLowerCase();
+    const esCanada=paisEquipo.includes("canad");
+    return ligas.filter(l=>{
+      const paisLiga=(l.pais||"").toLowerCase();
+      if(paisLiga===paisEquipo) return true;
+      if(esCanada&&(paisLiga.includes("estados unidos")||paisLiga.includes("usa")||paisLiga==="us")) return true;
+      return false;
+    });
+  },[f.id_equipo,equipos,ligas]);
+
+  // Reset liga si ya no está disponible con el nuevo equipo
+  const handleEquipo=id=>{
+    const disponible=id?equipos.find(e=>e.id_equipo===id):null;
+    const ligaValida=f.id_liga&&ligasFiltradas.some(l=>l.id_liga===f.id_liga);
+    setF(p=>({...p,id_equipo:id,id_liga:ligaValida?p.id_liga:""}));
+  };
+
   return(<div>
     <Fld label="Temporada *"><input style={inp} value={f.temporada} onChange={e=>setF(p=>({...p,temporada:e.target.value}))} placeholder="2024-25"/></Fld>
     <Fld label="Equipo *">
-      <select style={inp} value={f.id_equipo} onChange={e=>setF(p=>({...p,id_equipo:e.target.value}))}>
+      <select style={inp} value={f.id_equipo} onChange={e=>handleEquipo(e.target.value)}>
         <option value="">— Selecciona equipo —</option>
         {[...equipos].sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(e=><option key={e.id_equipo} value={e.id_equipo}>{e.nombre}</option>)}
       </select>
     </Fld>
     <Fld label="Competición *">
-      <select style={inp} value={f.id_liga} onChange={e=>setF(p=>({...p,id_liga:e.target.value}))}>
-        <option value="">— Selecciona competición —</option>
-        {ligas.map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}</option>)}
+      <select style={inp} value={f.id_liga} onChange={e=>setF(p=>({...p,id_liga:e.target.value}))} disabled={!f.id_equipo}>
+        <option value="">{f.id_equipo?"— Selecciona competición —":"— Selecciona equipo primero —"}</option>
+        {ligasFiltradas.sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}</option>)}
       </select>
     </Fld>
     <div style={{display:"flex",gap:"10px",marginTop:"8px"}}>
