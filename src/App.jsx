@@ -799,6 +799,23 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
 }
 
 /* ── NacDropdown ────────────────────────────────────────── */
+function StatsHeader({stats}){
+  return(
+    <div className="bfdb-stats-grid" style={{display:"grid",gridTemplateColumns:`repeat(${stats.length},1fr)`,gap:"8px",marginBottom:"16px"}}>
+      {stats.map(({icon,value,label,onClick})=>(
+        <div key={label} onClick={onClick}
+          style={{background:"#fff",borderRadius:"14px",padding:"12px 8px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",textAlign:"center",cursor:onClick?"pointer":"default",transition:"all 0.15s"}}
+          onMouseEnter={e=>{if(onClick)e.currentTarget.style.boxShadow="0 4px 12px rgba(249,115,22,0.2)";}}
+          onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.06)";}}>
+          <div style={{fontSize:"18px",marginBottom:"4px"}}>{icon}</div>
+          <div style={{fontSize:"20px",fontWeight:800,color:onClick?"#f97316":"#1e293b"}}>{typeof value==="number"?value.toLocaleString("es"):value}</div>
+          <div style={{fontSize:"11px",color:"#94a3b8",lineHeight:1.2}}>{label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function NacDropdown({allNacs,filterNacs,setFilterNacs}){
   const [open,setOpen]=useState(false);
   const ref=useRef();
