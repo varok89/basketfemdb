@@ -182,7 +182,9 @@ const COUNTRY_CODES = {
   "benin":"bj","benín":"bj",
   "togo":"tg",
   "burkina faso":"bf",
-  "guinea-bissau":"gw","guinea bisau":"gw",
+  "guinea-bissau":"gw","guinea bisau":"gw","guinea-bisau":"gw",
+  "camboya":"kh","cambodia":"kh",
+  "libano":"lb","líbano":"lb","lebanon":"lb",
 
   /* Asia */
   "china":"cn",
@@ -2349,7 +2351,7 @@ export default function App(){
     <div style={{minHeight:"100vh",background:"#f1f5f9",fontFamily:"system-ui,-apple-system,sans-serif",overflowX:"hidden"}}>
       <div style={{background:"#0f172a",color:"#fff",padding:"0 20px",position:"sticky",top:0,zIndex:10,boxShadow:"0 2px 16px rgba(0,0,0,0.4)"}}>
         <div className="bfdb-header-inner" style={{maxWidth:"880px",margin:"0 auto",display:"flex",alignItems:"center",gap:"10px",height:"56px"}}>
-          <div className="bfdb-logo" onClick={()=>{setTab("jugadoras");setOpenPlayerId(null);setOpenTeamId(null);setOpenCoachId(null);setOpenLigaId(null);setNavHistory([]);pushURL("jugadoras",null);}} title="Inicio" style={{display:"flex",alignItems:"center",gap:"8px",cursor:"pointer",marginRight:"auto"}}>
+          <div className="bfdb-logo" onClick={()=>{setTab("jugadoras");setOpenPlayerId(null);setOpenTeamId(null);setOpenCoachId(null);setOpenLigaId(null);}} title="Inicio" style={{display:"flex",alignItems:"center",gap:"8px",cursor:"pointer",marginRight:"auto"}}>
             <span style={{fontSize:"22px"}}>🏀</span>
             <div style={{fontWeight:800,fontSize:"16px",letterSpacing:"-0.3px"}}>
               BasketFem <span style={{color:"#fb923c"}}>DB</span>
