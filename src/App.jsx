@@ -2102,6 +2102,13 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
           {allNacs.map(n=><option key={n} value={n}>{n}</option>)}
         </select>
       </div>
+      <StatsHeader stats={[
+        {icon:"📋",value:coaches.length,label:"Entrenadores"},
+        {icon:"🏀",value:coaches.filter(c=>c.id_jugadora).length,label:"Ex jugadoras"},
+        {icon:"🇪🇸",value:coaches.filter(c=>(c.nacionalidad||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").includes("espa")).length,label:"Españoles"},
+        {icon:"📅",value:(tempCoach||[]).length,label:"Temporadas"},
+        {icon:"🤝",value:new Set((tempCoach||[]).map(t=>t.id_equipo)).size,label:"Equipos"},
+      ]}/>
       {isAdmin&&coachModal==="add"&&<Modal title="Nuevo coach" onClose={()=>setCoachModal(null)}><CoachForm players={players} onSave={saveCoach} onCancel={()=>setCoachModal(null)} saving={saving2}/></Modal>}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
         <span style={{fontSize:"13px",color:"#94a3b8"}}>{filteredList.length} entrenador{filteredList.length!==1?"es":"a"}</span>
