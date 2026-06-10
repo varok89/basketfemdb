@@ -2172,7 +2172,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
 
   /* ── LIST ── */
   return(
-    <div style={{maxWidth:"1000px",margin:"0 auto",padding:"20px"}}>
+    <div style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
       <div className="bfdb-stats-grid" style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"8px",marginBottom:"16px"}}>
         {(()=>{
           const nJugadoras=players.length;
