@@ -861,6 +861,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   const [filterTemp,setFilterTemp] = useState("");
   const [filterStatus,setFilterStatus] = useState("");
   const [selId,setSelId]           = useState(openPlayerId||null);
+  useEffect(()=>{const seg='jugadoras';window.history.replaceState({},"",selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
   const [modal,setModal]           = useState(null);
   const [editSeason,setEditSeason] = useState(null);
   const [del,setDel]               = useState(null);
@@ -1248,7 +1249,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
 
 /* ── TeamForm ───────────────────────────────────────────── */
 function TeamForm({initial,onSave,onCancel,saving}){
-  const [f,setF]=useState({nombre:'',ciudad:'',pais:'',año_fundacion:'',escudo:'',tipo:'equipo',...(initial||{})});
+  const [f,setF]=useState({nombre:'',ciudad:'',pais:'',año_fundacion:'',escudo:'',tipo:'equipo',redes_sociales:'',...(initial||{})});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
   const inp={width:'100%',border:'1.5px solid #e2e8f0',borderRadius:'10px',padding:'9px 12px',fontSize:'14px',outline:'none',boxSizing:'border-box'};
   return(<div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
@@ -1262,6 +1263,7 @@ function TeamForm({initial,onSave,onCancel,saving}){
       <Fld label='Tipo'><select style={inp} value={f.tipo||'equipo'} onChange={set('tipo')}><option value='equipo'>Club</option><option value='seleccion'>Selección</option></select></Fld>
     </div>
     <Fld label='URL Escudo'><input style={inp} value={f.escudo||''} onChange={set('escudo')} placeholder='https://...'/></Fld>
+    <Fld label='Redes sociales (URL)'><input style={inp} value={f.redes_sociales||''} onChange={set('redes_sociales')} placeholder='https://instagram.com/...'/></Fld>
     <div style={{display:'flex',gap:'10px',justifyContent:'flex-end',marginTop:'8px'}}>
       <button onClick={onCancel} style={{background:'#f1f5f9',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:600,cursor:'pointer'}}>Cancelar</button>
       <button onClick={()=>onSave(f)} disabled={saving||!f.nombre} style={{background:'#f97316',color:'#fff',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:700,cursor:'pointer'}}>{saving?'Guardando...':'Guardar'}</button>
@@ -1317,6 +1319,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
   const [filterSeason,setFilterSeason] = useState(null);
   const [filterTipo,setFilterTipo]     = useState("");
   const [selId,setSelId]               = useState(openTeamId||null);
+  useEffect(()=>{const seg='equipos';window.history.replaceState({},"",selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
   const [selYear,setSelYear]           = useState(null);
   const [teamModal,setTeamModal]       = useState(null);
   const [palModal,setPalModal]         = useState(null);
@@ -1420,7 +1423,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
         </div>
         {isAdmin&&delItem==="team"&&<ConfirmDel msg="¿Eliminar este equipo?" onCancel={()=>setDelItem(null)} onConfirm={delTeam}/>}
         <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px",position:"relative"}}>
-          {eq.redes_sociales&&<div style={{position:"absolute",bottom:"16px",right:"16px"}}><SocialIcon url={eq.redes_sociales}/></div>}
+          {eq.redes_sociales&&<div style={{position:"absolute",bottom:"16px",left:"16px"}}><SocialIcon url={eq.redes_sociales}/></div>}
           <div style={{display:"flex",alignItems:"center",gap:"20px",flexWrap:"wrap"}}>
             <TeamBadge team={eq} size={80}/>
             <div style={{flex:1,minWidth:"180px"}}>
@@ -1750,6 +1753,7 @@ function CoachSeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
 function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTeam,isAdmin,onReload,openLigaId,onClearLiga,onGoToTab}){
   const [selId,setSelId]     = useState(openLigaId||null);
   useEffect(()=>{if(openLigaId){setSelId(openLigaId);onClearLiga&&onClearLiga();}},[openLigaId]);
+  useEffect(()=>{const seg='ligas';window.history.replaceState({},"",selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
   const [selYear,setSelYear] = useState(null);
   const [search,setSearch]   = useState("");
   const [filterTipoLiga,setFilterTipoLiga] = useState("");
@@ -2027,6 +2031,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
   };
   const [search,setSearch]=useState("");
   const [selId,setSelId]  =useState(openCoachId||null);
+  useEffect(()=>{const seg='coaches';window.history.replaceState({},"",selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
   const [filterNac,setFilterNac]=useState("");
   const [filterLiga,setFilterLiga]=useState("");
   useEffect(()=>{if(openCoachId){setSelId(openCoachId);onClearCoach();}},[openCoachId]);
@@ -2489,7 +2494,7 @@ export default function App(){
             onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToCoach={goToCoach}/></div>
           <div className="bfdb-tabs" style={{display:"flex",gap:"4px"}}>
             {TABS.map(([id,icon,label])=>(
-              <button key={id} onClick={()=>setTab(id)} style={{background:tab===id?"#f97316":"transparent",color:tab===id?"#fff":"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",transition:"all 0.15s"}}>
+              <button key={id} onClick={()=>{setTab(id);const seg=id==='cuerpo_tecnico'?'coaches':id;window.history.pushState({},"",`/${seg}`);}} style={{background:tab===id?"#f97316":"transparent",color:tab===id?"#fff":"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",transition:"all 0.15s"}}>
                 {icon}<span className="bfdb-tab-label"> {label}</span>
               </button>
             ))}
