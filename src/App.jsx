@@ -1311,7 +1311,7 @@ function AddToSquadForm({initial,players,ligas,onSave,onCancel,saving}){
 }
 
 /* ── TeamsView ───────────────────────────────────────────── */
-function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlayer,onGoToCoach,onGoToLeague,openTeamId,openTeamYear,onClearTeam,isAdmin,onReload}){
+function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlayer,onGoToCoach,onGoToLeague,openTeamId,openTeamYear,onClearTeam,isAdmin,onReload,onGoToTab}){
   const [search,setSearch]             = useState("");
   const [filterLeague,setFilterLeague] = useState("");
   const [filterSeason,setFilterSeason] = useState(null);
@@ -1565,6 +1565,37 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
 
   return(
     <div className="bfdb-container" style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
+      <div className="bfdb-stats-grid" style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"8px",marginBottom:"16px"}}>
+        {(()=>{
+          const nJugadoras=players.length;
+          const nEquipos=equipos.length;
+          const nLigas=ligas.length;
+          const nCoaches=coaches.length;
+          const nTemporadas=players.flatMap(p=>p.seasons||[]).length;
+          const nTempCoach=(tempCoach||[]).length;
+          const nPalmares=(palmares||[]).length;
+          const total=nJugadoras+nEquipos+nLigas+nCoaches+nTemporadas+nTempCoach+nPalmares;
+          const tabMap={"Jugadoras":"jugadoras","Equipos":"equipos","Ligas":"ligas","Coaches":"cuerpo_tecnico"};
+          return [
+            ["👩‍🏀",nJugadoras,"Jugadoras"],
+            ["🏟️",nEquipos,"Equipos"],
+            ["🏆",nLigas,"Ligas"],
+            ["📋",nCoaches,"Coaches"],
+            ["🗂️",total.toLocaleString("es"),"Registros totales"],
+          ].map(([e,v,l])=>{
+            const targetTab=tabMap[l];
+            return(
+            <div key={l} onClick={targetTab?()=>onGoToTab&&onGoToTab(targetTab):undefined}
+              style={{background:"#fff",borderRadius:"14px",padding:"12px 8px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",textAlign:"center",cursor:targetTab?"pointer":"default",transition:"all 0.15s"}}
+              onMouseEnter={e=>{if(targetTab)e.currentTarget.style.boxShadow="0 4px 12px rgba(249,115,22,0.2)";}}
+              onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.06)";}}>
+              <div style={{fontSize:"18px",marginBottom:"4px"}}>{e}</div>
+              <div style={{fontSize:"20px",fontWeight:800,color:targetTab?"#f97316":"#1e293b"}}>{v}</div>
+              <div style={{fontSize:"11px",color:"#94a3b8",lineHeight:1.2}}>{l}</div>
+            </div>
+          );});
+        })()}
+      </div>
       <div className="bfdb-filter-row" style={{display:"flex",gap:"8px",marginBottom:"14px",flexWrap:"wrap",alignItems:"stretch"}}>
         <input style={{flex:"1 1 200px",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 14px",fontSize:"13px",color:"#1e293b",outline:"none",background:"#fff",height:"40px",boxSizing:"border-box"}}
           placeholder="🔍 Nombre de equipo..." value={search} onChange={e=>setSearch(e.target.value)}/>
@@ -1714,7 +1745,7 @@ function CoachSeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
 }
 
 /* ── LeaguesView ─────────────────────────────────────────── */
-function LeaguesView({ligas,players,equipos,palmares,onGoToTeam,isAdmin,onReload,openLigaId,onClearLiga}){
+function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTeam,isAdmin,onReload,openLigaId,onClearLiga,onGoToTab}){
   const [selId,setSelId]     = useState(openLigaId||null);
   useEffect(()=>{if(openLigaId){setSelId(openLigaId);onClearLiga&&onClearLiga();}},[openLigaId]);
   const [selYear,setSelYear] = useState(null);
@@ -1866,6 +1897,37 @@ function LeaguesView({ligas,players,equipos,palmares,onGoToTeam,isAdmin,onReload
   const GRUPOS=[["liga","Liga"],["copacont","Copa Continental"],["copadom","Copa Nacional"],["internacional","Internacional"],["other","Otras"]];
   return(
     <div className="bfdb-container" style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
+      <div className="bfdb-stats-grid" style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"8px",marginBottom:"16px"}}>
+        {(()=>{
+          const nJugadoras=players.length;
+          const nEquipos=equipos.length;
+          const nLigas=ligas.length;
+          const nCoaches=coaches.length;
+          const nTemporadas=players.flatMap(p=>p.seasons||[]).length;
+          const nTempCoach=(tempCoach||[]).length;
+          const nPalmares=(palmares||[]).length;
+          const total=nJugadoras+nEquipos+nLigas+nCoaches+nTemporadas+nTempCoach+nPalmares;
+          const tabMap={"Jugadoras":"jugadoras","Equipos":"equipos","Ligas":"ligas","Coaches":"cuerpo_tecnico"};
+          return [
+            ["👩‍🏀",nJugadoras,"Jugadoras"],
+            ["🏟️",nEquipos,"Equipos"],
+            ["🏆",nLigas,"Ligas"],
+            ["📋",nCoaches,"Coaches"],
+            ["🗂️",total.toLocaleString("es"),"Registros totales"],
+          ].map(([e,v,l])=>{
+            const targetTab=tabMap[l];
+            return(
+            <div key={l} onClick={targetTab?()=>onGoToTab&&onGoToTab(targetTab):undefined}
+              style={{background:"#fff",borderRadius:"14px",padding:"12px 8px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",textAlign:"center",cursor:targetTab?"pointer":"default",transition:"all 0.15s"}}
+              onMouseEnter={e=>{if(targetTab)e.currentTarget.style.boxShadow="0 4px 12px rgba(249,115,22,0.2)";}}
+              onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.06)";}}>
+              <div style={{fontSize:"18px",marginBottom:"4px"}}>{e}</div>
+              <div style={{fontSize:"20px",fontWeight:800,color:targetTab?"#f97316":"#1e293b"}}>{v}</div>
+              <div style={{fontSize:"11px",color:"#94a3b8",lineHeight:1.2}}>{l}</div>
+            </div>
+          );});
+        })()}
+      </div>
       {isAdmin&&ligaModal==="add"&&<Modal title="Nueva liga" onClose={()=>setLigaModal(null)}><LeagueForm onSave={saveLiga} onCancel={()=>setLigaModal(null)} saving={saving}/></Modal>}
       <div style={{display:"flex",gap:"10px",marginBottom:"16px",alignItems:"center"}}>
         <input style={{flex:1,border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 16px",fontSize:"14px",color:"#1e293b",outline:"none",background:"#fff",boxSizing:"border-box"}}
@@ -1919,7 +1981,7 @@ function LeaguesView({ligas,players,equipos,palmares,onGoToTeam,isAdmin,onReload
 }
 
 /* ── CoachesView ────────────────────────────────────────── */
-function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPlayer,onGoToTeam,openCoachId,onClearCoach,isAdmin,onReload}){
+function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPlayer,onGoToTeam,openCoachId,onClearCoach,isAdmin,onReload,onGoToTab}){
   const [coachModal,setCoachModal]=useState(null);
   const [seasonModal,setSeasonModal]=useState(null);
   const [saving2,setSaving2]=useState(false);
@@ -2119,13 +2181,37 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
           {allNacs.map(n=><option key={n} value={n}>{n}</option>)}
         </select>
       </div>
-      <StatsHeader stats={[
-        {icon:"📋",value:coaches.length,label:"Entrenadores"},
-        {icon:"🏀",value:coaches.filter(c=>c.id_jugadora).length,label:"Ex jugadoras"},
-        {icon:"🇪🇸",value:coaches.filter(c=>(c.nacionalidad||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").includes("espa")).length,label:"Españoles"},
-        {icon:"📅",value:(tempCoach||[]).length,label:"Temporadas"},
-        {icon:"🤝",value:new Set((tempCoach||[]).map(t=>t.id_equipo)).size,label:"Equipos"},
-      ]}/>
+      <div className="bfdb-stats-grid" style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"8px",marginBottom:"16px"}}>
+        {(()=>{
+          const nJugadoras=players.length;
+          const nEquipos=equipos.length;
+          const nLigas=ligas.length;
+          const nCoaches=coaches.length;
+          const nTemporadas=players.flatMap(p=>p.seasons||[]).length;
+          const nTempCoach=(tempCoach||[]).length;
+          const nPalmares=(palmares||[]).length;
+          const total=nJugadoras+nEquipos+nLigas+nCoaches+nTemporadas+nTempCoach+nPalmares;
+          const tabMap={"Jugadoras":"jugadoras","Equipos":"equipos","Ligas":"ligas","Coaches":"cuerpo_tecnico"};
+          return [
+            ["👩‍🏀",nJugadoras,"Jugadoras"],
+            ["🏟️",nEquipos,"Equipos"],
+            ["🏆",nLigas,"Ligas"],
+            ["📋",nCoaches,"Coaches"],
+            ["🗂️",total.toLocaleString("es"),"Registros totales"],
+          ].map(([e,v,l])=>{
+            const targetTab=tabMap[l];
+            return(
+            <div key={l} onClick={targetTab?()=>onGoToTab&&onGoToTab(targetTab):undefined}
+              style={{background:"#fff",borderRadius:"14px",padding:"12px 8px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",textAlign:"center",cursor:targetTab?"pointer":"default",transition:"all 0.15s"}}
+              onMouseEnter={e=>{if(targetTab)e.currentTarget.style.boxShadow="0 4px 12px rgba(249,115,22,0.2)";}}
+              onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.06)";}}>
+              <div style={{fontSize:"18px",marginBottom:"4px"}}>{e}</div>
+              <div style={{fontSize:"20px",fontWeight:800,color:targetTab?"#f97316":"#1e293b"}}>{v}</div>
+              <div style={{fontSize:"11px",color:"#94a3b8",lineHeight:1.2}}>{l}</div>
+            </div>
+          );});
+        })()}
+      </div>
       {isAdmin&&coachModal==="add"&&<Modal title="Nuevo coach" onClose={()=>setCoachModal(null)}><CoachForm players={players} onSave={saveCoach} onCancel={()=>setCoachModal(null)} saving={saving2}/></Modal>}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
         <span style={{fontSize:"13px",color:"#94a3b8"}}>{filteredList.length} entrenador{filteredList.length!==1?"es":"a"}</span>
@@ -2413,9 +2499,9 @@ export default function App(){
       </div>
       <div style={{paddingTop:"8px"}}>
         {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)}/>}
-        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll}/>}
-        {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)}/>}
-        {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll}/>}
+        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)}/>}
+        {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)} onGoToTab={t=>setTab(t)}/>}
+        {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)}/>}
       </div>
     </div>
     </>);
