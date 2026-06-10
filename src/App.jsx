@@ -836,7 +836,7 @@ function NacDropdown({allNacs,filterNacs,setFilterNacs}){
 }
 
 /* ── PlayersView ─────────────────────────────────────────── */
-function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,onGoToTeam,onGoToCoach,openPlayerId,onClearPlayer,isAdmin}){
+function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,onGoToTeam,onGoToCoach,openPlayerId,onClearPlayer,isAdmin,onGoToTab}){
   const [search,setSearch]         = useState("");
   const [filterPos,setFilterPos]   = useState("");
   const [filterNacs,setFilterNacs] = useState(new Set());
@@ -904,10 +904,13 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
 
   const addPlayer=async f=>{
     setSaving(true);
-    try{const{data}=await supabase.from("jugadoras").select("id_jugadora").order("id_jugadora",{ascending:false}).limit(1);
-      const newId=`J${String(parseInt((data?.[0]?.id_jugadora||"J000").slice(1))+1).padStart(3,"0")}`;
-      await supabase.from("jugadoras").insert({id_jugadora:newId,nombre:f.nombre,posicion:f.posicion,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null});
-      await onReload();setModal(null);}catch(e){alert("Error: "+e.message);}
+    try{
+      const allJIds=players.map(p=>parseInt((p.id_jugadora||"J0").slice(1))).filter(n=>!isNaN(n));
+      const newId=`J${Math.max(0,...allJIds)+1}`;
+      const{error}=await supabase.from("jugadoras").insert({id_jugadora:newId,nombre:f.nombre,posicion:f.posicion,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null});
+      if(error)throw error;
+      await onReload();setModal(null);
+    }catch(e){alert("Error al guardar jugadora: "+(e.message||e.details||JSON.stringify(e)));}
     setSaving(false);
   };
   const updPlayer=async f=>{
@@ -1129,19 +1132,25 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           const nTempCoach=(tempCoach||[]).length;
           const nPalmares=(palmares||[]).length;
           const total=nJugadoras+nEquipos+nLigas+nCoaches+nTemporadas+nTempCoach+nPalmares;
+          const tabMap={"Jugadoras":"jugadoras","Equipos":"equipos","Ligas":"ligas","Coaches":"cuerpo_tecnico"};
           return [
             ["👩‍🏀",nJugadoras,"Jugadoras"],
             ["🏟️",nEquipos,"Equipos"],
             ["🏆",nLigas,"Ligas"],
             ["📋",nCoaches,"Coaches"],
             ["🗂️",total.toLocaleString("es"),"Registros totales"],
-          ].map(([e,v,l])=>(
-            <div key={l} style={{background:"#fff",borderRadius:"14px",padding:"12px 8px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",textAlign:"center"}}>
+          ].map(([e,v,l])=>{
+            const targetTab=tabMap[l];
+            return(
+            <div key={l} onClick={targetTab?()=>onGoToTab&&onGoToTab(targetTab):undefined}
+              style={{background:"#fff",borderRadius:"14px",padding:"12px 8px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",textAlign:"center",cursor:targetTab?"pointer":"default",transition:"all 0.15s"}}
+              onMouseEnter={e=>{if(targetTab)e.currentTarget.style.boxShadow="0 4px 12px rgba(249,115,22,0.2)";}}
+              onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.06)";}}>
               <div style={{fontSize:"18px",marginBottom:"4px"}}>{e}</div>
-              <div style={{fontSize:"20px",fontWeight:800,color:"#1e293b"}}>{v}</div>
+              <div style={{fontSize:"20px",fontWeight:800,color:targetTab?"#f97316":"#1e293b"}}>{v}</div>
               <div style={{fontSize:"11px",color:"#94a3b8",lineHeight:1.2}}>{l}</div>
             </div>
-          ));
+          );});
         })()}
       </div>
       <div className="bfdb-filter-row" style={{display:"flex",gap:"8px",marginBottom:"8px",flexWrap:"wrap",alignItems:"stretch"}}>
@@ -1303,13 +1312,15 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
     try{
       if(teamModal==="addTeam"){
         const ids=equipos.map(e=>parseInt(e.id_equipo.replace("E",""))).filter(n=>!isNaN(n));
-        const newId="E"+(Math.max(...ids)+1).toString().padStart(3,"0");
-        await supabase.from("equipos").insert({id_equipo:newId,...f});
+        const newId="E"+(Math.max(0,...ids)+1).toString().padStart(3,"0");
+        const{error}=await supabase.from("equipos").insert({id_equipo:newId,...f});
+        if(error)throw error;
       } else {
-        await supabase.from("equipos").update(f).eq("id_equipo",selId);
+        const{error}=await supabase.from("equipos").update(f).eq("id_equipo",selId);
+        if(error)throw error;
       }
       await onReload();setTeamModal(null);
-    }catch(e){alert("Error: "+e.message);}
+    }catch(e){alert("Error al guardar equipo: "+(e.message||e.details||JSON.stringify(e)));}
     setSaving(false);
   };
   const saveSquad=async(f)=>{
@@ -2377,7 +2388,7 @@ export default function App(){
         </div>
       </div>
       <div style={{paddingTop:"8px"}}>
-        {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin}/>}
+        {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)}/>}
         {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll}/>}
         {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)}/>}
         {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll}/>}
