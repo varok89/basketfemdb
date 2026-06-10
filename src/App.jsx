@@ -2173,19 +2173,6 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
   /* ── LIST ── */
   return(
     <div style={{maxWidth:"1000px",margin:"0 auto",padding:"20px"}}>
-      <div style={{minHeight:"112px"}}>
-      <div style={{display:"flex",gap:"10px",marginBottom:"14px",flexWrap:"wrap"}}>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Nombre de entrenador..."
-          style={{flex:1,minWidth:"180px",border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"14px",color:"#1e293b",outline:"none",background:"#fff"}}/>
-        <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}} value={filterLiga} onChange={e=>setFilterLiga(e.target.value)}>
-          <option value="">Todas las ligas</option>
-          {allLigas.map(l=><option key={l} value={l}>{l}</option>)}
-        </select>
-        <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}} value={filterNac} onChange={e=>setFilterNac(e.target.value)}>
-          <option value="">Todas las nacionalidades</option>
-          {allNacs.map(n=><option key={n} value={n}>{n}</option>)}
-        </select>
-      </div>
       <div className="bfdb-stats-grid" style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"8px",marginBottom:"16px"}}>
         {(()=>{
           const nJugadoras=players.length;
@@ -2216,6 +2203,19 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
             </div>
           );});
         })()}
+      </div>
+      <div style={{minHeight:"112px"}}>
+      <div style={{display:"flex",gap:"10px",marginBottom:"14px",flexWrap:"wrap"}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Nombre de entrenador..."
+          style={{flex:1,minWidth:"180px",border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"14px",color:"#1e293b",outline:"none",background:"#fff"}}/>
+        <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}} value={filterLiga} onChange={e=>setFilterLiga(e.target.value)}>
+          <option value="">Todas las ligas</option>
+          {allLigas.map(l=><option key={l} value={l}>{l}</option>)}
+        </select>
+        <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}} value={filterNac} onChange={e=>setFilterNac(e.target.value)}>
+          <option value="">Todas las nacionalidades</option>
+          {allNacs.map(n=><option key={n} value={n}>{n}</option>)}
+        </select>
       </div>
       </div>
       {isAdmin&&coachModal==="add"&&<Modal title="Nuevo coach" onClose={()=>setCoachModal(null)}><CoachForm players={players} onSave={saveCoach} onCancel={()=>setCoachModal(null)} saving={saving2}/></Modal>}
