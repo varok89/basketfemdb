@@ -1519,17 +1519,18 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
   const duplicateSquad=async(squadList,targetLiga,temporada)=>{
     setSaving(true);
     try{
+      const eqId=selId;
       // entradas existentes en la liga destino para esa temporada (para saltar duplicados)
       const existing=new Set(
         players.flatMap(p=>(p.seasons||[]).map(s=>({jug:p.id_jugadora,...s})))
-          .filter(s=>s.id_liga===targetLiga&&s.temporada===temporada&&s.id_equipo===eq.id_equipo)
+          .filter(s=>s.id_liga===targetLiga&&s.temporada===temporada&&s.id_equipo===eqId)
           .map(s=>s.jug)
       );
       const toAdd=squadList.filter(({player})=>!existing.has(player.id_jugadora));
       if(toAdd.length===0){alert("Todas las jugadoras ya tienen entrada en esa competición para "+temporada);setSaving(false);setDupModal(null);return;}
       const allIds=players.flatMap(p=>p.seasons||[]).map(s=>parseInt(s.id)).filter(n=>!isNaN(n));
       let nextId=Math.max(0,...allIds)+1;
-      const rows=toAdd.map(({player})=>({id:nextId++,id_jugadora:player.id_jugadora,id_equipo:eq.id_equipo,id_liga:targetLiga,temporada}));
+      const rows=toAdd.map(({player})=>({id:nextId++,id_jugadora:player.id_jugadora,id_equipo:eqId,id_liga:targetLiga,temporada}));
       const{error}=await supabase.from("temporadas").insert(rows);
       if(error)throw error;
       await onReload();setDupModal(null);
