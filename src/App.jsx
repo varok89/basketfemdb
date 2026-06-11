@@ -647,11 +647,29 @@ function StatusDropdown({filterStatus,setFilterStatus}){
 /* ── DuplicatesModal ────────────────────────────────────── */
 function DuplicatesModal({players,equipos,ligas,coaches,onClose,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach}){
   const [tab,setTab]=useState("jugadoras");
+  const [ignored,setIgnored]=useState(new Set());  // claves "tipo|ids" ignoradas
+  const [loading,setLoading]=useState(true);
 
   const norm=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ").trim();
 
-  // Detección estricta: nombre normalizado idéntico
-  const findDupes=(items,nameKey,idKey)=>{
+  // Cargar lista de ignorados desde Supabase
+  useEffect(()=>{
+    (async()=>{
+      try{
+        const{data}=await supabase.from("duplicados_ignorados").select("tipo,ids");
+        const s=new Set((data||[]).map(r=>`${r.tipo}|${r.ids}`));
+        setIgnored(s);
+      }catch(e){console.error("Error cargando ignorados:",e);}
+      setLoading(false);
+    })();
+  },[]);
+
+  const groupKey=(tipo,items,idKey)=>{
+    const ids=items.map(it=>it[idKey]).sort().join(",");
+    return `${tipo}|${ids}`;
+  };
+
+  const findDupes=(items,nameKey,idKey,tipo)=>{
     const groups={};
     items.forEach(it=>{
       const key=norm(it[nameKey]);
@@ -659,14 +677,26 @@ function DuplicatesModal({players,equipos,ligas,coaches,onClose,onGoToPlayer,onG
       if(!groups[key])groups[key]=[];
       groups[key].push(it);
     });
-    return Object.entries(groups).filter(([,arr])=>arr.length>1).map(([key,arr])=>({key,items:arr}));
+    return Object.entries(groups)
+      .filter(([,arr])=>arr.length>1)
+      .map(([key,arr])=>({key,items:arr,gk:groupKey(tipo,arr,idKey)}))
+      .filter(g=>!ignored.has(g.gk));
   };
 
   const dupes={
-    jugadoras:findDupes(players,"nombre","id_jugadora"),
-    equipos:findDupes(equipos,"nombre","id_equipo"),
-    ligas:findDupes(ligas,"nombre","id_liga"),
-    coaches:findDupes(coaches,"nombre","id_coach"),
+    jugadoras:findDupes(players,"nombre","id_jugadora","jugadoras"),
+    equipos:findDupes(equipos,"nombre","id_equipo","equipos"),
+    ligas:findDupes(ligas,"nombre","id_liga","ligas"),
+    coaches:findDupes(coaches,"nombre","id_coach","coaches"),
+  };
+
+  const ignoreGroup=async(tipo,group)=>{
+    const gk=group.gk;
+    const ids=group.items.map(it=>it[{jugadoras:"id_jugadora",equipos:"id_equipo",ligas:"id_liga",coaches:"id_coach"}[tipo]]).sort().join(",");
+    try{
+      await supabase.from("duplicados_ignorados").insert({tipo,clave:group.key,ids});
+      setIgnored(prev=>new Set([...prev,gk]));
+    }catch(e){alert("Error al guardar: "+(e.message||JSON.stringify(e)));}
   };
 
   const TABS=[
@@ -685,7 +715,7 @@ function DuplicatesModal({players,equipos,ligas,coaches,onClose,onGoToPlayer,onG
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"24px 24px 16px"}}>
           <div>
             <h2 style={{fontWeight:800,fontSize:"18px",color:"#1e293b",margin:0}}>🔍 Detector de duplicados</h2>
-            <p style={{fontSize:"12px",color:"#94a3b8",margin:"4px 0 0"}}>{totalDupes===0?"No se han detectado duplicados":`${totalDupes} posible${totalDupes!==1?"s":""} grupo${totalDupes!==1?"s":""} de duplicados`}</p>
+            <p style={{fontSize:"12px",color:"#94a3b8",margin:"4px 0 0"}}>{loading?"Cargando...":totalDupes===0?"No se han detectado duplicados":`${totalDupes} posible${totalDupes!==1?"s":""} grupo${totalDupes!==1?"s":""} de duplicados`}</p>
           </div>
           <button onClick={onClose} style={{background:"none",border:"none",fontSize:"22px",color:"#94a3b8",cursor:"pointer"}}>×</button>
         </div>
@@ -708,8 +738,12 @@ function DuplicatesModal({players,equipos,ligas,coaches,onClose,onGoToPlayer,onG
             <div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
               {activeDupes.map((group,gi)=>(
                 <div key={gi} style={{border:"1.5px solid #fed7aa",borderRadius:"14px",overflow:"hidden"}}>
-                  <div style={{background:"#fff7ed",padding:"8px 14px",fontSize:"12px",fontWeight:700,color:"#c2410c",borderBottom:"1px solid #fed7aa"}}>
-                    {group.items.length} coincidencias
+                  <div style={{background:"#fff7ed",padding:"8px 14px",fontSize:"12px",fontWeight:700,color:"#c2410c",borderBottom:"1px solid #fed7aa",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <span>{group.items.length} coincidencias</span>
+                    <button onClick={()=>ignoreGroup(tab,group)} title="Marcar como falso positivo"
+                      style={{background:"#fff",border:"1.5px solid #cbd5e1",borderRadius:"8px",padding:"3px 10px",fontSize:"11px",fontWeight:700,color:"#64748b",cursor:"pointer"}}>
+                      ✓ No es duplicado
+                    </button>
                   </div>
                   {group.items.map((it,ii)=>(
                     <div key={ii} onClick={()=>{activeTab.onGo&&activeTab.onGo(it[activeTab.idKey]);onClose();}}
@@ -732,7 +766,6 @@ function DuplicatesModal({players,equipos,ligas,coaches,onClose,onGoToPlayer,onG
     </div>
   );
 }
-
 /* ── ExportModal ────────────────────────────────────────── */
 function ExportModal({tables,onClose}){
   const [selected,setSelected]=useState(new Set(tables.map(t=>t.key)));
