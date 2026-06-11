@@ -164,6 +164,8 @@ const COUNTRY_CODES = {
   "kenya":"ke","kenia":"ke",
   "ethiopia":"et","etiopia":"et","etiopía":"et",
   "ghana":"gh",
+  "antigua y barbuda":"ag","antigua and barbuda":"ag",
+  "guinea ecuatorial":"gq","equatorial guinea":"gq",
   "sierra leona":"sl","sierra leone":"sl",
   "ivory coast":"ci","costa de marfil":"ci","cote d'ivoire":"ci",
   "egypt":"eg","egipto":"eg",
