@@ -2047,18 +2047,22 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTea
           {teamsInLeague.length===0
             ?<div style={{textAlign:"center",padding:"40px",color:"#94a3b8"}}><div style={{fontSize:"32px",marginBottom:"10px"}}>🏟️</div><div>Sin equipos para esta temporada</div></div>
             :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:"10px"}}>
-              {teamsInLeague.map(eq=>(
+              {teamsInLeague.map(eq=>{
+                const esCampeon=(palmares||[]).some(p=>p.id_liga===selId&&p.id_equipo===eq.id_equipo&&p.temporada===effectiveYear);
+                return(
                 <div key={eq.id_equipo} onClick={()=>onGoToTeam(eq.id_equipo,null,{tab:"ligas",id:selId,label:selected?.nombre})}
-                  style={{background:"#f8fafc",borderRadius:"14px",padding:"14px",border:"1.5px solid #e2e8f0",display:"flex",alignItems:"center",gap:"12px",cursor:"pointer",transition:"all 0.15s"}}
+                  style={{background:esCampeon?"#fffbeb":"#f8fafc",borderRadius:"14px",padding:"14px",border:esCampeon?"1.5px solid #fbbf24":"1.5px solid #e2e8f0",display:"flex",alignItems:"center",gap:"12px",cursor:"pointer",transition:"all 0.15s",position:"relative"}}
                   onMouseEnter={e=>{e.currentTarget.style.borderColor="#fb923c";e.currentTarget.style.background="#fff7ed";}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor="#e2e8f0";e.currentTarget.style.background="#f8fafc";}}>
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor=esCampeon?"#fbbf24":"#e2e8f0";e.currentTarget.style.background=esCampeon?"#fffbeb":"#f8fafc";}}>
                   <TeamBadge team={eq} size={40}/>
                   <div style={{minWidth:0}}>
                     <div style={{fontWeight:700,fontSize:"13px",color:"#f97316",lineHeight:"1.3",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{eq.nombre}</div>
                     <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"2px",display:"flex",alignItems:"center"}}><FlagImg country={eq.pais||""}/>{eq.pais||""}</div>
                   </div>
+                  {esCampeon&&<span title={`Campeón ${effectiveYear}`} style={{position:"absolute",top:"8px",right:"10px",fontSize:"18px"}}>🏆</span>}
                 </div>
-              ))}
+                );
+              })}
             </div>}
         </div>
         {(()=>{
