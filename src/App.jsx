@@ -1434,6 +1434,46 @@ function AddToSquadForm({initial,players,ligas,onSave,onCancel,saving}){
   </div>);
 }
 
+/* ── DuplicateSquadForm ─────────────────────────────────── */
+function DuplicateSquadForm({initial,ligas,ligaMap,eq,onSave,onCancel,saving}){
+  const [targetLiga,setTargetLiga]=useState("");
+  const inp={width:"100%",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"14px",outline:"none",boxSizing:"border-box"};
+  const squad=initial.squad||[];
+  const temporada=initial.temporada;
+  const sourceLiga=initial.sourceLiga;
+  const sourceLigaObj=sourceLiga?ligaMap[sourceLiga]:null;
+
+  // Filtrar ligas: misma país/continente que el equipo, excluyendo la liga origen
+  const norm=s=>(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
+  const paisEq=norm(eq.pais);
+  const availLigas=(ligas||[]).filter(l=>{
+    if(l.id_liga===sourceLiga)return false;
+    const paisL=norm(l.pais);
+    if(paisL===paisEq)return true;
+    if(l.tipo==="copacont"||l.tipo==="internacional")return true;
+    return false;
+  }).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+
+  return(<div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
+    <div style={{background:"#f8fafc",borderRadius:"12px",padding:"14px",fontSize:"13px",color:"#475569"}}>
+      <div style={{marginBottom:"6px"}}><b>{squad.length}</b> jugadora{squad.length!==1?"s":""} de <b>{eq.nombre}</b></div>
+      <div>Temporada: <b>{temporada||"—"}</b></div>
+      {sourceLigaObj&&<div>Desde: <b>{sourceLigaObj.nombre}</b></div>}
+    </div>
+    <Fld label="Competición destino *">
+      <select style={inp} value={targetLiga} onChange={e=>setTargetLiga(e.target.value)}>
+        <option value="">Seleccionar competición...</option>
+        {availLigas.map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}{l.tipo==="copadom"?" (Copa)":l.tipo==="copacont"?" (Continental)":""}</option>)}
+      </select>
+    </Fld>
+    <div style={{fontSize:"12px",color:"#94a3b8"}}>Se crearán las mismas entradas con el equipo y temporada actuales, cambiando solo la competición. Las jugadoras que ya tengan esa competición se omitirán.</div>
+    <div style={{display:"flex",gap:"10px",justifyContent:"flex-end",marginTop:"4px"}}>
+      <button onClick={onCancel} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"9px 20px",fontWeight:600,cursor:"pointer"}}>Cancelar</button>
+      <button onClick={()=>onSave(squad,targetLiga,temporada)} disabled={saving||!targetLiga||!temporada} style={{background:targetLiga&&temporada?"#f97316":"#fed7aa",color:"#fff",border:"none",borderRadius:"10px",padding:"9px 20px",fontWeight:700,cursor:targetLiga&&temporada?"pointer":"not-allowed"}}>{saving?"Duplicando...":"Duplicar plantilla"}</button>
+    </div>
+  </div>);
+}
+
 /* ── TeamsView ───────────────────────────────────────────── */
 function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlayer,onGoToCoach,onGoToLeague,openTeamId,openTeamYear,onClearTeam,isAdmin,onReload,onGoToTab,navHistory,onGoBack}){
   const [search,setSearch]             = useState("");
@@ -1446,6 +1486,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
   const [teamModal,setTeamModal]       = useState(null);
   const [palModal,setPalModal]         = useState(null);
   const [squadModal,setSquadModal]     = useState(null);
+  const [dupModal,setDupModal]         = useState(null);
   const [saving,setSaving]             = useState(false);
   const [delItem,setDelItem]           = useState(null);
 
@@ -1473,6 +1514,28 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
       await supabase.from("temporadas").insert({id:newId,id_jugadora:f.id_jugadora,id_equipo:f.id_equipo,id_liga:f.id_liga,temporada:f.temporada});
       await onReload();setSquadModal(null);
     }catch(e){alert("Error: "+e.message);}
+    setSaving(false);
+  };
+  const duplicateSquad=async(squadList,targetLiga,temporada)=>{
+    setSaving(true);
+    try{
+      // entradas existentes en la liga destino para esa temporada (para saltar duplicados)
+      const existing=new Set(
+        players.flatMap(p=>(p.seasons||[]).map(s=>({jug:p.id_jugadora,...s})))
+          .filter(s=>s.id_liga===targetLiga&&s.temporada===temporada&&s.id_equipo===eq.id_equipo)
+          .map(s=>s.jug)
+      );
+      const toAdd=squadList.filter(({player})=>!existing.has(player.id_jugadora));
+      if(toAdd.length===0){alert("Todas las jugadoras ya tienen entrada en esa competición para "+temporada);setSaving(false);setDupModal(null);return;}
+      const allIds=players.flatMap(p=>p.seasons||[]).map(s=>parseInt(s.id)).filter(n=>!isNaN(n));
+      let nextId=Math.max(0,...allIds)+1;
+      const rows=toAdd.map(({player})=>({id:nextId++,id_jugadora:player.id_jugadora,id_equipo:eq.id_equipo,id_liga:targetLiga,temporada}));
+      const{error}=await supabase.from("temporadas").insert(rows);
+      if(error)throw error;
+      await onReload();setDupModal(null);
+      const skipped=squadList.length-toAdd.length;
+      alert(`✅ ${toAdd.length} jugadora${toAdd.length!==1?"s":""} duplicada${toAdd.length!==1?"s":""}${skipped>0?` · ${skipped} ya existía${skipped!==1?"n":""}`:""}`);
+    }catch(e){alert("Error: "+(e.message||JSON.stringify(e)));}
     setSaving(false);
   };
   const delTeam=async()=>{
@@ -1600,6 +1663,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
               {(()=>{const ligasInYear=[...new Set((squad).map(({season})=>season.id_liga))];const l=ligasInYear.length===1?ligaMap[ligasInYear[0]]:null;return l?<div onClick={()=>onGoToLeague&&onGoToLeague(l.id_liga)} style={{fontSize:"12px",color:"#f97316",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px",cursor:"pointer",textDecoration:"underline"}}><FlagImg country={l.pais}/>{l.nombre}</div>:null;})()}
             </div>
             <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
+              {isAdmin&&squad.length>0&&<button onClick={()=>setDupModal({squad,temporada:effectiveYear,sourceLiga:(()=>{const ls=[...new Set(squad.map(({season})=>season.id_liga))];return ls.length===1?ls[0]:"";})()})} title="Duplicar plantilla a otra competición" style={{background:"#fff",color:"#f97316",border:"1.5px solid #f97316",borderRadius:"10px",padding:"7px 12px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>⎘ Duplicar</button>}
               {isAdmin&&<button onClick={()=>setSquadModal({temporada:effectiveYear||"",id_liga:"",id_equipo:eq.id_equipo})} style={{background:"#f97316",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Jugadora</button>}
               {years.length>0&&<select value={effectiveYear||""} onChange={e=>setSelYear(e.target.value||null)} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}}>
                 {years.map(y=><option key={y} value={y}>{y}</option>)}
@@ -1627,6 +1691,9 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
         {isAdmin&&delItem?.type==="palmares"&&<ConfirmDel msg="¿Eliminar este título?" onCancel={()=>setDelItem(null)} onConfirm={()=>delPalmares(delItem.id)}/>}
         {isAdmin&&squadModal&&<Modal title="Añadir jugadora a plantilla" onClose={()=>setSquadModal(null)}>
           <AddToSquadForm initial={squadModal} players={players} ligas={ligas} onSave={saveSquad} onCancel={()=>setSquadModal(null)} saving={saving}/>
+        </Modal>}
+        {isAdmin&&dupModal&&<Modal title="Duplicar plantilla a otra competición" onClose={()=>setDupModal(null)}>
+          <DuplicateSquadForm initial={dupModal} ligas={ligas} ligaMap={ligaMap} eq={eq} onSave={duplicateSquad} onCancel={()=>setDupModal(null)} saving={saving}/>
         </Modal>}
         {isAdmin&&palModal&&<Modal title={palModal==="add"?"Añadir título":"Editar título"} onClose={()=>setPalModal(null)}>
           <PalmaresForm initial={palModal!=="add"?palModal:null} ligas={ligas} onSave={savePalmares} onCancel={()=>setPalModal(null)} saving={saving}/>
