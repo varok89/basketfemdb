@@ -2274,7 +2274,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
                               onMouseLeave={e=>{e.currentTarget.style.background=isCoach?"#eff6ff":"#f8fafc";e.currentTarget.style.borderColor=isCoach?"#bfdbfe":"#e2e8f0";}}>
                               <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
                                 <TeamBadge team={eq} size={30}/>
-                                <div>
+                                <div style={{flex:1}}>
                                   <div style={{display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
                                     <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{s.temporada} · </span>
                                     <span style={{color:isCoach?"#3b82f6":"#f97316",fontWeight:700,textDecoration:"underline"}}>{eq?.nombre||s.id_equipo}</span>
@@ -2282,6 +2282,10 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
                                   </div>
                                   <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{lig?.pais&&<FlagImg country={lig.pais}/>}{lig?.nombre||s.id_liga}</div>
                                 </div>
+                                {isAdmin&&<div style={{display:"flex",gap:"4px",flexShrink:0}} onClick={e=>e.stopPropagation()}>
+                                  <button onClick={()=>setSeasonModal(s)} title="Editar" style={{background:"#f1f5f9",border:"none",borderRadius:"6px",padding:"4px 8px",fontSize:"12px",cursor:"pointer",color:"#475569"}}>✏️</button>
+                                  <button onClick={()=>setDelCoachItem({type:"season",id:s.id})} title="Eliminar" style={{background:"#fee2e2",border:"none",borderRadius:"6px",padding:"4px 8px",fontSize:"12px",cursor:"pointer",color:"#ef4444"}}>🗑️</button>
+                                </div>}
                               </div>
                             </div>
                           </div>
