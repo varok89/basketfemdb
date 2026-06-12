@@ -2086,7 +2086,7 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTea
                     <div style={{fontWeight:700,fontSize:"13px",color:"#f97316",lineHeight:"1.3",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{eq.nombre}</div>
                     <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"2px",display:"flex",alignItems:"center"}}><FlagImg country={eq.pais||""}/>{eq.pais||""}</div>
                   </div>
-                  {esCampeon&&<span title={`Campeón ${effectiveYear}`} style={{position:"absolute",top:"8px",right:"10px",fontSize:"18px"}}>🏆</span>}
+                  {esCampeon&&<span title={`Campeón ${effectiveYear}`} style={{position:"absolute",bottom:"8px",right:"10px",fontSize:"18px"}}>🏆</span>}
                 </div>
                 );
               })}
