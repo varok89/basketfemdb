@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = "https://qvtxqckuolacvnvrvysu.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF2dHhxY2t1b2xhY3ZudnJ2eXN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzQ3OTYsImV4cCI6MjA5MzgxMDc5Nn0.0B93gvnlkGPTstRQKskzvUQOdDHeQ1vr2dwS97lhCjQ";
+const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
+const SUPABASE_KEY = process.env.REACT_APP_SUPABASE_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 async function fetchAll(table, opts={}) {
@@ -985,6 +985,8 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   const [filterTemp,setFilterTemp] = useState("");
   const [filterStatus,setFilterStatus] = useState("");
   const [selId,setSelId]           = useState(openPlayerId||null);
+  const [visibleCount,setVisibleCount] = useState(60);
+  const loadMoreRef = useRef(null);
   useEffect(()=>{const seg='jugadoras';window.history.replaceState({},"",selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
   const [modal,setModal]           = useState(null);
   const [editSeason,setEditSeason] = useState(null);
@@ -1032,17 +1034,35 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     return [...ligsSet].sort((a,b)=>a.localeCompare(b,"es"));
   },[players,ligaMap]);
   const allTemps = useMemo(()=>[...new Set(players.flatMap(p=>(p.seasons||[]).map(s=>s.temporada)).filter(Boolean))].sort((a,b)=>b.localeCompare(a)),[players]);
-  const filtered = players.filter(p=>{
+  const filtered = useMemo(()=>{
     const q=search.toLowerCase();
-    const lastS=[...(p.seasons||[])].sort((a,b)=>b.temporada.localeCompare(a.temporada))[0];
-    const lastLigNombre=lastS?ligaMap[lastS.id_liga]?.nombre:null;
-    return(!q||p.nombre?.toLowerCase().includes(q)||p.id_jugadora?.toLowerCase().includes(q)||p.nacionalidad?.toLowerCase().includes(q)||p.seasons?.some(s=>equipoMap[s.id_equipo]?.nombre?.toLowerCase().includes(q)))
-      &&(!filterPos||p.posicion===filterPos||p.posicion2===filterPos)
-      &&(filterNacs.size===0||filterNacs.has(p.nacionalidad)||filterNacs.has(p.nacionalidad2))
-      &&(!filterLiga||lastLigNombre===filterLiga)
-      &&(!filterTemp||(p.seasons||[]).some(s=>s.temporada===filterTemp))
-      &&(!filterStatus||playerStatus(p.nacionalidad,p.nacionalidad2)===filterStatus);
-  }).sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"));
+    return players.filter(p=>{
+      const lastS=[...(p.seasons||[])].sort((a,b)=>b.temporada.localeCompare(a.temporada))[0];
+      const lastLigNombre=lastS?ligaMap[lastS.id_liga]?.nombre:null;
+      return(!q||p.nombre?.toLowerCase().includes(q)||p.id_jugadora?.toLowerCase().includes(q)||p.nacionalidad?.toLowerCase().includes(q)||p.seasons?.some(s=>equipoMap[s.id_equipo]?.nombre?.toLowerCase().includes(q)))
+        &&(!filterPos||p.posicion===filterPos||p.posicion2===filterPos)
+        &&(filterNacs.size===0||filterNacs.has(p.nacionalidad)||filterNacs.has(p.nacionalidad2))
+        &&(!filterLiga||lastLigNombre===filterLiga)
+        &&(!filterTemp||(p.seasons||[]).some(s=>s.temporada===filterTemp))
+        &&(!filterStatus||playerStatus(p.nacionalidad,p.nacionalidad2)===filterStatus);
+    }).sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"));
+  },[players,search,filterPos,filterNacs,filterLiga,filterTemp,filterStatus,ligaMap,equipoMap]);
+
+  // Reset paginación al cambiar filtros
+  useEffect(()=>{setVisibleCount(60);},[search,filterPos,filterNacs,filterLiga,filterTemp,filterStatus]);
+
+  // IntersectionObserver para scroll infinito
+  useEffect(()=>{
+    const el=loadMoreRef.current;
+    if(!el)return;
+    const obs=new IntersectionObserver(entries=>{
+      if(entries[0].isIntersecting){
+        setVisibleCount(c=>Math.min(c+60,filtered.length));
+      }
+    },{rootMargin:"400px"});
+    obs.observe(el);
+    return()=>obs.disconnect();
+  },[filtered.length,selId]);
 
   const addPlayer=async f=>{
     setSaving(true);
@@ -1332,7 +1352,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
       )}
       <div style={{fontSize:"13px",color:"#94a3b8",marginBottom:"12px"}}>{filtered.length} jugadora{filtered.length!==1?"s":""}</div>
       <div className="bfdb-cards-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:"12px"}}>
-        {filtered.map(p=>{
+        {filtered.slice(0,visibleCount).map(p=>{
           const allS=sortS(p.seasons||[]);
           const last=allS.find(s=>ligaMap[s.id_liga]?.tipo==="liga")||allS[0];
           const lastEq=last?equipoMap[last.id_equipo]:null;
@@ -1366,6 +1386,11 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           );
         })}
       </div>
+      {visibleCount<filtered.length&&(
+        <div ref={loadMoreRef} style={{textAlign:"center",padding:"24px",color:"#94a3b8",fontSize:"13px"}}>
+          Mostrando {visibleCount} de {filtered.length}...
+        </div>
+      )}
 
     </div>
   );
