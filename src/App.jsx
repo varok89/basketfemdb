@@ -1017,11 +1017,11 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     return tipos.has("liga")?"liga":(ligaMap[sortS(selected.seasons)[0]?.id_liga]?.tipo||null);
   },[selected,ligaMap]);
 
-  const currentTipo    = activeTipo||defaultTipo;
+  const currentTipo    = activeTipo===null ? defaultTipo : activeTipo;
   const filteredSeasons = useMemo(()=>{
     if(!selected) return [];
     const all=sortS(selected.seasons);
-    return currentTipo ? all.filter(s=>ligaMap[s.id_liga]?.tipo===currentTipo) : all;
+    return (currentTipo&&currentTipo!=="ALL") ? all.filter(s=>ligaMap[s.id_liga]?.tipo===currentTipo) : all;
   },[selected,currentTipo,ligaMap]);
 
   const allNacs = useMemo(()=>[...new Set(players.flatMap(p=>[p.nacionalidad,p.nacionalidad2]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es")),[players]);
@@ -1197,9 +1197,9 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
         {isAdmin&&modal==="addSeason"&&<Modal title="Añadir temporada" onClose={()=>setModal(null)}><SeasonForm equipos={equipos} ligas={ligas} onSave={addSeason} onCancel={()=>setModal(null)} saving={saving}/></Modal>}
         {playerTipos.length>1&&(
           <div style={{marginBottom:"16px",paddingBottom:"14px",borderBottom:"1px solid #f1f5f9"}}>
-            <select value={currentTipo||""} onChange={e=>setActiveTipo(e.target.value||null)}
+            <select value={currentTipo||"ALL"} onChange={e=>setActiveTipo(e.target.value)}
               style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none",width:"100%"}}>
-              <option value="">Todas las competiciones</option>
+              <option value="ALL">Todas las competiciones</option>
               {playerTipos.map(t=><option key={t} value={t}>{TIPO_LABELS[t]||t}</option>)}
             </select>
           </div>
