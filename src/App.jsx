@@ -1635,8 +1635,8 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
           </div>}
         </div>
         {isAdmin&&delItem==="team"&&<ConfirmDel msg="¿Eliminar este equipo?" onCancel={()=>setDelItem(null)} onConfirm={delTeam}/>}
-        <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px",position:"relative"}}>
-          {eq.redes_sociales&&<div style={{position:"absolute",bottom:"16px",left:"16px"}}><SocialIcon url={eq.redes_sociales}/></div>}
+        <div style={{background:"#fff",borderRadius:"20px",padding:"24px",paddingBottom:eq.redes_sociales?"68px":"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px",position:"relative"}}>
+          {eq.redes_sociales&&<div style={{position:"absolute",bottom:"18px",left:"24px"}}><SocialIcon url={eq.redes_sociales}/></div>}
           <div style={{display:"flex",alignItems:"center",gap:"20px",flexWrap:"wrap"}}>
             <TeamBadge team={eq} size={80}/>
             <div style={{flex:1,minWidth:"180px"}}>
