@@ -40,6 +40,20 @@ if (!document.getElementById("bfdb-styles")) {
 
 const POSITIONS  = ["Base","Escolta","Alero","Ala-Pívot","Pívot"];
 const TIPO_LABELS = { liga:"Liga", copacont:"Copa Continental", copadom:"Copa Nacional", internacional:"Internacional" };
+
+// Devuelve el nombre del equipo para una temporada concreta
+// Si hay un registro en equipos_nombres que cubra esa temporada, lo usa; si no, el nombre actual
+function resolveTeamName(id_equipo, temporada, equiposNombres, equipoMap){
+  const startYear=t=>{const m=(t||"").match(/^(\d{4})/);return m?parseInt(m[1]):0;};
+  const tYear=startYear(temporada);
+  const record=(equiposNombres||[]).find(r=>{
+    if(r.id_equipo!==id_equipo)return false;
+    const desde=startYear(r.temporada_inicio);
+    const hasta=r.temporada_fin?startYear(r.temporada_fin):9999;
+    return tYear>=desde&&tYear<=hasta;
+  });
+  return record?.nombre || equipoMap?.[id_equipo]?.nombre || id_equipo;
+}
 const TIPO_COLORS = {
   liga:    ["#dbeafe","#1d4ed8"],
   copacont:["#f3e8ff","#7c3aed"],
@@ -977,7 +991,7 @@ function NacDropdown({allNacs,filterNacs,setFilterNacs}){
 }
 
 /* ── PlayersView ─────────────────────────────────────────── */
-function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,onGoToTeam,onGoToCoach,openPlayerId,onClearPlayer,isAdmin,onGoToTab,navHistory,onGoBack}){
+function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,onGoToTeam,onGoToCoach,openPlayerId,onClearPlayer,isAdmin,onGoToTab,navHistory,onGoBack,equiposNombres}){
   const [search,setSearch]         = useState("");
   const [filterPos,setFilterPos]   = useState("");
   const [filterNacs,setFilterNacs] = useState(new Set());
@@ -1237,7 +1251,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
                               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"6px",flexWrap:"wrap"}}>
                                 <div style={{display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
                                   <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{s.temporada} · </span>
-                                  <span style={{color:isCoach?"#3b82f6":"#f97316",fontWeight:700,textDecoration:"underline"}}>{eq?.nombre||s.id_equipo}</span>
+                                  <span style={{color:isCoach?"#3b82f6":"#f97316",fontWeight:700,textDecoration:"underline"}}>{resolveTeamData(s.id_equipo,s.temporada,equiposNombres,equipoMap).nombre||s.id_equipo}</span>
                                   {isCoach&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"10px",fontWeight:700,padding:"1px 6px",borderRadius:"20px"}}>📋 Coach</span>}
                                   {isAdmin&&isCoach&&<div style={{display:"flex",gap:"4px",marginLeft:"auto"}} onClick={e=>e.stopPropagation()}><button onClick={()=>setSeasonModal(s)} style={{background:"#f1f5f9",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#475569"}}>✏️</button><button onClick={()=>setDelCoachItem({type:"season",id:s.id})} style={{background:"#fee2e2",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#ef4444"}}>🗑️</button></div>}
                                 </div>
@@ -1461,6 +1475,27 @@ function AddToSquadForm({initial,players,ligas,onSave,onCancel,saving}){
   </div>);
 }
 
+/* ── NombreHistoricoForm ────────────────────────────────── */
+function NombreHistoricoForm({initial,onSave,onCancel,saving}){
+  const [f,setF]=useState({nombre:"",temporada_inicio:"",temporada_fin:"",...(initial||{})});
+  const inp={width:"100%",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"14px",outline:"none",boxSizing:"border-box"};
+  const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
+  const ok=f.nombre.trim()&&f.temporada_inicio.trim();
+  return(<div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
+    <Fld label="Nombre *"><input style={inp} value={f.nombre} onChange={set("nombre")} placeholder="Perfumerías Avenida"/></Fld>
+    <Fld label="Temporada inicio *"><input style={inp} value={f.temporada_inicio} onChange={set("temporada_inicio")} placeholder="2020-21"/></Fld>
+    <Fld label="Temporada fin (vacío = actualidad)"><input style={inp} value={f.temporada_fin||""} onChange={set("temporada_fin")} placeholder="2024-25"/></Fld>
+    <div style={{fontSize:"12px",color:"#94a3b8"}}>Define el rango de temporadas en que el equipo usó este nombre comercial. Deja "fin" vacío si sigue siendo el nombre actual.</div>
+    <div style={{display:"flex",gap:"10px",justifyContent:"flex-end",marginTop:"4px"}}>
+      <button onClick={onCancel} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"9px 20px",fontWeight:600,cursor:"pointer"}}>Cancelar</button>
+      <button onClick={()=>onSave({nombre:f.nombre.trim(),temporada_inicio:f.temporada_inicio.trim(),temporada_fin:f.temporada_fin.trim()||null})} disabled={saving||!ok}
+        style={{background:ok?"#f97316":"#fed7aa",color:"#fff",border:"none",borderRadius:"10px",padding:"9px 20px",fontWeight:700,cursor:ok?"pointer":"not-allowed"}}>
+        {saving?"Guardando...":"Guardar"}
+      </button>
+    </div>
+  </div>);
+}
+
 /* ── DuplicateSquadForm ─────────────────────────────────── */
 function DuplicateSquadForm({initial,ligas,ligaMap,eq,onSave,onCancel,saving}){
   const [targetLiga,setTargetLiga]=useState("");
@@ -1502,7 +1537,7 @@ function DuplicateSquadForm({initial,ligas,ligaMap,eq,onSave,onCancel,saving}){
 }
 
 /* ── TeamsView ───────────────────────────────────────────── */
-function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlayer,onGoToCoach,onGoToLeague,openTeamId,openTeamYear,onClearTeam,isAdmin,onReload,onGoToTab,navHistory,onGoBack}){
+function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlayer,onGoToCoach,onGoToLeague,openTeamId,openTeamYear,onClearTeam,isAdmin,onReload,onGoToTab,navHistory,onGoBack,equiposNombres}){
   const [search,setSearch]             = useState("");
   const [filterLeague,setFilterLeague] = useState("");
   const [filterSeason,setFilterSeason] = useState(null);
@@ -1514,6 +1549,30 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
   const [palModal,setPalModal]         = useState(null);
   const [squadModal,setSquadModal]     = useState(null);
   const [dupModal,setDupModal]         = useState(null);
+  const [nombreModal,setNombreModal]   = useState(null); // {id,id_equipo,nombre,temporada_inicio,temporada_fin} | "add"
+  const [delNombreId,setDelNombreId]   = useState(null);
+
+  const saveNombre=async(f)=>{
+    setSaving(true);
+    try{
+      if(nombreModal==="add"){
+        const{error}=await supabase.from("equipos_nombres").insert({id_equipo:selId,...f});
+        if(error)throw error;
+      }else{
+        const{error}=await supabase.from("equipos_nombres").update(f).eq("id",nombreModal.id);
+        if(error)throw error;
+      }
+      await onReload();setNombreModal(null);
+    }catch(e){alert("Error: "+(e.message||JSON.stringify(e)));}
+    setSaving(false);
+  };
+  const delNombre=async()=>{
+    try{
+      const{error}=await supabase.from("equipos_nombres").delete().eq("id",delNombreId);
+      if(error)throw error;
+      await onReload();setDelNombreId(null);
+    }catch(e){alert("Error: "+(e.message||JSON.stringify(e)));}
+  };
   const [saving,setSaving]             = useState(false);
   const [delItem,setDelItem]           = useState(null);
 
@@ -1684,6 +1743,36 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
             })()}
           </div>
         </div>
+        {isAdmin&&(<div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
+            <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>🏷️ Nombres históricos</h2>
+            <button onClick={()=>setNombreModal("add")} style={{background:"#f97316",color:"#fff",border:"none",borderRadius:"10px",padding:"6px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Añadir</button>
+          </div>
+          {nombreModal&&<Modal title={nombreModal==="add"?"Añadir nombre histórico":"Editar nombre"} onClose={()=>setNombreModal(null)}>
+            <NombreHistoricoForm initial={nombreModal!=="add"?nombreModal:null} onSave={saveNombre} onCancel={()=>setNombreModal(null)} saving={saving}/>
+          </Modal>}
+          {delNombreId&&<ConfirmDel msg="¿Eliminar este nombre?" onCancel={()=>setDelNombreId(null)} onConfirm={delNombre}/>}
+          {(()=>{const nombres=(equiposNombres||[]).filter(n=>n.id_equipo===eq.id_equipo).sort((a,b)=>a.temporada_inicio.localeCompare(b.temporada_inicio));
+            if(!nombres.length)return <p style={{color:"#94a3b8",fontSize:"13px",margin:0}}>Sin nombres históricos registrados. El nombre actual es <b>{eq.nombre}</b>.</p>;
+            return(<div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+              {nombres.map(n=>(
+                <div key={n.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+                    {n.escudo&&<img src={n.escudo} alt="" style={{width:32,height:32,objectFit:"contain",borderRadius:"6px",border:"1px solid #e2e8f0",flexShrink:0}} onError={e=>e.target.style.display="none"}/>}
+                    <div>
+                      <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{n.nombre}</div>
+                      <div style={{fontSize:"12px",color:"#94a3b8"}}>{n.temporada_inicio}{n.temporada_fin?` → ${n.temporada_fin}`:" → actualidad"}</div>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:"6px"}}>
+                    <button onClick={()=>setNombreModal(n)} style={{background:"#f1f5f9",border:"none",borderRadius:"6px",padding:"4px 8px",fontSize:"12px",cursor:"pointer"}}>✏️</button>
+                    <button onClick={()=>setDelNombreId(n.id)} style={{background:"#fee2e2",border:"none",borderRadius:"6px",padding:"4px 8px",fontSize:"12px",cursor:"pointer"}}>🗑️</button>
+                  </div>
+                </div>
+              ))}
+            </div>);
+          })()}
+        </div>)}
         <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px",flexWrap:"wrap",gap:"10px"}}>
             <div>
@@ -2575,6 +2664,7 @@ export default function App(){
   const [palmares,setPalmares] = useState([]);
   const [coaches,setCoaches]     = useState([]);
   const [tempCoach,setTempCoach] = useState([]);
+  const [equiposNombres,setEquiposNombres] = useState([]);
   const [loading,setLoading] = useState(true);
   const [error,setError]     = useState(null);
   const [isFirstLoad,setIsFirstLoad] = useState(true);
@@ -2635,7 +2725,7 @@ export default function App(){
   const loadAll = async()=>{
     setLoading(isFirstLoad);setError(null);
     try{
-      const [rJ,rE,rL,rT,rP,rC,rTC]=await Promise.all([
+      const [rJ,rE,rL,rT,rP,rC,rTC,rEN]=await Promise.all([
         fetchAll("jugadoras",{order:"id_jugadora"}),
         fetchAll("equipos",{order:"id_equipo"}),
         fetchAll("ligas",{order:"id_liga"}),
@@ -2643,6 +2733,7 @@ export default function App(){
         fetchAll("palmares",{order:"temporada"}),
         fetchAll("coach",{order:"id_coach"}),
         fetchAll("temporadas_coach",{order:"id"}),
+        fetchAll("equipos_nombres",{order:"id"}),
       ]);
       if(rJ.error)throw rJ.error;if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rT.error)throw rT.error;
       const sbp={};
@@ -2653,6 +2744,7 @@ export default function App(){
       setPalmares(rP.data||[]);
       setCoaches(rC.data||[]);
       setTempCoach(rTC.data||[]);
+      setEquiposNombres(rEN?.data||[]);
       setIsFirstLoad(false);
     }catch(e){setError(e.message||"Error cargando datos");}
     setLoading(false);
@@ -2755,8 +2847,8 @@ export default function App(){
         </div>
       </div>
       <div style={{paddingTop:"8px"}}>
-        {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack}/>}
-        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack}/>}
+        {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres}/>}
+        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres}/>}
         {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack}/>}
         {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack}/>}
       </div>
