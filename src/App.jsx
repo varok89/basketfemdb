@@ -389,7 +389,17 @@ function LeagueBadge({liga,size=60}){
 
 function Avatar({photo,name,size=48,fontSize=18}){
   const ini=(name||"").split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
-  if(photo) return <img src={photo} alt={name} style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"2px solid #e2e8f0"}} onError={e=>e.target.style.display="none"}/>;
+  const proxy=url=>`https://wsrv.nl/?url=${encodeURIComponent(url)}&w=${size*2}&h=${size*2}&fit=cover&output=webp`;
+  const handleError=e=>{
+    const img=e.target;
+    if(!img.dataset.proxied&&img.src&&!img.src.includes("wsrv.nl")){
+      img.dataset.proxied="1";
+      img.src=proxy(photo);
+    }else{
+      img.style.display="none";
+    }
+  };
+  if(photo) return <img src={photo} alt={name} style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"2px solid #e2e8f0"}} onError={handleError}/>;
   return <div style={{width:size,height:size,borderRadius:"50%",background:"linear-gradient(135deg,#f97316,#fb923c)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"#fff",fontWeight:800,fontSize,letterSpacing:"-0.5px"}}>{ini}</div>;
 }
 
