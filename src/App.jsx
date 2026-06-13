@@ -1477,7 +1477,7 @@ function AddToSquadForm({initial,players,ligas,onSave,onCancel,saving}){
 
 /* ── NombreHistoricoForm ────────────────────────────────── */
 function NombreHistoricoForm({initial,onSave,onCancel,saving}){
-  const [f,setF]=useState({nombre:"",temporada_inicio:"",temporada_fin:"",...(initial||{})});
+  const [f,setF]=useState({nombre:"",temporada_inicio:"",temporada_fin:"",escudo:"",...(initial||{})});
   const inp={width:"100%",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"14px",outline:"none",boxSizing:"border-box"};
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
   const ok=f.nombre.trim()&&f.temporada_inicio.trim();
@@ -1485,10 +1485,16 @@ function NombreHistoricoForm({initial,onSave,onCancel,saving}){
     <Fld label="Nombre *"><input style={inp} value={f.nombre} onChange={set("nombre")} placeholder="Perfumerías Avenida"/></Fld>
     <Fld label="Temporada inicio *"><input style={inp} value={f.temporada_inicio} onChange={set("temporada_inicio")} placeholder="2020-21"/></Fld>
     <Fld label="Temporada fin (vacío = actualidad)"><input style={inp} value={f.temporada_fin||""} onChange={set("temporada_fin")} placeholder="2024-25"/></Fld>
-    <div style={{fontSize:"12px",color:"#94a3b8"}}>Define el rango de temporadas en que el equipo usó este nombre comercial. Deja "fin" vacío si sigue siendo el nombre actual.</div>
+    <Fld label="URL Escudo (opcional)">
+      <div style={{display:"flex",gap:"10px",alignItems:"center"}}>
+        <input style={{...inp,flex:1}} value={f.escudo||""} onChange={set("escudo")} placeholder="https://..."/>
+        {f.escudo&&<img src={f.escudo} alt="" style={{width:40,height:40,objectFit:"contain",borderRadius:"8px",border:"1px solid #e2e8f0",flexShrink:0}} onError={e=>e.target.style.display="none"}/>}
+      </div>
+    </Fld>
+    <div style={{fontSize:"12px",color:"#94a3b8"}}>Define el rango de temporadas en que el equipo usó este nombre y escudo. Deja "fin" vacío si sigue siendo el nombre actual.</div>
     <div style={{display:"flex",gap:"10px",justifyContent:"flex-end",marginTop:"4px"}}>
       <button onClick={onCancel} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"9px 20px",fontWeight:600,cursor:"pointer"}}>Cancelar</button>
-      <button onClick={()=>onSave({nombre:f.nombre.trim(),temporada_inicio:f.temporada_inicio.trim(),temporada_fin:f.temporada_fin.trim()||null})} disabled={saving||!ok}
+      <button onClick={()=>onSave({nombre:f.nombre.trim(),temporada_inicio:f.temporada_inicio.trim(),temporada_fin:f.temporada_fin.trim()||null,escudo:f.escudo?.trim()||null})} disabled={saving||!ok}
         style={{background:ok?"#f97316":"#fed7aa",color:"#fff",border:"none",borderRadius:"10px",padding:"9px 20px",fontWeight:700,cursor:ok?"pointer":"not-allowed"}}>
         {saving?"Guardando...":"Guardar"}
       </button>
