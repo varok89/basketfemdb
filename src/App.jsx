@@ -497,7 +497,7 @@ function PlayerForm({initial,onSave,onCancel,saving}){
   </div>);}
 
 function SeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
-  const [f,setF]=useState({temporada:"",id_equipo:"",id_liga:"",...initial});
+  const [f,setF]=useState({temporada:"",id_equipo:"",id_liga:"",orden:0,...initial});
   const ok=f.temporada.trim()&&f.id_equipo&&f.id_liga;
 
   // Ligas filtradas según el equipo seleccionado
@@ -609,6 +609,7 @@ function SeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
         {ligasFiltradas.sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}</option>)}
       </select>
     </Fld>
+    <Fld label="Orden"><input style={inp} type="number" value={f.orden??0} onChange={e=>setF(p=>({...p,orden:parseInt(e.target.value)||0}))} placeholder="0" min="0"/></Fld>
     <div style={{display:"flex",gap:"10px",marginTop:"8px"}}>
       <button onClick={onCancel} style={{flex:1,border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"11px",color:"#64748b",background:"#fff",cursor:"pointer",fontWeight:600}}>Cancelar</button>
       <button onClick={()=>ok&&onSave(f)} disabled={saving||!ok} style={{flex:1,background:ok?"#f97316":"#fed7aa",color:"#fff",border:"none",borderRadius:"10px",padding:"11px",cursor:ok?"pointer":"not-allowed",fontWeight:700}}>{saving?"Guardando...":"Guardar"}</button>
@@ -1125,7 +1126,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   };
   const updSeason=async f=>{
     setSaving(true);
-    try{await supabase.from("temporadas").update({id_equipo:f.id_equipo,id_liga:f.id_liga,temporada:f.temporada}).eq("id",editSeason.id);
+    try{await supabase.from("temporadas").update({id_equipo:f.id_equipo,id_liga:f.id_liga,temporada:f.temporada,orden:parseInt(f.orden)||0}).eq("id",editSeason.id);
       await onReload();setModal(null);setEditSeason(null);}catch(e){alert("Error: "+e.message);}
     setSaving(false);
   };
@@ -1763,18 +1764,19 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
             })()}
           </div>
         </div>
-        {isAdmin&&(<div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
-            <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>🏷️ Nombres históricos</h2>
-            <button onClick={()=>setNombreModal("add")} style={{background:"#f97316",color:"#fff",border:"none",borderRadius:"10px",padding:"6px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Añadir</button>
-          </div>
-          {nombreModal&&<Modal title={nombreModal==="add"?"Añadir nombre histórico":"Editar nombre"} onClose={()=>setNombreModal(null)}>
-            <NombreHistoricoForm initial={nombreModal!=="add"?nombreModal:null} onSave={saveNombre} onCancel={()=>setNombreModal(null)} saving={saving}/>
-          </Modal>}
-          {delNombreId&&<ConfirmDel msg="¿Eliminar este nombre?" onCancel={()=>setDelNombreId(null)} onConfirm={delNombre}/>}
-          {(()=>{const nombres=(equiposNombres||[]).filter(n=>n.id_equipo===eq.id_equipo).sort((a,b)=>b.temporada_inicio.localeCompare(a.temporada_inicio));
-            if(!nombres.length)return <p style={{color:"#94a3b8",fontSize:"13px",margin:0}}>Sin nombres históricos registrados. El nombre actual es <b>{eq.nombre}</b>.</p>;
-            return(<div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+        {(()=>{const nombres=(equiposNombres||[]).filter(n=>n.id_equipo===eq.id_equipo).sort((a,b)=>b.temporada_inicio.localeCompare(a.temporada_inicio));
+          if(!nombres.length&&!isAdmin)return null;
+          return(<div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
+            {isAdmin&&nombreModal&&<Modal title={nombreModal==="add"?"Añadir nombre histórico":"Editar nombre"} onClose={()=>setNombreModal(null)}>
+              <NombreHistoricoForm initial={nombreModal!=="add"?nombreModal:null} onSave={saveNombre} onCancel={()=>setNombreModal(null)} saving={saving}/>
+            </Modal>}
+            {isAdmin&&delNombreId&&<ConfirmDel msg="¿Eliminar este nombre?" onCancel={()=>setDelNombreId(null)} onConfirm={delNombre}/>}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
+              <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>🏷️ Nombres históricos</h2>
+              {isAdmin&&<button onClick={()=>setNombreModal("add")} style={{background:"#f97316",color:"#fff",border:"none",borderRadius:"10px",padding:"6px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Añadir</button>}
+            </div>
+            {!nombres.length?<p style={{color:"#94a3b8",fontSize:"13px",margin:0}}>Sin nombres históricos registrados.</p>:
+            <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
               {nombres.map(n=>(
                 <div key={n.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0"}}>
                   <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
@@ -1784,15 +1786,15 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
                       <div style={{fontSize:"12px",color:"#94a3b8"}}>{n.temporada_inicio}{n.temporada_fin?` → ${n.temporada_fin}`:" → actualidad"}</div>
                     </div>
                   </div>
-                  <div style={{display:"flex",gap:"6px"}}>
+                  {isAdmin&&<div style={{display:"flex",gap:"6px"}}>
                     <button onClick={()=>setNombreModal(n)} style={{background:"#f1f5f9",border:"none",borderRadius:"6px",padding:"4px 8px",fontSize:"12px",cursor:"pointer"}}>✏️</button>
                     <button onClick={()=>setDelNombreId(n.id)} style={{background:"#fee2e2",border:"none",borderRadius:"6px",padding:"4px 8px",fontSize:"12px",cursor:"pointer"}}>🗑️</button>
-                  </div>
+                  </div>}
                 </div>
               ))}
-            </div>);
-          })()}
-        </div>)}
+            </div>}
+          </div>);
+        })()}
         <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px",flexWrap:"wrap",gap:"10px"}}>
             <div>
