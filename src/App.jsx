@@ -43,7 +43,7 @@ const TIPO_LABELS = { liga:"Liga", copacont:"Copa Continental", copadom:"Copa Na
 
 // Devuelve el nombre del equipo para una temporada concreta
 // Si hay un registro en equipos_nombres que cubra esa temporada, lo usa; si no, el nombre actual
-function resolveTeamName(id_equipo, temporada, equiposNombres, equipoMap){
+function resolveTeamData(id_equipo, temporada, equiposNombres, equipoMap){
   const startYear=t=>{const m=(t||"").match(/^(\d{4})/);return m?parseInt(m[1]):0;};
   const tYear=startYear(temporada);
   const record=(equiposNombres||[]).find(r=>{
@@ -52,7 +52,11 @@ function resolveTeamName(id_equipo, temporada, equiposNombres, equipoMap){
     const hasta=r.temporada_fin?startYear(r.temporada_fin):9999;
     return tYear>=desde&&tYear<=hasta;
   });
-  return record?.nombre || equipoMap?.[id_equipo]?.nombre || id_equipo;
+  const base=equipoMap?.[id_equipo]||{};
+  return {nombre:record?.nombre||base.nombre||id_equipo, escudo:record?.escudo||base.escudo||null};
+}
+function resolveTeamName(id_equipo, temporada, equiposNombres, equipoMap){
+  return resolveTeamData(id_equipo, temporada, equiposNombres, equipoMap).nombre;
 }
 const TIPO_COLORS = {
   liga:    ["#dbeafe","#1d4ed8"],
@@ -1251,7 +1255,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
                               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"6px",flexWrap:"wrap"}}>
                                 <div style={{display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
                                   <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{s.temporada} · </span>
-                                  <span style={{color:isCoach?"#3b82f6":"#f97316",fontWeight:700,textDecoration:"underline"}}>{resolveTeamData(s.id_equipo,s.temporada,equiposNombres,equipoMap).nombre||s.id_equipo}</span>
+                                  <span style={{color:isCoach?"#3b82f6":"#f97316",fontWeight:700,textDecoration:"underline"}}>{resolveTeamName(s.id_equipo,s.temporada,equiposNombres,equipoMap)||s.id_equipo}</span>
                                   {isCoach&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"10px",fontWeight:700,padding:"1px 6px",borderRadius:"20px"}}>📋 Coach</span>}
                                   {isAdmin&&isCoach&&<div style={{display:"flex",gap:"4px",marginLeft:"auto"}} onClick={e=>e.stopPropagation()}><button onClick={()=>setSeasonModal(s)} style={{background:"#f1f5f9",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#475569"}}>✏️</button><button onClick={()=>setDelCoachItem({type:"season",id:s.id})} style={{background:"#fee2e2",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#ef4444"}}>🗑️</button></div>}
                                 </div>
@@ -1758,7 +1762,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
             <NombreHistoricoForm initial={nombreModal!=="add"?nombreModal:null} onSave={saveNombre} onCancel={()=>setNombreModal(null)} saving={saving}/>
           </Modal>}
           {delNombreId&&<ConfirmDel msg="¿Eliminar este nombre?" onCancel={()=>setDelNombreId(null)} onConfirm={delNombre}/>}
-          {(()=>{const nombres=(equiposNombres||[]).filter(n=>n.id_equipo===eq.id_equipo).sort((a,b)=>a.temporada_inicio.localeCompare(b.temporada_inicio));
+          {(()=>{const nombres=(equiposNombres||[]).filter(n=>n.id_equipo===eq.id_equipo).sort((a,b)=>b.temporada_inicio.localeCompare(a.temporada_inicio));
             if(!nombres.length)return <p style={{color:"#94a3b8",fontSize:"13px",margin:0}}>Sin nombres históricos registrados. El nombre actual es <b>{eq.nombre}</b>.</p>;
             return(<div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
               {nombres.map(n=>(
