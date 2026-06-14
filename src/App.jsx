@@ -969,6 +969,44 @@ function StatsHeader({stats}){
   );
 }
 
+function PaisDropdown({allPaises,filterPais,setFilterPais,placeholder="País"}){
+  const [open,setOpen]=useState(false);
+  const ref=useRef();
+  useEffect(()=>{
+    const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
+    document.addEventListener("mousedown",h);return()=>document.removeEventListener("mousedown",h);
+  },[]);
+  const selected=filterPais?allPaises.find(p=>p===filterPais):null;
+  return(
+    <div ref={ref} style={{position:"relative",flexShrink:0}}>
+      <div onClick={()=>setOpen(o=>!o)} style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"9px 14px",fontSize:"13px",color:filterPais?"#f97316":"#475569",background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px",whiteSpace:"nowrap",fontWeight:filterPais?700:400,height:"40px",boxSizing:"border-box",minWidth:"140px"}}>
+        {filterPais?<><FlagImg country={filterPais}/><span>{filterPais}</span></>:<span>{placeholder}</span>}
+        <span style={{marginLeft:"auto",fontSize:"10px"}}>▼</span>
+      </div>
+      {open&&(
+        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,zIndex:100,background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:"12px",boxShadow:"0 8px 24px rgba(0,0,0,0.12)",minWidth:"180px",maxHeight:"280px",overflowY:"auto",padding:"8px 0"}}>
+          <div onClick={()=>{setFilterPais("");setOpen(false);}} style={{padding:"8px 14px",fontSize:"12px",color:"#94a3b8",cursor:"pointer",fontWeight:600,borderBottom:"1px solid #f1f5f9"}}>
+            Todos los países
+          </div>
+          {allPaises.map(p=>{
+            const checked=filterPais===p;
+            return(
+              <div key={p} onClick={()=>{setFilterPais(checked?"":p);setOpen(false);}}
+                style={{display:"flex",alignItems:"center",gap:"8px",padding:"7px 14px",cursor:"pointer",background:checked?"#fff7ed":"transparent"}}
+                onMouseEnter={e=>e.currentTarget.style.background=checked?"#fff7ed":"#f8fafc"}
+                onMouseLeave={e=>e.currentTarget.style.background=checked?"#fff7ed":"transparent"}>
+                <FlagImg country={p}/>
+                <span style={{fontSize:"13px",color:"#1e293b",fontWeight:checked?700:400}}>{p}</span>
+                {checked&&<span style={{marginLeft:"auto",color:"#f97316",fontSize:"12px"}}>✓</span>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function NacDropdown({allNacs,filterNacs,setFilterNacs}){
   const [open,setOpen]=useState(false);
   const ref=useRef();
@@ -1939,10 +1977,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
           <option value="equipo">🏟️ Clubs</option>
           <option value="seleccion">🌍 Selecciones</option>
         </select>
-        <select value={filterPais} onChange={e=>setFilterPais(e.target.value)} style={{flex:"0 0 auto",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterPais?"#f97316":"#475569",background:"#fff",outline:"none",height:"40px",fontWeight:filterPais?700:400}}>
-          <option value="">País</option>
-          {allPaises.map(p=><option key={p} value={p}>{p}</option>)}
-        </select>
+        <PaisDropdown allPaises={allPaises} filterPais={filterPais} setFilterPais={setFilterPais}/>
         <select value={filterLeague} onChange={e=>setFilterLeague(e.target.value)} style={{flex:"0 0 auto",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterLeague?"#f97316":"#475569",background:"#fff",outline:"none",height:"40px",fontWeight:filterLeague?700:400}}>
           <option value="">Liga</option>
           {allLeagues.map(l=><option key={l} value={l}>{l}</option>)}
@@ -2280,10 +2315,7 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTea
       <div style={{display:"flex",gap:"10px",marginBottom:"16px",alignItems:"center"}}>
         <input style={{flex:1,border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 16px",fontSize:"14px",color:"#1e293b",outline:"none",background:"#fff",boxSizing:"border-box"}}
           placeholder="🔍 Buscar liga..." value={search} onChange={e=>setSearch(e.target.value)}/>
-        <select value={filterPaisLiga} onChange={e=>setFilterPaisLiga(e.target.value)} style={{flex:"0 0 auto",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterPaisLiga?"#f97316":"#475569",background:"#fff",outline:"none",height:"40px",fontWeight:filterPaisLiga?700:400}}>
-          <option value="">País</option>
-          {allPaisesLiga.map(p=><option key={p} value={p}>{p}</option>)}
-        </select>
+        <PaisDropdown allPaises={allPaisesLiga} filterPais={filterPaisLiga} setFilterPais={setFilterPaisLiga}/>
         <select value={filterTipoLiga} onChange={e=>setFilterTipoLiga(e.target.value)} style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none",flexShrink:0}}>
           <option value="">Todos los tipos</option>
           <option value="liga">Liga</option>
