@@ -1805,7 +1805,12 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
             })()}
           </div>
         </div>
-        {(()=>{const nombres=(equiposNombres||[]).filter(n=>n.id_equipo===eq.id_equipo).sort((a,b)=>b.temporada_inicio.localeCompare(a.temporada_inicio));
+        {(()=>{const nombres=(equiposNombres||[]).filter(n=>n.id_equipo===eq.id_equipo).sort((a,b)=>{
+            const finA=a.temporada_fin||"9999";
+            const finB=b.temporada_fin||"9999";
+            if(finB!==finA)return finB.localeCompare(finA);
+            return b.temporada_inicio.localeCompare(a.temporada_inicio);
+          });
           if(!nombres.length&&!isAdmin)return null;
           return(<div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
             {isAdmin&&nombreModal&&<Modal title={nombreModal==="add"?"Añadir nombre histórico":"Editar nombre"} onClose={()=>setNombreModal(null)}>
