@@ -751,9 +751,9 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   },[players,equipos,ligas,coaches,tempCoach,palmares]);
 
   const TABS=[
-    {key:"incompletas",label:"Fichas incompletas",count:incompletas.length},
-    {key:"duplicadas",label:"Temporadas duplicadas",count:duplicadas.length},
-    {key:"huecos",label:"Huecos de IDs",count:Object.values(huecos).reduce((a,v)=>a+v.total,0)},
+    {key:"incompletas",label:"Fichas incompletas",count:(incompletas||[]).length},
+    {key:"duplicadas",label:"Temporadas duplicadas",count:(duplicadas||[]).length},
+    {key:"huecos",label:"Huecos de IDs",count:huecos?Object.values(huecos).reduce((a,v)=>a+(v?.total||0),0):0},
   ];
 
   return(
@@ -823,7 +823,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           )}
           {tab==="huecos"&&(
             <div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
-              {Object.entries(huecos).map(([tabla,{gaps,total,nextFree}])=>(
+              {Object.entries(huecos||{}).map(([tabla,{gaps,total,nextFree}])=>(
                 <div key={tabla} style={{background:"#f8fafc",borderRadius:"12px",padding:"14px",border:"1px solid #e2e8f0"}}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"8px"}}>
                     <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b",textTransform:"capitalize"}}>{tabla}</span>
