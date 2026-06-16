@@ -8,6 +8,25 @@
 	<link rel="manifest" href="%PUBLIC_URL%/manifest.json">
 	<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏀</text></svg>">
 	<title>BasketFem DB</title>
+	<!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+	<meta name="theme-color" content="#0f172a" />
+	<meta name="mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+	<meta name="apple-mobile-web-app-title" content="BasketFem DB" />
+	<link rel="apple-touch-icon" href="/icon-192.png" />
+
+	<!-- Service Worker registration (añadir antes de </body>) -->
+	<script>
+  	if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/sw.js')
+        .then(function(reg) { console.log('SW registrado:', reg.scope); })
+        .catch(function(err) { console.log('SW error:', err); });
+    });
+  	}
+	</script>
 </head>
 
 <body>
