@@ -686,8 +686,23 @@ function StatusDropdown({filterStatus,setFilterStatus}){
 }
 
 /* ── CalidadModal ───────────────────────────────────────── */
-function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,onGoToPlayer}){
+function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,onGoToPlayer,onReload}){
   const [tab,setTab]=useState("incompletas");
+  const [fixing,setFixing]=useState(null);  // id del grupo que se está corrigiendo
+
+  const fixDuplicate=async(group)=>{
+    const sorted=[...group].sort((a,b)=>a.id-b.id);  // keep lowest id
+    const toDelete=sorted.slice(1).map(s=>s.id);
+    setFixing(group[0].id_jugadora+group[0].temporada);
+    try{
+      for(const id of toDelete){
+        const{error}=await supabase.from("temporadas").delete().eq("id",id);
+        if(error)throw error;
+      }
+      await onReload();
+    }catch(e){alert("Error: "+(e.message||JSON.stringify(e)));}
+    setFixing(null);
+  };
 
   // ── Fichas incompletas ──
   const incompletas=useMemo(()=>{
@@ -719,18 +734,21 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     const check=(items,key,prefix,pad)=>{
       const ids=items.map(x=>parseInt((x[key]||"").replace(prefix,""))).filter(n=>!isNaN(n)&&n>0).sort((a,b)=>a-b);
       const gaps=[];
-      for(let i=1;i<ids[ids.length-1];i++){if(!ids.includes(i))gaps.push(prefix+(pad?String(i).padStart(pad,"0"):i));}
-      const next=ids.length?ids[ids.length-1]+1:1;
+      if(ids.length)for(let i=1;i<ids[ids.length-1];i++){if(!ids.includes(i))gaps.push(prefix+(pad?String(i).padStart(pad,"0"):i));}
       const firstFree=ids.length?(()=>{const s=new Set(ids);let i=1;while(s.has(i))i++;return i;})():1;
-      return{gaps:gaps.slice(0,10),total:gaps.length,nextFree:prefix+(pad?String(firstFree).padStart(pad,"0"):firstFree)};
+      return{gaps:gaps.slice(0,15),total:gaps.length,nextFree:prefix+(pad?String(firstFree).padStart(pad,"0"):firstFree),max:ids[ids.length-1]||0};
     };
+    const allSeasons=players.flatMap(p=>p.seasons||[]);
     return{
       jugadoras:check(players,"id_jugadora","J",0),
       equipos:check(equipos,"id_equipo","E",3),
       ligas:check(ligas,"id_liga","L",3),
       coaches:check(coaches,"id_coach","C",3),
+      temporadas:check(allSeasons,"id","",0),
+      temporadas_coach:check(tempCoach||[],"id","",0),
+      palmares:check(palmares||[],"id","",0),
     };
-  },[players,equipos,ligas,coaches]);
+  },[players,equipos,ligas,coaches,tempCoach,palmares]);
 
   const TABS=[
     {key:"incompletas",label:"Fichas incompletas",count:incompletas.length},
@@ -780,18 +798,27 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           {tab==="duplicadas"&&(duplicadas.length===0?
             <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><div style={{fontSize:"40px"}}>✅</div><p>No hay temporadas duplicadas</p></div>:
             <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
-              {duplicadas.map((group,i)=>(
+              {duplicadas.map((group,i)=>{
+                const sorted=[...group].sort((a,b)=>a.id-b.id);
+                const fkey=group[0].id_jugadora+group[0].temporada;
+                return(
                 <div key={i} style={{border:"1.5px solid #fed7aa",borderRadius:"12px",overflow:"hidden"}}>
-                  <div style={{background:"#fff7ed",padding:"8px 14px",fontSize:"12px",fontWeight:700,color:"#c2410c"}}>
-                    {group[0].nombre} — {group[0].temporada} ({group.length} entradas duplicadas)
+                  <div style={{background:"#fff7ed",padding:"8px 14px",fontSize:"12px",fontWeight:700,color:"#c2410c",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <span>{group[0].nombre} — {group[0].temporada} ({group.length} entradas)</span>
+                    <button onClick={()=>fixDuplicate(group)} disabled={fixing===fkey}
+                      style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:"8px",padding:"3px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer",flexShrink:0}}>
+                      {fixing===fkey?"Corrigiendo...":"✓ Mantener más antigua"}
+                    </button>
                   </div>
-                  {group.map((s,j)=>(
-                    <div key={j} style={{padding:"8px 14px",fontSize:"12px",borderTop:j>0?"1px solid #f8fafc":"none",fontFamily:"monospace",color:"#475569"}}>
-                      ID {s.id} · equipo: {s.id_equipo} · liga: {s.id_liga}
+                  {sorted.map((s,j)=>(
+                    <div key={j} style={{padding:"8px 14px",fontSize:"12px",borderTop:j>0?"1px solid #f8fafc":"none",fontFamily:"monospace",color:j===0?"#16a34a":"#ef4444",display:"flex",gap:"8px",alignItems:"center"}}>
+                      <span style={{fontWeight:j===0?700:400}}>{j===0?"✓ Conservar":"✗ Borrar"}</span>
+                      <span>ID {s.id} · equipo: {s.id_equipo} · liga: {s.id_liga}</span>
                     </div>
                   ))}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
           {tab==="huecos"&&(
@@ -3001,7 +3028,7 @@ export default function App(){
   if(showCalidad){
     return <CalidadModal players={players} equipos={equipos} ligas={ligas} coaches={coaches}
       tempCoach={tempCoach} palmares={palmares}
-      onClose={()=>setShowCalidad(false)} onGoToPlayer={goToPlayer}/>;
+      onClose={()=>setShowCalidad(false)} onGoToPlayer={goToPlayer} onReload={loadAll}/>;
   }
   if(showDupes){
     return <DuplicatesModal players={players} equipos={equipos} ligas={ligas} coaches={coaches}
