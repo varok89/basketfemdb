@@ -40,6 +40,11 @@ if (!document.getElementById("bfdb-styles")) {
 
 const POSITIONS  = ["Base","Escolta","Alero","Ala-Pívot","Pívot"];
 const TIPO_LABELS = { liga:"Liga", copacont:"Copa Continental", copadom:"Copa Nacional", internacional:"Internacional" };
+const nextSeason=t=>{
+  const m=(t||"").match(/^(\d{4})-(\d{2})$/);
+  if(m){const y=parseInt(m[1])+1;return `${y}-${String(y+1).slice(-2)}`;}
+  const y=parseInt(t);return isNaN(y)?t:String(y+1);
+};
 
 // Devuelve el nombre del equipo para una temporada concreta
 // Si hay un registro en equipos_nombres que cubra esa temporada, lo usa; si no, el nombre actual
@@ -1260,7 +1265,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>Historial <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({selected.seasons.length})</span></h2>
           {isAdmin&&<button onClick={()=>setModal("addSeason")} style={{background:"#f97316",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Temporada</button>}
         </div>
-        {isAdmin&&modal==="addSeason"&&<Modal title="Añadir temporada" onClose={()=>setModal(null)}><SeasonForm equipos={equipos} ligas={ligas} onSave={addSeason} onCancel={()=>setModal(null)} saving={saving}/></Modal>}
+        {isAdmin&&modal==="addSeason"&&<Modal title="Añadir temporada" onClose={()=>{setModal(null);setEditSeason(null);}}><SeasonForm initial={editSeason||undefined} equipos={equipos} ligas={ligas} onSave={f=>{addSeason(f);setEditSeason(null);}} onCancel={()=>{setModal(null);setEditSeason(null);}} saving={saving}/></Modal>}
         {playerTipos.length>1&&(
           <div style={{marginBottom:"16px",paddingBottom:"14px",borderBottom:"1px solid #f1f5f9"}}>
             <select value={currentTipo||"ALL"} onChange={e=>setActiveTipo(e.target.value)}
@@ -1308,6 +1313,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
                                   {isAdmin&&isCoach&&<div style={{display:"flex",gap:"4px",marginLeft:"auto"}} onClick={e=>e.stopPropagation()}><button onClick={()=>setSeasonModal(s)} style={{background:"#f1f5f9",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#475569"}}>✏️</button><button onClick={()=>setDelCoachItem({type:"season",id:s.id})} style={{background:"#fee2e2",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#ef4444"}}>🗑️</button></div>}
                                 </div>
                                 {isAdmin&&!isCoach&&<div style={{display:"flex",gap:"4px"}} onClick={e=>e.stopPropagation()}>
+                                  <button onClick={()=>{setModal("addSeason");setEditSeason({id_equipo:s.id_equipo,id_liga:s.id_liga,temporada:nextSeason(s.temporada),orden:0});}} title="Renovar en siguiente temporada" style={{background:"#f0fdf4",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#16a34a",fontWeight:700}}>⟳</button>
                                   <button onClick={()=>{setEditSeason(s);setModal("editSeason");}} style={{background:"#f1f5f9",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#475569"}}>✏️</button>
                                   <button onClick={()=>setDel(s.id)} style={{background:"#fee2e2",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#ef4444"}}>🗑️</button>
                                 </div>}
@@ -1334,7 +1340,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
       {isAdmin&&delCoachItem?.type==="season"&&<ConfirmDel msg="¿Eliminar esta temporada de coach?" onCancel={()=>setDelCoachItem(null)} onConfirm={()=>delCoachSeasonInPlayer(delCoachItem.id)}/>}
       {isAdmin&&modal&&(
         <Modal title={modal==="addSeason"?"Añadir temporada":modal==="editSeason"||editSeason?"Editar temporada":modal==="addPlayer"?"Nueva jugadora":"Editar jugadora"} onClose={()=>{setModal(null);setEditSeason(null);}}>
-          {(modal==="addSeason")&&<SeasonForm equipos={equipos} ligas={ligas} onSave={addSeason} onCancel={()=>setModal(null)} saving={saving}/>}
+          {(modal==="addSeason")&&<SeasonForm initial={editSeason||undefined} equipos={equipos} ligas={ligas} onSave={f=>{addSeason(f);setEditSeason(null);}} onCancel={()=>{setModal(null);setEditSeason(null);}} saving={saving}/>}
           {(editSeason)&&<SeasonForm initial={editSeason} equipos={equipos} ligas={ligas} onSave={updSeason} onCancel={()=>{setEditSeason(null);}} saving={saving}/>}
           {(modal==="addPlayer")&&<PlayerForm onSave={addPlayer} onCancel={()=>setModal(null)} saving={saving}/>}
           {(modal==="editPlayer")&&<PlayerForm initial={selected} onSave={updPlayer} onCancel={()=>setModal(null)} saving={saving}/>}
