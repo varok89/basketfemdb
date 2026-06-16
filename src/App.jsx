@@ -1338,10 +1338,9 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
         </Modal>):null;
       })()}
       {isAdmin&&delCoachItem?.type==="season"&&<ConfirmDel msg="¿Eliminar esta temporada de coach?" onCancel={()=>setDelCoachItem(null)} onConfirm={()=>delCoachSeasonInPlayer(delCoachItem.id)}/>}
-      {isAdmin&&modal&&(
-        <Modal title={modal==="addSeason"?"Añadir temporada":modal==="editSeason"||editSeason?"Editar temporada":modal==="addPlayer"?"Nueva jugadora":"Editar jugadora"} onClose={()=>{setModal(null);setEditSeason(null);}}>
-          {(modal==="addSeason")&&<SeasonForm initial={editSeason||undefined} equipos={equipos} ligas={ligas} onSave={f=>{addSeason(f);setEditSeason(null);}} onCancel={()=>{setModal(null);setEditSeason(null);}} saving={saving}/>}
-          {(editSeason)&&<SeasonForm initial={editSeason} equipos={equipos} ligas={ligas} onSave={updSeason} onCancel={()=>{setEditSeason(null);}} saving={saving}/>}
+      {isAdmin&&modal&&modal!=="addSeason"&&(
+        <Modal title={modal==="editSeason"||editSeason?"Editar temporada":modal==="addPlayer"?"Nueva jugadora":"Editar jugadora"} onClose={()=>{setModal(null);setEditSeason(null);}}>
+          {(modal==="editSeason"&&editSeason)&&<SeasonForm initial={editSeason} equipos={equipos} ligas={ligas} onSave={updSeason} onCancel={()=>{setModal(null);setEditSeason(null);}} saving={saving}/>}
           {(modal==="addPlayer")&&<PlayerForm onSave={addPlayer} onCancel={()=>setModal(null)} saving={saving}/>}
           {(modal==="editPlayer")&&<PlayerForm initial={selected} onSave={updPlayer} onCancel={()=>setModal(null)} saving={saving}/>}
         </Modal>
