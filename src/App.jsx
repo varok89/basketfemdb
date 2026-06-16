@@ -40,6 +40,12 @@ if (!document.getElementById("bfdb-styles")) {
 
 const POSITIONS  = ["Base","Escolta","Alero","Ala-Pívot","Pívot"];
 const TIPO_LABELS = { liga:"Liga", copacont:"Copa Continental", copadom:"Copa Nacional", internacional:"Internacional" };
+const firstFreeId=(ids,prefix="",pad=0)=>{
+  const s=new Set(ids.map(Number).filter(n=>!isNaN(n)));
+  let i=1; while(s.has(i))i++;
+  return prefix+(pad?String(i).padStart(pad,"0"):i);
+};
+
 const nextSeason=t=>{
   const m=(t||"").match(/^(\d{4})-(\d{2})$/);
   if(m){const y=parseInt(m[1])+1;return `${y}-${String(y+1).slice(-2)}`;}
@@ -679,6 +685,139 @@ function StatusDropdown({filterStatus,setFilterStatus}){
   );
 }
 
+/* ── CalidadModal ───────────────────────────────────────── */
+function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,onGoToPlayer}){
+  const [tab,setTab]=useState("incompletas");
+
+  // ── Fichas incompletas ──
+  const incompletas=useMemo(()=>{
+    return players.map(p=>{
+      const issues=[];
+      if(!p.foto||p.foto==="")issues.push("Sin foto");
+      if(!p.altura_cm)issues.push("Sin altura");
+      if(!p.nacionalidad)issues.push("Sin nacionalidad");
+      if(!p.posicion)issues.push("Sin posición");
+      if(!(p.seasons||[]).length)issues.push("Sin temporadas");
+      return issues.length?{player:p,issues}:null;
+    }).filter(Boolean).sort((a,b)=>a.player.nombre.localeCompare(b.player.nombre,"es"));
+  },[players]);
+
+  // ── Temporadas duplicadas ──
+  const duplicadas=useMemo(()=>{
+    const all=players.flatMap(p=>(p.seasons||[]).map(s=>({...s,nombre:p.nombre,id_jugadora:p.id_jugadora})));
+    const seen={};const dupes=[];
+    all.forEach(s=>{
+      const key=`${s.id_jugadora}|${s.id_equipo}|${s.id_liga}|${s.temporada}`;
+      if(!seen[key])seen[key]=[];
+      seen[key].push(s);
+    });
+    return Object.entries(seen).filter(([,arr])=>arr.length>1).map(([,arr])=>arr);
+  },[players]);
+
+  // ── Huecos de IDs ──
+  const huecos=useMemo(()=>{
+    const check=(items,key,prefix,pad)=>{
+      const ids=items.map(x=>parseInt((x[key]||"").replace(prefix,""))).filter(n=>!isNaN(n)&&n>0).sort((a,b)=>a-b);
+      const gaps=[];
+      for(let i=1;i<ids[ids.length-1];i++){if(!ids.includes(i))gaps.push(prefix+(pad?String(i).padStart(pad,"0"):i));}
+      const next=ids.length?ids[ids.length-1]+1:1;
+      const firstFree=ids.length?(()=>{const s=new Set(ids);let i=1;while(s.has(i))i++;return i;})():1;
+      return{gaps:gaps.slice(0,10),total:gaps.length,nextFree:prefix+(pad?String(firstFree).padStart(pad,"0"):firstFree)};
+    };
+    return{
+      jugadoras:check(players,"id_jugadora","J",0),
+      equipos:check(equipos,"id_equipo","E",3),
+      ligas:check(ligas,"id_liga","L",3),
+      coaches:check(coaches,"id_coach","C",3),
+    };
+  },[players,equipos,ligas,coaches]);
+
+  const TABS=[
+    {key:"incompletas",label:"Fichas incompletas",count:incompletas.length},
+    {key:"duplicadas",label:"Temporadas duplicadas",count:duplicadas.length},
+    {key:"huecos",label:"Huecos de IDs",count:Object.values(huecos).reduce((a,v)=>a+v.total,0)},
+  ];
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px",fontFamily:"system-ui,sans-serif"}}>
+      <div style={{background:"#fff",borderRadius:"20px",width:"600px",maxWidth:"100%",maxHeight:"88vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"24px 24px 16px"}}>
+          <div>
+            <h2 style={{fontWeight:800,fontSize:"18px",color:"#1e293b",margin:0}}>🩺 Calidad de datos</h2>
+            <p style={{fontSize:"12px",color:"#94a3b8",margin:"4px 0 0"}}>Revisión de integridad de la base de datos</p>
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:"22px",color:"#94a3b8",cursor:"pointer"}}>×</button>
+        </div>
+        <div style={{display:"flex",gap:"4px",padding:"0 24px 12px",borderBottom:"1px solid #f1f5f9"}}>
+          {TABS.map(t=>(
+            <button key={t.key} onClick={()=>setTab(t.key)}
+              style={{flex:1,background:tab===t.key?"#fff7ed":"transparent",border:tab===t.key?"1.5px solid #fed7aa":"1.5px solid transparent",borderRadius:"10px",padding:"8px 6px",cursor:"pointer",fontSize:"12px",fontWeight:700,color:tab===t.key?"#c2410c":"#94a3b8"}}>
+              {t.label}
+              {t.count>0&&<span style={{display:"inline-block",marginLeft:"4px",background:"#ef4444",color:"#fff",borderRadius:"10px",padding:"0 6px",fontSize:"10px"}}>{t.count}</span>}
+            </button>
+          ))}
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"16px 24px 24px"}}>
+          {tab==="incompletas"&&(incompletas.length===0?
+            <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><div style={{fontSize:"40px"}}>✅</div><p>Todas las fichas están completas</p></div>:
+            <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+              {incompletas.map(({player,issues})=>(
+                <div key={player.id_jugadora} onClick={()=>{onGoToPlayer(player.id_jugadora);onClose();}}
+                  style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0",cursor:"pointer"}}
+                  onMouseEnter={e=>e.currentTarget.style.background="#fff7ed"}
+                  onMouseLeave={e=>e.currentTarget.style.background="#f8fafc"}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{player.nombre}</div>
+                    <div style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{player.id_jugadora}</div>
+                  </div>
+                  <div style={{display:"flex",gap:"4px",flexWrap:"wrap",justifyContent:"flex-end",maxWidth:"55%"}}>
+                    {issues.map(i=><span key={i} style={{background:"#fee2e2",color:"#ef4444",borderRadius:"8px",padding:"2px 8px",fontSize:"10px",fontWeight:700}}>{i}</span>)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {tab==="duplicadas"&&(duplicadas.length===0?
+            <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><div style={{fontSize:"40px"}}>✅</div><p>No hay temporadas duplicadas</p></div>:
+            <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
+              {duplicadas.map((group,i)=>(
+                <div key={i} style={{border:"1.5px solid #fed7aa",borderRadius:"12px",overflow:"hidden"}}>
+                  <div style={{background:"#fff7ed",padding:"8px 14px",fontSize:"12px",fontWeight:700,color:"#c2410c"}}>
+                    {group[0].nombre} — {group[0].temporada} ({group.length} entradas duplicadas)
+                  </div>
+                  {group.map((s,j)=>(
+                    <div key={j} style={{padding:"8px 14px",fontSize:"12px",borderTop:j>0?"1px solid #f8fafc":"none",fontFamily:"monospace",color:"#475569"}}>
+                      ID {s.id} · equipo: {s.id_equipo} · liga: {s.id_liga}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+          {tab==="huecos"&&(
+            <div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
+              {Object.entries(huecos).map(([tabla,{gaps,total,nextFree}])=>(
+                <div key={tabla} style={{background:"#f8fafc",borderRadius:"12px",padding:"14px",border:"1px solid #e2e8f0"}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"8px"}}>
+                    <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b",textTransform:"capitalize"}}>{tabla}</span>
+                    <span style={{background:total>0?"#dbeafe":"#dcfce7",color:total>0?"#1d4ed8":"#16a34a",borderRadius:"8px",padding:"2px 10px",fontSize:"12px",fontWeight:700}}>
+                      {total>0?`${total} huecos`:"Sin huecos"}
+                    </span>
+                  </div>
+                  <div style={{fontSize:"13px",color:"#475569"}}>Próximo ID libre: <b style={{color:"#f97316"}}>{nextFree}</b></div>
+                  {gaps.length>0&&<div style={{marginTop:"6px",fontSize:"11px",color:"#94a3b8"}}>
+                    Huecos: {gaps.join(", ")}{total>10?` … y ${total-10} más`:""}
+                  </div>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── DuplicatesModal ────────────────────────────────────── */
 function DuplicatesModal({players,equipos,ligas,coaches,onClose,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach}){
   const [tab,setTab]=useState("jugadoras");
@@ -1139,7 +1278,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     setSaving(true);
     try{
       const allJIds=players.map(p=>parseInt((p.id_jugadora||"J0").slice(1))).filter(n=>!isNaN(n));
-      const newId=`J${Math.max(0,...allJIds)+1}`;
+      const newId=firstFreeId(allJIds,"J");
       const{error}=await supabase.from("jugadoras").insert({id_jugadora:newId,nombre:f.nombre,posicion:f.posicion,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null});
       if(error)throw error;
       await onReload();setModal(null);
@@ -1606,6 +1745,8 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
   const [filterSeason,setFilterSeason] = useState(null);
   const [filterTipo,setFilterTipo]     = useState("");
   const [filterPais,setFilterPais]     = useState("");
+  const [visibleTeams,setVisibleTeams] = useState(60);
+  const loadMoreTeamsRef = useRef(null);
   const [selId,setSelId]               = useState(openTeamId||null);
   useEffect(()=>{const seg='equipos';window.history.replaceState({},"",selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
   const [selYear,setSelYear]           = useState(null);
@@ -1645,7 +1786,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
     try{
       if(teamModal==="addTeam"){
         const ids=equipos.map(e=>parseInt(e.id_equipo.replace("E",""))).filter(n=>!isNaN(n));
-        const newId="E"+(Math.max(0,...ids)+1).toString().padStart(3,"0");
+        const newId=firstFreeId(ids,"E",3);
         const{error}=await supabase.from("equipos").insert({id_equipo:newId,...f});
         if(error)throw error;
       } else {
@@ -1716,6 +1857,12 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
   const ligaMap   = useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
   const coachMap  = useMemo(()=>{const m={};(coaches||[]).forEach(c=>m[c.id_coach]=c);return m;},[coaches]);
 
+  useEffect(()=>{setVisibleTeams(60);},[search,filterLeague,filterSeason,filterTipo,filterPais,selId]);
+  useEffect(()=>{
+    const el=loadMoreTeamsRef.current;if(!el)return;
+    const obs=new IntersectionObserver(e=>{if(e[0].isIntersecting)setVisibleTeams(c=>c+60);},{rootMargin:"400px"});
+    obs.observe(el);return()=>obs.disconnect();
+  },[filtered.length,selId]);
   const teamIndex = useMemo(()=>{
     const map={};
     equipos.forEach(e=>{map[e.id_equipo]={eq:e,years:new Set(),players:[]};});
@@ -1996,6 +2143,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
           {allSeasons.map(s=><option key={s} value={s}>{s}{s===latestSeason?" (actual)":""}</option>)}
         </select>
       </div>
+      {visibleTeams<filtered.length&&<div ref={loadMoreTeamsRef} style={{textAlign:"center",padding:"24px",color:"#94a3b8",fontSize:"13px"}}>Mostrando {visibleTeams} de {filtered.length}...</div>}
       {isAdmin&&teamModal==="addTeam"&&<Modal title="Nuevo equipo" onClose={()=>setTeamModal(null)}><TeamForm onSave={saveTeam} onCancel={()=>setTeamModal(null)} saving={saving}/></Modal>}
       </div>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
@@ -2005,7 +2153,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
       {(()=>{
         const TEAM_GRUPOS=[["equipo","🏟️ Clubes"],["seleccion","🌍 Selecciones"],["other","Otros"]];
         const byTipo={equipo:[],seleccion:[],other:[]};
-        filtered.forEach(item=>{
+        filtered.slice(0,visibleTeams).forEach(item=>{
           const t=item.eq.tipo;
           if(t==="equipo")byTipo.equipo.push(item);
           else if(t==="seleccion")byTipo.seleccion.push(item);
@@ -2137,6 +2285,8 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTea
   const [search,setSearch]   = useState("");
   const [filterTipoLiga,setFilterTipoLiga] = useState("");
   const [filterPaisLiga,setFilterPaisLiga] = useState("");
+  const [visibleLeagues,setVisibleLeagues] = useState(60);
+  const loadMoreLeaguesRef = useRef(null);
   const [ligaModal,setLigaModal] = useState(null);
   const [saving,setSaving]   = useState(false);
   const [delLiga,setDelLiga] = useState(false);
@@ -2146,7 +2296,7 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTea
     try{
       if(ligaModal==="add"){
         const ids=ligas.map(l=>parseInt(l.id_liga.replace("L",""))).filter(n=>!isNaN(n));
-        const newId="L"+(Math.max(...ids)+1).toString().padStart(3,"0");
+        const newId=firstFreeId(ids,"L",3);
         await supabase.from("ligas").insert({id_liga:newId,...f});
       } else { await supabase.from("ligas").update(f).eq("id_liga",selId); }
       await onReload();setLigaModal(null);
@@ -2184,11 +2334,17 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTea
     return s;
   },[selected,effectiveYear,players]);
 
+  useEffect(()=>{setVisibleLeagues(60);},[search,filterTipoLiga,filterPaisLiga,selId]);
+  useEffect(()=>{
+    const el=loadMoreLeaguesRef.current;if(!el)return;
+    const obs=new IntersectionObserver(e=>{if(e[0].isIntersecting)setVisibleLeagues(c=>c+60);},{rootMargin:"400px"});
+    obs.observe(el);return()=>obs.disconnect();
+  },[filtered.length,selId]);
   const allPaisesLiga = useMemo(()=>[...new Set(ligas.map(l=>l.pais).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es")),[ligas]);
   const filtered = ligas.filter(l=>(!search||l.nombre?.toLowerCase().includes(search.toLowerCase()))&&(!filterTipoLiga||l.tipo===filterTipoLiga)&&(!filterPaisLiga||l.pais===filterPaisLiga));
   const ligasByTipo = useMemo(()=>{
     const g={liga:[],copacont:[],copadom:[],internacional:[],other:[]};
-    filtered.forEach(l=>{if(g[l.tipo])g[l.tipo].push(l);else if(l.pais&&l.pais.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')!=="espana")g.internacional.push(l);else g.other.push(l);});
+    filtered.slice(0,visibleLeagues).forEach(l=>{if(g[l.tipo])g[l.tipo].push(l);else if(l.pais&&l.pais.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')!=="espana")g.internacional.push(l);else g.other.push(l);});
     return g;
   },[filtered]);
 
@@ -2319,6 +2475,7 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTea
           );});
         })()}
       </div>
+      {visibleLeagues<filtered.length&&<div ref={loadMoreLeaguesRef} style={{textAlign:"center",padding:"24px",color:"#94a3b8",fontSize:"13px"}}>Mostrando {visibleLeagues} de {filtered.length}...</div>}
       {isAdmin&&ligaModal==="add"&&<Modal title="Nueva liga" onClose={()=>setLigaModal(null)}><LeagueForm onSave={saveLiga} onCancel={()=>setLigaModal(null)} saving={saving}/></Modal>}
       <div style={{minHeight:"112px"}}>
       <div style={{display:"flex",gap:"10px",marginBottom:"16px",alignItems:"center"}}>
@@ -2386,7 +2543,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
     try{
       if(coachModal==="add"){
         const ids=coaches.map(c=>parseInt((c.id_coach||"").replace("C",""))).filter(n=>!isNaN(n));
-        const newId="C"+(Math.max(0,...ids)+1).toString().padStart(3,"0");
+        const newId=firstFreeId(ids,"C",3);
         await supabase.from("coach").insert({id_coach:newId,...f,id_jugadora:f.id_jugadora||null});
       } else {
         await supabase.from("coach").update({...f,id_jugadora:f.id_jugadora||null}).eq("id_coach",coachModal.id_coach);
@@ -2417,6 +2574,8 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
   };
   const [search,setSearch]=useState("");
   const [selId,setSelId]  =useState(openCoachId||null);
+  const [visibleCoaches,setVisibleCoaches]=useState(60);
+  const loadMoreCoachesRef=useRef(null);
   useEffect(()=>{const seg='coaches';window.history.replaceState({},"",selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
   const [filterNac,setFilterNac]=useState("");
   const [filterLiga,setFilterLiga]=useState("");
@@ -2427,6 +2586,12 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
   const filtered=useMemo(()=>(coaches||[]).filter(c=>!search||c.nombre.toLowerCase().includes(search.toLowerCase())).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")),[coaches,search]);
   const allNacs=useMemo(()=>[...new Set((coaches||[]).flatMap(c=>[c.nacionalidad,c.nacionalidad2]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es")),[coaches]);
   const allLigas=useMemo(()=>[...new Set((tempCoach||[]).map(tc=>ligaMap[tc.id_liga]?.nombre).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es")),[tempCoach,ligaMap]);
+  useEffect(()=>{setVisibleCoaches(60);},[search,filterNac,filterLiga,selId]);
+  useEffect(()=>{
+    const el=loadMoreCoachesRef.current;if(!el)return;
+    const obs=new IntersectionObserver(e=>{if(e[0].isIntersecting)setVisibleCoaches(c=>c+60);},{rootMargin:"400px"});
+    obs.observe(el);return()=>obs.disconnect();
+  },[filteredList,selId]);
   const filteredList=useMemo(()=>filtered.filter(coach=>{
     if(filterNac&&coach.nacionalidad!==filterNac&&coach.nacionalidad2!==filterNac)return false;
     if(filterLiga&&!(tempCoach||[]).some(tc=>tc.id_coach===coach.id_coach&&ligaMap[tc.id_liga]?.nombre===filterLiga))return false;
@@ -2613,13 +2778,14 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
         </select>
       </div>
       </div>
+      {visibleCoaches<filteredList.length&&<div ref={loadMoreCoachesRef} style={{textAlign:"center",padding:"24px",color:"#94a3b8",fontSize:"13px"}}>Mostrando {visibleCoaches} de {filteredList.length}...</div>}
       {isAdmin&&coachModal==="add"&&<Modal title="Nuevo coach" onClose={()=>setCoachModal(null)}><CoachForm players={players} onSave={saveCoach} onCancel={()=>setCoachModal(null)} saving={saving2}/></Modal>}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
         <span style={{fontSize:"13px",color:"#94a3b8"}}>{filteredList.length} entrenador{filteredList.length!==1?"es":"a"}</span>
         {isAdmin&&<button onClick={()=>setCoachModal("add")} style={{background:"#f97316",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Coach</button>}
       </div>
       <div className="bfdb-cards-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:"12px"}}>
-        {filteredList.map(coach=>{
+        {filteredList.slice(0,visibleCoaches).map(coach=>{
           const coachSeasons=(tempCoach||[]).filter(tc=>tc.id_coach===coach.id_coach).sort((a,b)=>b.temporada.localeCompare(a.temporada)||parseInt(b.orden||0)-parseInt(a.orden||0));
           const lastSeason=coachSeasons[0];
           const lastEq=lastSeason?equipoMap[lastSeason.id_equipo]:null;
@@ -2746,6 +2912,7 @@ export default function App(){
   const [isFirstLoad,setIsFirstLoad] = useState(true);
   const [showExport,setShowExport]   = useState(false);
   const [showDupes,setShowDupes]     = useState(false);
+  const [showCalidad,setShowCalidad] = useState(false);
   const [showLanding,setShowLanding] = useState(()=>{
     try{return !localStorage.getItem("bfdb_accepted");}catch{return true;}
   });
@@ -2831,6 +2998,11 @@ export default function App(){
   const TABS=[["jugadoras","👩‍🏀","Jugadoras"],["equipos","🏟️","Equipos"],["ligas","🏆","Ligas"],["cuerpo_tecnico","📋","Cuerpo Técnico"]];
 
   if(showLanding) return <Landing onEnter={handleEnter}/>;
+  if(showCalidad){
+    return <CalidadModal players={players} equipos={equipos} ligas={ligas} coaches={coaches}
+      tempCoach={tempCoach} palmares={palmares}
+      onClose={()=>setShowCalidad(false)} onGoToPlayer={goToPlayer}/>;
+  }
   if(showDupes){
     return <DuplicatesModal players={players} equipos={equipos} ligas={ligas} coaches={coaches}
       onClose={()=>setShowDupes(false)}
@@ -2912,6 +3084,7 @@ export default function App(){
               </button>
             ))}
             <button onClick={loadAll} title="Recargar" style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}}>🔄</button>
+            {isAdmin&&<button title="Calidad de datos" onClick={()=>setShowCalidad(true)} style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}}>🩺</button>}
             {isAdmin&&<button title="Detectar duplicados" onClick={()=>setShowDupes(true)} style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}}>🔍</button>}
             {isAdmin&&<button title="Exportar datos" onClick={()=>setShowExport(true)} style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}}>📥</button>}
             <button onClick={()=>setShowLanding(true)} title="Información" style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"14px",fontWeight:700}}>ℹ</button>
