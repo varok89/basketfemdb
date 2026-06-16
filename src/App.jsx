@@ -182,6 +182,7 @@ const COUNTRY_CODES = {
   "kenya":"ke","kenia":"ke",
   "ethiopia":"et","etiopia":"et","etiopía":"et",
   "ghana":"gh",
+  "siria":"sy","syria":"sy","república árabe siria":"sy",
   "antigua y barbuda":"ag","antigua and barbuda":"ag",
   "guinea ecuatorial":"gq","equatorial guinea":"gq",
   "sierra leona":"sl","sierra leone":"sl",
@@ -205,6 +206,7 @@ const COUNTRY_CODES = {
   "guinea-bissau":"gw","guinea bisau":"gw","guinea-bisau":"gw",
   "camboya":"kh","cambodia":"kh",
   "libano":"lb","líbano":"lb","lebanon":"lb",
+  "siria":"sy","syria":"sy","siria":"sy",
 
   /* Asia */
   "china":"cn",
