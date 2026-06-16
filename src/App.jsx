@@ -3137,11 +3137,7 @@ export default function App(){
       <div style={{background:"#0f172a",color:"#fff",padding:"0 20px",position:"sticky",top:0,zIndex:10,boxShadow:"0 2px 16px rgba(0,0,0,0.4)"}}>
         <div className="bfdb-header-inner" style={{maxWidth:"880px",margin:"0 auto",display:"flex",alignItems:"center",gap:"10px",height:"56px"}}>
           <div className="bfdb-logo" onClick={()=>{setTab("jugadoras");setOpenPlayerId(null);setOpenTeamId(null);setOpenCoachId(null);setOpenLigaId(null);}} title="Inicio" style={{display:"flex",alignItems:"center",gap:"8px",cursor:"pointer",marginRight:"auto"}}>
-            <span style={{fontSize:"22px"}}>🏀</span>
-            <div style={{fontWeight:800,fontSize:"16px",letterSpacing:"-0.3px"}}>
-              BasketFem <span style={{color:"#fb923c"}}>DB</span>
-              <span className="bfdb-supabase-badge" style={{fontSize:"10px",color:"#22c55e",fontWeight:600,marginLeft:"8px",background:"rgba(34,197,94,0.15)",padding:"2px 8px",borderRadius:"10px"}}>● Supabase</span>
-            </div>
+            <img src="/icon-home.png" alt="BasketFem DB" style={{height:"36px",objectFit:"contain"}} />
           </div>
           <div className="bfdb-global-search"><GlobalSearch players={players} equipos={equipos} ligas={ligas} coaches={coaches}
             onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToCoach={goToCoach}/></div>
