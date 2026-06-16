@@ -732,7 +732,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   // ── Huecos de IDs ──
   const huecos=useMemo(()=>{
     const check=(items,key,prefix,pad)=>{
-      const ids=items.map(x=>parseInt((x[key]||"").replace(prefix,""))).filter(n=>!isNaN(n)&&n>0).sort((a,b)=>a-b);
+      const ids=items.map(x=>prefix?parseInt(String(x[key]||"").replace(prefix,"")):parseInt(x[key])).filter(n=>!isNaN(n)&&n>0).sort((a,b)=>a-b);
       const gaps=[];
       if(ids.length)for(let i=1;i<ids[ids.length-1];i++){if(!ids.includes(i))gaps.push(prefix+(pad?String(i).padStart(pad,"0"):i));}
       const firstFree=ids.length?(()=>{const s=new Set(ids);let i=1;while(s.has(i))i++;return i;})():1;
