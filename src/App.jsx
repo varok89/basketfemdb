@@ -2903,10 +2903,8 @@ function Landing({onEnter}){
   return(
     <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"system-ui,sans-serif",padding:"20px"}}>
       <div style={{maxWidth:"560px",width:"100%",textAlign:"center"}}>
-        <div style={{fontSize:"64px",marginBottom:"16px",animation:"bounce 0.7s infinite"}}>🏀</div>
-        <div style={{width:"40px",height:"6px",background:"#cbd5e1",borderRadius:"50%",margin:"4px auto 28px",animation:"shadow 0.7s infinite"}}/>
-        <div style={{fontWeight:900,fontSize:"32px",color:"#fff",letterSpacing:"-1px",marginBottom:"4px"}}>
-          BasketFem<span style={{color:"#f97316"}}> DB</span>
+        <div style={{marginBottom:"28px"}}>
+          <img src="/icon-home.png" alt="BasketFem DB" style={{height:"120px",objectFit:"contain"}}/>
         </div>
         <div style={{fontSize:"14px",color:"#94a3b8",marginBottom:"36px",fontWeight:500}}>Base de datos del baloncesto femenino</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"36px",textAlign:"left"}}>
@@ -3139,7 +3137,11 @@ export default function App(){
       <div style={{background:"#0f172a",color:"#fff",padding:"0 20px",position:"sticky",top:0,zIndex:10,boxShadow:"0 2px 16px rgba(0,0,0,0.4)"}}>
         <div className="bfdb-header-inner" style={{maxWidth:"880px",margin:"0 auto",display:"flex",alignItems:"center",gap:"10px",height:"56px"}}>
           <div className="bfdb-logo" onClick={()=>{setTab("jugadoras");setOpenPlayerId(null);setOpenTeamId(null);setOpenCoachId(null);setOpenLigaId(null);}} title="Inicio" style={{display:"flex",alignItems:"center",gap:"8px",cursor:"pointer",marginRight:"auto"}}>
-            <img src="/icon-home.png" alt="BasketFem DB" style={{height:"40px",objectFit:"contain"}} />
+            <span style={{fontSize:"22px"}}>🏀</span>
+            <div style={{fontWeight:800,fontSize:"16px",letterSpacing:"-0.3px"}}>
+              BasketFem <span style={{color:"#fb923c"}}>DB</span>
+              <span className="bfdb-supabase-badge" style={{fontSize:"10px",color:"#22c55e",fontWeight:600,marginLeft:"8px",background:"rgba(34,197,94,0.15)",padding:"2px 8px",borderRadius:"10px"}}>● Supabase</span>
+            </div>
           </div>
           <div className="bfdb-global-search"><GlobalSearch players={players} equipos={equipos} ligas={ligas} coaches={coaches}
             onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToCoach={goToCoach}/></div>
