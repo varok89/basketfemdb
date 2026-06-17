@@ -1157,7 +1157,15 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
   return(
     <div className="bfdb-container" style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
       <div style={{marginBottom:"16px"}}>
-        <h2 style={{fontWeight:800,fontSize:"20px",color:"#1e293b",margin:"0 0 4px"}}>✍️ Últimos fichajes</h2>
+        {filterLiga==="ALL"
+          ?<h2 style={{fontWeight:800,fontSize:"20px",color:"#1e293b",margin:"0 0 4px"}}>✍️ Últimos fichajes</h2>
+          :(()=>{const ligaSel=ligaMap[filterLiga];return(
+            <div style={{display:"flex",alignItems:"center",gap:"10px",margin:"0 0 4px"}}>
+              {ligaSel?.escudo&&<img src={ligaSel.escudo} alt={ligaSel.nombre} style={{width:"32px",height:"32px",objectFit:"contain",borderRadius:"6px"}}/>}
+              <h2 style={{fontWeight:800,fontSize:"20px",color:"#1e293b",margin:0}}>✍️ {ligaSel?.nombre||"Liga"}</h2>
+            </div>
+          );})()
+        }
         <p style={{fontSize:"13px",color:"#94a3b8",margin:"0 0 12px"}}>Temporada {currentSeason} · {fichajesFiltrados.length} movimiento{fichajesFiltrados.length!==1?"s":""}</p>
         {ligasEnFichajes.length>1&&<select value={filterLiga} onChange={e=>{setFilterLiga(e.target.value);setVisibleCount(10);}} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"7px 12px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none",width:"100%",maxWidth:"320px"}}>
           <option value="ALL">Todas las ligas</option>
