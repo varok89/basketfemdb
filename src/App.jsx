@@ -468,13 +468,10 @@ function PhotoPicker({value,onChange}){
         <div style={{flex:1}}>
           <div style={{display:"flex",gap:"6px",marginBottom:"8px"}}>
             <button type="button" onClick={()=>setMode("url")} style={{background:mode==="url"?"#9333ea":"#f1f5f9",color:mode==="url"?"#fff":"#475569",border:"none",borderRadius:"8px",padding:"5px 12px",fontSize:"12px",cursor:"pointer",fontWeight:600}}>URL</button>
-            <button type="button" onClick={()=>setMode("file")} style={{background:mode==="file"?"#9333ea":"#f1f5f9",color:mode==="file"?"#fff":"#475569",border:"none",borderRadius:"8px",padding:"5px 12px",fontSize:"12px",cursor:"pointer",fontWeight:600}}>📷 Archivo</button>
+            <button type="button" onClick={()=>{onChange("https://static.flashscore.com/res/image/empty-face-woman-share.gif");setMode("url");}} style={{background:"#f1f5f9",color:"#475569",border:"none",borderRadius:"8px",padding:"5px 12px",fontSize:"12px",cursor:"pointer",fontWeight:600}}>🖼️ Default</button>
             {value&&<button type="button" onClick={()=>onChange(null)} style={{background:"none",border:"none",fontSize:"11px",color:"#ef4444",cursor:"pointer",marginLeft:"auto"}}>Eliminar</button>}
           </div>
-          {mode==="url"
-            ?<input style={inp} value={value&&!value.startsWith("data:")?value:""} onChange={e=>onChange(e.target.value||null)} placeholder="https://ejemplo.com/foto.jpg"/>
-            :<><button type="button" onClick={()=>ref.current.click()} style={{background:"#f8fafc",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"7px 12px",fontSize:"12px",color:"#475569",cursor:"pointer",fontWeight:600,width:"100%"}}>Seleccionar archivo...</button>
-              <input ref={ref} type="file" accept="image/*" style={{display:"none"}} onChange={handleFile}/></>}
+          {mode==="url"&&<input style={inp} value={value&&!value.startsWith("data:")?value:""} onChange={e=>onChange(e.target.value||null)} placeholder="https://ejemplo.com/foto.jpg"/>}
         </div>
       </div>
     </div>
