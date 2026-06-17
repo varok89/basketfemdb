@@ -141,7 +141,7 @@ const COUNTRY_CODES = {
   "georgia":"ge",
   "armenia":"am",
   "azerbaijan":"az","azerbaiyan":"az","azerbaiyán":"az","azerbaidjan":"az",
-  "moldova":"md",
+  "moldova":"md","moldavia":"md",
   "belarus":"by","bielorrusia":"by",
   "estonia":"ee",
   "latvia":"lv","letonia":"lv",
