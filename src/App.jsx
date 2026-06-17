@@ -1904,10 +1904,12 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
       if(teamModal==="addTeam"){
         const ids=equipos.map(e=>parseInt(e.id_equipo.replace("E",""))).filter(n=>!isNaN(n));
         const newId=firstFreeId(ids,"E",3);
-        const{error}=await supabase.from("equipos").insert({id_equipo:newId,...f});
+        const payload={...f,año_fundacion:f.año_fundacion===''||f.año_fundacion===null?null:parseInt(f.año_fundacion)||null};
+        const{error}=await supabase.from("equipos").insert({id_equipo:newId,...payload});
         if(error)throw error;
       } else {
-        const{error}=await supabase.from("equipos").update(f).eq("id_equipo",selId);
+        const payload={...f,año_fundacion:f.año_fundacion===''||f.año_fundacion===null?null:parseInt(f.año_fundacion)||null};
+        const{error}=await supabase.from("equipos").update(payload).eq("id_equipo",selId);
         if(error)throw error;
       }
       await onReload();setTeamModal(null);
