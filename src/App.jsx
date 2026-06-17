@@ -1988,13 +1988,16 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
   const allSeasons   = useMemo(()=>[...new Set(players.flatMap(p=>(p.seasons||[]).map(s=>s.temporada||"").filter(Boolean)))].sort((a,b)=>b.localeCompare(a)),[players]);
   const latestSeason = allSeasons[0]||null;
   const allLeagues   = [...new Set(ligas.map(l=>l.nombre).filter(Boolean))].sort();
+  const [filterPais,setFilterPais] = useState("");
+  const allPaisesEq  = useMemo(()=>[...new Set(equipos.map(e=>e.pais).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es")),[equipos]);
 
   const filtered = teamIndex.filter(({eq,years,players:pl})=>{
     const matchSearch=!search||eq.nombre?.toLowerCase().includes(search.toLowerCase())||eq.id_equipo?.toLowerCase().includes(search.toLowerCase());
     const matchLeague=!filterLeague||pl.some(({season})=>ligaMap[season.id_liga]?.nombre===filterLeague);
     const matchSeason=!filterSeason||years.has(filterSeason);
     const matchTipo=!filterTipo||eq.tipo===filterTipo;
-    return matchSearch&&matchLeague&&matchSeason&&matchTipo;
+    const matchPais=!filterPais||eq.pais===filterPais;
+    return matchSearch&&matchLeague&&matchSeason&&matchTipo&&matchPais;
   });
 
   const selected    = selId?teamIndex.find(t=>t.eq.id_equipo===selId):null;
@@ -2245,6 +2248,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
           <option value="">Temporada</option>
           {allSeasons.map(s=><option key={s} value={s}>{s}{s===latestSeason?" (actual)":""}</option>)}
         </select>
+        <PaisDropdown allPaises={allPaisesEq} filterPais={filterPais} setFilterPais={setFilterPais} placeholder="País"/>
       </div>
       {isAdmin&&teamModal==="addTeam"&&<Modal title="Nuevo equipo" onClose={()=>setTeamModal(null)}><TeamForm onSave={saveTeam} onCancel={()=>setTeamModal(null)} saving={saving}/></Modal>}
       </div>
@@ -2386,6 +2390,8 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTea
   const [selYear,setSelYear] = useState(null);
   const [search,setSearch]   = useState("");
   const [filterTipoLiga,setFilterTipoLiga] = useState("");
+  const [filterPais,setFilterPais] = useState("");
+  const allPaisesLiga = useMemo(()=>[...new Set(ligas.map(l=>l.pais).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es")),[ligas]);
   const [ligaModal,setLigaModal] = useState(null);
   const [saving,setSaving]   = useState(false);
   const [delLiga,setDelLiga] = useState(false);
@@ -2433,7 +2439,7 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTea
     return s;
   },[selected,effectiveYear,players]);
 
-  const filtered = ligas.filter(l=>(!search||l.nombre?.toLowerCase().includes(search.toLowerCase()))&&(!filterTipoLiga||l.tipo===filterTipoLiga));
+  const filtered = ligas.filter(l=>(!search||l.nombre?.toLowerCase().includes(search.toLowerCase()))&&(!filterTipoLiga||l.tipo===filterTipoLiga)&&(!filterPais||l.pais===filterPais));
   const ligasByTipo = useMemo(()=>{
     const g={liga:[],copacont:[],copadom:[],internacional:[],other:[]};
     filtered.forEach(l=>{if(g[l.tipo])g[l.tipo].push(l);else if(l.pais&&l.pais.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')!=="espana")g.internacional.push(l);else g.other.push(l);});
@@ -2579,6 +2585,7 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTea
           <option value="copacont">Copa Continental</option>
           <option value="internacional">Internacional</option>
         </select>
+        <PaisDropdown allPaises={allPaisesLiga} filterPais={filterPais} setFilterPais={setFilterPais} placeholder="País"/>
         {isAdmin&&<button onClick={()=>setLigaModal("add")} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"10px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",whiteSpace:"nowrap"}}>+ Liga</button>}
       </div>
       </div>
@@ -2667,6 +2674,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
   useEffect(()=>{const seg='coaches';window.history.replaceState({},"",selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
   const [filterNac,setFilterNac]=useState("");
   const [filterLiga,setFilterLiga]=useState("");
+  const [filterPais,setFilterPais]=useState("");
   useEffect(()=>{if(openCoachId){setSelId(openCoachId);onClearCoach();}},[openCoachId]);
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap  =useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
@@ -2674,11 +2682,13 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
   const filtered=useMemo(()=>(coaches||[]).filter(c=>!search||c.nombre.toLowerCase().includes(search.toLowerCase())).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")),[coaches,search]);
   const allNacs=useMemo(()=>[...new Set((coaches||[]).flatMap(c=>[c.nacionalidad,c.nacionalidad2]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es")),[coaches]);
   const allLigas=useMemo(()=>[...new Set((tempCoach||[]).map(tc=>ligaMap[tc.id_liga]?.nombre).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es")),[tempCoach,ligaMap]);
+  const allPaisesCoach=useMemo(()=>[...new Set((coaches||[]).flatMap(c=>[c.nacionalidad,c.nacionalidad2]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es")),[coaches]);
   const filteredList=useMemo(()=>filtered.filter(coach=>{
     if(filterNac&&coach.nacionalidad!==filterNac&&coach.nacionalidad2!==filterNac)return false;
     if(filterLiga&&!(tempCoach||[]).some(tc=>tc.id_coach===coach.id_coach&&ligaMap[tc.id_liga]?.nombre===filterLiga))return false;
+    if(filterPais&&coach.nacionalidad!==filterPais&&coach.nacionalidad2!==filterPais)return false;
     return true;
-  }),[filtered,filterNac,filterLiga,tempCoach,ligaMap]);
+  }),[filtered,filterNac,filterLiga,filterPais,tempCoach,ligaMap]);
 
   /* ── DETAIL ── */
   if(selId){
@@ -2854,10 +2864,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
           <option value="">Todas las ligas</option>
           {allLigas.map(l=><option key={l} value={l}>{l}</option>)}
         </select>
-        <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}} value={filterNac} onChange={e=>setFilterNac(e.target.value)}>
-          <option value="">Todas las nacionalidades</option>
-          {allNacs.map(n=><option key={n} value={n}>{n}</option>)}
-        </select>
+        <PaisDropdown allPaises={allPaisesCoach} filterPais={filterNac} setFilterPais={setFilterNac} placeholder="Nacionalidad"/>
       </div>
       </div>
       {isAdmin&&coachModal==="add"&&<Modal title="Nuevo coach" onClose={()=>setCoachModal(null)}><CoachForm players={players} onSave={saveCoach} onCancel={()=>setCoachModal(null)} saving={saving2}/></Modal>}
