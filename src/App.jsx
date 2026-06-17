@@ -191,7 +191,7 @@ const COUNTRY_CODES = {
   "suriname":"sr","surinam":"sr",
 
   /* África */
-  "nigeria":"ng",
+  "nigeria":"ng","niger":"ne",
   "senegal":"sn",
   "mali":"ml",
   "cameroon":"cm","camerun":"cm","camerún":"cm",
