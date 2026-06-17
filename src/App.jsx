@@ -395,8 +395,7 @@ function TeamBadge({team,size=44}){
   const {bg}=teamColors(team?.nombre||"");
   const ini=teamInitials(team?.nombre||"");
   const fs=size<36?9:size<50?12:16;
-  if(team?.escudo) return <img src={team.escudo} alt={team.nombre} style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:`2px solid ${bg}`}} onError={e=>e.target.style.display="none"}/>;
-  return <div style={{width:size,height:size,borderRadius:"50%",background:bg,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:fs,flexShrink:0,boxShadow:"0 2px 6px rgba(0,0,0,0.2)"}}>{ini}</div>;
+  if(team?.escudo) return <img src={team.escudo} alt={team.nombre} style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",flexShrink:0,boxShadow:"0 1px 4px rgba(0,0,0,0.15)"}} onError={e=>e.target.style.display="none"}/>;  return <div style={{width:size,height:size,borderRadius:"50%",background:bg,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:fs,flexShrink:0,boxShadow:"0 2px 6px rgba(0,0,0,0.2)"}}>{ini}</div>;
 }
 
 function LeagueBadge({liga,size=60}){
