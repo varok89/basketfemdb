@@ -54,6 +54,11 @@ function firstFreeId(ids,prefix,pad){
   let i=1; while(s.has(i))i++;
   return prefix+(pad?String(i).padStart(pad,"0"):i);
 }
+function firstFreeIdNum(ids){
+  const s=new Set(ids.map(Number).filter(n=>!isNaN(n)&&n>0));
+  let i=1; while(s.has(i))i++;
+  return i;
+}
 function nextSeason(t){
   const m=(t||"").match(/^(\d{4})-(\d{2})$/);
   if(m){const y=parseInt(m[1])+1;return y+"-"+String(y+1).slice(-2);}
@@ -1419,7 +1424,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     setSaving(true);
     try{
       const allIds=players.flatMap(p=>p.seasons||[]).map(s=>parseInt(s.id)).filter(n=>!isNaN(n));
-      const newId=(Math.max(0,...allIds)+1);
+      const newId=firstFreeIdNum(allIds);
       await supabase.from("temporadas").insert({id:newId,id_jugadora:selId,id_equipo:f.id_equipo,id_liga:f.id_liga,temporada:f.temporada});
       await onReload();setModal(null);}catch(e){alert("Error: "+e.message);}
     setSaving(false);
@@ -1437,8 +1442,8 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     setSaving3(true);
     try{
       if(seasonModal==="add"){
-        const {data}=await supabase.from("temporadas_coach").select("id").order("id",{ascending:false}).limit(1);
-        const newId=(data?.[0]?.id||0)+1;
+        const {data}=await supabase.from("temporadas_coach").select("id");
+        const newId=firstFreeIdNum((data||[]).map(r=>r.id));
         await supabase.from("temporadas_coach").insert({id:newId,id_coach:coachId,...f,orden:parseInt(f.orden)||0});
       } else {
         await supabase.from("temporadas_coach").update({...f,orden:parseInt(f.orden)||0}).eq("id",seasonModal.id);
@@ -1920,7 +1925,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
     setSaving(true);
     try{
       const allIds=players.flatMap(p=>p.seasons||[]).map(s=>parseInt(s.id)).filter(n=>!isNaN(n));
-      const newId=(Math.max(0,...allIds)+1);
+      const newId=firstFreeIdNum(allIds);
       await supabase.from("temporadas").insert({id:newId,id_jugadora:f.id_jugadora,id_equipo:f.id_equipo,id_liga:f.id_liga,temporada:f.temporada});
       await onReload();setSquadModal(null);
     }catch(e){alert("Error: "+e.message);}
@@ -1939,8 +1944,9 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
       const toAdd=squadList.filter(({player})=>!existing.has(player.id_jugadora));
       if(toAdd.length===0){alert("Todas las jugadoras ya tienen entrada en esa competición para "+temporada);setSaving(false);setDupModal(null);return;}
       const allIds=players.flatMap(p=>p.seasons||[]).map(s=>parseInt(s.id)).filter(n=>!isNaN(n));
-      let nextId=Math.max(0,...allIds)+1;
-      const rows=toAdd.map(({player})=>({id:nextId++,id_jugadora:player.id_jugadora,id_equipo:eqId,id_liga:targetLiga,temporada}));
+      const usedIds=new Set(allIds);
+      let nextFree=1;
+      const rows=toAdd.map(({player})=>{while(usedIds.has(nextFree))nextFree++;const id=nextFree;usedIds.add(id);nextFree++;return{id,id_jugadora:player.id_jugadora,id_equipo:eqId,id_liga:targetLiga,temporada};});
       const{error}=await supabase.from("temporadas").insert(rows);
       if(error)throw error;
       await onReload();setDupModal(null);
@@ -1956,8 +1962,8 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
     setSaving(true);
     try{
       if(palModal==="add"){
-        const {data}=await supabase.from("palmares").select("id").order("id",{ascending:false}).limit(1);
-        const newId=(data?.[0]?.id||0)+1;
+        const {data}=await supabase.from("palmares").select("id");
+        const newId=firstFreeIdNum((data||[]).map(r=>r.id));
         await supabase.from("palmares").insert({id:newId,id_equipo:selId,...f});
       } else {
         await supabase.from("palmares").update(f).eq("id",palModal.id);
@@ -2658,8 +2664,8 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
     setSaving2(true);
     try{
       if(seasonModal==="add"){
-        const {data}=await supabase.from("temporadas_coach").select("id").order("id",{ascending:false}).limit(1);
-        const newId=(data?.[0]?.id||0)+1;
+        const {data}=await supabase.from("temporadas_coach").select("id");
+        const newId=firstFreeIdNum((data||[]).map(r=>r.id));
         await supabase.from("temporadas_coach").insert({id:newId,id_coach:coachId,...f,orden:parseInt(f.orden)||0});
       } else {
         await supabase.from("temporadas_coach").update({...f,orden:parseInt(f.orden)||0}).eq("id",seasonModal.id);
