@@ -1156,10 +1156,7 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
       const prev=(s.player.seasons||[]).filter(ps=>ps.temporada!==currentSeason);
       if(!prev.length)return false;
       const prevSorted=[...prev].sort((a,b)=>b.temporada.localeCompare(a.temporada));
-      const lastPrev=prevSorted[0];
-      const expectedPrev=prevSeasonOf(currentSeason);
-      if(lastPrev.temporada!==expectedPrev)return false;
-      return lastPrev.id_equipo!==s.id_equipo;
+      return prevSorted[0].id_equipo!==s.id_equipo;
     });
   },[players]);
   const ligasEnFichajes=useMemo(()=>{
