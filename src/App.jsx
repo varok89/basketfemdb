@@ -1144,6 +1144,7 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
 function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer,onGoToTeam,onGoToTab,equiposNombres}){
   const [visibleCount,setVisibleCount]=useState(10);
   const [filterLiga,setFilterLiga]=useState("ALL");
+  const [filterEquipo,setFilterEquipo]=useState("ALL");
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap=useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
   const currentSeason=useMemo(()=>getCurrentSeason(players),[players]);
@@ -1156,7 +1157,6 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
       if(!prev.length)return false;
       const prevSorted=[...prev].sort((a,b)=>b.temporada.localeCompare(a.temporada));
       const lastPrev=prevSorted[0];
-      // Solo considerar cambio real si la temporada anterior es la inmediatamente previa
       const expectedPrev=prevSeasonOf(currentSeason);
       if(lastPrev.temporada!==expectedPrev)return false;
       return lastPrev.id_equipo!==s.id_equipo;
@@ -1166,7 +1166,12 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
     const ids=[...new Set(fichajes.map(s=>s.id_liga).filter(Boolean))];
     return ids.map(id=>ligaMap[id]).filter(Boolean).sort((a,b)=>a.nombre.localeCompare(b.nombre));
   },[fichajes,ligaMap]);
-  const fichajesFiltrados=useMemo(()=>filterLiga==="ALL"?fichajes:fichajes.filter(s=>s.id_liga===filterLiga),[fichajes,filterLiga]);
+  const fichajesPorLiga=useMemo(()=>filterLiga==="ALL"?fichajes:fichajes.filter(s=>s.id_liga===filterLiga),[fichajes,filterLiga]);
+  const equiposEnFichajes=useMemo(()=>{
+    const ids=[...new Set(fichajesPorLiga.map(s=>s.id_equipo).filter(Boolean))];
+    return ids.map(id=>equipoMap[id]).filter(Boolean).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  },[fichajesPorLiga,equipoMap]);
+  const fichajesFiltrados=useMemo(()=>filterEquipo==="ALL"?fichajesPorLiga:fichajesPorLiga.filter(s=>s.id_equipo===filterEquipo),[fichajesPorLiga,filterEquipo]);
   const visible=fichajesFiltrados.slice(0,visibleCount);
   return(
     <div className="bfdb-container" style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
@@ -1176,9 +1181,13 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
           {filterLiga!=="ALL"&&(()=>{const ligaSel=ligaMap[filterLiga];return ligaSel?<span style={{fontWeight:800,fontSize:"20px",color:"#1e293b",display:"flex",alignItems:"center",gap:"6px"}}>de {ligaSel.nombre}{ligaSel.escudo&&<img src={ligaSel.escudo} alt={ligaSel.nombre} style={{width:"22px",height:"22px",objectFit:"contain",borderRadius:"4px"}}/>}</span>:null;})()}
         </h2>
         <p style={{fontSize:"13px",color:"#94a3b8",margin:"0 0 12px"}}>Temporada {currentSeason} · {fichajesFiltrados.length} movimiento{fichajesFiltrados.length!==1?"s":""}</p>
-        {ligasEnFichajes.length>1&&<select value={filterLiga} onChange={e=>{setFilterLiga(e.target.value);setVisibleCount(10);}} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"7px 12px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none",width:"100%",maxWidth:"320px"}}>
+        {ligasEnFichajes.length>1&&<select value={filterLiga} onChange={e=>{setFilterLiga(e.target.value);setFilterEquipo("ALL");setVisibleCount(10);}} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"7px 12px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none",width:"100%",maxWidth:"320px"}}>
           <option value="ALL">Todas las ligas</option>
           {ligasEnFichajes.map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}</option>)}
+        </select>}
+        {equiposEnFichajes.length>1&&<select value={filterEquipo} onChange={e=>{setFilterEquipo(e.target.value);setVisibleCount(10);}} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"7px 12px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none",width:"100%",maxWidth:"320px",marginTop:"8px"}}>
+          <option value="ALL">Todos los equipos</option>
+          {equiposEnFichajes.map(e=><option key={e.id_equipo} value={e.id_equipo}>{e.nombre}</option>)}
         </select>}
       </div>
       {fichajesFiltrados.length===0?(
