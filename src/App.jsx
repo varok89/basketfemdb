@@ -64,6 +64,11 @@ function nextSeason(t){
   if(m){const y=parseInt(m[1])+1;return y+"-"+String(y+1).slice(-2);}
   const y=parseInt(t);return isNaN(y)?t:String(y+1);
 }
+function prevSeasonOf(t){
+  const m=(t||"").match(/^(\d{4})-(\d{2})$/);
+  if(m){const y=parseInt(m[1])-1;return y+"-"+String(y+1).slice(-2);}
+  const y=parseInt(t);return isNaN(y)?t:String(y-1);
+}
 
 // Devuelve el nombre del equipo para una temporada concreta
 // Si hay un registro en equipos_nombres que cubra esa temporada, lo usa; si no, el nombre actual
@@ -1148,9 +1153,13 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
     currentAll.forEach(s=>{if(!seen.has(s.id_jugadora)){seen.add(s.id_jugadora);deduped.push(s);}});
     return deduped.filter(s=>{
       const prev=(s.player.seasons||[]).filter(ps=>ps.temporada!==currentSeason);
-      if(!prev.length)return true;
+      if(!prev.length)return false;
       const prevSorted=[...prev].sort((a,b)=>b.temporada.localeCompare(a.temporada));
-      return prevSorted[0].id_equipo!==s.id_equipo;
+      const lastPrev=prevSorted[0];
+      // Solo considerar cambio real si la temporada anterior es la inmediatamente previa
+      const expectedPrev=prevSeasonOf(currentSeason);
+      if(lastPrev.temporada!==expectedPrev)return false;
+      return lastPrev.id_equipo!==s.id_equipo;
     });
   },[players]);
   const ligasEnFichajes=useMemo(()=>{
