@@ -1894,6 +1894,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
   const [dupModal,setDupModal]         = useState(null);
   const [nombreModal,setNombreModal]   = useState(null); // {id,id_equipo,nombre,temporada_inicio,temporada_fin} | "add"
   const [delNombreId,setDelNombreId]   = useState(null);
+  const [showNombres,setShowNombres]   = useState(false);
 
   const saveNombre=async(f)=>{
     setSaving(true);
@@ -2098,11 +2099,14 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
               <NombreHistoricoForm initial={nombreModal!=="add"?nombreModal:null} onSave={saveNombre} onCancel={()=>setNombreModal(null)} saving={saving}/>
             </Modal>}
             {isAdmin&&delNombreId&&<ConfirmDel msg="¿Eliminar este nombre?" onCancel={()=>setDelNombreId(null)} onConfirm={delNombre}/>}
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
-              <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>🏷️ Nombres históricos</h2>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom: showNombres?"14px":"0"}}>
+              <button onClick={()=>setShowNombres(v=>!v)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",padding:0}}>
+                <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>🏷️ Nombres históricos {nombres.length>0&&<span style={{fontSize:"13px",fontWeight:500,color:"#94a3b8"}}>({nombres.length})</span>}</h2>
+                <span style={{fontSize:"13px",color:"#94a3b8",transition:"transform 0.2s",display:"inline-block",transform:showNombres?"rotate(180deg)":"rotate(0deg)"}}>▼</span>
+              </button>
               {isAdmin&&<button onClick={()=>setNombreModal("add")} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"6px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Añadir</button>}
             </div>
-            {!nombres.length?<p style={{color:"#94a3b8",fontSize:"13px",margin:0}}>Sin nombres históricos registrados.</p>:
+            {showNombres&&(!nombres.length?<p style={{color:"#94a3b8",fontSize:"13px",margin:0}}>Sin nombres históricos registrados.</p>:
             <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
               {nombres.map(n=>(
                 <div key={n.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0"}}>
@@ -2119,7 +2123,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
                   </div>}
                 </div>
               ))}
-            </div>}
+            </div>)}
           </div>);
         })()}
         <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
