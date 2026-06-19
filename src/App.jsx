@@ -1912,6 +1912,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
   const [selId,setSelId]               = useState(openTeamId||null);
   useEffect(()=>{const seg='equipos';window.history.replaceState({},"",selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
   const [selYear,setSelYear]           = useState(null);
+  const [selLiga,setSelLiga]           = useState(null);
   const [teamModal,setTeamModal]       = useState(null);
   const [palModal,setPalModal]         = useState(null);
   const [squadModal,setSquadModal]     = useState(null);
@@ -2051,8 +2052,14 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
   const selected    = selId?teamIndex.find(t=>t.eq.id_equipo===selId):null;
   const years       = selected?[...selected.years].sort((a,b)=>b.localeCompare(a)):[];
   const effectiveYear = selYear||(years.length?years[0]:null);
+  const ligasInYear = useMemo(()=>{
+    if(!selected||!effectiveYear)return [];
+    const ids=[...new Set(selected.players.filter(({season})=>season.temporada===effectiveYear).map(({season})=>season.id_liga).filter(Boolean))];
+    return ids.map(id=>ligaMap[id]).filter(Boolean).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+  },[selected,effectiveYear,ligaMap]);
+  const effectiveLiga = ligasInYear.length>1?(selLiga&&ligasInYear.some(l=>l.id_liga===selLiga)?selLiga:ligasInYear[0].id_liga):null;
   const squad       = selected
-    ?[...new Map(selected.players.filter(({season})=>!effectiveYear||season.temporada===effectiveYear).map(({player,season})=>[player.id_jugadora,{player,season}])).values()]
+    ?[...new Map(selected.players.filter(({season})=>(!effectiveYear||season.temporada===effectiveYear)&&(!effectiveLiga||season.id_liga===effectiveLiga)).map(({player,season})=>[player.id_jugadora,{player,season}])).values()]
     :[];
 
   if(selected){
@@ -2154,12 +2161,15 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px",flexWrap:"wrap",gap:"10px"}}>
             <div>
               <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>Plantilla <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({squad.length})</span></h2>
-              {(()=>{const ligasInYear=[...new Set((squad).map(({season})=>season.id_liga))];const l=ligasInYear.length===1?ligaMap[ligasInYear[0]]:null;return l?<div onClick={()=>onGoToLeague&&onGoToLeague(l.id_liga)} style={{fontSize:"12px",color:"#9333ea",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px",cursor:"pointer",textDecoration:"underline"}}><MultiFlag countries={[l.pais,l.pais2,l.pais3]}/>{l.nombre}</div>:null;})()}
+              {ligasInYear.length===1&&(()=>{const l=ligasInYear[0];return<div onClick={()=>onGoToLeague&&onGoToLeague(l.id_liga)} style={{fontSize:"12px",color:"#9333ea",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px",cursor:"pointer",textDecoration:"underline"}}><MultiFlag countries={[l.pais,l.pais2,l.pais3]}/>{l.nombre}</div>;})()}
             </div>
-            <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
-              {isAdmin&&squad.length>0&&<button onClick={()=>setDupModal({squad,temporada:effectiveYear,sourceLiga:(()=>{const ls=[...new Set(squad.map(({season})=>season.id_liga))];return ls.length===1?ls[0]:"";})()})} title="Duplicar plantilla a otra competición" style={{background:"#fff",color:"#9333ea",border:"1.5px solid #9333ea",borderRadius:"10px",padding:"7px 12px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>⎘ Duplicar</button>}
+            <div style={{display:"flex",gap:"8px",alignItems:"center",flexWrap:"wrap"}}>
+              {ligasInYear.length>1&&<select value={effectiveLiga||""} onChange={e=>setSelLiga(e.target.value)} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#9333ea",fontWeight:700,background:"#fff",outline:"none"}}>
+                {ligasInYear.map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}</option>)}
+              </select>}
+              {isAdmin&&squad.length>0&&<button onClick={()=>setDupModal({squad,temporada:effectiveYear,sourceLiga:effectiveLiga||(()=>{const ls=[...new Set(squad.map(({season})=>season.id_liga))];return ls.length===1?ls[0]:"";})()})} title="Duplicar plantilla a otra competición" style={{background:"#fff",color:"#9333ea",border:"1.5px solid #9333ea",borderRadius:"10px",padding:"7px 12px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>⎘ Duplicar</button>}
               {isAdmin&&<button onClick={()=>setSquadModal({temporada:effectiveYear||"",id_liga:"",id_equipo:eq.id_equipo})} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Jugadora</button>}
-              {years.length>0&&<select value={effectiveYear||""} onChange={e=>setSelYear(e.target.value||null)} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}}>
+              {years.length>0&&<select value={effectiveYear||""} onChange={e=>{setSelYear(e.target.value||null);setSelLiga(null);}} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}}>
                 {years.map(y=><option key={y} value={y}>{y}</option>)}
               </select>}
             </div>
