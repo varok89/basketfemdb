@@ -341,6 +341,29 @@ function FlagImg({ country }) {
     style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",flexShrink:0,marginRight:"4px"}}/>;
 }
 
+function MultiFlag({ countries, width=20, height=13 }) {
+  const list=(countries||[]).filter(Boolean);
+  if(!list.length)return null;
+  if(list.length===1)return <FlagImg country={list[0]}/>;
+  const codes=list.map(c=>countryCode(c)).filter(Boolean);
+  if(codes.length!==list.length){
+    // fallback: alguno no tiene código de bandera real, mostrar banderas normales seguidas
+    return <>{list.map((c,i)=><FlagImg key={i} country={c}/>)}</>;
+  }
+  const n=codes.length;
+  const stripeW=width/n;
+  return (
+    <span title={list.join(" / ")} style={{display:"inline-flex",width,height,borderRadius:"2px",overflow:"hidden",verticalAlign:"middle",flexShrink:0,marginRight:"4px"}}>
+      {codes.map((code,i)=>(
+        <span key={i} style={{width:stripeW,height,overflow:"hidden",position:"relative",flexShrink:0}}>
+          <img src={`https://flagpedia.net/data/flags/w160/${code}.webp`} alt={list[i]}
+            style={{position:"absolute",left:-i*stripeW,top:0,width,height,objectFit:"cover"}}/>
+        </span>
+      ))}
+    </span>
+  );
+}
+
 /* ── Equipo ──────────────────────────────────────────────── */
 function teamHue(s=""){let h=0;for(const c of s)h=(h<<5)-h+c.charCodeAt(0);return Math.abs(h)%360;}
 function teamColors(n){const h=teamHue(n);return{bg:`hsl(${h},55%,38%)`,light:`hsl(${h},55%,92%)`,text:`hsl(${h},55%,25%)`};}
@@ -1598,7 +1621,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
                                   <button onClick={()=>setDel(s.id)} style={{background:"#fee2e2",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#ef4444"}}>🗑️</button>
                                 </div>}
                               </div>
-                              <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{lig?.pais&&<FlagImg country={lig.pais}/>}{lig?.nombre||s.id_liga}</div>
+                              <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{lig&&<MultiFlag countries={[lig.pais,lig.pais2,lig.pais3]}/>}{lig?.nombre||s.id_liga}</div>
                             </div>
                           </div>
                         </div>
@@ -2131,7 +2154,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px",flexWrap:"wrap",gap:"10px"}}>
             <div>
               <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>Plantilla <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({squad.length})</span></h2>
-              {(()=>{const ligasInYear=[...new Set((squad).map(({season})=>season.id_liga))];const l=ligasInYear.length===1?ligaMap[ligasInYear[0]]:null;return l?<div onClick={()=>onGoToLeague&&onGoToLeague(l.id_liga)} style={{fontSize:"12px",color:"#9333ea",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px",cursor:"pointer",textDecoration:"underline"}}><FlagImg country={l.pais}/>{l.nombre}</div>:null;})()}
+              {(()=>{const ligasInYear=[...new Set((squad).map(({season})=>season.id_liga))];const l=ligasInYear.length===1?ligaMap[ligasInYear[0]]:null;return l?<div onClick={()=>onGoToLeague&&onGoToLeague(l.id_liga)} style={{fontSize:"12px",color:"#9333ea",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px",cursor:"pointer",textDecoration:"underline"}}><MultiFlag countries={[l.pais,l.pais2,l.pais3]}/>{l.nombre}</div>:null;})()}
             </div>
             <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
               {isAdmin&&squad.length>0&&<button onClick={()=>setDupModal({squad,temporada:effectiveYear,sourceLiga:(()=>{const ls=[...new Set(squad.map(({season})=>season.id_liga))];return ls.length===1?ls[0]:"";})()})} title="Duplicar plantilla a otra competición" style={{background:"#fff",color:"#9333ea",border:"1.5px solid #9333ea",borderRadius:"10px",padding:"7px 12px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>⎘ Duplicar</button>}
@@ -2197,7 +2220,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
                         <div onClick={()=>liga&&onGoToLeague&&onGoToLeague(id_liga,{tab:"equipos",id:selId,label:eq?.nombre})} style={{display:"flex",alignItems:"center",gap:"8px",cursor:liga?"pointer":"default"}}>
                           <LeagueBadge liga={liga} size={32}/>
                           <span style={{fontWeight:700,fontSize:"14px",color:liga?"#9333ea":"#1e293b",textDecoration:liga?"underline":"none"}}>{liga?.nombre||id_liga}</span>
-                          {liga?.pais&&<FlagImg country={liga.pais}/>}
+                          {liga&&<MultiFlag countries={[liga.pais,liga.pais2,liga.pais3]}/>}
                         </div>
                         <span style={{background:"#fed7aa",color:"#b45309",fontSize:"11px",fontWeight:700,padding:"2px 8px",borderRadius:"20px"}}>{sorted.length}x</span>
                         {isAdmin&&<button onClick={()=>setPalModal("add")} style={{marginLeft:"auto",background:"#9333ea",color:"#fff",border:"none",borderRadius:"8px",padding:"3px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>+ Título</button>}
@@ -2645,7 +2668,7 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTea
                     <LeagueBadge liga={l} size={52}/>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b",lineHeight:"1.3"}}>{l.nombre}</div>
-                      <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"3px",display:"flex",alignItems:"center",gap:"2px"}}><FlagImg country={l.pais||""}/>{l.pais2&&<FlagImg country={l.pais2}/>}{l.pais3&&<FlagImg country={l.pais3}/>}{!l.pais&&"—"}</div>
+                      <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"3px",display:"flex",alignItems:"center",gap:"2px"}}><MultiFlag countries={[l.pais,l.pais2,l.pais3]}/>{!l.pais&&"—"}</div>
                       <div style={{display:"flex",gap:"6px",marginTop:"6px"}}>
                         <span style={{background:"#f1f5f9",color:"#475569",fontSize:"10px",fontWeight:600,padding:"2px 8px",borderRadius:"20px"}}>{teamSet.size} equipos</span>
                         <span style={{background:"#f1f5f9",color:"#475569",fontSize:"10px",fontWeight:600,padding:"2px 8px",borderRadius:"20px"}}>{yearSet.size} temporadas</span>
@@ -2835,7 +2858,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
                                     <span style={{color:isCoach?"#3b82f6":"#9333ea",fontWeight:700,textDecoration:"underline"}}>{eq?.nombre||s.id_equipo}</span>
                                     {isCoach&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"10px",fontWeight:700,padding:"1px 6px",borderRadius:"20px"}}>📋 Coach</span>}
                                   </div>
-                                  <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{lig?.pais&&<FlagImg country={lig.pais}/>}{lig?.nombre||s.id_liga}</div>
+                                  <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{lig&&<MultiFlag countries={[lig.pais,lig.pais2,lig.pais3]}/>}{lig?.nombre||s.id_liga}</div>
                                 </div>
                                 {isAdmin&&<div style={{display:"flex",gap:"4px",flexShrink:0}} onClick={e=>e.stopPropagation()}>
                                   <button onClick={()=>setSeasonModal(s)} title="Editar" style={{background:"#f1f5f9",border:"none",borderRadius:"6px",padding:"4px 8px",fontSize:"12px",cursor:"pointer",color:"#475569"}}>✏️</button>
