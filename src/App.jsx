@@ -2338,7 +2338,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
 
 /* ── LeagueForm ─────────────────────────────────────────── */
 function LeagueForm({initial,onSave,onCancel,saving}){
-  const [f,setF]=useState({nombre:'',pais:'',nivel:'',tipo:'liga',logo:'',...initial});
+  const [f,setF]=useState({nombre:'',pais:'',pais2:'',pais3:'',nivel:'',tipo:'liga',logo:'',...initial});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
   const inp={width:'100%',border:'1.5px solid #e2e8f0',borderRadius:'10px',padding:'9px 12px',fontSize:'14px',outline:'none',boxSizing:'border-box'};
   return(<div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
@@ -2346,6 +2346,10 @@ function LeagueForm({initial,onSave,onCancel,saving}){
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
       <Fld label='País'><input style={inp} value={f.pais||''} onChange={set('pais')} placeholder='España'/></Fld>
       <Fld label='Nivel'><input style={inp} type='number' value={f.nivel||''} onChange={set('nivel')} placeholder='1'/></Fld>
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+      <Fld label='2º País (opcional)'><input style={inp} value={f.pais2||''} onChange={set('pais2')} placeholder='Para ligas multinacionales'/></Fld>
+      <Fld label='3º País (opcional)'><input style={inp} value={f.pais3||''} onChange={set('pais3')} placeholder='Opcional'/></Fld>
     </div>
     <Fld label='Tipo'><select style={inp} value={f.tipo||'liga'} onChange={set('tipo')}>
       <option value='liga'>Liga</option>
@@ -2496,6 +2500,8 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTea
               <div><h1 style={{fontWeight:800,fontSize:"22px",color:"#1e293b",margin:"0 0 4px"}}>{selected.nombre}</h1>{isAdmin&&<span style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{selected.id_liga}</span>}</div>
               <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
                 {selected.pais&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center"}}><FlagImg country={selected.pais}/>{selected.pais}</span>}
+                {selected.pais2&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center"}}><FlagImg country={selected.pais2}/>{selected.pais2}</span>}
+                {selected.pais3&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center"}}><FlagImg country={selected.pais3}/>{selected.pais3}</span>}
                 {selected.tipo&&<span style={{background:bg,color,fontSize:"12px",fontWeight:700,padding:"3px 10px",borderRadius:"20px"}}>{TIPO_LABELS[selected.tipo]||selected.tipo}</span>}
                 {selected.nivel&&<span style={{background:"#f1f5f9",color:"#64748b",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px"}}>División {selected.nivel}</span>}
               </div>
