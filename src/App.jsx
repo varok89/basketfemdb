@@ -793,7 +793,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     }).filter(Boolean);
     var l=ligas.map(function(lg){
       var iss=[];
-      if(!lg.escudo)iss.push("Sin escudo");
+      if(!lg.logo)iss.push("Sin escudo");
       if(!lg.pais)iss.push("Sin país");
       return iss.length?{tipo:"ligas",item:lg,nombre:lg.nombre,id:lg.id_liga,issues:iss,onGo:onGoToLeague}:null;
     }).filter(Boolean);
