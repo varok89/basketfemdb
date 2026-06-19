@@ -1761,7 +1761,7 @@ function TeamForm({initial,onSave,onCancel,saving}){
     </div>
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
       <Fld label='Año fundación'><input style={inp} type='number' value={f.año_fundacion||''} onChange={set('año_fundacion')} placeholder='1994'/></Fld>
-      <Fld label='Tipo'><select style={inp} value={f.tipo||'equipo'} onChange={set('tipo')}><option value='equipo'>Club</option><option value='seleccion'>Selección</option></select></Fld>
+      <Fld label='Tipo'><select style={inp} value={f.tipo||''} onChange={set('tipo')}><option value=''>— Sin definir —</option><option value='equipo'>Club</option><option value='seleccion'>Selección</option></select></Fld>
     </div>
     <Fld label='URL Escudo'><input style={inp} value={f.escudo||''} onChange={set('escudo')} placeholder='https://...'/></Fld>
     <Fld label='Redes sociales (URL)'><input style={inp} value={f.redes_sociales||''} onChange={set('redes_sociales')} placeholder='https://instagram.com/...'/></Fld>
