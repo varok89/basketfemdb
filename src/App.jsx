@@ -330,14 +330,14 @@ function countryCode(c) {
 function FlagImg({ country }) {
   if (!country) return null;
   const norm = country.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
-  if (norm === "europa" || norm === "europe" || norm === "eu") return <img src="https://flagcdn.com/20x15/eu.png" width={20} height={15} alt="Europa" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",flexShrink:0,marginRight:"4px"}}/>;
-  if (norm === "mundo" || norm === "world" || norm === "international" || norm === "internacional") return <span style={{fontSize:"14px",lineHeight:1,marginRight:"4px",verticalAlign:"middle"}}>🌍</span>;
-  if (norm === "americas" || norm === "america" || norm === "amerique") return <span style={{fontSize:"14px",lineHeight:1,marginRight:"4px",verticalAlign:"middle"}}>🌎</span>;
-  if (norm.includes("afric")) return <span style={{fontSize:"14px",lineHeight:1,marginRight:"4px",verticalAlign:"middle"}}>🌍</span>;
-  if (norm === "asia" || norm === "oceania" || norm === "oceanía") return <span style={{fontSize:"14px",lineHeight:1,marginRight:"4px",verticalAlign:"middle"}}>🌏</span>;
+  if (norm === "europa" || norm === "europe" || norm === "eu") return <img src="https://flagcdn.com/20x15/eu.png" width={20} height={15} alt="Europa" title={country} style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",flexShrink:0,marginRight:"4px"}}/>;
+  if (norm === "mundo" || norm === "world" || norm === "international" || norm === "internacional") return <span title={country} style={{fontSize:"14px",lineHeight:1,marginRight:"4px",verticalAlign:"middle"}}>🌍</span>;
+  if (norm === "americas" || norm === "america" || norm === "amerique") return <span title={country} style={{fontSize:"14px",lineHeight:1,marginRight:"4px",verticalAlign:"middle"}}>🌎</span>;
+  if (norm.includes("afric")) return <span title={country} style={{fontSize:"14px",lineHeight:1,marginRight:"4px",verticalAlign:"middle"}}>🌍</span>;
+  if (norm === "asia" || norm === "oceania" || norm === "oceanía") return <span title={country} style={{fontSize:"14px",lineHeight:1,marginRight:"4px",verticalAlign:"middle"}}>🌏</span>;
   const code = countryCode(country);
   if (!code) return null;
-  return <img src={`https://flagpedia.net/data/flags/w160/${code}.webp`} width={20} height={13} alt={country}
+  return <img src={`https://flagpedia.net/data/flags/w160/${code}.webp`} width={20} height={13} alt={country} title={country}
     style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",flexShrink:0,marginRight:"4px"}}/>;
 }
 
@@ -2645,7 +2645,7 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTea
                     <LeagueBadge liga={l} size={52}/>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b",lineHeight:"1.3"}}>{l.nombre}</div>
-                      <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"3px",display:"flex",alignItems:"center"}}><FlagImg country={l.pais||""}/>{l.pais||"—"}</div>
+                      <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"3px",display:"flex",alignItems:"center",gap:"2px"}}><FlagImg country={l.pais||""}/>{l.pais2&&<FlagImg country={l.pais2}/>}{l.pais3&&<FlagImg country={l.pais3}/>}{!l.pais&&"—"}</div>
                       <div style={{display:"flex",gap:"6px",marginTop:"6px"}}>
                         <span style={{background:"#f1f5f9",color:"#475569",fontSize:"10px",fontWeight:600,padding:"2px 8px",borderRadius:"20px"}}>{teamSet.size} equipos</span>
                         <span style={{background:"#f1f5f9",color:"#475569",fontSize:"10px",fontWeight:600,padding:"2px 8px",borderRadius:"20px"}}>{yearSet.size} temporadas</span>
