@@ -774,6 +774,9 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     })();
   }
 
+  var subTabState=useState("jugadoras");
+  var subTab=subTabState[0];var setSubTab=subTabState[1];
+
   var incompletas=useMemo(function(){
     var p=players.map(function(p){
       var iss=[];
@@ -803,8 +806,10 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       if(!co.nacionalidad)iss.push("Sin nacionalidad");
       return iss.length?{tipo:"coaches",item:co,nombre:co.nombre,id:co.id_coach,issues:iss,onGo:onGoToCoach}:null;
     }).filter(Boolean);
-    return p.concat(e,l,c).sort(function(a,b){return a.nombre.localeCompare(b.nombre,"es");});
+    var sortFn=function(a,b){return a.nombre.localeCompare(b.nombre,"es");};
+    return{jugadoras:p.sort(sortFn),equipos:e.sort(sortFn),ligas:l.sort(sortFn),coaches:c.sort(sortFn)};
   },[players,equipos,ligas,coaches]);
+  var incompletasTotal=incompletas.jugadoras.length+incompletas.equipos.length+incompletas.ligas.length+incompletas.coaches.length;
 
   var duplicadas=useMemo(function(){
     var all=players.flatMap(function(p){return (p.seasons||[]).map(function(s){return Object.assign({},s,{nombre:p.nombre,id_jugadora:p.id_jugadora});});});
@@ -831,7 +836,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   },[players,equipos,ligas,coaches,tempCoach,palmares]);
 
   var CAL_TABS=[
-    {key:"incompletas",label:"Fichas incompletas",count:(incompletas||[]).length},
+    {key:"incompletas",label:"Fichas incompletas",count:incompletasTotal},
     {key:"duplicadas",label:"Temporadas duplicadas",count:(duplicadas||[]).length},
     {key:"duplicados_nombre",label:"Posibles duplicados",count:totalNameDupes},
     {key:"huecos",label:"Huecos de IDs",count:huecos?Object.values(huecos).reduce(function(a,v){return a+(v?v.total:0);},0):0},
@@ -857,28 +862,40 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           );})}
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"16px 24px 24px"}}>
-          {tab==="incompletas"&&((incompletas||[]).length===0?
-            <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><div style={{fontSize:"36px"}}>✅</div><p>Todas las fichas completas</p></div>:
-            <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
-              {(incompletas||[]).map(function(item){
-                var icon={jugadoras:"👩‍🏀",equipos:"🏟️",ligas:"🏆",coaches:"📋"}[item.tipo];
-                return(
-                <div key={item.tipo+item.id} onClick={function(){item.onGo&&item.onGo(item.id);onClose();}}
-                  style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0",cursor:"pointer",gap:"10px"}}
-                  onMouseEnter={function(e){e.currentTarget.style.background="#fff7ed";}}
-                  onMouseLeave={function(e){e.currentTarget.style.background="#f8fafc";}}>
-                  <div style={{display:"flex",alignItems:"center",gap:"10px",minWidth:0}}>
-                    <span style={{fontSize:"16px",flexShrink:0}}>{icon}</span>
-                    <div style={{minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.nombre}</div>
-                      <div style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{item.id}</div>
+          {tab==="incompletas"&&(
+            <div>
+              <div style={{display:"flex",gap:"4px",marginBottom:"14px"}}>
+                {[["jugadoras","👩‍🏀 Jugadoras"],["equipos","🏟️ Equipos"],["ligas","🏆 Ligas"],["coaches","📋 Cuerpo técnico"]].map(function(st){return(
+                  <button key={st[0]} onClick={function(){setSubTab(st[0]);}}
+                    style={{flex:1,background:subTab===st[0]?"#9333ea":"#f1f5f9",color:subTab===st[0]?"#fff":"#475569",border:"none",borderRadius:"8px",padding:"7px 4px",cursor:"pointer",fontSize:"11px",fontWeight:700}}>
+                    {st[1]}{incompletas[st[0]].length>0&&<span style={{display:"inline-block",marginLeft:"4px",background:subTab===st[0]?"rgba(255,255,255,0.3)":"#ef4444",color:subTab===st[0]?"#fff":"#fff",borderRadius:"10px",padding:"0 5px",fontSize:"10px"}}>{incompletas[st[0]].length}</span>}
+                  </button>
+                );})}
+              </div>
+              {incompletas[subTab].length===0?
+                <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><div style={{fontSize:"36px"}}>✅</div><p>Todas las fichas completas</p></div>:
+                <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+                  {incompletas[subTab].map(function(item){
+                    var icon={jugadoras:"👩‍🏀",equipos:"🏟️",ligas:"🏆",coaches:"📋"}[item.tipo];
+                    return(
+                    <div key={item.tipo+item.id} onClick={function(){item.onGo&&item.onGo(item.id);onClose();}}
+                      style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0",cursor:"pointer",gap:"10px"}}
+                      onMouseEnter={function(e){e.currentTarget.style.background="#fff7ed";}}
+                      onMouseLeave={function(e){e.currentTarget.style.background="#f8fafc";}}>
+                      <div style={{display:"flex",alignItems:"center",gap:"10px",minWidth:0}}>
+                        <span style={{fontSize:"16px",flexShrink:0}}>{icon}</span>
+                        <div style={{minWidth:0}}>
+                          <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.nombre}</div>
+                          <div style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{item.id}</div>
+                        </div>
+                      </div>
+                      <div style={{display:"flex",gap:"4px",flexWrap:"wrap",justifyContent:"flex-end",maxWidth:"50%",flexShrink:0}}>
+                        {item.issues.map(function(iss){return <span key={iss} style={{background:"#fee2e2",color:"#ef4444",borderRadius:"8px",padding:"2px 8px",fontSize:"10px",fontWeight:700}}>{iss}</span>;})}
+                      </div>
                     </div>
-                  </div>
-                  <div style={{display:"flex",gap:"4px",flexWrap:"wrap",justifyContent:"flex-end",maxWidth:"50%",flexShrink:0}}>
-                    {item.issues.map(function(iss){return <span key={iss} style={{background:"#fee2e2",color:"#ef4444",borderRadius:"8px",padding:"2px 8px",fontSize:"10px",fontWeight:700}}>{iss}</span>;})}
-                  </div>
+                  );})}
                 </div>
-              );})}
+              }
             </div>
           )}
           {tab==="duplicadas"&&((duplicadas||[]).length===0?
