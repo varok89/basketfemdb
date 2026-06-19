@@ -708,11 +708,54 @@ function checkIdGaps(items,key,prefix,pad){
   var ff=ids.length?(function(){var s=new Set(ids);var i=1;while(s.has(i))i++;return i;})():1;
   var maxN=ids[ids.length-1]||0;var nextAfterMax=prefix+(pad?String(maxN+1).padStart(pad,"0"):maxN+1);return{gaps:gaps.slice(0,15),total:gaps.length,nextFree:prefix+(pad?String(ff).padStart(pad,"0"):ff),max:maxN,nextAfterMax};
 }
-function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,onGoToPlayer,onReload}){
+function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach,onReload}){
   var tabState=useState("incompletas");
   var tab=tabState[0];var setTab=tabState[1];
   var fixState=useState(null);
   var fixing=fixState[0];var setFixing=fixState[1];
+  var ignoredState=useState(new Set());
+  var ignored=ignoredState[0];var setIgnored=ignoredState[1];
+  var loadingDupState=useState(true);
+  var loadingDup=loadingDupState[0];var setLoadingDup=loadingDupState[1];
+
+  useEffect(function(){
+    (async function(){
+      try{
+        var r=await supabase.from("duplicados_ignorados").select("tipo,ids");
+        var s=new Set((r.data||[]).map(function(row){return row.tipo+"|"+row.ids;}));
+        setIgnored(s);
+      }catch(e){console.error("Error cargando ignorados:",e);}
+      setLoadingDup(false);
+    })();
+  },[]);
+
+  var norm=function(s){return (s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ").trim();};
+  var groupKey=function(tipo,items,idKey){var ids=items.map(function(it){return it[idKey];}).sort().join(",");return tipo+"|"+ids;};
+  var findDupes=function(items,nameKey,idKey,tipo){
+    var groups={};
+    items.forEach(function(it){
+      var key=norm(it[nameKey]);
+      if(!key)return;
+      if(!groups[key])groups[key]=[];
+      groups[key].push(it);
+    });
+    return Object.entries(groups).filter(function(e){return e[1].length>1;}).map(function(e){return{key:e[0],items:e[1],gk:groupKey(tipo,e[1],idKey)};}).filter(function(g){return !ignored.has(g.gk);});
+  };
+  var nameDupes={
+    jugadoras:findDupes(players,"nombre","id_jugadora","jugadoras"),
+    equipos:findDupes(equipos,"nombre","id_equipo","equipos"),
+    ligas:findDupes(ligas,"nombre","id_liga","ligas"),
+    coaches:findDupes(coaches,"nombre","id_coach","coaches"),
+  };
+  var totalNameDupes=Object.values(nameDupes).reduce(function(a,d){return a+d.length;},0);
+  var ignoreGroup=async function(tipo,group){
+    var idKeyMap={jugadoras:"id_jugadora",equipos:"id_equipo",ligas:"id_liga",coaches:"id_coach"};
+    var ids=group.items.map(function(it){return it[idKeyMap[tipo]];}).sort().join(",");
+    try{
+      await supabase.from("duplicados_ignorados").insert({tipo:tipo,clave:group.key,ids:ids});
+      setIgnored(function(prev){var s=new Set(prev);s.add(group.gk);return s;});
+    }catch(e){alert("Error al guardar: "+(e.message||JSON.stringify(e)));}
+  };
 
   function fixDuplicate(group){
     var sorted=[].concat(group).sort(function(a,b){return a.id-b.id;});
@@ -732,16 +775,36 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   }
 
   var incompletas=useMemo(function(){
-    return players.map(function(p){
+    var p=players.map(function(p){
       var iss=[];
       if(!p.foto)iss.push("Sin foto");
       if(!p.altura_cm)iss.push("Sin altura");
       if(!p.nacionalidad)iss.push("Sin nacionalidad");
       if(!p.posicion)iss.push("Sin posición");
       if(!(p.seasons||[]).length)iss.push("Sin temporadas");
-      return iss.length?{player:p,issues:iss}:null;
-    }).filter(Boolean).sort(function(a,b){return a.player.nombre.localeCompare(b.player.nombre,"es");});
-  },[players]);
+      return iss.length?{tipo:"jugadoras",item:p,nombre:p.nombre,id:p.id_jugadora,issues:iss,onGo:onGoToPlayer}:null;
+    }).filter(Boolean);
+    var e=equipos.map(function(eq){
+      var iss=[];
+      if(!eq.escudo)iss.push("Sin escudo");
+      if(!eq.pais)iss.push("Sin país");
+      if(!eq.ciudad)iss.push("Sin ciudad");
+      return iss.length?{tipo:"equipos",item:eq,nombre:eq.nombre,id:eq.id_equipo,issues:iss,onGo:onGoToTeam}:null;
+    }).filter(Boolean);
+    var l=ligas.map(function(lg){
+      var iss=[];
+      if(!lg.escudo)iss.push("Sin escudo");
+      if(!lg.pais)iss.push("Sin país");
+      return iss.length?{tipo:"ligas",item:lg,nombre:lg.nombre,id:lg.id_liga,issues:iss,onGo:onGoToLeague}:null;
+    }).filter(Boolean);
+    var c=coaches.map(function(co){
+      var iss=[];
+      if(!co.foto)iss.push("Sin foto");
+      if(!co.nacionalidad)iss.push("Sin nacionalidad");
+      return iss.length?{tipo:"coaches",item:co,nombre:co.nombre,id:co.id_coach,issues:iss,onGo:onGoToCoach}:null;
+    }).filter(Boolean);
+    return p.concat(e,l,c).sort(function(a,b){return a.nombre.localeCompare(b.nombre,"es");});
+  },[players,equipos,ligas,coaches]);
 
   var duplicadas=useMemo(function(){
     var all=players.flatMap(function(p){return (p.seasons||[]).map(function(s){return Object.assign({},s,{nombre:p.nombre,id_jugadora:p.id_jugadora});});});
@@ -770,6 +833,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   var CAL_TABS=[
     {key:"incompletas",label:"Fichas incompletas",count:(incompletas||[]).length},
     {key:"duplicadas",label:"Temporadas duplicadas",count:(duplicadas||[]).length},
+    {key:"duplicados_nombre",label:"Posibles duplicados",count:totalNameDupes},
     {key:"huecos",label:"Huecos de IDs",count:huecos?Object.values(huecos).reduce(function(a,v){return a+(v?v.total:0);},0):0},
   ];
 
@@ -796,16 +860,21 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           {tab==="incompletas"&&((incompletas||[]).length===0?
             <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><div style={{fontSize:"36px"}}>✅</div><p>Todas las fichas completas</p></div>:
             <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
-              {(incompletas||[]).map(function(item){return(
-                <div key={item.player.id_jugadora} onClick={function(){onGoToPlayer(item.player.id_jugadora);onClose();}}
-                  style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0",cursor:"pointer"}}
+              {(incompletas||[]).map(function(item){
+                var icon={jugadoras:"👩‍🏀",equipos:"🏟️",ligas:"🏆",coaches:"📋"}[item.tipo];
+                return(
+                <div key={item.tipo+item.id} onClick={function(){item.onGo&&item.onGo(item.id);onClose();}}
+                  style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0",cursor:"pointer",gap:"10px"}}
                   onMouseEnter={function(e){e.currentTarget.style.background="#fff7ed";}}
                   onMouseLeave={function(e){e.currentTarget.style.background="#f8fafc";}}>
-                  <div>
-                    <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{item.player.nombre}</div>
-                    <div style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{item.player.id_jugadora}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:"10px",minWidth:0}}>
+                    <span style={{fontSize:"16px",flexShrink:0}}>{icon}</span>
+                    <div style={{minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.nombre}</div>
+                      <div style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{item.id}</div>
+                    </div>
                   </div>
-                  <div style={{display:"flex",gap:"4px",flexWrap:"wrap",justifyContent:"flex-end",maxWidth:"55%"}}>
+                  <div style={{display:"flex",gap:"4px",flexWrap:"wrap",justifyContent:"flex-end",maxWidth:"50%",flexShrink:0}}>
                     {item.issues.map(function(iss){return <span key={iss} style={{background:"#fee2e2",color:"#ef4444",borderRadius:"8px",padding:"2px 8px",fontSize:"10px",fontWeight:700}}>{iss}</span>;})}
                   </div>
                 </div>
@@ -838,6 +907,43 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               })}
             </div>
           )}
+          {tab==="duplicados_nombre"&&(loadingDup?
+            <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><p>Cargando...</p></div>:
+            totalNameDupes===0?
+            <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><div style={{fontSize:"36px"}}>✅</div><p>No se han detectado posibles duplicados</p></div>:
+            <div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
+              {["jugadoras","equipos","ligas","coaches"].map(function(tipo){
+                var icon={jugadoras:"👩‍🏀",equipos:"🏟️",ligas:"🏆",coaches:"📋"}[tipo];
+                var idKeyMap={jugadoras:"id_jugadora",equipos:"id_equipo",ligas:"id_liga",coaches:"id_coach"};
+                var onGoMap={jugadoras:onGoToPlayer,equipos:onGoToTeam,ligas:onGoToLeague,coaches:onGoToCoach};
+                var groups=nameDupes[tipo];
+                if(!groups.length)return null;
+                return groups.map(function(group,gi){return(
+                  <div key={tipo+gi} style={{border:"1.5px solid #fed7aa",borderRadius:"14px",overflow:"hidden"}}>
+                    <div style={{background:"#fff7ed",padding:"8px 14px",fontSize:"12px",fontWeight:700,color:"#c2410c",borderBottom:"1px solid #fed7aa",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                      <span>{icon} {group.items.length} coincidencias</span>
+                      <button onClick={function(){ignoreGroup(tipo,group);}} title="Marcar como falso positivo"
+                        style={{background:"#fff",border:"1.5px solid #cbd5e1",borderRadius:"8px",padding:"3px 10px",fontSize:"11px",fontWeight:700,color:"#64748b",cursor:"pointer"}}>
+                        ✓ No es duplicado
+                      </button>
+                    </div>
+                    {group.items.map(function(it,ii){return(
+                      <div key={ii} onClick={function(){onGoMap[tipo]&&onGoMap[tipo](it[idKeyMap[tipo]]);onClose();}}
+                        style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",cursor:"pointer",borderBottom:ii<group.items.length-1?"1px solid #f8fafc":"none"}}
+                        onMouseEnter={function(e){e.currentTarget.style.background="#f8fafc";}}
+                        onMouseLeave={function(e){e.currentTarget.style.background="transparent";}}>
+                        <div>
+                          <div style={{fontSize:"14px",fontWeight:600,color:"#1e293b"}}>{it.nombre}</div>
+                          <div style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{it[idKeyMap[tipo]]}{it.nacionalidad?" · "+it.nacionalidad:""}{it.pais?" · "+it.pais:""}</div>
+                        </div>
+                        <span style={{fontSize:"12px",color:"#9333ea",fontWeight:700}}>Ver →</span>
+                      </div>
+                    );})}
+                  </div>
+                );});
+              })}
+            </div>
+          )}
           {tab==="huecos"&&(
             <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
               {Object.entries(huecos||{}).map(function(entry){
@@ -864,128 +970,6 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   );
 }
 
-/* ── DuplicatesModal ────────────────────────────────────── */
-function DuplicatesModal({players,equipos,ligas,coaches,onClose,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach}){
-  const [tab,setTab]=useState("jugadoras");
-  const [ignored,setIgnored]=useState(new Set());  // claves "tipo|ids" ignoradas
-  const [loading,setLoading]=useState(true);
-
-  const norm=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ").trim();
-
-  // Cargar lista de ignorados desde Supabase
-  useEffect(()=>{
-    (async()=>{
-      try{
-        const{data}=await supabase.from("duplicados_ignorados").select("tipo,ids");
-        const s=new Set((data||[]).map(r=>`${r.tipo}|${r.ids}`));
-        setIgnored(s);
-      }catch(e){console.error("Error cargando ignorados:",e);}
-      setLoading(false);
-    })();
-  },[]);
-
-  const groupKey=(tipo,items,idKey)=>{
-    const ids=items.map(it=>it[idKey]).sort().join(",");
-    return `${tipo}|${ids}`;
-  };
-
-  const findDupes=(items,nameKey,idKey,tipo)=>{
-    const groups={};
-    items.forEach(it=>{
-      const key=norm(it[nameKey]);
-      if(!key)return;
-      if(!groups[key])groups[key]=[];
-      groups[key].push(it);
-    });
-    return Object.entries(groups)
-      .filter(([,arr])=>arr.length>1)
-      .map(([key,arr])=>({key,items:arr,gk:groupKey(tipo,arr,idKey)}))
-      .filter(g=>!ignored.has(g.gk));
-  };
-
-  const dupes={
-    jugadoras:findDupes(players,"nombre","id_jugadora","jugadoras"),
-    equipos:findDupes(equipos,"nombre","id_equipo","equipos"),
-    ligas:findDupes(ligas,"nombre","id_liga","ligas"),
-    coaches:findDupes(coaches,"nombre","id_coach","coaches"),
-  };
-
-  const ignoreGroup=async(tipo,group)=>{
-    const gk=group.gk;
-    const ids=group.items.map(it=>it[{jugadoras:"id_jugadora",equipos:"id_equipo",ligas:"id_liga",coaches:"id_coach"}[tipo]]).sort().join(",");
-    try{
-      await supabase.from("duplicados_ignorados").insert({tipo,clave:group.key,ids});
-      setIgnored(prev=>new Set([...prev,gk]));
-    }catch(e){alert("Error al guardar: "+(e.message||JSON.stringify(e)));}
-  };
-
-  const TABS=[
-    {key:"jugadoras",label:"Jugadoras",icon:"👩‍🏀",idKey:"id_jugadora",onGo:onGoToPlayer},
-    {key:"equipos",label:"Equipos",icon:"🏟️",idKey:"id_equipo",onGo:onGoToTeam},
-    {key:"ligas",label:"Ligas",icon:"🏆",idKey:"id_liga",onGo:onGoToLeague},
-    {key:"coaches",label:"Coaches",icon:"📋",idKey:"id_coach",onGo:onGoToCoach},
-  ];
-  const activeTab=TABS.find(t=>t.key===tab);
-  const activeDupes=dupes[tab];
-  const totalDupes=Object.values(dupes).reduce((a,d)=>a+d.length,0);
-
-  return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px",fontFamily:"system-ui,sans-serif"}}>
-      <div style={{background:"#fff",borderRadius:"20px",width:"560px",maxWidth:"100%",maxHeight:"86vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"24px 24px 16px"}}>
-          <div>
-            <h2 style={{fontWeight:800,fontSize:"18px",color:"#1e293b",margin:0}}>🔍 Detector de duplicados</h2>
-            <p style={{fontSize:"12px",color:"#94a3b8",margin:"4px 0 0"}}>{loading?"Cargando...":totalDupes===0?"No se han detectado duplicados":`${totalDupes} posible${totalDupes!==1?"s":""} grupo${totalDupes!==1?"s":""} de duplicados`}</p>
-          </div>
-          <button onClick={onClose} style={{background:"none",border:"none",fontSize:"22px",color:"#94a3b8",cursor:"pointer"}}>×</button>
-        </div>
-        <div style={{display:"flex",gap:"4px",padding:"0 24px 12px",borderBottom:"1px solid #f1f5f9"}}>
-          {TABS.map(t=>(
-            <button key={t.key} onClick={()=>setTab(t.key)}
-              style={{flex:1,background:tab===t.key?"#fff7ed":"transparent",border:tab===t.key?"1.5px solid #fed7aa":"1.5px solid transparent",borderRadius:"10px",padding:"8px 6px",cursor:"pointer",fontSize:"12px",fontWeight:700,color:tab===t.key?"#c2410c":"#94a3b8"}}>
-              <div style={{fontSize:"16px"}}>{t.icon}</div>
-              {dupes[t.key].length>0&&<span style={{display:"inline-block",marginTop:"2px",background:"#ef4444",color:"#fff",borderRadius:"10px",padding:"0 6px",fontSize:"10px"}}>{dupes[t.key].length}</span>}
-            </button>
-          ))}
-        </div>
-        <div style={{flex:1,overflowY:"auto",padding:"16px 24px 24px"}}>
-          {activeDupes.length===0?(
-            <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}>
-              <div style={{fontSize:"40px",marginBottom:"8px"}}>✅</div>
-              <p style={{fontSize:"14px",margin:0}}>Sin duplicados en {activeTab.label.toLowerCase()}</p>
-            </div>
-          ):(
-            <div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
-              {activeDupes.map((group,gi)=>(
-                <div key={gi} style={{border:"1.5px solid #fed7aa",borderRadius:"14px",overflow:"hidden"}}>
-                  <div style={{background:"#fff7ed",padding:"8px 14px",fontSize:"12px",fontWeight:700,color:"#c2410c",borderBottom:"1px solid #fed7aa",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                    <span>{group.items.length} coincidencias</span>
-                    <button onClick={()=>ignoreGroup(tab,group)} title="Marcar como falso positivo"
-                      style={{background:"#fff",border:"1.5px solid #cbd5e1",borderRadius:"8px",padding:"3px 10px",fontSize:"11px",fontWeight:700,color:"#64748b",cursor:"pointer"}}>
-                      ✓ No es duplicado
-                    </button>
-                  </div>
-                  {group.items.map((it,ii)=>(
-                    <div key={ii} onClick={()=>{activeTab.onGo&&activeTab.onGo(it[activeTab.idKey]);onClose();}}
-                      style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",cursor:"pointer",borderBottom:ii<group.items.length-1?"1px solid #f8fafc":"none"}}
-                      onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
-                      onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                      <div>
-                        <div style={{fontSize:"14px",fontWeight:600,color:"#1e293b"}}>{it.nombre}</div>
-                        <div style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{it[activeTab.idKey]}{it.nacionalidad?` · ${it.nacionalidad}`:""}{it.pais?` · ${it.pais}`:""}</div>
-                      </div>
-                      <span style={{fontSize:"12px",color:"#9333ea",fontWeight:700}}>Ver →</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
 /* ── ExportModal ────────────────────────────────────────── */
 function ExportModal({tables,onClose}){
   const [selected,setSelected]=useState(new Set(tables.map(t=>t.key)));
@@ -3024,7 +3008,6 @@ export default function App(){
   const [error,setError]     = useState(null);
   const [isFirstLoad,setIsFirstLoad] = useState(true);
   const [showExport,setShowExport]   = useState(false);
-  const [showDupes,setShowDupes]     = useState(false);
   const [showCalidad,setShowCalidad] = useState(false);
   const [showLanding,setShowLanding] = useState(()=>{
     try{return !localStorage.getItem("bfdb_accepted");}catch{return true;}
@@ -3114,12 +3097,8 @@ export default function App(){
   if(showCalidad){
     return <CalidadModal players={players} equipos={equipos} ligas={ligas} coaches={coaches}
       tempCoach={tempCoach} palmares={palmares}
-      onClose={()=>setShowCalidad(false)} onGoToPlayer={goToPlayer} onReload={loadAll}/>;
-  }
-  if(showDupes){
-    return <DuplicatesModal players={players} equipos={equipos} ligas={ligas} coaches={coaches}
-      onClose={()=>setShowDupes(false)}
-      onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToCoach={goToCoach}/>;
+      onClose={()=>setShowCalidad(false)} onGoToPlayer={goToPlayer}
+      onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToCoach={goToCoach} onReload={loadAll}/>;
   }
   if(showExport){
     const TABLES=[
@@ -3194,7 +3173,6 @@ export default function App(){
             ))}
             <button onClick={loadAll} title="Recargar" style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}}>🔄</button>
             {isAdmin&&<button title="Calidad de datos" onClick={()=>setShowCalidad(true)} style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}}>🩺</button>}
-            {isAdmin&&<button title="Detectar duplicados" onClick={()=>setShowDupes(true)} style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}}>🔍</button>}
             {isAdmin&&<button title="Exportar datos" onClick={()=>setShowExport(true)} style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}}>📥</button>}
             <button onClick={()=>setShowLanding(true)} title="Información" style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"14px",fontWeight:700}}>ℹ</button>
             {isAdmin
