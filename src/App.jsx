@@ -504,7 +504,7 @@ function PlayerForm({initial,onSave,onCancel,saving}){
     <PhotoPicker value={f.foto} onChange={v=>setF(p=>({...p,foto:v}))}/>
     <Fld label="Nombre *"><input style={inp} value={f.nombre} onChange={set("nombre")} placeholder="Ej: Claudia Soriano"/></Fld>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
-      <Fld label="Posición"><select style={inp} value={f.posicion} onChange={set("posicion")}>{POSITIONS.map(p=><option key={p}>{p}</option>)}</select></Fld>
+      <Fld label="Posición"><select style={inp} value={f.posicion||""} onChange={set("posicion")}><option value="">— Sin definir —</option>{POSITIONS.map(p=><option key={p}>{p}</option>)}</select></Fld>
       <Fld label="Altura (cm)"><input style={inp} type="number" value={f.altura_cm} onChange={set("altura_cm")} placeholder="180"/></Fld>
     </div>
     <Fld label="2ª Posición (opcional)"><select style={inp} value={f.posicion2} onChange={set("posicion2")}><option value="">— Ninguna —</option>{POSITIONS.map(p=><option key={p}>{p}</option>)}</select></Fld>
@@ -1420,7 +1420,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     try{
       const allJIds=players.map(p=>parseInt((p.id_jugadora||"J0").slice(1))).filter(n=>!isNaN(n));
       const newId=firstFreeId(allJIds,"J",0);
-      const{error}=await supabase.from("jugadoras").insert({id_jugadora:newId,nombre:f.nombre,posicion:f.posicion,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null});
+      const{error}=await supabase.from("jugadoras").insert({id_jugadora:newId,nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null});
       if(error)throw error;
       await onReload();setModal(null);
     }catch(e){alert("Error al guardar jugadora: "+(e.message||e.details||JSON.stringify(e)));}
@@ -1428,7 +1428,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   };
   const updPlayer=async f=>{
     setSaving(true);
-    try{await supabase.from("jugadoras").update({nombre:f.nombre,posicion:f.posicion,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null}).eq("id_jugadora",selId);
+    try{await supabase.from("jugadoras").update({nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null}).eq("id_jugadora",selId);
       await onReload();setModal(null);}catch(e){alert("Error: "+e.message);}
     setSaving(false);
   };
