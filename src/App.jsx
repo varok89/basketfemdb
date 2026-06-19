@@ -617,8 +617,10 @@ function SeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
 
     return ligas.filter(l=>{
       const paisLiga=norm(l.pais);
-      // Misma liga del país
-      if(paisLiga===paisEquipo) return true;
+      const paisLiga2=norm(l.pais2);
+      const paisLiga3=norm(l.pais3);
+      // Misma liga del país (considerando pais, pais2, pais3)
+      if(paisLiga===paisEquipo||paisLiga2===paisEquipo||paisLiga3===paisEquipo) return true;
       // Canadá ↔ USA
       if(esCanada&&(paisLiga.includes("estados unidos")||paisLiga==="usa")) return true;
       if(esUSA&&paisLiga.includes("canad")) return true;
