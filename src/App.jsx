@@ -810,12 +810,49 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     return false;
   };
   var findDupes=function(items,nameKey,idKey,tipo){
-    var used=new Array(items.length).fill(false);
+    var n=items.length;
+    if(n>3000){
+      // Para tablas muy grandes (jugadoras), evitamos O(n²): agrupamos por prefijo del nombre
+      // normalizado y solo comparamos dentro del mismo bloque + bloques vecinos alfabéticamente.
+      var normed=items.map(function(it){return norm(it[nameKey]);});
+      var buckets={};
+      for(var i=0;i<n;i++){
+        var key3=normed[i].slice(0,3);
+        if(!key3)continue;
+        if(!buckets[key3])buckets[key3]=[];
+        buckets[key3].push(i);
+      }
+      var used=new Array(n).fill(false);
+      var groupsArr=[];
+      var bucketKeys=Object.keys(buckets);
+      for(var bi=0;bi<bucketKeys.length;bi++){
+        var idxs=buckets[bucketKeys[bi]];
+        for(var ii=0;ii<idxs.length;ii++){
+          var gi=idxs[ii];
+          if(used[gi])continue;
+          var cluster=[items[gi]];
+          for(var jj=ii+1;jj<idxs.length;jj++){
+            var gj=idxs[jj];
+            if(used[gj])continue;
+            var nameMatch=similarNames(items[gi][nameKey],items[gj][nameKey]);
+            if(!nameMatch)continue;
+            var exact=normed[gi]===normed[gj];
+            if(exact||sharedAttr(items[gi],items[gj],tipo)){
+              cluster.push(items[gj]);
+              used[gj]=true;
+            }
+          }
+          if(cluster.length>1){used[gi]=true;groupsArr.push(cluster);}
+        }
+      }
+      return groupsArr.map(function(grp){return{key:norm(grp[0][nameKey]),items:grp,gk:groupKey(tipo,grp,idKey)};}).filter(function(g){return !ignored.has(g.gk);});
+    }
+    var used=new Array(n).fill(false);
     var groupsArr=[];
-    for(var i=0;i<items.length;i++){
+    for(var i=0;i<n;i++){
       if(used[i])continue;
       var cluster=[items[i]];
-      for(var j=i+1;j<items.length;j++){
+      for(var j=i+1;j<n;j++){
         if(used[j])continue;
         var nameMatch=similarNames(items[i][nameKey],items[j][nameKey]);
         if(!nameMatch)continue;
@@ -830,12 +867,14 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     }
     return groupsArr.map(function(items){return{key:norm(items[0][nameKey]),items:items,gk:groupKey(tipo,items,idKey)};}).filter(function(g){return !ignored.has(g.gk);});
   };
-  var nameDupes={
-    jugadoras:findDupes(players,"nombre","id_jugadora","jugadoras"),
-    equipos:findDupes(equipos,"nombre","id_equipo","equipos"),
-    ligas:findDupes(ligas,"nombre","id_liga","ligas"),
-    coaches:findDupes(coaches,"nombre","id_coach","coaches"),
-  };
+  var nameDupes=useMemo(function(){
+    return{
+      jugadoras:findDupes(players,"nombre","id_jugadora","jugadoras"),
+      equipos:findDupes(equipos,"nombre","id_equipo","equipos"),
+      ligas:findDupes(ligas,"nombre","id_liga","ligas"),
+      coaches:findDupes(coaches,"nombre","id_coach","coaches"),
+    };
+  },[players,equipos,ligas,coaches,ignored]);
   var totalNameDupes=Object.values(nameDupes).reduce(function(a,d){return a+d.length;},0);
   var ignoreGroup=async function(tipo,group){
     var idKeyMap={jugadoras:"id_jugadora",equipos:"id_equipo",ligas:"id_liga",coaches:"id_coach"};
