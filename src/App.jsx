@@ -801,6 +801,8 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
 
   var subTabState=useState("jugadoras");
   var subTab=subTabState[0];var setSubTab=subTabState[1];
+  var issueFilterState=useState("");
+  var issueFilter=issueFilterState[0];var setIssueFilter=issueFilterState[1];
 
   var incompletas=useMemo(function(){
     var p=players.map(function(p){
@@ -891,16 +893,38 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
             <div>
               <div style={{display:"flex",gap:"4px",marginBottom:"14px"}}>
                 {[["jugadoras","👩‍🏀 Jugadoras"],["equipos","🏟️ Equipos"],["ligas","🏆 Ligas"],["coaches","📋 Cuerpo técnico"]].map(function(st){return(
-                  <button key={st[0]} onClick={function(){setSubTab(st[0]);}}
+                  <button key={st[0]} onClick={function(){setSubTab(st[0]);setIssueFilter("");}}
                     style={{flex:1,background:subTab===st[0]?"#9333ea":"#f1f5f9",color:subTab===st[0]?"#fff":"#475569",border:"none",borderRadius:"8px",padding:"7px 4px",cursor:"pointer",fontSize:"11px",fontWeight:700}}>
                     {st[1]}{incompletas[st[0]].length>0&&<span style={{display:"inline-block",marginLeft:"4px",background:subTab===st[0]?"rgba(255,255,255,0.3)":"#ef4444",color:subTab===st[0]?"#fff":"#fff",borderRadius:"10px",padding:"0 5px",fontSize:"10px"}}>{incompletas[st[0]].length}</span>}
                   </button>
                 );})}
               </div>
-              {incompletas[subTab].length===0?
-                <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><div style={{fontSize:"36px"}}>✅</div><p>Todas las fichas completas</p></div>:
+              {(function(){
+                var allIssues={};
+                incompletas[subTab].forEach(function(item){item.issues.forEach(function(iss){allIssues[iss]=(allIssues[iss]||0)+1;});});
+                var issueKeys=Object.keys(allIssues).sort(function(a,b){return allIssues[b]-allIssues[a];});
+                if(!issueKeys.length)return null;
+                return(
+                  <div style={{display:"flex",gap:"6px",marginBottom:"14px",flexWrap:"wrap"}}>
+                    <button onClick={function(){setIssueFilter("");}}
+                      style={{background:issueFilter===""?"#9333ea":"#f8fafc",color:issueFilter===""?"#fff":"#64748b",border:"1px solid "+(issueFilter===""?"#9333ea":"#e2e8f0"),borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>
+                      Todos ({incompletas[subTab].length})
+                    </button>
+                    {issueKeys.map(function(iss){return(
+                      <button key={iss} onClick={function(){setIssueFilter(iss);}}
+                        style={{background:issueFilter===iss?"#9333ea":"#f8fafc",color:issueFilter===iss?"#fff":"#64748b",border:"1px solid "+(issueFilter===iss?"#9333ea":"#e2e8f0"),borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>
+                        {iss} ({allIssues[iss]})
+                      </button>
+                    );})}
+                  </div>
+                );
+              })()}
+              {(function(){
+                var list=issueFilter?incompletas[subTab].filter(function(item){return item.issues.indexOf(issueFilter)>=0;}):incompletas[subTab];
+                return list.length===0?
+                <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><div style={{fontSize:"36px"}}>✅</div><p>{issueFilter?"No hay coincidencias para este filtro":"Todas las fichas completas"}</p></div>:
                 <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
-                  {incompletas[subTab].map(function(item){
+                  {list.map(function(item){
                     var icon={jugadoras:"👩‍🏀",equipos:"🏟️",ligas:"🏆",coaches:"📋"}[item.tipo];
                     return(
                     <div key={item.tipo+item.id} onClick={function(){item.onGo&&item.onGo(item.id);onClose();}}
@@ -919,8 +943,8 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                       </div>
                     </div>
                   );})}
-                </div>
-              }
+                </div>;
+              })()}
             </div>
           )}
           {tab==="duplicadas"&&((duplicadas||[]).length===0?
