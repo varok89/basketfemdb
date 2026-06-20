@@ -756,15 +756,79 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
 
   var norm=function(s){return (s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ").trim();};
   var groupKey=function(tipo,items,idKey){var ids=items.map(function(it){return it[idKey];}).sort().join(",");return tipo+"|"+ids;};
+
+  // Distancia de Levenshtein simple, usada para tolerar errores de tipeo en nombres
+  var levenshtein=function(a,b){
+    if(a===b)return 0;
+    var m=a.length,n=b.length;
+    if(!m)return n; if(!n)return m;
+    var prev=new Array(n+1);for(var j=0;j<=n;j++)prev[j]=j;
+    for(var i=1;i<=m;i++){
+      var cur=[i];
+      for(var jj=1;jj<=n;jj++){
+        var cost=a[i-1]===b[jj-1]?0:1;
+        cur[jj]=Math.min(prev[jj]+1,cur[jj-1]+1,prev[jj-1]+cost);
+      }
+      prev=cur;
+    }
+    return prev[n];
+  };
+  // ¿Son nombres parecidos? Se considera coincidencia si:
+  // - los tokens (palabras) de uno son subconjunto de los del otro (nombres truncados/abreviados), o
+  // - la distancia de Levenshtein relativa es baja (errores de tipeo / variantes ortográficas)
+  var similarNames=function(a,b){
+    var na=norm(a),nb=norm(b);
+    if(!na||!nb)return false;
+    if(na===nb)return true;
+    var ta=na.split(" ").filter(Boolean),tb=nb.split(" ").filter(Boolean);
+    var sa=new Set(ta),sb=new Set(tb);
+    var shorter=ta.length<=tb.length?sa:sb,longer=ta.length<=tb.length?sb:sa;
+    var shorterArr=shorter===sa?ta:tb;
+    if(shorterArr.length>=2){
+      var allIn=true;
+      shorterArr.forEach(function(tok){if(!longer.has(tok))allIn=false;});
+      if(allIn)return true;
+    }
+    var maxLen=Math.max(na.length,nb.length);
+    if(maxLen<=4)return false;
+    var dist=levenshtein(na,nb);
+    return dist/maxLen<=0.2;
+  };
+  // Atributos secundarios que refuerzan la sospecha de duplicado (evita falsos positivos de nombres comunes)
+  var sharedAttr=function(a,b,tipo){
+    if(tipo==="jugadoras"||tipo==="coaches"){
+      if(a.fecha_nac&&b.fecha_nac&&a.fecha_nac===b.fecha_nac)return true;
+      if(tipo==="jugadoras"&&a.altura_cm&&b.altura_cm&&a.altura_cm===b.altura_cm&&a.posicion&&b.posicion&&a.posicion===b.posicion)return true;
+      if(a.nacionalidad&&b.nacionalidad&&a.nacionalidad===b.nacionalidad&&a.fecha_nac&&b.fecha_nac)return true;
+    }
+    if(tipo==="equipos"){
+      if(a.pais&&b.pais&&a.pais===b.pais&&a.ciudad&&b.ciudad&&a.ciudad===b.ciudad)return true;
+    }
+    if(tipo==="ligas"){
+      if(a.pais&&b.pais&&a.pais===b.pais)return true;
+    }
+    return false;
+  };
   var findDupes=function(items,nameKey,idKey,tipo){
-    var groups={};
-    items.forEach(function(it){
-      var key=norm(it[nameKey]);
-      if(!key)return;
-      if(!groups[key])groups[key]=[];
-      groups[key].push(it);
-    });
-    return Object.entries(groups).filter(function(e){return e[1].length>1;}).map(function(e){return{key:e[0],items:e[1],gk:groupKey(tipo,e[1],idKey)};}).filter(function(g){return !ignored.has(g.gk);});
+    var used=new Array(items.length).fill(false);
+    var groupsArr=[];
+    for(var i=0;i<items.length;i++){
+      if(used[i])continue;
+      var cluster=[items[i]];
+      for(var j=i+1;j<items.length;j++){
+        if(used[j])continue;
+        var nameMatch=similarNames(items[i][nameKey],items[j][nameKey]);
+        if(!nameMatch)continue;
+        // Si el nombre normalizado es idéntico, basta; si no, exigir un atributo compartido para evitar falsos positivos
+        var exact=norm(items[i][nameKey])===norm(items[j][nameKey]);
+        if(exact||sharedAttr(items[i],items[j],tipo)){
+          cluster.push(items[j]);
+          used[j]=true;
+        }
+      }
+      if(cluster.length>1){used[i]=true;groupsArr.push(cluster);}
+    }
+    return groupsArr.map(function(items){return{key:norm(items[0][nameKey]),items:items,gk:groupKey(tipo,items,idKey)};}).filter(function(g){return !ignored.has(g.gk);});
   };
   var nameDupes={
     jugadoras:findDupes(players,"nombre","id_jugadora","jugadoras"),
@@ -862,11 +926,29 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     };
   },[players,equipos,ligas,coaches,tempCoach,palmares]);
 
+  var brokenState=useState({checked:false,checking:false,broken:[],progress:0,total:0});
+  var brokenInfo=brokenState[0];var setBrokenInfo=brokenState[1];
+  var checkBrokenEscudos=function(){
+    var targets=[];
+    equipos.forEach(function(e){if(e.escudo)targets.push({tipo:"equipos",id:e.id_equipo,nombre:e.nombre,url:e.escudo,onGo:onGoToTeam});});
+    ligas.forEach(function(l){if(l.logo)targets.push({tipo:"ligas",id:l.id_liga,nombre:l.nombre,url:l.logo,onGo:onGoToLeague});});
+    if(!targets.length){setBrokenInfo({checked:true,checking:false,broken:[],progress:0,total:0});return;}
+    setBrokenInfo({checked:false,checking:true,broken:[],progress:0,total:targets.length});
+    var done=0;var broken=[];
+    targets.forEach(function(t){
+      var img=new window.Image();
+      img.onload=function(){done++;setBrokenInfo(function(prev){return{checked:done===targets.length,checking:done!==targets.length,broken:broken.slice(),progress:done,total:targets.length};});};
+      img.onerror=function(){done++;broken.push(t);setBrokenInfo(function(prev){return{checked:done===targets.length,checking:done!==targets.length,broken:broken.slice(),progress:done,total:targets.length};});};
+      img.src=t.url;
+    });
+  };
+
   var CAL_TABS=[
     {key:"incompletas",label:"Fichas incompletas",count:incompletasTotal},
     {key:"duplicadas",label:"Temporadas duplicadas",count:(duplicadas||[]).length},
     {key:"duplicados_nombre",label:"Posibles duplicados",count:totalNameDupes},
     {key:"huecos",label:"Huecos de IDs",count:huecos?Object.values(huecos).reduce(function(a,v){return a+(v?v.total:0);},0):0},
+    {key:"escudos_rotos",label:"Escudos rotos",count:brokenInfo.broken.length},
   ];
 
   return(
@@ -1030,6 +1112,55 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               })}
             </div>
           )}
+          {tab==="escudos_rotos"&&(
+            <div>
+              {!brokenInfo.checked&&!brokenInfo.checking&&(
+                <div style={{textAlign:"center",padding:"40px 0"}}>
+                  <div style={{fontSize:"36px",marginBottom:"10px"}}>🖼️</div>
+                  <p style={{color:"#64748b",fontSize:"13px",marginBottom:"14px"}}>Comprueba si los escudos de equipos y ligas cargan correctamente desde tu navegador.</p>
+                  <button onClick={checkBrokenEscudos} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"10px 20px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>Comprobar escudos</button>
+                </div>
+              )}
+              {brokenInfo.checking&&(
+                <div style={{textAlign:"center",padding:"40px 0"}}>
+                  <div style={{fontSize:"36px",marginBottom:"10px"}}>⏳</div>
+                  <p style={{color:"#64748b",fontSize:"13px"}}>Comprobando {brokenInfo.progress} de {brokenInfo.total}…</p>
+                  <div style={{width:"100%",maxWidth:"260px",height:"6px",background:"#e2e8f0",borderRadius:"4px",margin:"10px auto 0",overflow:"hidden"}}>
+                    <div style={{height:"100%",background:"#9333ea",width:(brokenInfo.total?Math.round(brokenInfo.progress/brokenInfo.total*100):0)+"%",transition:"width 0.2s"}}/>
+                  </div>
+                </div>
+              )}
+              {brokenInfo.checked&&!brokenInfo.checking&&(
+                brokenInfo.broken.length===0?
+                <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><div style={{fontSize:"36px"}}>✅</div><p>Todos los escudos cargan correctamente ({brokenInfo.total} comprobados)</p></div>:
+                <div>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
+                    <p style={{color:"#64748b",fontSize:"13px",margin:0}}>{brokenInfo.broken.length} de {brokenInfo.total} escudos rotos</p>
+                    <button onClick={checkBrokenEscudos} style={{background:"#fff",color:"#9333ea",border:"1.5px solid #9333ea",borderRadius:"8px",padding:"5px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>↻ Repetir</button>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+                    {brokenInfo.broken.map(function(item){
+                      var icon=item.tipo==="equipos"?"🏟️":"🏆";
+                      return(
+                      <div key={item.tipo+item.id} onClick={function(){item.onGo&&item.onGo(item.id);onClose();}}
+                        style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0",cursor:"pointer",gap:"10px"}}
+                        onMouseEnter={function(e){e.currentTarget.style.background="#fff7ed";}}
+                        onMouseLeave={function(e){e.currentTarget.style.background="#f8fafc";}}>
+                        <div style={{display:"flex",alignItems:"center",gap:"10px",minWidth:0}}>
+                          <span style={{fontSize:"16px",flexShrink:0}}>{icon}</span>
+                          <div style={{minWidth:0}}>
+                            <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.nombre}</div>
+                            <div style={{fontSize:"10px",color:"#94a3b8",fontFamily:"monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"260px"}}>{item.url}</div>
+                          </div>
+                        </div>
+                        <span style={{background:"#fee2e2",color:"#ef4444",borderRadius:"8px",padding:"2px 8px",fontSize:"10px",fontWeight:700,flexShrink:0}}>Roto</span>
+                      </div>
+                    );})}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1089,14 +1220,16 @@ function ExportModal({tables,onClose}){
 }
 
 /* ── GlobalSearch ───────────────────────────────────────── */
-function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach}){
+function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach,fullscreen,onClose}){
   const [q,setQ]=useState("");
   const [open,setOpen]=useState(false);
   const ref=useRef();
+  const inputRef=useRef();
   useEffect(()=>{
-    const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
+    const h=e=>{if(!fullscreen&&ref.current&&!ref.current.contains(e.target))setOpen(false);};
     document.addEventListener("mousedown",h);return()=>document.removeEventListener("mousedown",h);
-  },[]);
+  },[fullscreen]);
+  useEffect(()=>{if(fullscreen&&inputRef.current)inputRef.current.focus();},[fullscreen]);
 
   const results=useMemo(()=>{
     if(!q.trim()||q.length<2)return null;
@@ -1113,7 +1246,56 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
   const total=results?Object.values(results).reduce((a,v)=>a+v.length,0):0;
   const inp={width:"100%",background:"rgba(255,255,255,0.08)",border:"1.5px solid rgba(255,255,255,0.12)",borderRadius:"10px",padding:"7px 12px",fontSize:"13px",color:"#fff",outline:"none",boxSizing:"border-box"};
 
-  const go=(fn)=>{fn();setQ("");setOpen(false);};
+  const go=(fn)=>{fn();setQ("");setOpen(false);if(fullscreen&&onClose)onClose();};
+
+  if(fullscreen){
+    return(
+      <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"#0f172a",zIndex:500,display:"flex",flexDirection:"column"}}>
+        <div style={{display:"flex",alignItems:"center",gap:"10px",padding:"14px 16px",borderBottom:"1px solid #1e293b"}}>
+          <div style={{display:"flex",alignItems:"center",gap:"8px",flex:1,background:"rgba(255,255,255,0.08)",border:"1.5px solid rgba(255,255,255,0.12)",borderRadius:"10px",padding:"9px 12px"}}>
+            <span style={{fontSize:"14px",color:"#94a3b8"}}>🔍</span>
+            <input ref={inputRef} value={q} onChange={e=>{setQ(e.target.value);setOpen(true);}}
+              placeholder="Buscar jugadoras, equipos, ligas..." style={{background:"transparent",border:"none",outline:"none",color:"#fff",fontSize:"15px",width:"100%"}}
+              onKeyDown={e=>{if(e.key==="Escape"){onClose&&onClose();}}}/>
+            {q&&<button onClick={()=>setQ("")} style={{background:"none",border:"none",color:"#64748b",cursor:"pointer",fontSize:"16px",lineHeight:1,padding:0}}>×</button>}
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#fff",fontSize:"14px",fontWeight:700,cursor:"pointer",padding:"4px 8px"}}>Cancelar</button>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"6px 0"}}>
+          {results&&total>0?(<>
+            {results.jugadoras.length>0&&(<>
+              <div style={{padding:"10px 16px 6px",fontSize:"11px",color:"#64748b",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>👩‍🏀 Jugadoras ({results.jugadoras.length})</div>
+              {results.jugadoras.slice(0,8).map(p=>(
+                <div key={p.id_jugadora} onClick={()=>go(()=>onGoToPlayer(p.id_jugadora))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b"}}>{p.nombre}</div>
+              ))}
+            </>)}
+            {results.equipos.length>0&&(<>
+              <div style={{padding:"10px 16px 6px",fontSize:"11px",color:"#64748b",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>🏟️ Equipos ({results.equipos.length})</div>
+              {results.equipos.slice(0,8).map(e=>(
+                <div key={e.id_equipo} onClick={()=>go(()=>onGoToTeam(e.id_equipo))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b"}}>{e.nombre}</div>
+              ))}
+            </>)}
+            {results.ligas.length>0&&(<>
+              <div style={{padding:"10px 16px 6px",fontSize:"11px",color:"#64748b",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>🏆 Ligas ({results.ligas.length})</div>
+              {results.ligas.slice(0,8).map(l=>(
+                <div key={l.id_liga} onClick={()=>go(()=>onGoToLeague(l.id_liga))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b"}}>{l.nombre}</div>
+              ))}
+            </>)}
+            {results.coaches.length>0&&(<>
+              <div style={{padding:"10px 16px 6px",fontSize:"11px",color:"#64748b",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>📋 Cuerpo técnico ({results.coaches.length})</div>
+              {results.coaches.slice(0,8).map(c=>(
+                <div key={c.id_coach} onClick={()=>go(()=>onGoToCoach(c.id_coach))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b"}}>{c.nombre}</div>
+              ))}
+            </>)}
+          </>):q.length>=2?(
+            <div style={{textAlign:"center",padding:"40px 20px",color:"#64748b",fontSize:"14px"}}>Sin resultados</div>
+          ):(
+            <div style={{textAlign:"center",padding:"40px 20px",color:"#64748b",fontSize:"14px"}}>Escribe al menos 2 caracteres</div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return(
     <div ref={ref} style={{position:"relative",flexShrink:0}}>
@@ -3101,6 +3283,7 @@ export default function App(){
   const [isFirstLoad,setIsFirstLoad] = useState(true);
   const [showExport,setShowExport]   = useState(false);
   const [showCalidad,setShowCalidad] = useState(false);
+  const [mobileSearchOpen,setMobileSearchOpen] = useState(false);
   const [showLanding,setShowLanding] = useState(()=>{
     try{return !localStorage.getItem("bfdb_accepted");}catch{return true;}
   });
@@ -3234,6 +3417,7 @@ export default function App(){
         .bfdb-tab-label { display: none !important; }
         .bfdb-supabase-badge { display: none !important; }
         .bfdb-global-search { display: none !important; }
+        .bfdb-mobile-search-btn { display: flex !important; align-items: center; }
         .bfdb-stats-grid { grid-template-columns: repeat(3,1fr) !important; gap: 6px !important; }
         .bfdb-stats-grid > div { padding: 10px 4px !important; }
         .bfdb-stats-grid > div > div:first-child { font-size: 16px !important; }
@@ -3257,6 +3441,10 @@ export default function App(){
           </div>
           <div className="bfdb-global-search"><GlobalSearch players={players} equipos={equipos} ligas={ligas} coaches={coaches}
             onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToCoach={goToCoach}/></div>
+          <button className="bfdb-mobile-search-btn" onClick={()=>setMobileSearchOpen(true)} style={{display:"none",background:"none",border:"none",color:"#fff",fontSize:"18px",cursor:"pointer",padding:"6px"}}>🔍</button>
+          {mobileSearchOpen&&<GlobalSearch players={players} equipos={equipos} ligas={ligas} coaches={coaches}
+            onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToCoach={goToCoach}
+            fullscreen onClose={()=>setMobileSearchOpen(false)}/>}
           <div className="bfdb-tabs" style={{display:"flex",gap:"4px"}}>
             {TABS.map(([id,icon,label])=>(
               <button key={id} onClick={()=>{setTab(id);const seg=id==='cuerpo_tecnico'?'coaches':id;window.history.pushState({},"",`/${seg}`);}} style={{background:tab===id?"#9333ea":"transparent",color:tab===id?"#fff":"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",transition:"all 0.15s"}}>
