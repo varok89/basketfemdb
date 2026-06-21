@@ -867,14 +867,24 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     }
     return groupsArr.map(function(items){return{key:norm(items[0][nameKey]),items:items,gk:groupKey(tipo,items,idKey)};}).filter(function(g){return !ignored.has(g.gk);});
   };
-  var nameDupes=useMemo(function(){
-    return{
-      jugadoras:findDupes(players,"nombre","id_jugadora","jugadoras"),
-      equipos:findDupes(equipos,"nombre","id_equipo","equipos"),
-      ligas:findDupes(ligas,"nombre","id_liga","ligas"),
-      coaches:findDupes(coaches,"nombre","id_coach","coaches"),
-    };
-  },[players,equipos,ligas,coaches,ignored]);
+  var dupCheckState=useState({checked:false,checking:false});
+  var dupCheckInfo=dupCheckState[0];var setDupCheckInfo=dupCheckState[1];
+  var nameDupesState=useState({jugadoras:[],equipos:[],ligas:[],coaches:[]});
+  var nameDupesComputed=nameDupesState[0];var setNameDupesComputed=nameDupesState[1];
+  var checkNameDupes=function(){
+    setDupCheckInfo({checked:false,checking:true});
+    setTimeout(function(){
+      var result={
+        jugadoras:findDupes(players,"nombre","id_jugadora","jugadoras"),
+        equipos:findDupes(equipos,"nombre","id_equipo","equipos"),
+        ligas:findDupes(ligas,"nombre","id_liga","ligas"),
+        coaches:findDupes(coaches,"nombre","id_coach","coaches"),
+      };
+      setNameDupesComputed(result);
+      setDupCheckInfo({checked:true,checking:false});
+    },50);
+  };
+  var nameDupes=nameDupesComputed;
   var totalNameDupes=Object.values(nameDupes).reduce(function(a,d){return a+d.length;},0);
   var ignoreGroup=async function(tipo,group){
     var idKeyMap={jugadoras:"id_jugadora",equipos:"id_equipo",ligas:"id_liga",coaches:"id_coach"};
@@ -882,7 +892,33 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     try{
       await supabase.from("duplicados_ignorados").insert({tipo:tipo,clave:group.key,ids:ids});
       setIgnored(function(prev){var s=new Set(prev);s.add(group.gk);return s;});
+      setNameDupesComputed(function(prev){
+        var copy={};
+        Object.keys(prev).forEach(function(k){copy[k]=prev[k].filter(function(g){return g.gk!==group.gk;});});
+        return copy;
+      });
     }catch(e){alert("Error al guardar: "+(e.message||JSON.stringify(e)));}
+  };
+
+  var dupDelState=useState(null);
+  var dupDelTarget=dupDelState[0];var setDupDelTarget=dupDelState[1];
+  var deleteDupItem=async function(tipo,id){
+    var tableMap={jugadoras:"jugadoras",equipos:"equipos",ligas:"ligas",coaches:"coach"};
+    var idKeyMap={jugadoras:"id_jugadora",equipos:"id_equipo",ligas:"id_liga",coaches:"id_coach"};
+    try{
+      if(tipo==="jugadoras")await supabase.from("temporadas").delete().eq("id_jugadora",id);
+      if(tipo==="coaches")await supabase.from("temporadas_coach").delete().eq("id_coach",id);
+      await supabase.from(tableMap[tipo]).delete().eq(idKeyMap[tipo],id);
+      setNameDupesComputed(function(prev){
+        var copy={};
+        Object.keys(prev).forEach(function(k){
+          copy[k]=prev[k].map(function(g){return{...g,items:g.items.filter(function(it){return it[idKeyMap[tipo]]!==id;})};}).filter(function(g){return g.items.length>1;});
+        });
+        return copy;
+      });
+      setDupDelTarget(null);
+      await onReload();
+    }catch(e){alert("Error al eliminar: "+(e.message||JSON.stringify(e)));}
   };
 
   function fixDuplicate(group){
@@ -1094,41 +1130,86 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               })}
             </div>
           )}
-          {tab==="duplicados_nombre"&&(loadingDup?
-            <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><p>Cargando...</p></div>:
-            totalNameDupes===0?
-            <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><div style={{fontSize:"36px"}}>✅</div><p>No se han detectado posibles duplicados</p></div>:
-            <div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
-              {["jugadoras","equipos","ligas","coaches"].map(function(tipo){
-                var icon={jugadoras:"👩‍🏀",equipos:"🏟️",ligas:"🏆",coaches:"📋"}[tipo];
-                var idKeyMap={jugadoras:"id_jugadora",equipos:"id_equipo",ligas:"id_liga",coaches:"id_coach"};
-                var onGoMap={jugadoras:onGoToPlayer,equipos:onGoToTeam,ligas:onGoToLeague,coaches:onGoToCoach};
-                var groups=nameDupes[tipo];
-                if(!groups.length)return null;
-                return groups.map(function(group,gi){return(
-                  <div key={tipo+gi} style={{border:"1.5px solid #fed7aa",borderRadius:"14px",overflow:"hidden"}}>
-                    <div style={{background:"#fff7ed",padding:"8px 14px",fontSize:"12px",fontWeight:700,color:"#c2410c",borderBottom:"1px solid #fed7aa",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                      <span>{icon} {group.items.length} coincidencias</span>
-                      <button onClick={function(){ignoreGroup(tipo,group);}} title="Marcar como falso positivo"
-                        style={{background:"#fff",border:"1.5px solid #cbd5e1",borderRadius:"8px",padding:"3px 10px",fontSize:"11px",fontWeight:700,color:"#64748b",cursor:"pointer"}}>
-                        ✓ No es duplicado
-                      </button>
-                    </div>
-                    {group.items.map(function(it,ii){return(
-                      <div key={ii} onClick={function(){onGoMap[tipo]&&onGoMap[tipo](it[idKeyMap[tipo]]);onClose();}}
-                        style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",cursor:"pointer",borderBottom:ii<group.items.length-1?"1px solid #f8fafc":"none"}}
-                        onMouseEnter={function(e){e.currentTarget.style.background="#f8fafc";}}
-                        onMouseLeave={function(e){e.currentTarget.style.background="transparent";}}>
-                        <div>
-                          <div style={{fontSize:"14px",fontWeight:600,color:"#1e293b"}}>{it.nombre}</div>
-                          <div style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{it[idKeyMap[tipo]]}{it.nacionalidad?" · "+it.nacionalidad:""}{it.pais?" · "+it.pais:""}</div>
-                        </div>
-                        <span style={{fontSize:"12px",color:"#9333ea",fontWeight:700}}>Ver →</span>
-                      </div>
-                    );})}
+          {tab==="duplicados_nombre"&&(
+            <div>
+              {!dupCheckInfo.checked&&!dupCheckInfo.checking&&(
+                <div style={{textAlign:"center",padding:"40px 0"}}>
+                  <div style={{fontSize:"36px",marginBottom:"10px"}}>🔍</div>
+                  <p style={{color:"#64748b",fontSize:"13px",marginBottom:"14px"}}>Busca jugadoras, equipos, ligas y técnicos con nombres parecidos que puedan estar duplicados.</p>
+                  <button onClick={checkNameDupes} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"10px 20px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>Buscar duplicados</button>
+                </div>
+              )}
+              {dupCheckInfo.checking&&(
+                <div style={{textAlign:"center",padding:"40px 0"}}>
+                  <div style={{fontSize:"36px",marginBottom:"10px"}}>⏳</div>
+                  <p style={{color:"#64748b",fontSize:"13px"}}>Analizando nombres…</p>
+                </div>
+              )}
+              {dupCheckInfo.checked&&!dupCheckInfo.checking&&(
+                totalNameDupes===0?
+                <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><div style={{fontSize:"36px"}}>✅</div><p>No se han detectado posibles duplicados</p></div>:
+                <div>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
+                    <p style={{color:"#64748b",fontSize:"13px",margin:0}}>{totalNameDupes} grupo{totalNameDupes!==1?"s":""} sospechoso{totalNameDupes!==1?"s":""}</p>
+                    <button onClick={checkNameDupes} style={{background:"#fff",color:"#9333ea",border:"1.5px solid #9333ea",borderRadius:"8px",padding:"5px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>↻ Repetir</button>
                   </div>
-                );});
-              })}
+                  <div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
+                    {["jugadoras","equipos","ligas","coaches"].map(function(tipo){
+                      var icon={jugadoras:"👩‍🏀",equipos:"🏟️",ligas:"🏆",coaches:"📋"}[tipo];
+                      var idKeyMap={jugadoras:"id_jugadora",equipos:"id_equipo",ligas:"id_liga",coaches:"id_coach"};
+                      var onGoMap={jugadoras:onGoToPlayer,equipos:onGoToTeam,ligas:onGoToLeague,coaches:onGoToCoach};
+                      var groups=nameDupes[tipo];
+                      if(!groups.length)return null;
+                      return groups.map(function(group,gi){return(
+                        <div key={tipo+gi} style={{border:"1.5px solid #fed7aa",borderRadius:"14px",overflow:"hidden"}}>
+                          <div style={{background:"#fff7ed",padding:"8px 14px",fontSize:"12px",fontWeight:700,color:"#c2410c",borderBottom:"1px solid #fed7aa",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                            <span>{icon} {group.items.length} coincidencias</span>
+                            <button onClick={function(){ignoreGroup(tipo,group);}} title="Marcar como falso positivo"
+                              style={{background:"#fff",border:"1.5px solid #cbd5e1",borderRadius:"8px",padding:"3px 10px",fontSize:"11px",fontWeight:700,color:"#64748b",cursor:"pointer"}}>
+                              ✓ No es duplicado
+                            </button>
+                          </div>
+                          {group.items.map(function(it,ii){
+                            var seasons=tipo==="jugadoras"?(it.seasons||[]):null;
+                            var lastSeason=seasons&&seasons.length?[...seasons].sort(function(a,b){return b.temporada.localeCompare(a.temporada);})[0]:null;
+                            var eqNombre=lastSeason?(equipos.find(function(e){return e.id_equipo===lastSeason.id_equipo;})||{}).nombre:null;
+                            return(
+                            <div key={ii} style={{padding:"12px 14px",borderBottom:ii<group.items.length-1?"1px solid #f8fafc":"none"}}>
+                              <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"10px"}}>
+                                <div onClick={function(){onGoMap[tipo]&&onGoMap[tipo](it[idKeyMap[tipo]]);onClose();}} style={{cursor:"pointer",flex:1,minWidth:0}}>
+                                  <div style={{fontSize:"14px",fontWeight:700,color:"#1e293b"}}>{it.nombre} <span style={{fontSize:"11px",color:"#9333ea",fontWeight:700}}>Ver →</span></div>
+                                  <div style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace",marginTop:"2px"}}>{it[idKeyMap[tipo]]}</div>
+                                  {tipo==="jugadoras"&&(
+                                    <div style={{display:"flex",gap:"10px",flexWrap:"wrap",marginTop:"6px",fontSize:"12px",color:"#475569"}}>
+                                      {it.posicion&&<span>🏀 {it.posicion}</span>}
+                                      {it.altura_cm&&<span>📏 {it.altura_cm} cm</span>}
+                                      {it.fecha_nac&&<span>🎂 {it.fecha_nac}</span>}
+                                      {it.nacionalidad&&<span>🌍 {it.nacionalidad}</span>}
+                                    </div>
+                                  )}
+                                  {tipo==="jugadoras"&&(
+                                    <div style={{fontSize:"12px",color:"#64748b",marginTop:"4px"}}>
+                                      {seasons?seasons.length:0} temporada{seasons&&seasons.length!==1?"s":""}{lastSeason?" · última: "+lastSeason.temporada+(eqNombre?" en "+eqNombre:""):""}
+                                    </div>
+                                  )}
+                                  {(tipo==="equipos"||tipo==="ligas")&&(it.pais||it.ciudad)&&(
+                                    <div style={{fontSize:"12px",color:"#64748b",marginTop:"4px"}}>{it.pais}{it.ciudad?" · "+it.ciudad:""}</div>
+                                  )}
+                                  {tipo==="coaches"&&(it.nacionalidad||it.fecha_nac)&&(
+                                    <div style={{fontSize:"12px",color:"#64748b",marginTop:"4px"}}>{it.nacionalidad}{it.fecha_nac?" · "+it.fecha_nac:""}</div>
+                                  )}
+                                </div>
+                                {isAdmin&&<button onClick={function(){setDupDelTarget({tipo:tipo,id:it[idKeyMap[tipo]],nombre:it.nombre});}} title="Eliminar esta ficha"
+                                  style={{background:"#fee2e2",border:"none",borderRadius:"8px",padding:"5px 9px",fontSize:"12px",cursor:"pointer",color:"#ef4444",flexShrink:0}}>🗑️</button>}
+                              </div>
+                            </div>
+                          );})}
+                        </div>
+                      );});
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {tab==="huecos"&&(
@@ -1202,6 +1283,20 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           )}
         </div>
       </div>
+      {dupDelTarget&&(
+        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.5)",zIndex:600,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
+          <div style={{background:"#fff",borderRadius:"16px",padding:"24px",maxWidth:"360px",width:"100%"}}>
+            <h3 style={{fontWeight:800,fontSize:"16px",color:"#1e293b",margin:"0 0 8px"}}>¿Eliminar ficha?</h3>
+            <p style={{fontSize:"13px",color:"#64748b",margin:"0 0 18px"}}>
+              Se eliminará <b>{dupDelTarget.nombre}</b> ({dupDelTarget.id}) y todas sus temporadas asociadas. Esta acción no se puede deshacer.
+            </p>
+            <div style={{display:"flex",gap:"8px",justifyContent:"flex-end"}}>
+              <button onClick={function(){setDupDelTarget(null);}} style={{background:"#f1f5f9",color:"#475569",border:"none",borderRadius:"8px",padding:"8px 16px",fontWeight:600,cursor:"pointer",fontSize:"13px"}}>Cancelar</button>
+              <button onClick={function(){deleteDupItem(dupDelTarget.tipo,dupDelTarget.id);}} style={{background:"#ef4444",color:"#fff",border:"none",borderRadius:"8px",padding:"8px 16px",fontWeight:700,cursor:"pointer",fontSize:"13px"}}>Eliminar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
