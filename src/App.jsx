@@ -733,7 +733,7 @@ function checkIdGaps(items,key,prefix,pad){
   var ff=ids.length?(function(){var s=new Set(ids);var i=1;while(s.has(i))i++;return i;})():1;
   var maxN=ids[ids.length-1]||0;var nextAfterMax=prefix+(pad?String(maxN+1).padStart(pad,"0"):maxN+1);return{gaps:gaps.slice(0,15),total:gaps.length,nextFree:prefix+(pad?String(ff).padStart(pad,"0"):ff),max:maxN,nextAfterMax};
 }
-function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach,onReload}){
+function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach,onReload,isAdmin}){
   var tabState=useState("incompletas");
   var tab=tabState[0];var setTab=tabState[1];
   var fixState=useState(null);
@@ -3505,7 +3505,7 @@ export default function App(){
   if(showLanding) return <Landing onEnter={handleEnter}/>;
   if(showCalidad){
     return <CalidadModal players={players} equipos={equipos} ligas={ligas} coaches={coaches}
-      tempCoach={tempCoach} palmares={palmares}
+      tempCoach={tempCoach} palmares={palmares} isAdmin={isAdmin}
       onClose={()=>setShowCalidad(false)} onGoToPlayer={goToPlayer}
       onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToCoach={goToCoach} onReload={loadAll}/>;
   }
