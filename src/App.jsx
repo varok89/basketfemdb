@@ -756,7 +756,7 @@ function checkIdGaps(items,key,prefix,pad){
   var ff=ids.length?(function(){var s=new Set(ids);var i=1;while(s.has(i))i++;return i;})():1;
   var maxN=ids[ids.length-1]||0;var nextAfterMax=prefix+(pad?String(maxN+1).padStart(pad,"0"):maxN+1);return{gaps:gaps.slice(0,15),total:gaps.length,nextFree:prefix+(pad?String(ff).padStart(pad,"0"):ff),max:maxN,nextAfterMax};
 }
-function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach,onReload,isAdmin}){
+function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach,onReload,isAdmin,setPlayers,setEquipos,setLigas,setCoaches,setTempCoach}){
   var tabState=useState("incompletas");
   var tab=tabState[0];var setTab=tabState[1];
   var fixState=useState(null);
@@ -931,7 +931,8 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     try{
       if(tipo==="jugadoras")await supabase.from("temporadas").delete().eq("id_jugadora",id);
       if(tipo==="coaches")await supabase.from("temporadas_coach").delete().eq("id_coach",id);
-      await supabase.from(tableMap[tipo]).delete().eq(idKeyMap[tipo],id);
+      const{error}=await supabase.from(tableMap[tipo]).delete().eq(idKeyMap[tipo],id);
+      if(error)throw error;
       setNameDupesComputed(function(prev){
         var copy={};
         Object.keys(prev).forEach(function(k){
@@ -939,14 +940,18 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
         });
         return copy;
       });
+      if(tipo==="jugadoras"){setPlayers(prev=>prev.filter(p=>p.id_jugadora!==id));}
+      else if(tipo==="equipos"){setEquipos(prev=>prev.filter(e=>e.id_equipo!==id));}
+      else if(tipo==="ligas"){setLigas(prev=>prev.filter(l=>l.id_liga!==id));}
+      else if(tipo==="coaches"){setCoaches(prev=>prev.filter(c=>c.id_coach!==id));setTempCoach(prev=>prev.filter(tc=>tc.id_coach!==id));}
       setDupDelTarget(null);
-      await onReload();
     }catch(e){alert("Error al eliminar: "+(e.message||JSON.stringify(e)));}
   };
 
   function fixDuplicate(group){
     var sorted=[].concat(group).sort(function(a,b){return a.id-b.id;});
     var toDelete=sorted.slice(1).map(function(s){return s.id;});
+    var toDeleteSet=new Set(toDelete);
     var fkey=group[0].id_jugadora+group[0].temporada;
     setFixing(fkey);
     (async function(){
@@ -955,11 +960,12 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           var r=await supabase.from("temporadas").delete().eq("id",toDelete[i]);
           if(r.error)throw r.error;
         }
-        await onReload();
+        setPlayers(prev=>prev.map(p=>p.id_jugadora!==group[0].id_jugadora?p:{...p,seasons:(p.seasons||[]).filter(s=>!toDeleteSet.has(s.id))}));
       }catch(e){alert("Error: "+(e.message||JSON.stringify(e)));}
       setFixing(null);
     })();
   }
+
 
   var subTabState=useState("jugadoras");
   var subTab=subTabState[0];var setSubTab=subTabState[1];
@@ -1715,7 +1721,7 @@ function NacDropdown({allNacs,filterNacs,setFilterNacs}){
 }
 
 /* ── PlayersView ─────────────────────────────────────────── */
-function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,onGoToTeam,onGoToCoach,openPlayerId,onClearPlayer,isAdmin,onGoToTab,navHistory,onGoBack,equiposNombres}){
+function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,onGoToTeam,onGoToCoach,openPlayerId,onClearPlayer,isAdmin,onGoToTab,navHistory,onGoBack,equiposNombres,setPlayers,setTempCoach}){
   const [search,setSearch]         = useState("");
   const [filterPos,setFilterPos]   = useState("");
   const [filterNacs,setFilterNacs] = useState(new Set());
@@ -1808,40 +1814,56 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     try{
       const allJIds=players.map(p=>parseInt((p.id_jugadora||"J0").slice(1))).filter(n=>!isNaN(n));
       const newId=firstFreeId(allJIds,"J",0);
-      const{error}=await supabase.from("jugadoras").insert({id_jugadora:newId,nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null});
+      const newPlayer={id_jugadora:newId,nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null};
+      const{error}=await supabase.from("jugadoras").insert(newPlayer);
       if(error)throw error;
-      await onReload();setModal(null);
+      setPlayers(prev=>[...prev,{...newPlayer,seasons:[]}].sort((a,b)=>(a.id_jugadora||"").localeCompare(b.id_jugadora||"")));
+      setModal(null);
     }catch(e){alert("Error al guardar jugadora: "+(e.message||e.details||JSON.stringify(e)));}
     setSaving(false);
   };
   const updPlayer=async f=>{
     setSaving(true);
-    try{await supabase.from("jugadoras").update({nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null}).eq("id_jugadora",selId);
-      await onReload();setModal(null);}catch(e){alert("Error: "+e.message);}
+    const payload={nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null};
+    try{const{error}=await supabase.from("jugadoras").update(payload).eq("id_jugadora",selId);
+      if(error)throw error;
+      setPlayers(prev=>prev.map(p=>p.id_jugadora!==selId?p:{...p,...payload}));
+      setModal(null);}catch(e){alert("Error: "+e.message);}
     setSaving(false);
   };
   const delPlayer=async()=>{
     try{await supabase.from("temporadas").delete().eq("id_jugadora",selId);
-      await supabase.from("jugadoras").delete().eq("id_jugadora",selId);
-      await onReload();setSelId(null);setDel(null);}catch(e){alert("Error: "+e.message);}
+      const{error}=await supabase.from("jugadoras").delete().eq("id_jugadora",selId);
+      if(error)throw error;
+      setPlayers(prev=>prev.filter(p=>p.id_jugadora!==selId));
+      setSelId(null);setDel(null);}catch(e){alert("Error: "+e.message);}
   };
   const addSeason=async f=>{
     setSaving(true);
     try{
       const allIds=players.flatMap(p=>p.seasons||[]).map(s=>parseInt(s.id)).filter(n=>!isNaN(n));
       const newId=Math.max(0,...allIds)+1;
-      await supabase.from("temporadas").insert({id:newId,id_jugadora:selId,id_equipo:f.id_equipo,id_liga:f.id_liga,temporada:f.temporada});
-      await onReload();setModal(null);}catch(e){alert("Error: "+e.message);}
+      const newSeason={id:newId,id_jugadora:selId,id_equipo:f.id_equipo,id_liga:f.id_liga,temporada:f.temporada};
+      const{error}=await supabase.from("temporadas").insert(newSeason);
+      if(error)throw error;
+      setPlayers(prev=>prev.map(p=>p.id_jugadora!==selId?p:{...p,seasons:[...(p.seasons||[]),newSeason]}));
+      setModal(null);}catch(e){alert("Error: "+e.message);}
     setSaving(false);
   };
   const updSeason=async f=>{
     setSaving(true);
-    try{await supabase.from("temporadas").update({id_equipo:f.id_equipo,id_liga:f.id_liga,temporada:f.temporada,orden:parseInt(f.orden)||0}).eq("id",editSeason.id);
-      await onReload();setModal(null);setEditSeason(null);}catch(e){alert("Error: "+e.message);}
+    const payload={id_equipo:f.id_equipo,id_liga:f.id_liga,temporada:f.temporada,orden:parseInt(f.orden)||0};
+    try{const{error}=await supabase.from("temporadas").update(payload).eq("id",editSeason.id);
+      if(error)throw error;
+      setPlayers(prev=>prev.map(p=>p.id_jugadora!==selId?p:{...p,seasons:(p.seasons||[]).map(s=>s.id!==editSeason.id?s:{...s,...payload})}));
+      setModal(null);setEditSeason(null);}catch(e){alert("Error: "+e.message);}
     setSaving(false);
   };
   const delSeason=async id=>{
-    try{await supabase.from("temporadas").delete().eq("id",id);await onReload();setDel(null);}catch(e){alert("Error: "+e.message);}
+    try{const{error}=await supabase.from("temporadas").delete().eq("id",id);
+      if(error)throw error;
+      setPlayers(prev=>prev.map(p=>p.id_jugadora!==selId?p:{...p,seasons:(p.seasons||[]).filter(s=>s.id!==id)}));
+      setDel(null);}catch(e){alert("Error: "+e.message);}
   };
   const saveCoachSeasonInPlayer=async(f,coachId)=>{
     setSaving3(true);
@@ -1849,17 +1871,27 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
       if(seasonModal==="add"){
         const {data}=await supabase.from("temporadas_coach").select("id").order("id",{ascending:false}).limit(1);
         const newId=(data?.[0]?.id||0)+1;
-        await supabase.from("temporadas_coach").insert({id:newId,id_coach:coachId,...f,orden:parseInt(f.orden)||0});
+        const newRow={id:newId,id_coach:coachId,...f,orden:parseInt(f.orden)||0};
+        const{error}=await supabase.from("temporadas_coach").insert(newRow);
+        if(error)throw error;
+        setTempCoach(prev=>[...prev,newRow]);
       } else {
-        await supabase.from("temporadas_coach").update({...f,orden:parseInt(f.orden)||0}).eq("id",seasonModal.id);
+        const payload={...f,orden:parseInt(f.orden)||0};
+        const{error}=await supabase.from("temporadas_coach").update(payload).eq("id",seasonModal.id);
+        if(error)throw error;
+        setTempCoach(prev=>prev.map(tc=>tc.id!==seasonModal.id?tc:{...tc,...payload}));
       }
-      await onReload();setSeasonModal(null);
+      setSeasonModal(null);
     }catch(e){alert("Error: "+e.message);}
     setSaving3(false);
   };
   const delCoachSeasonInPlayer=async(id)=>{
-    try{await supabase.from("temporadas_coach").delete().eq("id",id);await onReload();setDelCoachItem(null);}catch(e){alert("Error: "+e.message);}
+    try{const{error}=await supabase.from("temporadas_coach").delete().eq("id",id);
+      if(error)throw error;
+      setTempCoach(prev=>prev.filter(tc=>tc.id!==id));
+      setDelCoachItem(null);}catch(e){alert("Error: "+e.message);}
   };
+
 
   if(players.length===0) return <EmptyState icon="👩‍🏀" text="No hay jugadoras" sub="Verifica la conexión con Supabase"/>;
 
@@ -2269,7 +2301,7 @@ function DuplicateSquadForm({initial,ligas,ligaMap,eq,onSave,onCancel,saving}){
 }
 
 /* ── TeamsView ───────────────────────────────────────────── */
-function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlayer,onGoToCoach,onGoToLeague,openTeamId,openTeamYear,onClearTeam,isAdmin,onReload,onGoToTab,navHistory,onGoBack,equiposNombres}){
+function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlayer,onGoToCoach,onGoToLeague,openTeamId,openTeamYear,onClearTeam,isAdmin,onReload,onGoToTab,navHistory,onGoBack,equiposNombres,setEquipos,setEquiposNombres,setPlayers,setPalmares}){
   const [search,setSearch]             = useState("");
   const [filterLeague,setFilterLeague] = useState("");
   const [filterSeason,setFilterSeason] = useState(null);
@@ -2290,13 +2322,15 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
     setSaving(true);
     try{
       if(nombreModal==="add"){
-        const{error}=await supabase.from("equipos_nombres").insert({id_equipo:selId,...f});
+        const{data,error}=await supabase.from("equipos_nombres").insert({id_equipo:selId,...f}).select().single();
         if(error)throw error;
+        setEquiposNombres(prev=>[...prev,data]);
       }else{
         const{error}=await supabase.from("equipos_nombres").update(f).eq("id",nombreModal.id);
         if(error)throw error;
+        setEquiposNombres(prev=>prev.map(en=>en.id!==nombreModal.id?en:{...en,...f}));
       }
-      await onReload();setNombreModal(null);
+      setNombreModal(null);
     }catch(e){alert("Error: "+(e.message||JSON.stringify(e)));}
     setSaving(false);
   };
@@ -2304,7 +2338,8 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
     try{
       const{error}=await supabase.from("equipos_nombres").delete().eq("id",delNombreId);
       if(error)throw error;
-      await onReload();setDelNombreId(null);
+      setEquiposNombres(prev=>prev.filter(en=>en.id!==delNombreId));
+      setDelNombreId(null);
     }catch(e){alert("Error: "+(e.message||JSON.stringify(e)));}
   };
   const [saving,setSaving]             = useState(false);
@@ -2317,14 +2352,17 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
         const ids=equipos.map(e=>parseInt(e.id_equipo.replace("E",""))).filter(n=>!isNaN(n));
         const newId=firstFreeId(ids,"E",3);
         const payload={...f,año_fundacion:f.año_fundacion===''||f.año_fundacion===null?null:parseInt(f.año_fundacion)||null};
-        const{error}=await supabase.from("equipos").insert({id_equipo:newId,...payload});
+        const newTeam={id_equipo:newId,...payload};
+        const{error}=await supabase.from("equipos").insert(newTeam);
         if(error)throw error;
+        setEquipos(prev=>[...prev,newTeam]);
       } else {
         const payload={...f,año_fundacion:f.año_fundacion===''||f.año_fundacion===null?null:parseInt(f.año_fundacion)||null};
         const{error}=await supabase.from("equipos").update(payload).eq("id_equipo",selId);
         if(error)throw error;
+        setEquipos(prev=>prev.map(e=>e.id_equipo!==selId?e:{...e,...payload}));
       }
-      await onReload();setTeamModal(null);
+      setTeamModal(null);
     }catch(e){alert("Error al guardar equipo: "+(e.message||e.details||JSON.stringify(e)));}
     setSaving(false);
   };
@@ -2333,8 +2371,11 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
     try{
       const allIds=players.flatMap(p=>p.seasons||[]).map(s=>parseInt(s.id)).filter(n=>!isNaN(n));
       const newId=Math.max(0,...allIds)+1;
-      await supabase.from("temporadas").insert({id:newId,id_jugadora:f.id_jugadora,id_equipo:f.id_equipo,id_liga:f.id_liga,temporada:f.temporada});
-      await onReload();setSquadModal(null);
+      const newSeason={id:newId,id_jugadora:f.id_jugadora,id_equipo:f.id_equipo,id_liga:f.id_liga,temporada:f.temporada};
+      const{error}=await supabase.from("temporadas").insert(newSeason);
+      if(error)throw error;
+      setPlayers(prev=>prev.map(p=>p.id_jugadora!==f.id_jugadora?p:{...p,seasons:[...(p.seasons||[]),newSeason]}));
+      setSquadModal(null);
     }catch(e){alert("Error: "+e.message);}
     setSaving(false);
   };
@@ -2355,14 +2396,20 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
       const rows=toAdd.map(({player})=>({id:nextId++,id_jugadora:player.id_jugadora,id_equipo:eqId,id_liga:targetLiga,temporada}));
       const{error}=await supabase.from("temporadas").insert(rows);
       if(error)throw error;
-      await onReload();setDupModal(null);
+      const rowsByPlayer={};
+      rows.forEach(r=>{if(!rowsByPlayer[r.id_jugadora])rowsByPlayer[r.id_jugadora]=[];rowsByPlayer[r.id_jugadora].push(r);});
+      setPlayers(prev=>prev.map(p=>rowsByPlayer[p.id_jugadora]?{...p,seasons:[...(p.seasons||[]),...rowsByPlayer[p.id_jugadora]]}:p));
+      setDupModal(null);
       const skipped=squadList.length-toAdd.length;
       alert(`✅ ${toAdd.length} jugadora${toAdd.length!==1?"s":""} duplicada${toAdd.length!==1?"s":""}${skipped>0?` · ${skipped} ya existía${skipped!==1?"n":""}`:""}`);
     }catch(e){alert("Error: "+(e.message||JSON.stringify(e)));}
     setSaving(false);
   };
   const delTeam=async()=>{
-    try{await supabase.from("equipos").delete().eq("id_equipo",selId);await onReload();setSelId(null);setDelItem(null);}catch(e){alert("Error: "+e.message);}
+    try{const{error}=await supabase.from("equipos").delete().eq("id_equipo",selId);
+      if(error)throw error;
+      setEquipos(prev=>prev.filter(e=>e.id_equipo!==selId));
+      setSelId(null);setDelItem(null);}catch(e){alert("Error: "+e.message);}
   };
   const savePalmares=async(f)=>{
     setSaving(true);
@@ -2370,17 +2417,26 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
       if(palModal==="add"){
         const {data}=await supabase.from("palmares").select("id");
         const newId=firstFreeIdNum((data||[]).map(r=>r.id));
-        await supabase.from("palmares").insert({id:newId,id_equipo:selId,...f});
+        const newPal={id:newId,id_equipo:selId,...f};
+        const{error}=await supabase.from("palmares").insert(newPal);
+        if(error)throw error;
+        setPalmares(prev=>[...prev,newPal]);
       } else {
-        await supabase.from("palmares").update(f).eq("id",palModal.id);
+        const{error}=await supabase.from("palmares").update(f).eq("id",palModal.id);
+        if(error)throw error;
+        setPalmares(prev=>prev.map(pl=>pl.id!==palModal.id?pl:{...pl,...f}));
       }
-      await onReload();setPalModal(null);
+      setPalModal(null);
     }catch(e){alert("Error: "+e.message);}
     setSaving(false);
   };
   const delPalmares=async(id)=>{
-    try{await supabase.from("palmares").delete().eq("id",id);await onReload();setDelItem(null);}catch(e){alert("Error: "+e.message);}
+    try{const{error}=await supabase.from("palmares").delete().eq("id",id);
+      if(error)throw error;
+      setPalmares(prev=>prev.filter(pl=>pl.id!==id));
+      setDelItem(null);}catch(e){alert("Error: "+e.message);}
   };
+
 
   useEffect(()=>{if(openTeamId){setSelId(openTeamId);setSelYear(openTeamYear||null);onClearTeam();}},[openTeamId]);
 
@@ -2823,7 +2879,7 @@ function CoachSeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
 }
 
 /* ── LeaguesView ─────────────────────────────────────────── */
-function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTeam,isAdmin,onReload,openLigaId,onClearLiga,onGoToTab,navHistory,onGoBack}){
+function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTeam,isAdmin,onReload,openLigaId,onClearLiga,onGoToTab,navHistory,onGoBack,setLigas}){
   const [selId,setSelId]     = useState(openLigaId||null);
   useEffect(()=>{if(openLigaId){setSelId(openLigaId);onClearLiga&&onClearLiga();}},[openLigaId]);
   useEffect(()=>{const seg='ligas';window.history.replaceState({},"",selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
@@ -2842,15 +2898,26 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTea
       if(ligaModal==="add"){
         const ids=ligas.map(l=>parseInt(l.id_liga.replace("L",""))).filter(n=>!isNaN(n));
         const newId=firstFreeId(ids,"L",3);
-        await supabase.from("ligas").insert({id_liga:newId,...f});
-      } else { await supabase.from("ligas").update(f).eq("id_liga",selId); }
-      await onReload();setLigaModal(null);
+        const newLiga={id_liga:newId,...f};
+        const{error}=await supabase.from("ligas").insert(newLiga);
+        if(error)throw error;
+        setLigas(prev=>[...prev,newLiga]);
+      } else {
+        const{error}=await supabase.from("ligas").update(f).eq("id_liga",selId);
+        if(error)throw error;
+        setLigas(prev=>prev.map(l=>l.id_liga!==selId?l:{...l,...f}));
+      }
+      setLigaModal(null);
     }catch(e){alert("Error: "+e.message);}
     setSaving(false);
   };
   const delLigaFn=async()=>{
-    try{await supabase.from("ligas").delete().eq("id_liga",selId);await onReload();setSelId(null);setDelLiga(false);}catch(e){alert("Error: "+e.message);}
+    try{const{error}=await supabase.from("ligas").delete().eq("id_liga",selId);
+      if(error)throw error;
+      setLigas(prev=>prev.filter(l=>l.id_liga!==selId));
+      setSelId(null);setDelLiga(false);}catch(e){alert("Error: "+e.message);}
   };
+
 
   const equipoMap = useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap   = useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
@@ -3071,7 +3138,7 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTea
 }
 
 /* ── CoachesView ────────────────────────────────────────── */
-function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPlayer,onGoToTeam,openCoachId,onClearCoach,isAdmin,onReload,onGoToTab,navHistory,onGoBack}){
+function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPlayer,onGoToTeam,openCoachId,onClearCoach,isAdmin,onReload,onGoToTab,navHistory,onGoBack,setCoaches,setTempCoach}){
   const [coachModal,setCoachModal]=useState(null);
   const [seasonModal,setSeasonModal]=useState(null);
   const [saving2,setSaving2]=useState(false);
@@ -3083,16 +3150,25 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
       if(coachModal==="add"){
         const ids=coaches.map(c=>parseInt((c.id_coach||"").replace("C",""))).filter(n=>!isNaN(n));
         const newId=firstFreeId(ids,"C",3);
-        await supabase.from("coach").insert({id_coach:newId,...f,id_jugadora:f.id_jugadora||null});
+        const newCoach={id_coach:newId,...f,id_jugadora:f.id_jugadora||null};
+        const{error}=await supabase.from("coach").insert(newCoach);
+        if(error)throw error;
+        setCoaches(prev=>[...prev,newCoach]);
       } else {
-        await supabase.from("coach").update({...f,id_jugadora:f.id_jugadora||null}).eq("id_coach",coachModal.id_coach);
+        const payload={...f,id_jugadora:f.id_jugadora||null};
+        const{error}=await supabase.from("coach").update(payload).eq("id_coach",coachModal.id_coach);
+        if(error)throw error;
+        setCoaches(prev=>prev.map(c=>c.id_coach!==coachModal.id_coach?c:{...c,...payload}));
       }
-      await onReload();setCoachModal(null);
+      setCoachModal(null);
     }catch(e){alert("Error: "+e.message);}
     setSaving2(false);
   };
   const delCoachFn=async(id)=>{
-    try{await supabase.from("coach").delete().eq("id_coach",id);await onReload();setDelCoachItem(null);}catch(e){alert("Error: "+e.message);}
+    try{const{error}=await supabase.from("coach").delete().eq("id_coach",id);
+      if(error)throw error;
+      setCoaches(prev=>prev.filter(c=>c.id_coach!==id));
+      setDelCoachItem(null);}catch(e){alert("Error: "+e.message);}
   };
   const saveCoachSeason=async(f,coachId)=>{
     setSaving2(true);
@@ -3100,17 +3176,27 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
       if(seasonModal==="add"){
         const {data}=await supabase.from("temporadas_coach").select("id").order("id",{ascending:false}).limit(1);
         const newId=(data?.[0]?.id||0)+1;
-        await supabase.from("temporadas_coach").insert({id:newId,id_coach:coachId,...f,orden:parseInt(f.orden)||0});
+        const newRow={id:newId,id_coach:coachId,...f,orden:parseInt(f.orden)||0};
+        const{error}=await supabase.from("temporadas_coach").insert(newRow);
+        if(error)throw error;
+        setTempCoach(prev=>[...prev,newRow]);
       } else {
-        await supabase.from("temporadas_coach").update({...f,orden:parseInt(f.orden)||0}).eq("id",seasonModal.id);
+        const payload={...f,orden:parseInt(f.orden)||0};
+        const{error}=await supabase.from("temporadas_coach").update(payload).eq("id",seasonModal.id);
+        if(error)throw error;
+        setTempCoach(prev=>prev.map(tc=>tc.id!==seasonModal.id?tc:{...tc,...payload}));
       }
-      await onReload();setSeasonModal(null);
+      setSeasonModal(null);
     }catch(e){alert("Error: "+e.message);}
     setSaving2(false);
   };
   const delCoachSeason=async(id)=>{
-    try{await supabase.from("temporadas_coach").delete().eq("id",id);await onReload();setDelCoachItem(null);}catch(e){alert("Error: "+e.message);}
+    try{const{error}=await supabase.from("temporadas_coach").delete().eq("id",id);
+      if(error)throw error;
+      setTempCoach(prev=>prev.filter(tc=>tc.id!==id));
+      setDelCoachItem(null);}catch(e){alert("Error: "+e.message);}
   };
+
   const [search,setSearch]=useState("");
   const [selId,setSelId]  =useState(openCoachId||null);
   useEffect(()=>{const seg='coaches';window.history.replaceState({},"",selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
@@ -3530,7 +3616,8 @@ export default function App(){
     return <CalidadModal players={players} equipos={equipos} ligas={ligas} coaches={coaches}
       tempCoach={tempCoach} palmares={palmares} isAdmin={isAdmin}
       onClose={()=>setShowCalidad(false)} onGoToPlayer={goToPlayer}
-      onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToCoach={goToCoach} onReload={loadAll}/>;
+      onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToCoach={goToCoach} onReload={loadAll}
+      setPlayers={setPlayers} setEquipos={setEquipos} setLigas={setLigas} setCoaches={setCoaches} setTempCoach={setTempCoach}/>;
   }
   if(showExport){
     const TABLES=[
@@ -3621,10 +3708,10 @@ export default function App(){
       </div>
       <div style={{paddingTop:"8px"}}>
         {tab==="home"&&<HomeView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToTab={t=>setTab(t)} equiposNombres={equiposNombres}/>}
-        {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres}/>}
-        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres}/>}
-        {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack}/>}
-        {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack}/>}
+        {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setPlayers={setPlayers} setTempCoach={setTempCoach}/>}
+        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setEquipos={setEquipos} setEquiposNombres={setEquiposNombres} setPlayers={setPlayers} setPalmares={setPalmares}/>}
+        {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setLigas={setLigas}/>}
+        {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setCoaches={setCoaches} setTempCoach={setTempCoach}/>}
       </div>
     </div>
     </>);
