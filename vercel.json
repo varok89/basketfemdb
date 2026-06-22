@@ -1,5 +1,19 @@
 {
   "rewrites": [
+    {
+      "source": "/jugadoras/:id",
+      "has": [
+        { "type": "header", "key": "user-agent", "value": ".*(WhatsApp|facebookexternalhit|Twitterbot|LinkedInBot|TelegramBot|Slackbot).*" }
+      ],
+      "destination": "/api/jugadora/:id"
+    },
+    {
+      "source": "/equipos/:id",
+      "has": [
+        { "type": "header", "key": "user-agent", "value": ".*(WhatsApp|facebookexternalhit|Twitterbot|LinkedInBot|TelegramBot|Slackbot).*" }
+      ],
+      "destination": "/api/equipo/:id"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

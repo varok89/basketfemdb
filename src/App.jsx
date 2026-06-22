@@ -1729,6 +1729,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   const [filterTemp,setFilterTemp] = useState("");
   const [filterStatus,setFilterStatus] = useState("");
   const [selId,setSelId]           = useState(openPlayerId||null);
+  const [shareMsg,setShareMsg]     = useState(false);
   const [visibleCount,setVisibleCount] = useState(60);
   const loadMoreRef = useRef(null);
   useEffect(()=>{const seg='jugadoras';window.history.replaceState({},"",selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
@@ -1899,12 +1900,20 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     <div style={{maxWidth:"700px",margin:"0 auto",padding:"20px"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
         {(()=>{const prev=navHistory&&navHistory.length>0?navHistory[navHistory.length-1]:null;return prev?(<button onClick={onGoBack} style={{background:"none",border:"none",color:"#c084fc",fontSize:"15px",cursor:"pointer",fontWeight:600,padding:0}}>← Volver a {prev.label}</button>):(<button onClick={()=>{setSelId(null);setActiveTipo(null);}} style={{background:"none",border:"none",color:"#c084fc",fontSize:"15px",cursor:"pointer",fontWeight:600,padding:0}}>← Volver</button>);})()}
-        {isAdmin&&!del&&(
+        <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
+          <button onClick={()=>{
+            const url=`${window.location.origin}/jugadoras/${selected.id_jugadora}`;
+            if(navigator.share){navigator.share({title:selected.nombre,text:`Ficha de ${selected.nombre} en BasketFem DB`,url}).catch(()=>{});}
+            else{navigator.clipboard.writeText(url);setShareMsg(true);setTimeout(()=>setShareMsg(false),2000);}
+          }} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>📤 Compartir</button>
+          {shareMsg&&<span style={{fontSize:"12px",color:"#16a34a",fontWeight:600}}>¡Enlace copiado!</span>}
+          {isAdmin&&!del&&(<>
           <div style={{display:"flex",gap:"8px"}}>
             <button onClick={()=>setModal("editPlayer")} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>✏️ Editar</button>
             <button onClick={()=>setDel("player")} style={{background:"#fee2e2",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#ef4444"}}>🗑️</button>
           </div>
-        )}
+          </>)}
+        </div>
         {isAdmin&&del&&(
           <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
             <span style={{fontSize:"13px",color:"#ef4444",fontWeight:600}}>¿Eliminar?</span>
@@ -2307,6 +2316,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
   const [filterSeason,setFilterSeason] = useState(null);
   const [filterTipo,setFilterTipo]     = useState("");
   const [selId,setSelId]               = useState(openTeamId||null);
+  const [shareMsg,setShareMsg]         = useState(false);
   useEffect(()=>{const seg='equipos';window.history.replaceState({},"",selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
   const [selYear,setSelYear]           = useState(null);
   const [selLiga,setSelLiga]           = useState(null);
@@ -2489,10 +2499,18 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
       <div style={{maxWidth:"720px",margin:"0 auto",padding:"20px"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}}>
           {(()=>{const prev=navHistory&&navHistory.length>0?navHistory[navHistory.length-1]:null;return prev?(<button onClick={onGoBack} style={{background:"none",border:"none",color:"#c084fc",fontSize:"15px",cursor:"pointer",fontWeight:600,padding:0}}>← Volver a {prev.label}</button>):(<button onClick={()=>{setSelId(null);setSelYear(null);}} style={{background:"none",border:"none",color:"#c084fc",fontSize:"15px",cursor:"pointer",fontWeight:600,padding:0}}>← Volver</button>);})()}
-          {isAdmin&&<div style={{display:"flex",gap:"8px"}}>
+          <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
+            <button onClick={()=>{
+              const url=`${window.location.origin}/equipos/${eq.id_equipo}`;
+              if(navigator.share){navigator.share({title:eq.nombre,text:`Ficha de ${eq.nombre} en BasketFem DB`,url}).catch(()=>{});}
+              else{navigator.clipboard.writeText(url);setShareMsg(true);setTimeout(()=>setShareMsg(false),2000);}
+            }} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>📤 Compartir</button>
+            {shareMsg&&<span style={{fontSize:"12px",color:"#16a34a",fontWeight:600}}>¡Enlace copiado!</span>}
+            {isAdmin&&<>
             <button onClick={()=>setTeamModal("editTeam")} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>✏️ Editar</button>
             <button onClick={()=>setDelItem("team")} style={{background:"#fee2e2",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#ef4444"}}>🗑️</button>
-          </div>}
+            </>}
+          </div>
         </div>
         {isAdmin&&delItem==="team"&&<ConfirmDel msg="¿Eliminar este equipo?" onCancel={()=>setDelItem(null)} onConfirm={delTeam}/>}
         <div style={{background:"#fff",borderRadius:"20px",padding:"24px",paddingBottom:eq.redes_sociales?"68px":"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px",position:"relative"}}>
@@ -3608,6 +3626,13 @@ export default function App(){
   };
 
   useEffect(()=>{loadAll();},[]);
+  useEffect(()=>{
+    const parts=window.location.pathname.split("/").filter(Boolean);
+    if(parts.length===2&&parts[0]==="jugadoras")setOpenPlayerId(parts[1]);
+    else if(parts.length===2&&parts[0]==="equipos")setOpenTeamId(parts[1]);
+    else if(parts.length===2&&parts[0]==="coaches")setOpenCoachId(parts[1]);
+    if(parts[0]==="jugadoras"||parts[0]==="equipos"||parts[0]==="coaches"||parts[0]==="ligas")setTab(parts[0]);
+  },[]);
 
   const TABS=[["home","✍️","Inicio"],["jugadoras","👩‍🏀","Jugadoras"],["equipos","🏟️","Equipos"],["ligas","🏆","Ligas"],["cuerpo_tecnico","📋","Cuerpo Técnico"]];
 
