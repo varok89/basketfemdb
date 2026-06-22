@@ -2524,7 +2524,8 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
               const url=`${window.location.origin}/equipos/${eq.id_equipo}`;
               // Solo url, sin text: ver comentario equivalente en PlayersView sobre por qué
               // Android concatena text+url y rompe el preview correcto de WhatsApp.
-              const detallesShareEq=[eq.ciudad,eq.pais].filter(Boolean).join(", ");
+              const banderaShareEq=countryFlagEmoji(eq.pais);
+              const detallesShareEq=eq.ciudad&&banderaShareEq?`${eq.ciudad} ${banderaShareEq}`:(eq.ciudad||banderaShareEq||"");
               const shareTextEq=detallesShareEq?`${eq.nombre} · ${detallesShareEq} — BasketFem DB`:`Ficha de ${eq.nombre} en BasketFem DB`;
               if(navigator.share){navigator.share({title:eq.nombre,text:shareTextEq,url}).catch(()=>{});}
               else{navigator.clipboard.writeText(url);setShareMsg(true);setTimeout(()=>setShareMsg(false),2000);}
