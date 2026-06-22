@@ -41,6 +41,9 @@ module.exports = async (req, res) => {
     : "Ficha de equipo en BasketFem DB";
 
   const pageUrl = `https://${req.headers.host}/equipos/${id}`;
+  // og:url fijo a propósito (misma decisión que en el endpoint de jugadora):
+  // si el dominio de producción cambia, este valor no se actualiza solo.
+  const cleanDomainUrl = "https://basketfemdb.vercel.app";
 
   const imageTag = escudo
     ? `<meta property="og:image" content="${escapeHtml(escudo)}">
@@ -57,7 +60,7 @@ module.exports = async (req, res) => {
 <meta property="og:title" content="${escapeHtml(nombre)}">
 <meta property="og:description" content="${escapeHtml(descripcion)}">
 ${imageTag}
-<meta property="og:url" content="${escapeHtml(pageUrl)}">
+<meta property="og:url" content="${escapeHtml(cleanDomainUrl)}">
 <meta name="twitter:card" content="${escudo ? "summary_large_image" : "summary"}">
 <meta name="twitter:title" content="${escapeHtml(nombre)}">
 <meta name="twitter:description" content="${escapeHtml(descripcion)}">

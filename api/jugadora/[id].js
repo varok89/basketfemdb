@@ -27,23 +27,29 @@ module.exports = async (req, res) => {
 
   const { data: jugadora, error } = await supabase
     .from("jugadoras")
-    .select("nombre,posicion,nacionalidad,foto")
+    .select("nombre,posicion,posicion2,nacionalidad,nacionalidad2,foto")
     .eq("id_jugadora", id)
     .maybeSingle();
 
   // Si no existe la jugadora (id inválido, borrada, etc.), no inventamos datos:
   // servimos metadatos genéricos de la app y dejamos que el cliente decida qué mostrar.
   const nombre = jugadora?.nombre || "BasketFem DB";
-  const posicion = jugadora?.posicion;
-  const nacionalidad = jugadora?.nacionalidad;
+  const posiciones = [jugadora?.posicion, jugadora?.posicion2].filter(Boolean).join("/");
+  const nacionalidades = [jugadora?.nacionalidad, jugadora?.nacionalidad2].filter(Boolean).join(" / ");
   const foto = jugadora?.foto || FALLBACK_PHOTO;
 
-  const descParts = [posicion, nacionalidad].filter(Boolean);
+  const descParts = [posiciones, nacionalidades].filter(Boolean);
   const descripcion = descParts.length
     ? `${descParts.join(" · ")} — BasketFem DB`
     : "Ficha de jugadora en BasketFem DB";
 
   const pageUrl = `https://${req.headers.host}/jugadoras/${id}`;
+  // og:url muestra el dominio limpio en la tarjeta de WhatsApp (lo que se ve bajo el título),
+  // pero el enlace real al que navega el click sigue siendo pageUrl (vía http-equiv=refresh y el <a> de abajo).
+  // Confirmado: og:url es solo metadato informativo, no controla la navegación al pulsar la tarjeta.
+  // Valor FIJO a propósito (decisión explícita de Alvaro): si el dominio de producción cambia
+  // en el futuro, este valor NO se actualiza solo — hay que editarlo a mano aquí.
+  const cleanDomainUrl = "https://basketfemdb.vercel.app";
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -55,7 +61,7 @@ module.exports = async (req, res) => {
 <meta property="og:title" content="${escapeHtml(nombre)}">
 <meta property="og:description" content="${escapeHtml(descripcion)}">
 <meta property="og:image" content="${escapeHtml(foto)}">
-<meta property="og:url" content="${escapeHtml(pageUrl)}">
+<meta property="og:url" content="${escapeHtml(cleanDomainUrl)}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${escapeHtml(nombre)}">
 <meta name="twitter:description" content="${escapeHtml(descripcion)}">

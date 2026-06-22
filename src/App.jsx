@@ -1903,7 +1903,9 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
         <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
           <button onClick={()=>{
             const url=`${window.location.origin}/jugadoras/${selected.id_jugadora}`;
-            if(navigator.share){navigator.share({title:selected.nombre,text:`Ficha de ${selected.nombre} en BasketFem DB`,url}).catch(()=>{});}
+            const detalles=[selected.posicion,selected.nacionalidad].filter(Boolean).join(" · ");
+            const shareText=detalles?`${selected.nombre} · ${detalles} — BasketFem DB`:`Ficha de ${selected.nombre} en BasketFem DB`;
+            if(navigator.share){navigator.share({title:selected.nombre,text:shareText,url}).catch(()=>{});}
             else{navigator.clipboard.writeText(url);setShareMsg(true);setTimeout(()=>setShareMsg(false),2000);}
           }} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>📤 Compartir</button>
           {shareMsg&&<span style={{fontSize:"12px",color:"#16a34a",fontWeight:600}}>¡Enlace copiado!</span>}
@@ -2502,7 +2504,9 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
           <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
             <button onClick={()=>{
               const url=`${window.location.origin}/equipos/${eq.id_equipo}`;
-              if(navigator.share){navigator.share({title:eq.nombre,text:`Ficha de ${eq.nombre} en BasketFem DB`,url}).catch(()=>{});}
+              const detalles=[eq.ciudad,eq.pais].filter(Boolean).join(", ");
+              const shareText=detalles?`${eq.nombre} · ${detalles} — BasketFem DB`:`Ficha de ${eq.nombre} en BasketFem DB`;
+              if(navigator.share){navigator.share({title:eq.nombre,text:shareText,url}).catch(()=>{});}
               else{navigator.clipboard.writeText(url);setShareMsg(true);setTimeout(()=>setShareMsg(false),2000);}
             }} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>📤 Compartir</button>
             {shareMsg&&<span style={{fontSize:"12px",color:"#16a34a",fontWeight:600}}>¡Enlace copiado!</span>}
