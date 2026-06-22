@@ -330,6 +330,19 @@ function countryCode(c) {
   return COUNTRY_CODES[c.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim()] || null;
 }
 
+// Construye el emoji de bandera regional a partir de un código ISO de 2 letras.
+// Mismo mecanismo que en api/_lib/countryFlags.js (servidor), duplicado aquí porque
+// este archivo corre en el navegador y no puede hacer require() de la carpeta api/.
+function flagEmoji(isoCode) {
+  if (!isoCode || isoCode.length !== 2) return "";
+  const codePoints = isoCode.toUpperCase().split("").map(ch => 0x1F1E6 + (ch.charCodeAt(0) - 65));
+  return String.fromCodePoint(...codePoints);
+}
+function countryFlagEmoji(nombrePais) {
+  const code = countryCode(nombrePais);
+  return code ? flagEmoji(code) : "";
+}
+
 function FlagImg({ country }) {
   if (!country) return null;
   const norm = country.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
@@ -1906,7 +1919,11 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
             // Solo url, sin text: si se pasan ambos, Android concatena text+url en un único
             // bloque de texto antes de entregarlo a WhatsApp, lo que generaba un preview
             // inconsistente (a veces el del dominio raíz en vez de la ficha de la jugadora).
-            if(navigator.share){navigator.share({title:selected.nombre,url}).catch(()=>{});}
+            const posicionesShare=[selected.posicion,selected.posicion2].filter(Boolean).join("/");
+            const banderasShare=[countryFlagEmoji(selected.nacionalidad),countryFlagEmoji(selected.nacionalidad2)].filter(Boolean).join(" ");
+            const detallesShare=[posicionesShare,banderasShare].filter(Boolean).join(" · ");
+            const shareText=detallesShare?`${selected.nombre} · ${detallesShare} — BasketFem DB`:`Ficha de ${selected.nombre} en BasketFem DB`;
+            if(navigator.share){navigator.share({title:selected.nombre,text:shareText,url}).catch(()=>{});}
             else{navigator.clipboard.writeText(url);setShareMsg(true);setTimeout(()=>setShareMsg(false),2000);}
           }} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>📤 Compartir</button>
           {shareMsg&&<span style={{fontSize:"12px",color:"#16a34a",fontWeight:600}}>¡Enlace copiado!</span>}
@@ -2507,7 +2524,9 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
               const url=`${window.location.origin}/equipos/${eq.id_equipo}`;
               // Solo url, sin text: ver comentario equivalente en PlayersView sobre por qué
               // Android concatena text+url y rompe el preview correcto de WhatsApp.
-              if(navigator.share){navigator.share({title:eq.nombre,url}).catch(()=>{});}
+              const detallesShareEq=[eq.ciudad,eq.pais].filter(Boolean).join(", ");
+              const shareTextEq=detallesShareEq?`${eq.nombre} · ${detallesShareEq} — BasketFem DB`:`Ficha de ${eq.nombre} en BasketFem DB`;
+              if(navigator.share){navigator.share({title:eq.nombre,text:shareTextEq,url}).catch(()=>{});}
               else{navigator.clipboard.writeText(url);setShareMsg(true);setTimeout(()=>setShareMsg(false),2000);}
             }} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>📤 Compartir</button>
             {shareMsg&&<span style={{fontSize:"12px",color:"#16a34a",fontWeight:600}}>¡Enlace copiado!</span>}
