@@ -224,7 +224,7 @@ const COUNTRY_CODES = {
   "rwanda":"rw",
   "congo":"cd","republica democratica del congo":"cd","república democrática del congo":"cd",
   "zambia":"zm",
-  "zimbabwe":"zw",
+  "zimbabwe":"zw","zimbabue":"zw",
   "guinea":"gn",
   "cape verde":"cv","cabo verde":"cv",
   "gabon":"ga","gabón":"ga",
@@ -257,9 +257,12 @@ const COUNTRY_CODES = {
   "mongolia":"mn",
   "uzbekistan":"uz","uzbekistán":"uz",
   "belarus":"by",
+  "syria":"sy","siria":"sy",
 
   /* Oceanía */
   "fiji":"fj","fiyi":"fj",
+  "papua nueva guinea":"pg","papua new guinea":"pg",
+  "islas virgenes de america":"vi","islas virgenes de estados unidos":"vi","us virgin islands":"vi","united states virgin islands":"vi",
   "burundi":"bi",
   "madagascar":"mg",
   "rd congo":"cd","república democrática del congo":"cd","republica democratica del congo":"cd","rdc":"cd",
