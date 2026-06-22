@@ -1,47 +1,7 @@
 {
   "rewrites": [
-    {
-      "source": "/jugadoras/:id",
-      "has": [
-        { "type": "header", "key": "user-agent", "value": "WhatsApp.*" }
-      ],
-      "destination": "/api/jugadora/:id"
-    },
-    {
-      "source": "/jugadoras/:id",
-      "has": [
-        { "type": "header", "key": "user-agent", "value": "facebookexternalhit.*" }
-      ],
-      "destination": "/api/jugadora/:id"
-    },
-    {
-      "source": "/jugadoras/:id",
-      "has": [
-        { "type": "header", "key": "user-agent", "value": "Twitterbot.*" }
-      ],
-      "destination": "/api/jugadora/:id"
-    },
-    {
-      "source": "/equipos/:id",
-      "has": [
-        { "type": "header", "key": "user-agent", "value": "WhatsApp.*" }
-      ],
-      "destination": "/api/equipo/:id"
-    },
-    {
-      "source": "/equipos/:id",
-      "has": [
-        { "type": "header", "key": "user-agent", "value": "facebookexternalhit.*" }
-      ],
-      "destination": "/api/equipo/:id"
-    },
-    {
-      "source": "/equipos/:id",
-      "has": [
-        { "type": "header", "key": "user-agent", "value": "Twitterbot.*" }
-      ],
-      "destination": "/api/equipo/:id"
-    },
+    { "source": "/jugadoras/:id", "destination": "/api/jugadora/:id" },
+    { "source": "/equipos/:id", "destination": "/api/equipo/:id" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
