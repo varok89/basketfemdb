@@ -511,6 +511,26 @@ function PhotoPicker({value,onChange}){
   );
 }
 
+function EscudoPicker({value,onChange}){
+  const inp={width:"100%",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 12px",fontSize:"13px",outline:"none",boxSizing:"border-box"};
+  return(
+    <div style={{marginBottom:"8px"}}>
+      <label style={{display:"block",fontSize:"12px",fontWeight:700,color:"#64748b",marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Escudo</label>
+      <div style={{display:"flex",alignItems:"flex-start",gap:"14px"}}>
+        {value?<img src={value} alt="" style={{width:56,height:56,borderRadius:"8px",objectFit:"contain",border:"1.5px solid #e2e8f0",flexShrink:0,background:"#fff"}} onError={e=>e.target.style.display="none"}/>
+          :<div style={{width:56,height:56,borderRadius:"8px",background:"#f1f5f9",border:"2px dashed #cbd5e1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",flexShrink:0}}>🛡️</div>}
+        <div style={{flex:1}}>
+          <div style={{display:"flex",gap:"6px",marginBottom:"8px"}}>
+            <button type="button" onClick={()=>onChange("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5paClUbICyOfUdZW-l6ZpDux6XhXG3HmDkw&s")} style={{background:"#f1f5f9",color:"#475569",border:"none",borderRadius:"8px",padding:"5px 12px",fontSize:"12px",cursor:"pointer",fontWeight:600}}>🛡️ Default</button>
+            {value&&<button type="button" onClick={()=>onChange(null)} style={{background:"none",border:"none",fontSize:"11px",color:"#ef4444",cursor:"pointer",marginLeft:"auto"}}>Eliminar</button>}
+          </div>
+          <input style={inp} value={value||""} onChange={e=>onChange(e.target.value||null)} placeholder="https://ejemplo.com/escudo.png"/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function EmptyState({icon,text,sub}){return(
   <div style={{textAlign:"center",padding:"80px 20px",color:"#94a3b8"}}>
     <div style={{fontSize:"48px",marginBottom:"12px"}}>{icon}</div>
@@ -2128,7 +2148,7 @@ function TeamForm({initial,onSave,onCancel,saving}){
       <Fld label='Año fundación'><input style={inp} type='number' value={f.año_fundacion||''} onChange={set('año_fundacion')} placeholder='1994'/></Fld>
       <Fld label='Tipo'><select style={inp} value={f.tipo||''} onChange={set('tipo')}><option value=''>— Sin definir —</option><option value='equipo'>Club</option><option value='seleccion'>Selección</option></select></Fld>
     </div>
-    <Fld label='URL Escudo'><input style={inp} value={f.escudo||''} onChange={set('escudo')} placeholder='https://...'/></Fld>
+    <EscudoPicker value={f.escudo} onChange={v=>setF(p=>({...p,escudo:v}))}/>
     <Fld label='Redes sociales (URL)'><input style={inp} value={f.redes_sociales||''} onChange={set('redes_sociales')} placeholder='https://instagram.com/...'/></Fld>
     <div style={{display:'flex',gap:'10px',justifyContent:'flex-end',marginTop:'8px'}}>
       <button onClick={onCancel} style={{background:'#f1f5f9',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:600,cursor:'pointer'}}>Cancelar</button>
