@@ -180,8 +180,15 @@ function flagEmoji(isoCode) {
   return String.fromCodePoint(...codePoints);
 }
 
+// Entidades sin código ISO de país real (selecciones mixtas/neutrales en JJOO).
+// Mismo mecanismo que en src/App.jsx (cliente) — mantener sincronizado si se añaden más casos.
+const NO_COUNTRY_FLAGS = { "equipo unificado": "🏳️" };
+
 // Dado un nombre de país en texto libre, devuelve su emoji de bandera, o cadena vacía si no se reconoce.
 function countryFlag(nombrePais) {
+  if (!nombrePais) return "";
+  const norm = nombrePais.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
+  if (NO_COUNTRY_FLAGS[norm]) return NO_COUNTRY_FLAGS[norm];
   const code = countryCode(nombrePais);
   return code ? flagEmoji(code) : "";
 }

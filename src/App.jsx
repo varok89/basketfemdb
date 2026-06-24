@@ -338,7 +338,14 @@ function flagEmoji(isoCode) {
   const codePoints = isoCode.toUpperCase().split("").map(ch => 0x1F1E6 + (ch.charCodeAt(0) - 65));
   return String.fromCodePoint(...codePoints);
 }
+// Entidades sin código ISO de país real (selecciones mixtas/neutrales en JJOO).
+// No tienen cabida en COUNTRY_CODES porque no son países; se gestionan aparte.
+const NO_COUNTRY_FLAGS = { "equipo unificado": "🏳️" };
+
 function countryFlagEmoji(nombrePais) {
+  if (!nombrePais) return "";
+  const norm = nombrePais.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
+  if (NO_COUNTRY_FLAGS[norm]) return NO_COUNTRY_FLAGS[norm];
   const code = countryCode(nombrePais);
   return code ? flagEmoji(code) : "";
 }
