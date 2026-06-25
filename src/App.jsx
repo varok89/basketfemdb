@@ -94,7 +94,8 @@ const TIPO_COLORS = {
   internacional: ["#e0f2fe","#0369a1"],
 };
 
-const calcAge = d => d ? Math.floor((Date.now()-new Date(d))/(365.25*24*3600*1000)) : null;
+// Si se pasa fechaFin (p.ej. fallecimiento), calcula la edad hasta esa fecha, no hasta hoy.
+const calcAge = (d, fechaFin) => d ? Math.floor(((fechaFin?new Date(fechaFin):new Date())-new Date(d))/(365.25*24*3600*1000)) : null;
 
 function sortS(ss) {
   return [...(ss||[])].sort((a,b) => {
@@ -461,7 +462,7 @@ function LeagueBadge({liga,size=60}){
   return <div style={{width:size,height:size,borderRadius:"10px",background:bg,display:"flex",alignItems:"center",justifyContent:"center",color,fontWeight:800,fontSize:fs,flexShrink:0,textAlign:"center",padding:"4px"}}>{liga?.nombre?.split(" ").map(w=>w[0]).slice(0,3).join("")||"?"}</div>;
 }
 
-function Avatar({photo,name,size=48,fontSize=18}){
+function Avatar({photo,name,size=48,fontSize=18,fallecida=false}){
   const ini=(name||"").split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
   const proxy=url=>`https://wsrv.nl/?url=${encodeURIComponent(url)}&w=${size*2}&h=${size*2}&fit=cover&output=webp`;
   const handleError=e=>{
@@ -473,8 +474,23 @@ function Avatar({photo,name,size=48,fontSize=18}){
       img.style.display="none";
     }
   };
-  if(photo) return <img src={photo} alt={name} style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"2px solid #e2e8f0"}} onError={handleError}/>;
-  return <div style={{width:size,height:size,borderRadius:"50%",background:"linear-gradient(135deg,#9333ea,#c084fc)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"#fff",fontWeight:800,fontSize,letterSpacing:"-0.5px"}}>{ini}</div>;
+  // El lazo negro (luto) se superpone en la esquina inferior derecha del avatar.
+  // Path real del icono "Ribbon" de lucide-react (ya usado en el resto de la app),
+  // no dibujado a mano, para garantizar que la forma es reconocible como lazo.
+  const ribbonSize=Math.max(18,size*0.4);
+  const ribbon=fallecida&&(
+    <div title="Fallecida" style={{position:"absolute",bottom:-2,right:-2,width:ribbonSize,height:ribbonSize,borderRadius:"50%",background:"#fff",border:"1.5px solid #e2e8f0",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <svg width={ribbonSize*0.68} height={ribbonSize*0.68} viewBox="0 0 24 24" fill="none" stroke="#1e293b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 11.22C11 9.997 10 9 10 8a2 2 0 0 1 4 0c0 1-.998 2.002-2.01 3.22"/>
+        <path d="m12 18 2.57-3.5"/>
+        <path d="M6.243 9.016a7 7 0 0 1 11.507-.009"/>
+        <path d="M9.35 14.53 12 11.22"/>
+        <path d="M9.35 14.53C7.728 12.246 6 10.221 6 7a6 5 0 0 1 12 0c-.005 3.22-1.778 5.235-3.43 7.5l3.557 4.527a1 1 0 0 1-.203 1.43l-1.894 1.36a1 1 0 0 1-1.384-.215L12 18l-2.679 3.593a1 1 0 0 1-1.39.213l-1.865-1.353a1 1 0 0 1-.203-1.422z"/>
+      </svg>
+    </div>
+  );
+  if(photo) return <div style={{position:"relative",display:"inline-flex",flexShrink:0}}><img src={photo} alt={name} style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"2px solid #e2e8f0",filter:fallecida?"grayscale(60%)":"none"}} onError={handleError}/>{ribbon}</div>;
+  return <div style={{position:"relative",display:"inline-flex",flexShrink:0}}><div style={{width:size,height:size,borderRadius:"50%",background:"linear-gradient(135deg,#9333ea,#c084fc)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"#fff",fontWeight:800,fontSize,letterSpacing:"-0.5px"}}>{ini}</div>{ribbon}</div>;
 }
 
 /* ── Estilos ─────────────────────────────────────────────── */
@@ -564,7 +580,7 @@ function EmptyState({icon,text,sub}){return(
 
 /* ── Formularios ─────────────────────────────────────────── */
 function PlayerForm({initial,onSave,onCancel,saving}){
-  const [f,setF]=useState({nombre:"",posicion:"Base",posicion2:"",nacionalidad:"",nacionalidad2:"",fecha_nac:"",altura_cm:"",foto:null,...initial});
+  const [f,setF]=useState({nombre:"",posicion:"Base",posicion2:"",nacionalidad:"",nacionalidad2:"",fecha_nac:"",fecha_fallecimiento:"",altura_cm:"",foto:null,...initial});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
   return(<div>
     <PhotoPicker value={f.foto} onChange={v=>setF(p=>({...p,foto:v}))}/>
@@ -580,6 +596,7 @@ function PlayerForm({initial,onSave,onCancel,saving}){
     </div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
       <Fld label="Fecha nac."><input style={inp} type="date" value={f.fecha_nac||""} onChange={set("fecha_nac")}/></Fld>
+      <Fld label="Fecha fallecimiento (opcional)"><input style={inp} type="date" value={f.fecha_fallecimiento||""} onChange={set("fecha_fallecimiento")}/></Fld>
     </div>
     <div style={{display:"flex",gap:"10px",marginTop:"8px"}}>
       <button onClick={onCancel} style={{flex:1,border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"11px",color:"#64748b",background:"#fff",cursor:"pointer",fontWeight:600}}>Cancelar</button>
@@ -1498,7 +1515,7 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
                 style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 14px",cursor:"pointer",transition:"background 0.1s"}}
                 onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
                 onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                <Avatar photo={p.foto} name={p.nombre} size={32} fontSize={12}/>
+                <Avatar photo={p.foto} name={p.nombre} size={32} fontSize={12} fallecida={!!p.fecha_fallecimiento}/>
                 <div><div style={{fontSize:"13px",color:"#f1f5f9",fontWeight:600}}>{p.nombre}</div>
                 <div style={{fontSize:"11px",color:"#64748b"}}>{p.posicion}{p.posicion2?` · ${p.posicion2}`:""}</div></div>
               </div>
@@ -1621,7 +1638,7 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
                   style={{background:"#fff",borderRadius:"16px",padding:"16px 12px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",display:"flex",flexDirection:"column",alignItems:"center",gap:"6px",cursor:"pointer",transition:"all 0.15s",textAlign:"center"}}
                   onMouseEnter={e=>{e.currentTarget.style.boxShadow="0 4px 16px rgba(249,115,22,0.15)";e.currentTarget.style.transform="translateY(-2px)";}}
                   onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 1px 6px rgba(0,0,0,0.07)";e.currentTarget.style.transform="translateY(0)";}}>
-                  <Avatar photo={s.player.foto} name={s.player.nombre} size={72} fontSize={24}/>
+                  <Avatar photo={s.player.foto} name={s.player.nombre} size={72} fontSize={24} fallecida={!!s.player.fecha_fallecimiento}/>
                   <div style={{fontWeight:700,fontSize:"13px",color:"#1e293b",lineHeight:1.3,width:"100%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.player.nombre}</div>
                   <div style={{fontSize:"20px",lineHeight:1}}>✍️</div>
                   <div style={{display:"flex",alignItems:"center",gap:"6px",background:"#fff7ed",borderRadius:"10px",padding:"6px 10px",width:"100%",justifyContent:"center",boxSizing:"border-box"}}>
@@ -1835,7 +1852,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     try{
       const allJIds=players.map(p=>parseInt((p.id_jugadora||"J0").slice(1))).filter(n=>!isNaN(n));
       const newId=firstFreeId(allJIds,"J",0);
-      const newPlayer={id_jugadora:newId,nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null};
+      const newPlayer={id_jugadora:newId,nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,fecha_fallecimiento:f.fecha_fallecimiento||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null};
       const{error}=await supabase.from("jugadoras").insert(newPlayer);
       if(error)throw error;
       setPlayers(prev=>[...prev,{...newPlayer,seasons:[]}].sort((a,b)=>(a.id_jugadora||"").localeCompare(b.id_jugadora||"")));
@@ -1845,7 +1862,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   };
   const updPlayer=async f=>{
     setSaving(true);
-    const payload={nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null};
+    const payload={nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,fecha_fallecimiento:f.fecha_fallecimiento||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null};
     try{const{error}=await supabase.from("jugadoras").update(payload).eq("id_jugadora",selId);
       if(error)throw error;
       setPlayers(prev=>prev.map(p=>p.id_jugadora!==selId?p:{...p,...payload}));
@@ -1952,7 +1969,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
 
       <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
         <div style={{display:"flex",alignItems:"flex-start",gap:"20px"}}>
-          <Avatar photo={selected.foto} name={selected.nombre} size={90} fontSize={30}/>
+          <Avatar photo={selected.foto} name={selected.nombre} size={90} fontSize={30} fallecida={!!selected.fecha_fallecimiento}/>
           <div style={{flex:1}}>
             <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"12px",marginBottom:"8px"}}>
               <div><h1 style={{fontWeight:800,fontSize:"21px",color:"#1e293b",margin:0}}>{selected.nombre}</h1>{isAdmin&&<span style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{selected.id_jugadora}</span>}</div>
@@ -1982,7 +1999,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"12px"}}>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",flex:1}}>
                     {selected.altura_cm&&<div style={{fontSize:"13px"}}><span style={{color:"#94a3b8"}}>Altura: </span><span style={{fontWeight:600,color:"#334155"}}>{selected.altura_cm} cm</span></div>}
-                    {selected.fecha_nac&&<div style={{fontSize:"13px"}}><span style={{color:"#94a3b8"}}>Edad: </span><span style={{fontWeight:600,color:"#334155"}}>{calcAge(selected.fecha_nac)} años</span></div>}
+                    {selected.fecha_nac&&<div style={{fontSize:"13px"}}><span style={{color:"#94a3b8"}}>{selected.fecha_fallecimiento?"Edad al fallecer: ":"Edad: "}</span><span style={{fontWeight:600,color:"#334155"}}>{calcAge(selected.fecha_nac,selected.fecha_fallecimiento)} años</span></div>}
                   </div>
                   {coachRecord&&(
                     <button onClick={()=>onGoToCoach(coachRecord.id_coach,{tab:"jugadoras",id:selected?.id_jugadora,label:selected?.nombre})}
@@ -2170,7 +2187,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
               onMouseEnter={e=>{e.currentTarget.style.borderColor="#c084fc";e.currentTarget.style.boxShadow="0 4px 18px rgba(249,115,22,0.18)";}}
               onMouseLeave={e=>{e.currentTarget.style.borderColor="transparent";e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.06)";}}>
               <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"12px"}}>
-                <Avatar photo={p.foto} name={p.nombre} size={48} fontSize={18}/>
+                <Avatar photo={p.foto} name={p.nombre} size={48} fontSize={18} fallecida={!!p.fecha_fallecimiento}/>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontWeight:700,fontSize:"15px",color:"#1e293b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>
                   <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"1px",display:"flex",alignItems:"center",gap:"3px"}}>{p.nacionalidad&&<FlagImg country={p.nacionalidad}/>}{p.nacionalidad2&&<FlagImg country={p.nacionalidad2}/>}{p.altura_cm&&<span>{p.nacionalidad||p.nacionalidad2?" · ":""}{p.altura_cm} cm</span>}</div>
@@ -2662,7 +2679,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
                   style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",background:"#f8fafc",borderRadius:"12px",border:"1.5px solid #e2e8f0",cursor:"pointer",transition:"all 0.15s"}}
                   onMouseEnter={e=>{e.currentTarget.style.borderColor="#c084fc";e.currentTarget.style.background="#fff7ed";}}
                   onMouseLeave={e=>{e.currentTarget.style.borderColor="#e2e8f0";e.currentTarget.style.background="#f8fafc";}}>
-                  <Avatar photo={player.foto} name={player.nombre} size={44} fontSize={16}/>
+                  <Avatar photo={player.foto} name={player.nombre} size={44} fontSize={16} fallecida={!!player.fecha_fallecimiento}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontWeight:700,fontSize:"14px",color:"#9333ea"}}>{player.nombre}</div>
                     <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"3px"}}>{player.nacionalidad&&<FlagImg country={player.nacionalidad}/>}{player.nacionalidad2&&<FlagImg country={player.nacionalidad2}/>}{player.altura_cm&&<span>{player.nacionalidad||player.nacionalidad2?" · ":""}{player.altura_cm} cm</span>}</div>
