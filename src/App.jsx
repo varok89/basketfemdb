@@ -475,17 +475,13 @@ function Avatar({photo,name,size=48,fontSize=18,fallecida=false}){
     }
   };
   // El lazo negro (luto) se superpone en la esquina inferior derecha del avatar.
-  // Path real del icono "Ribbon" de lucide-react (ya usado en el resto de la app),
-  // no dibujado a mano, para garantizar que la forma es reconocible como lazo.
+  // Path real del icono "Ribbon" sólido de Font Awesome Free (licencia CC BY 4.0),
+  // no dibujado a mano: es una silueta rellenable, a diferencia del de trazo usado antes.
   const ribbonSize=Math.max(18,size*0.4);
   const ribbon=fallecida&&(
     <div title="Fallecida" style={{position:"absolute",bottom:-2,right:-2,width:ribbonSize,height:ribbonSize,borderRadius:"50%",background:"#fff",border:"1.5px solid #e2e8f0",display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <svg width={ribbonSize*0.68} height={ribbonSize*0.68} viewBox="0 0 24 24" fill="none" stroke="#1e293b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 11.22C11 9.997 10 9 10 8a2 2 0 0 1 4 0c0 1-.998 2.002-2.01 3.22"/>
-        <path d="m12 18 2.57-3.5"/>
-        <path d="M6.243 9.016a7 7 0 0 1 11.507-.009"/>
-        <path d="M9.35 14.53 12 11.22"/>
-        <path d="M9.35 14.53C7.728 12.246 6 10.221 6 7a6 5 0 0 1 12 0c-.005 3.22-1.778 5.235-3.43 7.5l3.557 4.527a1 1 0 0 1-.203 1.43l-1.894 1.36a1 1 0 0 1-1.384-.215L12 18l-2.679 3.593a1 1 0 0 1-1.39.213l-1.865-1.353a1 1 0 0 1-.203-1.422z"/>
+      <svg width={ribbonSize*0.58} height={ribbonSize*0.58} viewBox="0 0 384 512" fill="#0f0f0f">
+        <path d="M235.1 0c33.4 0 64.5 17.4 81.9 45.9 1.2 2 13 21.3 35.3 57.8 21.1 34.5 18.3 78.5-7 110L278.3 297.7 364.5 406c5.5 6.9 4.4 16.9-2.5 22.5l-80 64c-6.9 5.5-17 4.4-22.5-2.5L38.6 213.8C13.3 182.3 10.5 138.3 31.6 103.8 54 67.2 65.7 47.9 67 45.9 84.4 17.4 115.4 0 148.9 0l86.3 0zM192 189.2l48.6-61.2-97.3 0 48.6 61.2zM75 336.2l86.2 107.8-36.8 46c-5.5 6.9-15.6 8-22.5 2.5l-80-64c-6.9-5.5-8-15.6-2.5-22.5L75 336.2z"/>
       </svg>
     </div>
   );
