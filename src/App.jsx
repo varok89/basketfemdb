@@ -2223,7 +2223,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
 
 /* ── TeamForm ───────────────────────────────────────────── */
 function TeamForm({initial,onSave,onCancel,saving}){
-  const [f,setF]=useState({nombre:'',ciudad:'',pais:'',año_fundacion:'',escudo:'',tipo:'equipo',redes_sociales:'',...(initial||{})});
+  const [f,setF]=useState({nombre:'',ciudad:'',pais:'',año_fundacion:'',escudo:'',tipo:'equipo',redes_sociales:'',pabellon:'',...(initial||{})});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
   const inp={width:'100%',border:'1.5px solid #e2e8f0',borderRadius:'10px',padding:'9px 12px',fontSize:'14px',outline:'none',boxSizing:'border-box'};
   return(<div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
@@ -2237,6 +2237,7 @@ function TeamForm({initial,onSave,onCancel,saving}){
       <Fld label='Tipo'><select style={inp} value={f.tipo||''} onChange={set('tipo')}><option value=''>— Sin definir —</option><option value='equipo'>Club</option><option value='seleccion'>Selección</option></select></Fld>
     </div>
     <EscudoPicker value={f.escudo} onChange={v=>setF(p=>({...p,escudo:v}))}/>
+    <Fld label='Pabellón'><input style={inp} value={f.pabellon||''} onChange={set('pabellon')} placeholder='Würzburg'/></Fld>
     <Fld label='Redes sociales (URL)'><input style={inp} value={f.redes_sociales||''} onChange={set('redes_sociales')} placeholder='https://instagram.com/...'/></Fld>
     <div style={{display:'flex',gap:'10px',justifyContent:'flex-end',marginTop:'8px'}}>
       <button onClick={onCancel} style={{background:'#f1f5f9',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:600,cursor:'pointer'}}>Cancelar</button>
@@ -2571,6 +2572,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
               <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
                 {eq.pais&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center"}}><FlagImg country={eq.pais}/>{eq.pais}</span>}
                 {eq.ciudad&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px"}}>📍 {eq.ciudad}</span>}
+                {eq.pabellon&&<a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(eq.ciudad?`${eq.pabellon}, ${eq.ciudad}`:eq.pabellon)}`} target="_blank" rel="noopener noreferrer" style={{background:"#eff6ff",color:"#2563eb",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"3px"}}>🏟️ {eq.pabellon}</a>}
                 {eq.año_fundacion&&<span style={{background:"#fff7ed",color:"#c2410c",fontSize:"12px",fontWeight:700,padding:"3px 10px",borderRadius:"20px"}}>Est. {eq.año_fundacion}</span>}
               </div>
             </div>
