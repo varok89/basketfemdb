@@ -1363,58 +1363,6 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   );
 }
 
-/* ── ExportModal ────────────────────────────────────────── */
-function ExportModal({tables,onClose}){
-  const [selected,setSelected]=useState(new Set(tables.map(t=>t.key)));
-  const toggle=key=>setSelected(prev=>{const s=new Set(prev);s.has(key)?s.delete(key):s.add(key);return s;});
-  const quoteCSV = value => {
-    const str = value == null ? "" : String(value);
-    return `"${str.replace(/"/g,'""')}"`;
-  };
-  const toCSV = (data, cols) => [
-    cols.map(quoteCSV).join(","),
-    ...data.map(row => cols.map(col => quoteCSV(row[col])).join(","))
-  ].join("\r\n");
-  const doExport=()=>{
-    const date=new Date().toISOString().slice(0,10);
-    tables.filter(t=>selected.has(t.key)).forEach(({key,data,cols})=>{
-      const blob=new Blob([toCSV(data,cols)],{type:"text/csv;charset=utf-8;"});
-      const a=document.createElement("a");a.href=URL.createObjectURL(blob);
-      a.download=`basketfemdb_${key}_${date}.csv`;a.click();
-    });
-    onClose();
-  };
-  return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"system-ui,sans-serif"}}>
-      <div style={{background:"#fff",borderRadius:"20px",padding:"28px",width:"360px",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"20px"}}>
-          <h2 style={{fontWeight:800,fontSize:"18px",color:"#1e293b",margin:0}}>📥 Exportar datos</h2>
-          <button onClick={onClose} style={{background:"none",border:"none",fontSize:"22px",color:"#94a3b8",cursor:"pointer"}}>×</button>
-        </div>
-        <div style={{display:"flex",gap:"8px",marginBottom:"12px"}}>
-          <button onClick={()=>setSelected(new Set(tables.map(t=>t.key)))} style={{flex:1,background:"#f1f5f9",border:"none",borderRadius:"8px",padding:"6px",fontSize:"12px",fontWeight:600,cursor:"pointer",color:"#475569"}}>Seleccionar todo</button>
-          <button onClick={()=>setSelected(new Set())} style={{flex:1,background:"#f1f5f9",border:"none",borderRadius:"8px",padding:"6px",fontSize:"12px",fontWeight:600,cursor:"pointer",color:"#475569"}}>Limpiar</button>
-        </div>
-        <div style={{display:"flex",flexDirection:"column",gap:"8px",marginBottom:"20px"}}>
-          {tables.map(t=>(
-            <label key={t.key} style={{display:"flex",alignItems:"center",gap:"10px",padding:"10px 12px",borderRadius:"10px",border:`1.5px solid ${selected.has(t.key)?"#9333ea":"#e2e8f0"}`,background:selected.has(t.key)?"#fff7ed":"#f8fafc",cursor:"pointer"}}>
-              <input type="checkbox" checked={selected.has(t.key)} onChange={()=>toggle(t.key)} style={{accentColor:"#9333ea",width:"16px",height:"16px",flexShrink:0}}/>
-              <div style={{flex:1}}>
-                <div style={{fontWeight:600,fontSize:"14px",color:"#1e293b"}}>{t.label}</div>
-                <div style={{fontSize:"11px",color:"#94a3b8"}}>{t.data?.length||0} registros · {t.key}.csv</div>
-              </div>
-            </label>
-          ))}
-        </div>
-        <button onClick={doExport} disabled={selected.size===0}
-          style={{width:"100%",background:selected.size>0?"#9333ea":"#fed7aa",color:"#fff",border:"none",borderRadius:"12px",padding:"12px",fontWeight:700,fontSize:"14px",cursor:selected.size>0?"pointer":"not-allowed"}}>
-          Descargar {selected.size} archivo{selected.size!==1?"s":""}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 /* ── GlobalSearch ───────────────────────────────────────── */
 function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach,fullscreen,onClose}){
   const [q,setQ]=useState("");
@@ -3602,7 +3550,6 @@ export default function App(){
   const [loading,setLoading] = useState(true);
   const [error,setError]     = useState(null);
   const [isFirstLoad,setIsFirstLoad] = useState(true);
-  const [showExport,setShowExport]   = useState(false);
   const [showCalidad,setShowCalidad] = useState(false);
   const [mobileSearchOpen,setMobileSearchOpen] = useState(false);
   const [showLanding,setShowLanding] = useState(()=>{
@@ -3704,18 +3651,6 @@ export default function App(){
       onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToCoach={goToCoach} onReload={loadAll}
       setPlayers={setPlayers} setEquipos={setEquipos} setLigas={setLigas} setCoaches={setCoaches} setTempCoach={setTempCoach}/>;
   }
-  if(showExport){
-    const TABLES=[
-      {key:"jugadoras",label:"Jugadoras",data:players.map(({seasons,...p})=>p),cols:["id_jugadora","nombre","posicion","posicion2","nacionalidad","nacionalidad2","fecha_nac","altura_cm","foto"]},
-      {key:"temporadas",label:"Temporadas",data:players.flatMap(p=>p.seasons||[]),cols:["id","id_jugadora","id_equipo","id_liga","temporada","orden"]},
-      {key:"equipos",label:"Equipos",data:equipos,cols:["id_equipo","nombre","ciudad","pais","año_fundacion","escudo","tipo","redes_sociales"]},
-      {key:"ligas",label:"Ligas",data:ligas,cols:["id_liga","nombre","pais","nivel","tipo","logo"]},
-      {key:"coaches",label:"Cuerpo Técnico",data:coaches,cols:["id_coach","nombre","nacionalidad","nacionalidad2","fecha_nac","foto","id_jugadora"]},
-      {key:"temporadas_coach",label:"Temporadas Coach",data:tempCoach,cols:["id","id_coach","id_equipo","id_liga","temporada","orden"]},
-      {key:"palmares",label:"Palmarés",data:palmares,cols:["id","id_equipo","id_liga","temporada"]},
-    ];
-    return <ExportModal tables={TABLES} onClose={()=>setShowExport(false)}/>;
-  }
   if(showLogin) return <LoginModal onLogin={handleLogin} onClose={()=>{setShowLogin(false);setLoginErr("");}} loading={loginLoading} error={loginErr}/>;
 
   if(loading) return(
@@ -3782,7 +3717,7 @@ export default function App(){
             ))}
             <button onClick={loadAll} title="Recargar" style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}}>🔄</button>
             {isAdmin&&<button title="Calidad de datos" onClick={()=>setShowCalidad(true)} style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}}>🩺</button>}
-            {isAdmin&&<button title="Exportar datos" onClick={()=>setShowExport(true)} style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}}>📥</button>}
+
             <button onClick={()=>setShowLanding(true)} title="Información" style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"14px",fontWeight:700}}>ℹ</button>
             {isAdmin
               ?<button onClick={handleLogout} title="Cerrar sesión admin" style={{background:"rgba(249,115,22,0.15)",color:"#c084fc",border:"1.5px solid rgba(249,115,22,0.3)",borderRadius:"10px",padding:"5px 10px",cursor:"pointer",fontSize:"12px",fontWeight:700}}>🔐 Admin</button>
