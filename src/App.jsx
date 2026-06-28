@@ -179,6 +179,7 @@ const COUNTRY_CODES = {
   "trinidad and tobago":"tt","trinidad y tobago":"tt",
   "bahamas":"bs",
   "barbados":"bb",
+  "saint vincent and the grenadines":"vc","san vicente y las granadinas":"vc",
   "costa rica":"cr",
   "guatemala":"gt",
   "honduras":"hn",
@@ -243,6 +244,7 @@ const COUNTRY_CODES = {
   "north korea":"kp","corea del norte":"kp",
   "india":"in",
   "israel":"il",
+  "jordan":"jo","jordania":"jo",
   "iran":"ir","irán":"ir",
   "kazakhstan":"kz","kazajistan":"kz","kazajistán":"kz","kazajstan":"kz",
   "australia":"au",
@@ -462,7 +464,7 @@ function LeagueBadge({liga,size=60}){
   return <div style={{width:size,height:size,borderRadius:"10px",background:bg,display:"flex",alignItems:"center",justifyContent:"center",color,fontWeight:800,fontSize:fs,flexShrink:0,textAlign:"center",padding:"4px"}}>{liga?.nombre?.split(" ").map(w=>w[0]).slice(0,3).join("")||"?"}</div>;
 }
 
-function Avatar({photo,name,size=48,fontSize=18,fallecida=false}){
+function Avatar({photo,name,size=48,fontSize=18,fallecida=false,onPhotoClick=null}){
   const ini=(name||"").split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
   const proxy=url=>`https://wsrv.nl/?url=${encodeURIComponent(url)}&w=${size*2}&h=${size*2}&fit=cover&output=webp`;
   const handleError=e=>{
@@ -485,8 +487,21 @@ function Avatar({photo,name,size=48,fontSize=18,fallecida=false}){
       </svg>
     </div>
   );
-  if(photo) return <div style={{position:"relative",display:"inline-flex",flexShrink:0}}><img src={photo} alt={name} style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"2px solid #e2e8f0",filter:fallecida?"grayscale(60%)":"none"}} onError={handleError}/>{ribbon}</div>;
+  // onPhotoClick es opt-in: solo se activa el cursor/clic donde se pase explícitamente
+  // (ficha individual de jugadora/entrenador), no en miniaturas de listados/búsqueda.
+  const clickProps=onPhotoClick&&photo?{onClick:()=>onPhotoClick(photo),style:{cursor:"pointer"}}:{};
+  if(photo) return <div {...clickProps} style={{...clickProps.style,position:"relative",display:"inline-flex",flexShrink:0}}><img src={photo} alt={name} style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"2px solid #e2e8f0",filter:fallecida?"grayscale(60%)":"none"}} onError={handleError}/>{ribbon}</div>;
   return <div style={{position:"relative",display:"inline-flex",flexShrink:0}}><div style={{width:size,height:size,borderRadius:"50%",background:"linear-gradient(135deg,#9333ea,#c084fc)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"#fff",fontWeight:800,fontSize,letterSpacing:"-0.5px"}}>{ini}</div>{ribbon}</div>;
+}
+
+function PhotoLightbox({photo,onClose}){
+  if(!photo) return null;
+  return (
+    <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",padding:"24px",cursor:"zoom-out"}}>
+      <button onClick={onClose} style={{position:"absolute",top:"16px",right:"20px",background:"rgba(255,255,255,0.15)",border:"none",borderRadius:"50%",width:"40px",height:"40px",color:"#fff",fontSize:"22px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+      <img src={photo} alt="" onClick={e=>e.stopPropagation()} style={{maxWidth:"90vw",maxHeight:"85vh",borderRadius:"12px",objectFit:"contain",boxShadow:"0 20px 60px rgba(0,0,0,0.5)",cursor:"default"}}/>
+    </div>
+  );
 }
 
 /* ── Estilos ─────────────────────────────────────────────── */
@@ -1711,6 +1726,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   const [filterStatus,setFilterStatus] = useState("");
   const [selId,setSelId]           = useState(openPlayerId||null);
   const [shareMsg,setShareMsg]     = useState(false);
+  const [lightboxPhoto,setLightboxPhoto] = useState(null);
   const [visibleCount,setVisibleCount] = useState(60);
   const loadMoreRef = useRef(null);
   useEffect(()=>{const seg='jugadoras';window.history.replaceState({},"",selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
@@ -1913,7 +1929,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
 
       <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
         <div style={{display:"flex",alignItems:"flex-start",gap:"20px"}}>
-          <Avatar photo={selected.foto} name={selected.nombre} size={90} fontSize={30} fallecida={!!selected.fecha_fallecimiento}/>
+          <Avatar photo={selected.foto} name={selected.nombre} size={90} fontSize={30} fallecida={!!selected.fecha_fallecimiento} onPhotoClick={setLightboxPhoto}/>
           <div style={{flex:1}}>
             <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"12px",marginBottom:"8px"}}>
               <div><h1 style={{fontWeight:800,fontSize:"21px",color:"#1e293b",margin:0}}>{selected.nombre}</h1>{isAdmin&&<span style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{selected.id_jugadora}</span>}</div>
@@ -2046,6 +2062,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
       {isAdmin&&del&&del!=="player"&&(
         <ConfirmDel msg="¿Eliminar esta temporada?" onCancel={()=>setDel(null)} onConfirm={()=>delSeason(del)}/>
       )}
+      {lightboxPhoto&&<PhotoLightbox photo={lightboxPhoto} onClose={()=>setLightboxPhoto(null)}/>}
     </div>
   );
 
@@ -3213,6 +3230,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
   const [search,setSearch]=useState("");
   const [selId,setSelId]  =useState(openCoachId||null);
   const [shareMsg,setShareMsg]=useState(false);
+  const [lightboxPhoto,setLightboxPhoto]=useState(null);
   useEffect(()=>{const seg='coaches';window.history.replaceState({},"",selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
   const [filterNac,setFilterNac]=useState("");
   const [filterLiga,setFilterLiga]=useState("");
@@ -3272,7 +3290,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
         {/* Header */}
         <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
           <div style={{display:"flex",alignItems:"flex-start",gap:"20px",flexWrap:"wrap"}}>
-            <Avatar photo={coach.foto} name={coach.nombre} size={80} fontSize={28}/>
+            <Avatar photo={coach.foto} name={coach.nombre} size={80} fontSize={28} onPhotoClick={setLightboxPhoto}/>
             <div style={{flex:1,minWidth:0}}>
               <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"12px",marginBottom:"10px"}}>
                 <div><h1 style={{fontWeight:800,fontSize:"21px",color:"#1e293b",margin:0}}>{coach.nombre}</h1>{isAdmin&&<span style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{coach.id_coach}</span>}</div>
@@ -3372,6 +3390,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
             );
           })()}
         </div>
+        {lightboxPhoto&&<PhotoLightbox photo={lightboxPhoto} onClose={()=>setLightboxPhoto(null)}/>}
       </div>
     );
   }
