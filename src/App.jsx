@@ -1944,7 +1944,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
                 });
                 const entries=Object.entries(titles);
                 if(!entries.length)return null;
-                return(<div style={{display:"flex",flexDirection:"column",gap:"4px",alignItems:"flex-end",flexShrink:0}}>{entries.map(([n,c])=>(<span key={n} style={{background:"#fffbeb",border:"1.5px solid #fed7aa",color:"#b45309",fontSize:"11px",fontWeight:700,padding:"3px 8px",borderRadius:"20px",whiteSpace:"nowrap"}}>🏆 {c}x {n}</span>))}</div>);
+                return(<div style={{display:"flex",flexDirection:"column",gap:"4px",alignItems:"flex-end",flexShrink:1,minWidth:0,maxWidth:"100%"}}>{entries.map(([n,c])=>(<span key={n} title={`${c}x ${n}`} style={{background:"#fffbeb",border:"1.5px solid #fed7aa",color:"#b45309",fontSize:"11px",fontWeight:700,padding:"3px 8px",borderRadius:"20px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"100%",boxSizing:"border-box"}}>🏆 {c}x {n}</span>))}</div>);
               })()}
             </div>
             <div style={{display:"flex",gap:"8px",flexWrap:"wrap",marginBottom:"12px"}}>
@@ -1956,10 +1956,10 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
             {(()=>{
               const coachRecord=(coaches||[]).find(c=>String(c.id_jugadora)===String(selected.id_jugadora));
               return(
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"12px"}}>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",flex:1}}>
-                    {selected.altura_cm&&<div style={{fontSize:"13px"}}><span style={{color:"#94a3b8"}}>Altura: </span><span style={{fontWeight:600,color:"#334155"}}>{selected.altura_cm} cm</span></div>}
-                    {selected.fecha_nac&&<div style={{fontSize:"13px"}}><span style={{color:"#94a3b8"}}>{selected.fecha_fallecimiento?"Edad al fallecer: ":"Edad: "}</span><span style={{fontWeight:600,color:"#334155"}}>{calcAge(selected.fecha_nac,selected.fecha_fallecimiento)} años</span></div>}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"12px",flexWrap:"wrap"}}>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",flex:1,minWidth:0}}>
+                    {selected.altura_cm&&<div style={{fontSize:"13px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><span style={{color:"#94a3b8"}}>Altura: </span><span style={{fontWeight:600,color:"#334155"}}>{selected.altura_cm} cm</span></div>}
+                    {selected.fecha_nac&&<div style={{fontSize:"13px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><span style={{color:"#94a3b8"}}>{selected.fecha_fallecimiento?"Edad al fallecer: ":"Edad: "}</span><span style={{fontWeight:600,color:"#334155"}}>{calcAge(selected.fecha_nac,selected.fecha_fallecimiento)} años</span></div>}
                   </div>
                   {coachRecord&&(
                     <button onClick={()=>onGoToCoach(coachRecord.id_coach,{tab:"jugadoras",id:selected?.id_jugadora,label:selected?.nombre})}
@@ -2537,7 +2537,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
                 {eq.año_fundacion&&<span style={{background:"#fff7ed",color:"#c2410c",fontSize:"12px",fontWeight:700,padding:"3px 10px",borderRadius:"20px"}}>Est. {eq.año_fundacion}</span>}
               </div>
             </div>
-            {(()=>{const pal=(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo);if(!pal.length)return null;const counts={};pal.forEach(p=>{const n=ligaMap[p.id_liga]?.nombre||p.id_liga;counts[n]=(counts[n]||0)+1;});return(<div style={{display:"flex",flexDirection:"column",gap:"6px",alignItems:"flex-end",flexShrink:0}}>{Object.entries(counts).map(([nombre,n])=>(<span key={nombre} style={{background:"#fffbeb",border:"1.5px solid #fed7aa",color:"#b45309",fontSize:"12px",fontWeight:700,padding:"4px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🏆 {n}x {nombre}</span>))}</div>);})()}
+            {(()=>{const pal=(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo);if(!pal.length)return null;const counts={};pal.forEach(p=>{const n=ligaMap[p.id_liga]?.nombre||p.id_liga;counts[n]=(counts[n]||0)+1;});return(<div style={{display:"flex",flexDirection:"column",gap:"6px",alignItems:"flex-end",flexShrink:1,minWidth:0,maxWidth:"100%"}}>{Object.entries(counts).map(([nombre,n])=>(<span key={nombre} title={`${n}x ${nombre}`} style={{background:"#fffbeb",border:"1.5px solid #fed7aa",color:"#b45309",fontSize:"12px",fontWeight:700,padding:"4px 10px",borderRadius:"20px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"100%",boxSizing:"border-box"}}>🏆 {n}x {nombre}</span>))}</div>);})()}
           </div>
           <div style={{display:"flex",gap:"16px",marginTop:"14px",flexWrap:"wrap",alignItems:"flex-start"}}>
             <div style={{display:"flex",gap:"8px",flex:1,flexWrap:"wrap"}}>
@@ -3306,7 +3306,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
                   });
                   const entries=Object.entries(titles);
                   if(!entries.length)return null;
-                  return(<div style={{display:"flex",flexDirection:"column",gap:"4px",alignItems:"flex-end",flexShrink:0}}>{entries.map(([n,c])=>(<span key={n} style={{background:"#fffbeb",border:"1.5px solid #fed7aa",color:"#b45309",fontSize:"11px",fontWeight:700,padding:"3px 8px",borderRadius:"20px",whiteSpace:"nowrap"}}>🏆 {c}x {n}</span>))}</div>);
+                  return(<div style={{display:"flex",flexDirection:"column",gap:"4px",alignItems:"flex-end",flexShrink:1,minWidth:0,maxWidth:"100%"}}>{entries.map(([n,c])=>(<span key={n} title={`${c}x ${n}`} style={{background:"#fffbeb",border:"1.5px solid #fed7aa",color:"#b45309",fontSize:"11px",fontWeight:700,padding:"3px 8px",borderRadius:"20px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"100%",boxSizing:"border-box"}}>🏆 {c}x {n}</span>))}</div>);
                 })()}
               </div>
               <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"10px"}}>
@@ -3606,21 +3606,40 @@ export default function App(){
   const [navHistory,setNavHistory] = useState([]);  // pila: [{tab,id,label}]
 
   const scrollTop  = ()=>window.scrollTo({top:0,behavior:"smooth"});
-  const pushNav=(from)=>{if(from)setNavHistory(h=>[...h,from].slice(-5));};
 
-  const goToTeam   = (id,year=null,from=null)=>{pushNav(from);setOpenTeamId(id);setOpenTeamYear(year);setOpenPlayerId(null);setTab("equipos");scrollTop();};
-  const goToLeague = (id,from=null)=>{pushNav(from);setOpenLigaId(id);setTab("ligas");scrollTop();};
-  const goToPlayer = (id,from=null)=>{pushNav(from);setOpenPlayerId(id);setOpenTeamId(null);setTab("jugadoras");scrollTop();};
-  const goToCoach  = (id,from=null)=>{pushNav(from);setOpenCoachId(id);setTab("cuerpo_tecnico");scrollTop();};
+  // Construye la ruta URL para una pestaña+id, espejo de applyUrlState.
+  const pathFor=(tabName,id)=>{
+    if(tabName==="jugadoras"&&id)return `/jugadoras/${id}`;
+    if(tabName==="equipos"&&id)return `/equipos/${id}`;
+    if(tabName==="cuerpo_tecnico"&&id)return `/coaches/${id}`;
+    if(tabName==="ligas")return `/ligas`;
+    return `/${tabName==="home"?"":tabName}`;
+  };
 
+  // pushNav hace dos cosas: mantiene navHistory (texto "← Volver a X" en la UI)
+  // y registra una entrada real en window.history (para que el botón atrás del sistema/móvil funcione).
+  // NOTA: el "from" que se guarda en el state del pushState NO es fiable a largo plazo —
+  // cada vista (PlayersView/TeamsView/LeaguesView/CoachesView) tiene su propio useEffect
+  // que hace replaceState al cambiar selId, y eso sustituye este state por uno vacío
+  // casi inmediatamente. Por eso onPopState (más abajo) NO lee event.state: usa
+  // únicamente la URL (pathname) + un pop de un solo elemento de navHistory en paralelo.
+  const pushNav=(from,destTab,destId)=>{
+    if(from)setNavHistory(h=>[...h,from].slice(-5));
+    window.history.pushState({from},"",pathFor(destTab,destId));
+  };
+
+  const goToTeam   = (id,year=null,from=null)=>{pushNav(from,"equipos",id);setOpenTeamId(id);setOpenTeamYear(year);setOpenPlayerId(null);setTab("equipos");scrollTop();};
+  const goToLeague = (id,from=null)=>{pushNav(from,"ligas",id);setOpenLigaId(id);setTab("ligas");scrollTop();};
+  const goToPlayer = (id,from=null)=>{pushNav(from,"jugadoras",id);setOpenPlayerId(id);setOpenTeamId(null);setTab("jugadoras");scrollTop();};
+  const goToCoach  = (id,from=null)=>{pushNav(from,"cuerpo_tecnico",id);setOpenCoachId(id);setTab("cuerpo_tecnico");scrollTop();};
+
+  // goBack ahora delega en el navegador: window.history.back() dispara un popstate real,
+  // que ya tenemos gestionado más abajo. Mantenemos el pop de navHistory en paralelo
+  // únicamente para que la UI ("← Volver a X") deje de mostrar la entrada inmediatamente,
+  // sin esperar al evento asíncrono de popstate.
   const goBack=()=>{
-    const h=[...navHistory];const prev=h.pop();setNavHistory(h);
-    if(!prev){setOpenPlayerId(null);setOpenTeamId(null);setOpenCoachId(null);setOpenLigaId(null);return;}
-    if(prev.tab==="jugadoras"){setOpenPlayerId(prev.id);setOpenTeamId(null);setTab("jugadoras");}
-    else if(prev.tab==="equipos"){setOpenTeamId(prev.id);setOpenPlayerId(null);setTab("equipos");}
-    else if(prev.tab==="ligas"){setOpenLigaId(prev.id);setTab("ligas");}
-    else if(prev.tab==="cuerpo_tecnico"){setOpenCoachId(prev.id);setTab("cuerpo_tecnico");}
-    scrollTop();
+    setNavHistory(h=>h.slice(0,-1));
+    window.history.back();
   };
 
   const loadAll = async()=>{
@@ -3652,12 +3671,34 @@ export default function App(){
   };
 
   useEffect(()=>{loadAll();},[]);
-  useEffect(()=>{
-    const parts=window.location.pathname.split("/").filter(Boolean);
-    if(parts.length===2&&parts[0]==="jugadoras")setOpenPlayerId(parts[1]);
-    else if(parts.length===2&&parts[0]==="equipos")setOpenTeamId(parts[1]);
-    else if(parts.length===2&&parts[0]==="coaches")setOpenCoachId(parts[1]);
+
+  // Aplica el estado de navegación (tab + ficha abierta) a partir de una URL dada.
+  // Se usa tanto al montar la app (URL inicial pegada/recargada) como en cada evento
+  // popstate (botón "atrás" del navegador o del sistema en móvil).
+  const applyUrlState=pathname=>{
+    const parts=pathname.split("/").filter(Boolean);
+    // Limpiar siempre primero: si el usuario retrocede a una pantalla sin ficha abierta
+    // (p.ej. la home), hay que vaciar los openXId o la UI no reflejará el cambio.
+    setOpenPlayerId(parts.length===2&&parts[0]==="jugadoras"?parts[1]:null);
+    setOpenTeamId(parts.length===2&&parts[0]==="equipos"?parts[1]:null);
+    setOpenCoachId(parts.length===2&&parts[0]==="coaches"?parts[1]:null);
     if(parts[0]==="jugadoras"||parts[0]==="equipos"||parts[0]==="coaches"||parts[0]==="ligas")setTab(parts[0]);
+    else if(parts.length===0)setTab("home");
+  };
+
+  useEffect(()=>{
+    applyUrlState(window.location.pathname);
+  },[]);
+
+  useEffect(()=>{
+    const onPopState=()=>{
+      applyUrlState(window.location.pathname);
+      // Pop de un solo paso, igual que goBack: si el usuario sigue retrocediendo con
+      // el botón del sistema, cada popstate quita una entrada, no la pila entera de golpe.
+      setNavHistory(h=>h.slice(0,-1));
+    };
+    window.addEventListener("popstate",onPopState);
+    return()=>window.removeEventListener("popstate",onPopState);
   },[]);
 
   const TABS=[["home","✍️","Inicio"],["jugadoras","👩‍🏀","Jugadoras"],["equipos","🏟️","Equipos"],["ligas","🏆","Ligas"],["cuerpo_tecnico","📋","Cuerpo Técnico"]];
