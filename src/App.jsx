@@ -2323,6 +2323,8 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
   const [filterTipo,setFilterTipo]     = useState("");
   const [selId,setSelId]               = useState(openTeamId||null);
   const [shareMsg,setShareMsg]         = useState(false);
+  const [visibleCount,setVisibleCount] = useState(60);
+  const loadMoreRef = useRef(null);
   useEffect(()=>{const seg='equipos';window.history.replaceState({},"",selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
   const [selYear,setSelYear]           = useState(null);
   const [selLiga,setSelLiga]           = useState(null);
@@ -2477,14 +2479,34 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
   const [filterPais,setFilterPais] = useState("");
   const allPaisesEq  = useMemo(()=>[...new Set(equipos.map(e=>e.pais).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es")),[equipos]);
 
-  const filtered = teamIndex.filter(({eq,years,players:pl})=>{
+  const filtered = useMemo(()=>teamIndex.filter(({eq,years,players:pl})=>{
     const matchSearch=!search||eq.nombre?.toLowerCase().includes(search.toLowerCase())||eq.id_equipo?.toLowerCase().includes(search.toLowerCase());
     const matchLeague=!filterLeague||pl.some(({season})=>ligaMap[season.id_liga]?.nombre===filterLeague);
     const matchSeason=!filterSeason||years.has(filterSeason);
     const matchTipo=!filterTipo||eq.tipo===filterTipo;
     const matchPais=!filterPais||eq.pais===filterPais;
     return matchSearch&&matchLeague&&matchSeason&&matchTipo&&matchPais;
-  });
+  }),[teamIndex,search,filterLeague,filterSeason,filterTipo,filterPais,ligaMap]);
+
+  // IntersectionObserver para scroll infinito, mismo patrón que PlayersView.
+  // Sin esto, los ~1000+ equipos se montaban todos de golpe al entrar en la pestaña,
+  // generando una lentitud notable solo por el coste de creación de nodos del DOM.
+  useEffect(()=>{
+    const el=loadMoreRef.current;
+    if(!el)return;
+    const obs=new IntersectionObserver(entries=>{
+      if(entries[0].isIntersecting){
+        setVisibleCount(c=>Math.min(c+60,filtered.length));
+      }
+    },{rootMargin:"400px"});
+    obs.observe(el);
+    return()=>obs.disconnect();
+  },[filtered.length,selId]);
+
+  // Resetear a 60 al cambiar cualquier filtro: sin esto, si el usuario había hecho
+  // scroll hasta visibleCount=600 y luego amplía/cambia el filtro, seguiría viendo
+  // solo 600 resultados del nuevo conjunto en vez de empezar limpio desde el principio.
+  useEffect(()=>{setVisibleCount(60);},[search,filterLeague,filterSeason,filterTipo,filterPais]);
 
   const selected    = selId?teamIndex.find(t=>t.eq.id_equipo===selId):null;
   const years       = selected?[...selected.years].sort((a,b)=>b.localeCompare(a)):[];
@@ -2781,7 +2803,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
       {(()=>{
         const TEAM_GRUPOS=[["equipo","🏟️ Clubes"],["seleccion","🌍 Selecciones"],["other","Otros"]];
         const byTipo={equipo:[],seleccion:[],other:[]};
-        filtered.forEach(item=>{
+        filtered.slice(0,visibleCount).forEach(item=>{
           const t=item.eq.tipo;
           if(t==="equipo")byTipo.equipo.push(item);
           else if(t==="seleccion")byTipo.seleccion.push(item);
@@ -2826,6 +2848,11 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
           );
         });
       })()}
+      {visibleCount<filtered.length&&(
+        <div ref={loadMoreRef} style={{textAlign:"center",padding:"24px",color:"#94a3b8",fontSize:"13px"}}>
+          Mostrando {visibleCount} de {filtered.length}...
+        </div>
+      )}
     </div>
   );
 }
