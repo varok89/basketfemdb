@@ -34,7 +34,7 @@ module.exports = async (req, res) => {
 
   // Si no existe la jugadora (id inválido, borrada, etc.), no inventamos datos:
   // servimos metadatos genéricos de la app y dejamos que el cliente decida qué mostrar.
-  const nombre = jugadora?.nombre || "BasketFem DB";
+  const nombre = jugadora?.nombre || "La Basketneta";
   const posiciones = [jugadora?.posicion, jugadora?.posicion2].filter(Boolean).join("/");
   // Banderas en emoji, no nombres de país en texto. Si un país no se reconoce en la tabla
   // de mapeo (countryFlag devuelve ""), se omite en vez de dejar un hueco vacío.
@@ -45,8 +45,8 @@ module.exports = async (req, res) => {
 
   const descParts = [posiciones, banderas].filter(Boolean);
   const descripcion = descParts.length
-    ? `${descParts.join(" · ")} — BasketFem DB`
-    : "Ficha de jugadora en BasketFem DB";
+    ? `${descParts.join(" · ")} — La Basketneta`
+    : "Ficha de jugadora en La Basketneta";
 
   const pageUrl = `https://${req.headers.host}/jugadoras/${id}`;
   // og:url muestra el dominio limpio en la tarjeta de WhatsApp (lo que se ve bajo el título),
@@ -54,14 +54,14 @@ module.exports = async (req, res) => {
   // Confirmado: og:url es solo metadato informativo, no controla la navegación al pulsar la tarjeta.
   // Valor FIJO a propósito (decisión explícita de Alvaro): si el dominio de producción cambia
   // en el futuro, este valor NO se actualiza solo — hay que editarlo a mano aquí.
-  const cleanDomainUrl = "https://basketfemdb.vercel.app";
+  const cleanDomainUrl = "https://labasketneta.app";
 
   const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>${escapeHtml(nombre)} · BasketFem DB</title>
+<title>${escapeHtml(nombre)} · La Basketneta</title>
 <meta property="og:type" content="profile">
 <meta property="og:title" content="${escapeHtml(nombre)}">
 <meta property="og:description" content="${escapeHtml(descripcion)}">

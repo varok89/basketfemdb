@@ -1906,7 +1906,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
             const posicionesShare=[selected.posicion,selected.posicion2].filter(Boolean).join("/");
             const banderasShare=[countryFlagEmoji(selected.nacionalidad),countryFlagEmoji(selected.nacionalidad2)].filter(Boolean).join(" ");
             const detallesShare=[posicionesShare,banderasShare].filter(Boolean).join(" · ");
-            const shareText=detallesShare?`${selected.nombre} · ${detallesShare} — BasketFem DB`:`Ficha de ${selected.nombre} en BasketFem DB`;
+            const shareText=detallesShare?`${selected.nombre} · ${detallesShare} — La Basketneta`:`Ficha de ${selected.nombre} en La Basketneta`;
             if(navigator.share){navigator.share({title:selected.nombre,text:shareText,url}).catch(()=>{});}
             else{navigator.clipboard.writeText(url);setShareMsg(true);setTimeout(()=>setShareMsg(false),2000);}
           }} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>📤 Compartir</button>
@@ -2534,7 +2534,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
               // Android concatena text+url y rompe el preview correcto de WhatsApp.
               const banderaShareEq=countryFlagEmoji(eq.pais);
               const detallesShareEq=eq.ciudad&&banderaShareEq?`${eq.ciudad} ${banderaShareEq}`:(eq.ciudad||banderaShareEq||"");
-              const shareTextEq=detallesShareEq?`${eq.nombre} · ${detallesShareEq} — BasketFem DB`:`Ficha de ${eq.nombre} en BasketFem DB`;
+              const shareTextEq=detallesShareEq?`${eq.nombre} · ${detallesShareEq} — La Basketneta`:`Ficha de ${eq.nombre} en La Basketneta`;
               if(navigator.share){navigator.share({title:eq.nombre,text:shareTextEq,url}).catch(()=>{});}
               else{navigator.clipboard.writeText(url);setShareMsg(true);setTimeout(()=>setShareMsg(false),2000);}
             }} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>📤 Compartir</button>
@@ -3293,7 +3293,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
           <button onClick={()=>{
             const url=`${window.location.origin}/coaches/${coach.id_coach}`;
             const banderasShareCoach=[countryFlagEmoji(coach.nacionalidad),countryFlagEmoji(coach.nacionalidad2)].filter(Boolean).join(" ");
-            const shareTextCoach=banderasShareCoach?`${coach.nombre} · ${banderasShareCoach} — BasketFem DB`:`Ficha de ${coach.nombre} en BasketFem DB`;
+            const shareTextCoach=banderasShareCoach?`${coach.nombre} · ${banderasShareCoach} — La Basketneta`:`Ficha de ${coach.nombre} en La Basketneta`;
             if(navigator.share){navigator.share({title:coach.nombre,text:shareTextCoach,url}).catch(()=>{});}
             else{navigator.clipboard.writeText(url);setShareMsg(true);setTimeout(()=>setShareMsg(false),2000);}
           }} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>📤 Compartir</button>
@@ -3522,7 +3522,7 @@ function Landing({onEnter}){
     <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"system-ui,sans-serif",padding:"20px"}}>
       <div style={{maxWidth:"560px",width:"100%",textAlign:"center"}}>
         <div style={{marginBottom:"28px"}}>
-          <img src="/icon-home.png" alt="BasketFem DB" style={{height:"120px",objectFit:"contain"}}/>
+          <img src="/icon-home.png" alt="La Basketneta" style={{height:"120px",objectFit:"contain"}}/>
         </div>
         <div style={{fontSize:"14px",color:"#94a3b8",marginBottom:"36px",fontWeight:500}}>Base de datos del baloncesto femenino</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"36px",textAlign:"left"}}>
@@ -3742,7 +3742,7 @@ export default function App(){
 
   if(loading) return(
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f1f5f9",fontFamily:"system-ui,sans-serif"}}>
-      <div style={{textAlign:"center",color:"#94a3b8"}}><div style={{display:"inline-block",animation:"bounce 0.7s infinite"}}><span style={{fontSize:"52px",lineHeight:1}}>🏀</span></div><div style={{width:"40px",height:"6px",background:"#cbd5e1",borderRadius:"50%",margin:"4px auto 0",animation:"shadow 0.7s infinite"}}></div><div style={{fontWeight:700,fontSize:"16px",color:"#9333ea",marginTop:"14px"}}>BasketFem DB</div><div style={{fontSize:"13px",marginTop:"4px"}}>Cargando datos...</div></div>
+      <div style={{textAlign:"center",color:"#94a3b8"}}><div style={{display:"inline-block",animation:"bounce 0.7s infinite"}}><span style={{fontSize:"52px",lineHeight:1}}>🏀</span></div><div style={{width:"40px",height:"6px",background:"#cbd5e1",borderRadius:"50%",margin:"4px auto 0",animation:"shadow 0.7s infinite"}}></div><div style={{fontWeight:700,fontSize:"16px",color:"#9333ea",marginTop:"14px"}}>La Basketneta</div><div style={{fontSize:"13px",marginTop:"4px"}}>Cargando datos...</div></div>
     </div>
   );
 
@@ -3788,7 +3788,7 @@ export default function App(){
       <div style={{background:"#0f172a",color:"#fff",padding:"0 20px",position:"sticky",top:0,zIndex:10,boxShadow:"0 2px 16px rgba(0,0,0,0.4)"}}>
         <div className="bfdb-header-inner" style={{maxWidth:"880px",margin:"0 auto",display:"flex",alignItems:"center",gap:"10px",height:"56px"}}>
           <div className="bfdb-logo" onClick={()=>{setTab("jugadoras");setOpenPlayerId(null);setOpenTeamId(null);setOpenCoachId(null);setOpenLigaId(null);}} title="Inicio" style={{display:"flex",alignItems:"center",gap:"8px",cursor:"pointer",marginRight:"auto"}}>
-            <img src="/icon-home.png" alt="BasketFem DB" style={{height:"36px",objectFit:"contain"}} />
+            <img src="/icon-home.png" alt="La Basketneta" style={{height:"36px",objectFit:"contain"}} />
           </div>
           <div className="bfdb-global-search"><GlobalSearch players={players} equipos={equipos} ligas={ligas} coaches={coaches}
             onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToCoach={goToCoach}/></div>

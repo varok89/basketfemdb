@@ -27,7 +27,7 @@ module.exports = async (req, res) => {
     .eq("id_equipo", id)
     .maybeSingle();
 
-  const nombre = equipo?.nombre || "BasketFem DB";
+  const nombre = equipo?.nombre || "La Basketneta";
   const ciudad = equipo?.ciudad;
   const pais = equipo?.pais;
   // Sin fallback fijo hardcodeado aquí: si no hay escudo, omitimos og:image
@@ -37,13 +37,13 @@ module.exports = async (req, res) => {
 
   const descParts = [ciudad, pais].filter(Boolean);
   const descripcion = descParts.length
-    ? `${descParts.join(", ")} — BasketFem DB`
-    : "Ficha de equipo en BasketFem DB";
+    ? `${descParts.join(", ")} — La Basketneta`
+    : "Ficha de equipo en La Basketneta";
 
   const pageUrl = `https://${req.headers.host}/equipos/${id}`;
   // og:url fijo a propósito (misma decisión que en el endpoint de jugadora):
   // si el dominio de producción cambia, este valor no se actualiza solo.
-  const cleanDomainUrl = "https://basketfemdb.vercel.app";
+  const cleanDomainUrl = "https://labasketneta.app";
 
   const imageTag = escudo
     ? `<meta property="og:image" content="${escapeHtml(escudo)}">
@@ -55,7 +55,7 @@ module.exports = async (req, res) => {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>${escapeHtml(nombre)} · BasketFem DB</title>
+<title>${escapeHtml(nombre)} · La Basketneta</title>
 <meta property="og:type" content="website">
 <meta property="og:title" content="${escapeHtml(nombre)}">
 <meta property="og:description" content="${escapeHtml(descripcion)}">
