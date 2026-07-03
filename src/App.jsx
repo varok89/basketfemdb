@@ -1937,8 +1937,8 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
         <div style={{display:"flex",alignItems:"flex-start",gap:"20px"}}>
           <Avatar photo={selected.foto} name={selected.nombre} size={90} fontSize={30} fallecida={!!selected.fecha_fallecimiento} onPhotoClick={setLightboxPhoto}/>
           <div style={{flex:1}}>
-            <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"12px",marginBottom:"8px"}}>
-              <div><h1 style={{fontWeight:800,fontSize:"21px",color:"#1e293b",margin:0}}>{selected.nombre}</h1>{isAdmin&&<span style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{selected.id_jugadora}</span>}</div>
+            <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"12px",marginBottom:"8px",flexWrap:"wrap"}}>
+              <div style={{minWidth:0,flex:1}}><h1 style={{fontWeight:800,fontSize:"21px",color:"#1e293b",margin:0,wordBreak:"break-word"}}>{selected.nombre}</h1>{isAdmin&&<span style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{selected.id_jugadora}</span>}</div>
               {(()=>{
                 const titles={};
                 const uniquePairs=[...new Map((selected.seasons||[]).map(s=>[s.id_equipo+"_"+s.temporada,s])).values()];
@@ -3147,8 +3147,8 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTea
       </div>
       {isAdmin&&ligaModal==="add"&&<Modal title="Nueva liga" onClose={()=>setLigaModal(null)}><LeagueForm onSave={saveLiga} onCancel={()=>setLigaModal(null)} saving={saving}/></Modal>}
       <div style={{minHeight:"112px"}}>
-      <div style={{display:"flex",gap:"10px",marginBottom:"16px",alignItems:"center"}}>
-        <input style={{flex:1,border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 16px",fontSize:"14px",color:"#1e293b",outline:"none",background:"#fff",boxSizing:"border-box"}}
+      <div style={{display:"flex",gap:"10px",marginBottom:"16px",alignItems:"center",flexWrap:"wrap"}}>
+        <input style={{flex:1,minWidth:"160px",border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 16px",fontSize:"14px",color:"#1e293b",outline:"none",background:"#fff",boxSizing:"border-box"}}
           placeholder="🔍 Buscar liga..." value={search} onChange={e=>setSearch(e.target.value)}/>
         <select value={filterTipoLiga} onChange={e=>setFilterTipoLiga(e.target.value)} style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none",flexShrink:0}}>
           <option value="">Todos los tipos</option>
