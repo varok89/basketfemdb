@@ -1658,7 +1658,7 @@ function PaisDropdown({allPaises,filterPais,setFilterPais,placeholder}){
   },[]);
   return(
     <div ref={ref} style={{position:"relative",flexShrink:0}}>
-      <div onClick={()=>setOpen(o=>!o)} style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"9px 14px",fontSize:"13px",color:filterPais?"#9333ea":"#475569",background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px",whiteSpace:"nowrap",fontWeight:filterPais?700:400,height:"40px",boxSizing:"border-box",minWidth:"140px"}}>
+      <div onClick={()=>setOpen(o=>!o)} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 14px",fontSize:"13px",color:filterPais?"#9333ea":"#475569",background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px",whiteSpace:"nowrap",fontWeight:filterPais?700:400,height:"40px",boxSizing:"border-box",minWidth:"140px"}}>
         {filterPais?<><FlagImg country={filterPais}/><span>{filterPais}</span></>:<span>{placeholder}</span>}
         <span style={{marginLeft:"auto",fontSize:"10px"}}>▼</span>
       </div>
@@ -3147,11 +3147,11 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,onGoToTea
       </div>
       {isAdmin&&ligaModal==="add"&&<Modal title="Nueva liga" onClose={()=>setLigaModal(null)}><LeagueForm onSave={saveLiga} onCancel={()=>setLigaModal(null)} saving={saving}/></Modal>}
       <div style={{minHeight:"112px"}}>
-      <div style={{display:"flex",gap:"10px",marginBottom:"16px",alignItems:"center",flexWrap:"wrap"}}>
-        <input style={{flex:1,minWidth:"160px",border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 16px",fontSize:"14px",color:"#1e293b",outline:"none",background:"#fff",boxSizing:"border-box"}}
+      <div style={{display:"flex",gap:"8px",marginBottom:"14px",flexWrap:"wrap",alignItems:"stretch"}}>
+        <input style={{flex:"1 1 180px",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 14px",fontSize:"13px",color:"#1e293b",outline:"none",background:"#fff",height:"40px",boxSizing:"border-box"}}
           placeholder="🔍 Buscar liga..." value={search} onChange={e=>setSearch(e.target.value)}/>
-        <select value={filterTipoLiga} onChange={e=>setFilterTipoLiga(e.target.value)} style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none",flexShrink:0}}>
-          <option value="">Todos los tipos</option>
+        <select value={filterTipoLiga} onChange={e=>setFilterTipoLiga(e.target.value)} style={{flex:"0 0 auto",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterTipoLiga?"#9333ea":"#475569",background:"#fff",outline:"none",height:"40px",fontWeight:filterTipoLiga?700:400,maxWidth:"100%"}}>
+          <option value="">Tipo</option>
           <option value="liga">Liga</option>
           <option value="copadom">Copa Nacional</option>
           <option value="copacont">Copa Continental</option>
@@ -3463,11 +3463,11 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
         })()}
       </div>
       <div style={{minHeight:"112px"}}>
-      <div style={{display:"flex",gap:"10px",marginBottom:"14px",flexWrap:"wrap"}}>
+      <div style={{display:"flex",gap:"8px",marginBottom:"14px",flexWrap:"wrap",alignItems:"stretch"}}>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Nombre de entrenador..."
-          style={{flex:1,minWidth:"180px",border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"14px",color:"#1e293b",outline:"none",background:"#fff"}}/>
-        <select style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}} value={filterLiga} onChange={e=>setFilterLiga(e.target.value)}>
-          <option value="">Todas las ligas</option>
+          style={{flex:"1 1 180px",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 14px",fontSize:"13px",color:"#1e293b",outline:"none",background:"#fff",height:"40px",boxSizing:"border-box"}}/>
+        <select style={{flex:"0 0 auto",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterLiga?"#9333ea":"#475569",background:"#fff",outline:"none",height:"40px",fontWeight:filterLiga?700:400,maxWidth:"100%"}} value={filterLiga} onChange={e=>setFilterLiga(e.target.value)}>
+          <option value="">Liga</option>
           {allLigas.map(l=><option key={l} value={l}>{l}</option>)}
         </select>
         <PaisDropdown allPaises={allPaisesCoach} filterPais={filterNac} setFilterPais={setFilterNac} placeholder="Nacionalidad"/>
