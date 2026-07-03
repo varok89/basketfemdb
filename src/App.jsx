@@ -1963,9 +1963,9 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
               const coachRecord=(coaches||[]).find(c=>String(c.id_jugadora)===String(selected.id_jugadora));
               return(
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"12px",flexWrap:"wrap"}}>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",flex:1,minWidth:0}}>
-                    {selected.altura_cm&&<div style={{fontSize:"13px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><span style={{color:"#94a3b8"}}>Altura: </span><span style={{fontWeight:600,color:"#334155"}}>{selected.altura_cm} cm</span></div>}
-                    {selected.fecha_nac&&<div style={{fontSize:"13px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><span style={{color:"#94a3b8"}}>{selected.fecha_fallecimiento?"Edad al fallecer: ":"Edad: "}</span><span style={{fontWeight:600,color:"#334155"}}>{calcAge(selected.fecha_nac,selected.fecha_fallecimiento)} años</span></div>}
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:"8px",flex:1,minWidth:0}}>
+                    {selected.altura_cm&&<div style={{fontSize:"13px"}}><span style={{color:"#94a3b8"}}>Altura: </span><span style={{fontWeight:600,color:"#334155"}}>{selected.altura_cm} cm</span></div>}
+                    {selected.fecha_nac&&<div style={{fontSize:"13px"}}><span style={{color:"#94a3b8"}}>{selected.fecha_fallecimiento?"Edad al fallecer: ":"Edad: "}</span><span style={{fontWeight:600,color:"#334155"}}>{calcAge(selected.fecha_nac,selected.fecha_fallecimiento)} años</span></div>}
                   </div>
                   {coachRecord&&(
                     <button onClick={()=>onGoToCoach(coachRecord.id_coach,{tab:"jugadoras",id:selected?.id_jugadora,label:selected?.nombre})}
