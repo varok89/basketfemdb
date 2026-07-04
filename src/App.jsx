@@ -1938,7 +1938,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           <Avatar photo={selected.foto} name={selected.nombre} size={90} fontSize={30} fallecida={!!selected.fecha_fallecimiento} onPhotoClick={setLightboxPhoto}/>
           <div style={{flex:1}}>
             <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"12px",marginBottom:"8px",flexWrap:"wrap"}}>
-              <div style={{minWidth:0,flex:1}}><h1 style={{fontWeight:800,fontSize:"21px",color:"#1e293b",margin:0,wordBreak:"break-word"}}>{selected.nombre}</h1>{isAdmin&&<span style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{selected.id_jugadora}</span>}</div>
+              <div style={{minWidth:"140px",flex:1}}><h1 style={{fontWeight:800,fontSize:"21px",color:"#1e293b",margin:0,wordBreak:"break-word"}}>{selected.nombre}</h1>{isAdmin&&<span style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{selected.id_jugadora}</span>}</div>
               {(()=>{
                 const titles={};
                 const uniquePairs=[...new Map((selected.seasons||[]).map(s=>[s.id_equipo+"_"+s.temporada,s])).values()];
