@@ -3,7 +3,7 @@ name: Actualizar resultados FIBA U20
 on:
   schedule:
     # Cada 30 min entre las 11:00 y 21:00 UTC (franja de partidos del torneo)
-    - cron: "*/30 11-21 * 7 *"
+    - cron: "*/15 11-21 * 7 *"
   workflow_dispatch: {}  # permite lanzarlo a mano desde la pestaña Actions
 
 jobs:
