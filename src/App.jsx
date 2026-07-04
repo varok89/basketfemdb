@@ -582,12 +582,18 @@ function EscudoPicker({value,onChange}){
 }
 
 /* ── PartidoForm ─────────────────────────────────────────── */
+// Fld definido fuera del componente para evitar que React desmonte/remonte
+// los inputs al redefiniria en cada render (causaba pérdida de foco al escribir).
+function PartidoFld({label,children}){
+  return <div style={{marginBottom:"10px"}}><label style={{display:"block",fontSize:"11px",fontWeight:700,color:"#64748b",marginBottom:"5px",textTransform:"uppercase",letterSpacing:"0.5px"}}>{label}</label>{children}</div>;
+}
+
 function PartidoForm({initial,equipos,ligas,onSave,onCancel,saving}){
   const inp={width:"100%",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",outline:"none",boxSizing:"border-box"};
   const inpNum={border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"16px",fontWeight:700,outline:"none",boxSizing:"border-box",width:"80px",textAlign:"center"};
   const [f,setF]=useState({id_liga:"",id_equipo_local:"",id_equipo_visitante:"",fecha_hora:"",link:"",notas:"",resultado_local:"",resultado_visitante:"",...(initial||{})});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
-  const Fld=({label,children})=><div style={{marginBottom:"10px"}}><label style={{display:"block",fontSize:"11px",fontWeight:700,color:"#64748b",marginBottom:"5px",textTransform:"uppercase",letterSpacing:"0.5px"}}>{label}</label>{children}</div>;
+  const Fld=PartidoFld;
   const toLocal=iso=>{if(!iso)return"";const d=new Date(iso);const pad=n=>String(n).padStart(2,"0");return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;};
   const [localDt,setLocalDt]=useState(toLocal(f.fecha_hora));
   const equiposSorted=[...equipos].sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"));
@@ -649,7 +655,7 @@ function PartidoForm({initial,equipos,ligas,onSave,onCancel,saving}){
 }
 
 /* ── PartidoFichaView ────────────────────────────────────── */
-function PartidoFichaView({partido,equipos,ligas,players,onBack,onGoToTeam,onGoToLeague}){
+function PartidoFichaView({partido,equipos,ligas,players,onBack,onGoToTeam,onGoToLeague,onGoToPlayer}){
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap=useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
   const local=equipoMap[partido.id_equipo_local];
@@ -684,10 +690,11 @@ function PartidoFichaView({partido,equipos,ligas,players,onBack,onGoToTeam,onGoT
       </div>
       {roster.length===0?<p style={{fontSize:"12px",color:"#94a3b8",textAlign:"center"}}>Sin jugadoras en BD</p>:(
         roster.map(p=>(
-          <div key={p.id_jugadora} style={{display:"flex",alignItems:"center",gap:"8px",padding:"6px 0",borderBottom:"1px solid #f1f5f9",flexDirection:side==="right"?"row-reverse":"row"}}>
+          <div key={p.id_jugadora} onClick={()=>onGoToPlayer&&onGoToPlayer(p.id_jugadora)}
+            style={{display:"flex",alignItems:"center",gap:"8px",padding:"6px 0",borderBottom:"1px solid #f1f5f9",flexDirection:side==="right"?"row-reverse":"row",cursor:onGoToPlayer?"pointer":"default"}}>
             <Avatar photo={p.foto} name={p.nombre} size={28} fontSize={10} fallecida={!!p.fecha_fallecimiento}/>
             <div style={{flex:1,minWidth:0,textAlign:side==="right"?"right":"left"}}>
-              <div style={{fontSize:"12px",fontWeight:600,color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
+              <div style={{fontSize:"12px",fontWeight:600,color:onGoToPlayer?"#9333ea":"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
               <div style={{fontSize:"10px",color:"#94a3b8"}}>{p.posicion||""}</div>
             </div>
           </div>
@@ -745,7 +752,7 @@ function PartidoFichaView({partido,equipos,ligas,players,onBack,onGoToTeam,onGoT
 }
 
 /* ── PartidosView ────────────────────────────────────────── */
-function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoToTeam,onGoToLeague}){
+function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoToTeam,onGoToLeague,onGoToPlayer}){
   const [modal,setModal]=useState(null);
   const [ficha,setFicha]=useState(null); // partido seleccionado para la ficha
   const [saving,setSaving]=useState(false);
@@ -782,7 +789,7 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
   const fmtDt=iso=>{if(!iso)return"";const d=new Date(iso);return d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})+" · "+d.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});};
 
   if(ficha){
-    return <PartidoFichaView partido={ficha} equipos={equipos} ligas={ligas} players={players} onBack={()=>setFicha(null)} onGoToTeam={onGoToTeam} onGoToLeague={onGoToLeague}/>;
+    return <PartidoFichaView partido={ficha} equipos={equipos} ligas={ligas} players={players} onBack={()=>setFicha(null)} onGoToTeam={onGoToTeam} onGoToLeague={onGoToLeague} onGoToPlayer={onGoToPlayer}/>;
   }
 
   if(modal){
@@ -4118,7 +4125,7 @@ export default function App(){
         {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setEquipos={setEquipos} setEquiposNombres={setEquiposNombres} setPlayers={setPlayers} setPalmares={setPalmares}/>}
         {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setLigas={setLigas}/>}
         {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setCoaches={setCoaches} setTempCoach={setTempCoach} equiposNombres={equiposNombres}/>}
-        {tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id)=>goToTeam(id,null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})}/>}
+        {tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id)=>goToTeam(id,null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})} onGoToPlayer={(id)=>goToPlayer(id,{tab:"partidos",label:"Ver partidos"})}/>}
       </div>
     </div>
     </>);
