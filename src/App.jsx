@@ -705,7 +705,11 @@ function PartidoFichaView({partido,equipos,ligas,players,onBack,onGoToTeam,onGoT
 
   return(
     <div style={{maxWidth:"700px",margin:"0 auto",padding:"16px",fontFamily:"system-ui,sans-serif"}}>
-      <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"15px",cursor:"pointer",padding:"0 0 16px"}}>← Volver</button>
+      {/* Barra superior: volver + link ver partido */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}}>
+        <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"15px",cursor:"pointer",padding:0}}>← Volver</button>
+        {partido.link&&<a href={partido.link} target="_blank" rel="noopener noreferrer" style={{background:"#7c3aed",color:"#fff",borderRadius:"20px",padding:"7px 16px",fontSize:"12px",fontWeight:700,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"5px"}}>▶ Ver partido</a>}
+      </div>
 
       {/* Cabecera del partido */}
       <div style={{background:"#fff",borderRadius:"20px",padding:"20px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"16px"}}>
@@ -713,27 +717,33 @@ function PartidoFichaView({partido,equipos,ligas,players,onBack,onGoToTeam,onGoT
           {liga.logo&&<img src={liga.logo} alt="" style={{width:20,height:20,objectFit:"contain"}}/>}
           <span style={{fontWeight:700,fontSize:"13px",color:"#9333ea",textDecoration:onGoToLeague?"underline":"none"}}>{liga.nombre}</span>
         </div>}
-        <div style={{fontSize:"12px",color:"#94a3b8",marginBottom:"12px",fontWeight:600}}>
+        <div style={{fontSize:"12px",color:"#94a3b8",marginBottom:"16px",fontWeight:600}}>
           {fmtDt(partido.fecha_hora)}{pasado&&!tieneResultado&&<span style={{marginLeft:"8px",color:"#f59e0b",fontWeight:700}}>Finalizado</span>}
           {partido.notas&&<span style={{marginLeft:"8px",color:"#475569"}}>· {partido.notas}</span>}
         </div>
 
-        {/* Marcador */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px",flexWrap:"wrap"}}>
-          <div onClick={()=>onGoToTeam&&onGoToTeam(partido.id_equipo_local)} style={{display:"flex",alignItems:"center",gap:"10px",flex:1,minWidth:"110px",cursor:onGoToTeam?"pointer":"default"}}>
-            {local?.escudo&&<img src={local.escudo} alt="" style={{width:40,height:40,objectFit:"contain"}}/>}
-            <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b",textDecoration:onGoToTeam?"underline":"none"}}>{local?.nombre||"—"}</span>
+        {/* Marcador compacto: escudo — resultado/vs — escudo */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"16px"}}>
+          <div onClick={()=>onGoToTeam&&onGoToTeam(partido.id_equipo_local)}
+            style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"6px",cursor:onGoToTeam?"pointer":"default",flex:1}}>
+            {local?.escudo
+              ?<img src={local.escudo} alt={local?.nombre} title={local?.nombre} style={{width:56,height:56,objectFit:"contain"}}/>
+              :<div style={{width:56,height:56,borderRadius:"50%",background:"#e9d5ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",fontWeight:800,color:"#9333ea"}}>{(local?.nombre||"L").slice(0,1)}</div>}
+            <span style={{fontSize:"11px",fontWeight:600,color:"#64748b",textAlign:"center",maxWidth:"80px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{local?.nombre||"—"}</span>
           </div>
-          <div style={{flexShrink:0,textAlign:"center"}}>
+          <div style={{flexShrink:0,textAlign:"center",minWidth:"70px"}}>
             {tieneResultado?(
-              <div style={{fontWeight:800,fontSize:"28px",color:"#1e293b",letterSpacing:"2px"}}>{partido.resultado_local} – {partido.resultado_visitante}</div>
+              <div style={{fontWeight:800,fontSize:"32px",color:"#1e293b",letterSpacing:"3px"}}>{partido.resultado_local}<span style={{color:"#94a3b8",margin:"0 4px"}}>–</span>{partido.resultado_visitante}</div>
             ):(
-              <span style={{fontWeight:800,fontSize:"18px",color:"#9333ea"}}>vs</span>
+              <span style={{fontWeight:800,fontSize:"22px",color:"#9333ea"}}>vs</span>
             )}
           </div>
-          <div onClick={()=>onGoToTeam&&onGoToTeam(partido.id_equipo_visitante)} style={{display:"flex",alignItems:"center",gap:"10px",flex:1,minWidth:"110px",justifyContent:"flex-end",textAlign:"right",cursor:onGoToTeam?"pointer":"default"}}>
-            <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b",textDecoration:onGoToTeam?"underline":"none"}}>{visit?.nombre||"—"}</span>
-            {visit?.escudo&&<img src={visit.escudo} alt="" style={{width:40,height:40,objectFit:"contain"}}/>}
+          <div onClick={()=>onGoToTeam&&onGoToTeam(partido.id_equipo_visitante)}
+            style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"6px",cursor:onGoToTeam?"pointer":"default",flex:1}}>
+            {visit?.escudo
+              ?<img src={visit.escudo} alt={visit?.nombre} title={visit?.nombre} style={{width:56,height:56,objectFit:"contain"}}/>
+              :<div style={{width:56,height:56,borderRadius:"50%",background:"#e9d5ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",fontWeight:800,color:"#9333ea"}}>{(visit?.nombre||"V").slice(0,1)}</div>}
+            <span style={{fontSize:"11px",fontWeight:600,color:"#64748b",textAlign:"center",maxWidth:"80px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{visit?.nombre||"—"}</span>
           </div>
         </div>
       </div>
@@ -763,10 +773,9 @@ function getPartidoEstado(p){
   if(p.resultado_local!=null&&p.resultado_visitante!=null)return"terminado";
   const now=new Date();
   const fh=new Date(p.fecha_hora);
-  const diffMs=fh-now; // positivo = en el futuro
-  if(diffMs>-2*3600*1000&&diffMs<2*3600*1000)return"en_juego"; // ±2h
-  // Próximo: hoy (misma fecha calendario) y aún no empezado
-  const esHoy=fh.toDateString()===now.toDateString()&&diffMs>2*3600*1000;
+  const diffMs=fh-now; // positivo = en el futuro, negativo = ya empezó
+  if(diffMs<=0)return"en_juego"; // ya pasó la hora de inicio y sin resultado
+  const esHoy=fh.toDateString()===now.toDateString();
   if(esHoy)return"proximo";
   return"normal";
 }
@@ -819,7 +828,7 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
   scrollRef._asignado=false;
 
   if(ficha){
-    return <PartidoFichaView partido={ficha} equipos={equipos} ligas={ligas} players={players} onBack={()=>setFicha(null)} onGoToTeam={onGoToTeam} onGoToLeague={onGoToLeague} onGoToPlayer={onGoToPlayer}/>;
+    return <PartidoFichaView partido={ficha} equipos={equipos} ligas={ligas} players={players} onBack={()=>setFicha(null)} onGoToTeam={onGoToTeam} onGoToLeague={onGoToLeague} onGoToPlayer={id=>onGoToPlayer&&onGoToPlayer(id,{tab:"partidos",label:"Info partido"})}/>;
   }
 
   if(modal){
