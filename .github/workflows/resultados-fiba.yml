@@ -1,0 +1,19 @@
+name: Actualizar resultados FIBA U20
+
+on:
+  schedule:
+    # Cada 30 min entre las 11:00 y 21:00 UTC (franja de partidos del torneo)
+    - cron: "*/30 11-21 * 7 *"
+  workflow_dispatch: {}  # permite lanzarlo a mano desde la pestaña Actions
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ejecutar script
+        env:
+          SUPABASE_URL: https://qvtxqckuolacvnvrvysu.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python3 scripts/actualizar_resultados.py
