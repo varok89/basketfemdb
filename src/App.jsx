@@ -786,17 +786,25 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
   const [saving,setSaving]=useState(false);
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap=useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
-  const scrollRef=useRef(null); // ref al primer partido destacado (en juego o próximo)
+  const scrollRef=useRef(null);
 
   const sorted=useMemo(()=>[...partidos].sort((a,b)=>new Date(b.fecha_hora)-new Date(a.fecha_hora)),[partidos]);
   const byLiga=useMemo(()=>{const m={};sorted.forEach(p=>{const k=p.id_liga||"sin_liga";if(!m[k])m[k]=[];m[k].push(p);});return m;},[sorted]);
 
-  // Scroll automático al primer partido destacado al montar la vista
+  // Determinar el id del partido al que hay que hacer scroll:
+  // primero un "en_juego", si no hay ninguno el primer "proximo"
+  const scrollTargetId=useMemo(()=>{
+    const enJuego=sorted.find(p=>getPartidoEstado(p)==="en_juego");
+    if(enJuego)return enJuego.id;
+    const proximo=sorted.find(p=>getPartidoEstado(p)==="proximo");
+    return proximo?.id??null;
+  },[sorted]);
+
   useEffect(()=>{
     if(scrollRef.current){
       setTimeout(()=>scrollRef.current?.scrollIntoView({behavior:"smooth",block:"center"}),300);
     }
-  },[]);// eslint-disable-line
+  },[scrollTargetId]);
 
   const save=async f=>{
     setSaving(true);
@@ -823,9 +831,6 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
   };
 
   const fmtDt=iso=>{if(!iso)return"";const d=new Date(iso);return d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})+" · "+d.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});};
-
-  // Resetear la bandera de "primer partido destacado" en cada render
-  scrollRef._asignado=false;
 
   if(ficha){
     return <PartidoFichaView partido={ficha} equipos={equipos} ligas={ligas} players={players} onBack={()=>setFicha(null)} onGoToTeam={onGoToTeam} onGoToLeague={onGoToLeague} onGoToPlayer={id=>onGoToPlayer&&onGoToPlayer(id,{tab:"partidos",label:"Info partido"})}/>;
@@ -872,8 +877,7 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
                 const estado=getPartidoEstado(p);
                 const esDestacado=estado==="en_juego"||estado==="proximo";
                 // El primer partido destacado de toda la lista recibe el ref de scroll
-                const esPrimeroDestacado=esDestacado&&!scrollRef._asignado;
-                if(esPrimeroDestacado)scrollRef._asignado=true;
+                const esPrimeroDestacado=p.id===scrollTargetId;
                 const borderStyle=
                   estado==="en_juego"?"2px solid #ef4444":
                   estado==="proximo"?"2px solid #f59e0b":
@@ -3997,6 +4001,7 @@ export default function App(){
     if(tabName==="equipos"&&id)return `/equipos/${id}`;
     if(tabName==="cuerpo_tecnico"&&id)return `/coaches/${id}`;
     if(tabName==="ligas")return `/ligas`;
+    if(tabName==="partidos")return `/partidos`;
     return `/${tabName==="home"?"":tabName}`;
   };
 
@@ -4068,7 +4073,7 @@ export default function App(){
     setOpenPlayerId(parts.length===2&&parts[0]==="jugadoras"?parts[1]:null);
     setOpenTeamId(parts.length===2&&parts[0]==="equipos"?parts[1]:null);
     setOpenCoachId(parts.length===2&&parts[0]==="coaches"?parts[1]:null);
-    if(parts[0]==="jugadoras"||parts[0]==="equipos"||parts[0]==="coaches"||parts[0]==="ligas")setTab(parts[0]);
+    if(parts[0]==="jugadoras"||parts[0]==="equipos"||parts[0]==="coaches"||parts[0]==="ligas"||parts[0]==="partidos")setTab(parts[0]==="coaches"?"cuerpo_tecnico":parts[0]);
     else if(parts.length===0)setTab("home");
   };
 
