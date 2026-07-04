@@ -752,15 +752,42 @@ function PartidoFichaView({partido,equipos,ligas,players,onBack,onGoToTeam,onGoT
 }
 
 /* ── PartidosView ────────────────────────────────────────── */
+// Inyectar keyframe de pulso para el borde rojo "EN JUEGO" una sola vez
+if(typeof document!=="undefined"&&!document.getElementById("partido-pulse")){
+  const s=document.createElement("style");s.id="partido-pulse";
+  s.textContent=`@keyframes partidoPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)}50%{box-shadow:0 0 0 6px rgba(239,68,68,0)}}`;
+  document.head.appendChild(s);
+}
+
+function getPartidoEstado(p){
+  if(p.resultado_local!=null&&p.resultado_visitante!=null)return"terminado";
+  const now=new Date();
+  const fh=new Date(p.fecha_hora);
+  const diffMs=fh-now; // positivo = en el futuro
+  if(diffMs>-2*3600*1000&&diffMs<2*3600*1000)return"en_juego"; // ±2h
+  // Próximo: hoy (misma fecha calendario) y aún no empezado
+  const esHoy=fh.toDateString()===now.toDateString()&&diffMs>2*3600*1000;
+  if(esHoy)return"proximo";
+  return"normal";
+}
+
 function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoToTeam,onGoToLeague,onGoToPlayer}){
   const [modal,setModal]=useState(null);
-  const [ficha,setFicha]=useState(null); // partido seleccionado para la ficha
+  const [ficha,setFicha]=useState(null);
   const [saving,setSaving]=useState(false);
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap=useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
+  const scrollRef=useRef(null); // ref al primer partido destacado (en juego o próximo)
 
   const sorted=useMemo(()=>[...partidos].sort((a,b)=>new Date(b.fecha_hora)-new Date(a.fecha_hora)),[partidos]);
   const byLiga=useMemo(()=>{const m={};sorted.forEach(p=>{const k=p.id_liga||"sin_liga";if(!m[k])m[k]=[];m[k].push(p);});return m;},[sorted]);
+
+  // Scroll automático al primer partido destacado al montar la vista
+  useEffect(()=>{
+    if(scrollRef.current){
+      setTimeout(()=>scrollRef.current?.scrollIntoView({behavior:"smooth",block:"center"}),300);
+    }
+  },[]);// eslint-disable-line
 
   const save=async f=>{
     setSaving(true);
@@ -787,6 +814,9 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
   };
 
   const fmtDt=iso=>{if(!iso)return"";const d=new Date(iso);return d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})+" · "+d.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});};
+
+  // Resetear la bandera de "primer partido destacado" en cada render
+  scrollRef._asignado=false;
 
   if(ficha){
     return <PartidoFichaView partido={ficha} equipos={equipos} ligas={ligas} players={players} onBack={()=>setFicha(null)} onGoToTeam={onGoToTeam} onGoToLeague={onGoToLeague} onGoToPlayer={onGoToPlayer}/>;
@@ -817,8 +847,8 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
           <div style={{fontWeight:600,fontSize:"16px"}}>No hay partidos programados</div>
           {isAdmin&&<div style={{fontSize:"13px",marginTop:"6px"}}>Pulsa "+ Partido" para añadir el primero</div>}
         </div>
-      ):(
-        Object.entries(byLiga).map(([ligaId,ps])=>(
+      ):(<>
+        {Object.entries(byLiga).map(([ligaId,ps])=>(
           <div key={ligaId} style={{marginBottom:"24px"}}>
             <div onClick={()=>ligaMap[ligaId]&&onGoToLeague&&onGoToLeague(ligaId)}
               style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"12px",cursor:ligaMap[ligaId]&&onGoToLeague?"pointer":"default"}}>
@@ -829,14 +859,27 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
               {ps.map(p=>{
                 const local=equipoMap[p.id_equipo_local];
                 const visit=equipoMap[p.id_equipo_visitante];
-                const pasado=new Date(p.fecha_hora)<new Date();
                 const tieneResultado=p.resultado_local!=null&&p.resultado_visitante!=null;
+                const estado=getPartidoEstado(p);
+                const esDestacado=estado==="en_juego"||estado==="proximo";
+                // El primer partido destacado de toda la lista recibe el ref de scroll
+                const esPrimeroDestacado=esDestacado&&!scrollRef._asignado;
+                if(esPrimeroDestacado)scrollRef._asignado=true;
+                const borderStyle=
+                  estado==="en_juego"?"2px solid #ef4444":
+                  estado==="proximo"?"2px solid #f59e0b":
+                  tieneResultado?"1.5px solid #e2e8f0":
+                  "1.5px solid #e9d5ff";
+                const animStyle=estado==="en_juego"?{animation:"partidoPulse 2s infinite"}:{};
                 return(
-                  <div key={p.id} style={{background:"#fff",borderRadius:"16px",padding:"16px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",border:tieneResultado?"1.5px solid #e2e8f0":pasado?"1.5px solid #fde68a":"1.5px solid #e9d5ff"}}>
-                    {/* Fecha + notas (sin badge "Finalizado" aquí, solo en ficha) */}
-                    <div style={{fontSize:"12px",color:"#94a3b8",marginBottom:"10px",fontWeight:600}}>
-                      {fmtDt(p.fecha_hora)}
-                      {p.notas&&<span style={{marginLeft:"8px",color:"#475569"}}>· {p.notas}</span>}
+                  <div key={p.id} ref={esPrimeroDestacado?scrollRef:null}
+                    style={{background:"#fff",borderRadius:"16px",padding:"16px",boxShadow:esDestacado?"0 2px 12px rgba(0,0,0,0.12)":"0 1px 6px rgba(0,0,0,0.07)",border:borderStyle,...animStyle}}>
+                    {/* Badge de estado + fecha */}
+                    <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"10px",flexWrap:"wrap"}}>
+                      {estado==="en_juego"&&<span style={{background:"#ef4444",color:"#fff",borderRadius:"20px",padding:"2px 10px",fontSize:"11px",fontWeight:800,letterSpacing:"0.5px"}}>🔴 EN JUEGO</span>}
+                      {estado==="proximo"&&<span style={{background:"#f59e0b",color:"#fff",borderRadius:"20px",padding:"2px 10px",fontSize:"11px",fontWeight:700}}>🟡 HOY</span>}
+                      <span style={{fontSize:"12px",color:"#94a3b8",fontWeight:600}}>{fmtDt(p.fecha_hora)}</span>
+                      {p.notas&&<span style={{fontSize:"12px",color:"#475569"}}>· {p.notas}</span>}
                     </div>
                     {/* Equipos + resultado o vs */}
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px",flexWrap:"wrap"}}>
@@ -849,7 +892,7 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
                         {tieneResultado?(
                           <span style={{fontWeight:800,fontSize:"18px",color:"#1e293b"}}>{p.resultado_local}–{p.resultado_visitante}</span>
                         ):(
-                          <span style={{fontWeight:800,fontSize:"15px",color:"#9333ea"}}>vs</span>
+                          <span style={{fontWeight:800,fontSize:"15px",color:estado==="en_juego"?"#ef4444":"#9333ea"}}>vs</span>
                         )}
                       </div>
                       <div onClick={()=>onGoToTeam&&onGoToTeam(p.id_equipo_visitante)}
@@ -872,7 +915,8 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
               })}
             </div>
           </div>
-        ))
+        ))}
+      </>
       )}
     </div>
   );
