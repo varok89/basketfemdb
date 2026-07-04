@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
 const SUPABASE_KEY = process.env.REACT_APP_SUPABASE_KEY;
@@ -4128,5 +4129,6 @@ export default function App(){
         {tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id)=>goToTeam(id,null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})} onGoToPlayer={(id)=>goToPlayer(id,{tab:"partidos",label:"Ver partidos"})}/>}
       </div>
     </div>
+    <SpeedInsights />
     </>);
 }
