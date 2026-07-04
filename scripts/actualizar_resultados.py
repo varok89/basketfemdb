@@ -26,8 +26,17 @@ CODIGO_A_EQUIPO = {
 
 def descargar_partidos_fiba():
     """Extrae el array `games` embebido en el HTML de la página de FIBA."""
-    req = urllib.request.Request(FIBA_URL, headers={"User-Agent": "Mozilla/5.0"})
-    html = urllib.request.urlopen(req, timeout=30).read().decode("utf-8")
+    req = urllib.request.Request(FIBA_URL, headers={
+        "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                       "AppleWebKit/537.36 (KHTML, like Gecko) "
+                       "Chrome/126.0.0.0 Safari/537.36"),
+        "Accept": "text/html,application/xhtml+xml",
+        "Accept-Language": "en-US,en;q=0.9",
+    })
+    try:
+        html = urllib.request.urlopen(req, timeout=30).read().decode("utf-8")
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"FIBA devolvió HTTP {e.code} al descargar la página") from e
 
     # El JSON va doblemente escapado dentro del payload RSC de Next.js
     idx = html.find('games\\":[{\\"gameId')
@@ -76,8 +85,13 @@ def partido_terminado(g):
 
 
 def supabase_request(metodo, ruta, cuerpo=None):
-    url = os.environ["SUPABASE_URL"].rstrip("/") + ruta
-    key = os.environ["SUPABASE_SERVICE_KEY"]
+    url = os.environ.get("SUPABASE_URL", "").rstrip("/") + ruta
+    key = os.environ.get("SUPABASE_SERVICE_KEY", "")
+    if not key:
+        raise RuntimeError(
+            "SUPABASE_SERVICE_KEY está vacía: el secret no existe en el repo "
+            "o tiene otro nombre (Settings > Secrets and variables > Actions)"
+        )
     datos = json.dumps(cuerpo).encode() if cuerpo is not None else None
     req = urllib.request.Request(url, data=datos, method=metodo, headers={
         "apikey": key,
@@ -85,8 +99,14 @@ def supabase_request(metodo, ruta, cuerpo=None):
         "Content-Type": "application/json",
         "Prefer": "return=representation",
     })
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return json.loads(r.read().decode() or "[]")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.loads(r.read().decode() or "[]")
+    except urllib.error.HTTPError as e:
+        detalle = e.read().decode(errors="replace")[:300]
+        raise RuntimeError(
+            f"Supabase devolvió HTTP {e.code} en {metodo} {ruta}: {detalle}"
+        ) from e
 
 
 def main():
