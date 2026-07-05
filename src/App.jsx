@@ -784,6 +784,7 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
   const [modal,setModal]=useState(null);
   const [ficha,setFicha]=useState(null);
   const [saving,setSaving]=useState(false);
+  const [expandedLigas,setExpandedLigas]=useState({});
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap=useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
   const scrollRef=useRef(null);
@@ -862,73 +863,113 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
           {isAdmin&&<div style={{fontSize:"13px",marginTop:"6px"}}>Pulsa "+ Partido" para añadir el primero</div>}
         </div>
       ):(<>
-        {Object.entries(byLiga).map(([ligaId,ps])=>(
-          <div key={ligaId} style={{marginBottom:"24px"}}>
-            <div onClick={()=>ligaMap[ligaId]&&onGoToLeague&&onGoToLeague(ligaId)}
-              style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"12px",cursor:ligaMap[ligaId]&&onGoToLeague?"pointer":"default"}}>
-              {ligaMap[ligaId]?.logo&&<img src={ligaMap[ligaId].logo} alt="" style={{width:24,height:24,objectFit:"contain"}}/>}
-              <h2 style={{fontWeight:700,fontSize:"15px",color:"#9333ea",margin:0,textDecoration:ligaMap[ligaId]&&onGoToLeague?"underline":"none"}}>{ligaMap[ligaId]?.nombre||"Sin liga"}</h2>
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
-              {ps.map(p=>{
-                const local=equipoMap[p.id_equipo_local];
-                const visit=equipoMap[p.id_equipo_visitante];
-                const tieneResultado=p.resultado_local!=null&&p.resultado_visitante!=null;
-                const estado=getPartidoEstado(p);
-                const esDestacado=estado==="en_juego"||estado==="proximo";
-                // El primer partido destacado de toda la lista recibe el ref de scroll
-                const esPrimeroDestacado=p.id===scrollTargetId;
-                const borderStyle=
-                  estado==="en_juego"?"2px solid #ef4444":
-                  estado==="proximo"?"2px solid #f59e0b":
-                  tieneResultado?"1.5px solid #e2e8f0":
-                  "1.5px solid #e9d5ff";
-                const animStyle=estado==="en_juego"?{animation:"partidoPulse 2s infinite"}:{};
-                return(
-                  <div key={p.id} ref={esPrimeroDestacado?scrollRef:null}
-                    style={{background:"#fff",borderRadius:"16px",padding:"16px",boxShadow:esDestacado?"0 2px 12px rgba(0,0,0,0.12)":"0 1px 6px rgba(0,0,0,0.07)",border:borderStyle,...animStyle}}>
-                    {/* Badge de estado + fecha */}
-                    <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"10px",flexWrap:"wrap"}}>
-                      {estado==="en_juego"&&<span style={{background:"#ef4444",color:"#fff",borderRadius:"20px",padding:"2px 10px",fontSize:"11px",fontWeight:800,letterSpacing:"0.5px"}}>🔴 EN JUEGO</span>}
-                      {estado==="proximo"&&<span style={{background:"#f59e0b",color:"#fff",borderRadius:"20px",padding:"2px 10px",fontSize:"11px",fontWeight:700}}>🟡 HOY</span>}
-                      <span style={{fontSize:"12px",color:"#94a3b8",fontWeight:600}}>{fmtDt(p.fecha_hora)}</span>
-                      {p.notas&&<span style={{fontSize:"12px",color:"#475569"}}>· {p.notas}</span>}
-                    </div>
-                    {/* Equipos + resultado o vs */}
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px",flexWrap:"wrap"}}>
-                      <div onClick={()=>onGoToTeam&&onGoToTeam(p.id_equipo_local)}
-                        style={{display:"flex",alignItems:"center",gap:"8px",flex:1,minWidth:"100px",cursor:onGoToTeam?"pointer":"default"}}>
-                        {local?.escudo&&<img src={local.escudo} alt="" style={{width:32,height:32,objectFit:"contain"}}/>}
-                        <span style={{fontWeight:700,fontSize:"13px",color:"#1e293b",textDecoration:onGoToTeam?"underline":"none"}}>{local?.nombre||"—"}</span>
-                      </div>
-                      <div style={{flexShrink:0,textAlign:"center",minWidth:"60px"}}>
-                        {tieneResultado?(
-                          <span style={{fontWeight:800,fontSize:"18px",color:"#1e293b"}}>{p.resultado_local}–{p.resultado_visitante}</span>
-                        ):(
-                          <span style={{fontWeight:800,fontSize:"15px",color:estado==="en_juego"?"#ef4444":"#9333ea"}}>vs</span>
-                        )}
-                      </div>
-                      <div onClick={()=>onGoToTeam&&onGoToTeam(p.id_equipo_visitante)}
-                        style={{display:"flex",alignItems:"center",gap:"8px",flex:1,minWidth:"100px",justifyContent:"flex-end",textAlign:"right",cursor:onGoToTeam?"pointer":"default"}}>
-                        <span style={{fontWeight:700,fontSize:"13px",color:"#1e293b",textDecoration:onGoToTeam?"underline":"none"}}>{visit?.nombre||"—"}</span>
-                        {visit?.escudo&&<img src={visit.escudo} alt="" style={{width:32,height:32,objectFit:"contain"}}/>}
-                      </div>
-                    </div>
-                    {/* Botones de acción */}
-                    <div style={{display:"flex",alignItems:"center",gap:"8px",marginTop:"12px",flexWrap:"wrap"}}>
-                      <button onClick={()=>setFicha(p)} style={{background:"#f5f3ff",color:"#7c3aed",border:"1.5px solid #ddd6fe",borderRadius:"20px",padding:"5px 14px",fontSize:"12px",fontWeight:700,cursor:"pointer"}}>+ Info</button>
-                      {p.link&&<a href={p.link} target="_blank" rel="noopener noreferrer" style={{background:"#7c3aed",color:"#fff",borderRadius:"20px",padding:"5px 14px",fontSize:"12px",fontWeight:700,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px"}}>▶ Ver</a>}
-                      {isAdmin&&<>
-                        <button onClick={()=>setModal(p)} style={{background:"#f1f5f9",border:"none",borderRadius:"20px",padding:"5px 12px",fontSize:"12px",fontWeight:600,cursor:"pointer",color:"#475569"}}>✏️</button>
-                        <button onClick={()=>del(p.id)} style={{background:"#fee2e2",border:"none",borderRadius:"20px",padding:"5px 12px",fontSize:"12px",fontWeight:600,cursor:"pointer",color:"#ef4444"}}>🗑️</button>
-                      </>}
-                    </div>
+        {Object.entries(byLiga).map(([ligaId,ps])=>{
+          const hayEnJuego=ps.some(p=>getPartidoEstado(p)==="en_juego");
+          const expanded=expandedLigas[ligaId]??false;
+          // Separar en tres grupos
+          const enJuego=ps.filter(p=>getPartidoEstado(p)==="en_juego");
+          const resultados=ps.filter(p=>getPartidoEstado(p)==="terminado").sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
+          const proximos=ps.filter(p=>getPartidoEstado(p)==="proximo"||getPartidoEstado(p)==="normal").sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
+
+          const TarjetaPartido=({p})=>{
+            const local=equipoMap[p.id_equipo_local];
+            const visit=equipoMap[p.id_equipo_visitante];
+            const tieneResultado=p.resultado_local!=null&&p.resultado_visitante!=null;
+            const estado=getPartidoEstado(p);
+            const esPrimeroDestacado=p.id===scrollTargetId;
+            const borderStyle=estado==="en_juego"?"2px solid #ef4444":tieneResultado?"1.5px solid #e2e8f0":"1.5px solid #e9d5ff";
+            const animStyle=estado==="en_juego"?{animation:"partidoPulse 2s infinite"}:{};
+            return(
+              <div ref={esPrimeroDestacado?scrollRef:null}
+                style={{background:"#fff",borderRadius:"14px",padding:"14px",boxShadow:estado==="en_juego"?"0 2px 12px rgba(239,68,68,0.15)":"0 1px 4px rgba(0,0,0,0.06)",border:borderStyle,...animStyle}}>
+                <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px",flexWrap:"wrap"}}>
+                  {estado==="en_juego"&&<span style={{background:"#ef4444",color:"#fff",borderRadius:"20px",padding:"2px 10px",fontSize:"11px",fontWeight:800,letterSpacing:"0.5px"}}>🔴 EN JUEGO</span>}
+                  {estado==="proximo"&&<span style={{background:"#f59e0b",color:"#fff",borderRadius:"20px",padding:"2px 10px",fontSize:"11px",fontWeight:700}}>🟡 HOY</span>}
+                  <span style={{fontSize:"11px",color:"#94a3b8",fontWeight:600}}>{fmtDt(p.fecha_hora)}</span>
+                  {p.notas&&<span style={{fontSize:"11px",color:"#64748b"}}>· {p.notas}</span>}
+                </div>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px"}}>
+                  <div onClick={()=>onGoToTeam&&onGoToTeam(p.id_equipo_local)}
+                    style={{display:"flex",alignItems:"center",gap:"7px",flex:1,minWidth:"80px",cursor:onGoToTeam?"pointer":"default"}}>
+                    {local?.escudo&&<img src={local.escudo} alt="" style={{width:28,height:28,objectFit:"contain",flexShrink:0}}/>}
+                    <span style={{fontWeight:700,fontSize:"12px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{local?.nombre||"—"}</span>
                   </div>
-                );
-              })}
+                  <div style={{flexShrink:0,textAlign:"center",minWidth:"52px"}}>
+                    {tieneResultado
+                      ?<span style={{fontWeight:800,fontSize:"16px",color:"#1e293b"}}>{p.resultado_local}–{p.resultado_visitante}</span>
+                      :<span style={{fontWeight:800,fontSize:"13px",color:estado==="en_juego"?"#ef4444":"#9333ea"}}>vs</span>}
+                  </div>
+                  <div onClick={()=>onGoToTeam&&onGoToTeam(p.id_equipo_visitante)}
+                    style={{display:"flex",alignItems:"center",gap:"7px",flex:1,minWidth:"80px",justifyContent:"flex-end",textAlign:"right",cursor:onGoToTeam?"pointer":"default"}}>
+                    <span style={{fontWeight:700,fontSize:"12px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{visit?.nombre||"—"}</span>
+                    {visit?.escudo&&<img src={visit.escudo} alt="" style={{width:28,height:28,objectFit:"contain",flexShrink:0}}/>}
+                  </div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"10px",flexWrap:"wrap"}}>
+                  <button onClick={()=>setFicha(p)} style={{background:"#f5f3ff",color:"#7c3aed",border:"1.5px solid #ddd6fe",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>+ Info</button>
+                  {p.link&&<a href={p.link} target="_blank" rel="noopener noreferrer" style={{background:"#7c3aed",color:"#fff",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,textDecoration:"none"}}>▶ Ver</a>}
+                  {isAdmin&&<>
+                    <button onClick={()=>setModal(p)} style={{background:"#f1f5f9",border:"none",borderRadius:"20px",padding:"4px 10px",fontSize:"11px",fontWeight:600,cursor:"pointer",color:"#475569"}}>✏️</button>
+                    <button onClick={()=>del(p.id)} style={{background:"#fee2e2",border:"none",borderRadius:"20px",padding:"4px 10px",fontSize:"11px",fontWeight:600,cursor:"pointer",color:"#ef4444"}}>🗑️</button>
+                  </>}
+                </div>
+              </div>
+            );
+          };
+
+          return(
+            <div key={ligaId} style={{marginBottom:"12px",background:"#fff",borderRadius:"16px",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
+              {/* Cabecera de la liga: clicable para expandir/contraer */}
+              <div onClick={()=>setExpandedLigas(prev=>({...prev,[ligaId]:!expanded}))}
+                style={{display:"flex",alignItems:"center",gap:"10px",padding:"14px 16px",cursor:"pointer",userSelect:"none",background:expanded?"#faf5ff":"#fff"}}>
+                {ligaMap[ligaId]?.logo&&<img src={ligaMap[ligaId].logo} alt="" style={{width:24,height:24,objectFit:"contain",flexShrink:0}}/>}
+                <span style={{fontWeight:700,fontSize:"14px",color:"#9333ea",flex:1}}>{ligaMap[ligaId]?.nombre||"Sin liga"}</span>
+                {hayEnJuego&&<span style={{width:10,height:10,borderRadius:"50%",background:"#ef4444",flexShrink:0,boxShadow:"0 0 0 3px rgba(239,68,68,0.2)",display:"inline-block"}}/>}
+                <span style={{fontSize:"18px",color:"#94a3b8",transform:expanded?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>›</span>
+              </div>
+
+              {/* Contenido expandido */}
+              {expanded&&(
+                <div style={{padding:"0 12px 14px",display:"flex",flexDirection:"column",gap:"8px"}}>
+                  {/* EN DIRECTO */}
+                  {enJuego.length>0&&(
+                    <div style={{display:"flex",flexDirection:"column",gap:"8px",marginTop:"8px"}}>
+                      {enJuego.map(p=><TarjetaPartido key={p.id} p={p}/>)}
+                    </div>
+                  )}
+
+                  {/* ÚLTIMOS RESULTADOS */}
+                  {resultados.length>0&&(
+                    <div style={{marginTop:"8px"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px"}}>
+                        <div style={{flex:1,height:"1px",background:"#e2e8f0"}}/>
+                        <span style={{fontSize:"11px",fontWeight:700,color:"#94a3b8",whiteSpace:"nowrap"}}>Últimos resultados</span>
+                        <div style={{flex:1,height:"1px",background:"#e2e8f0"}}/>
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+                        {resultados.map(p=><TarjetaPartido key={p.id} p={p}/>)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PRÓXIMOS */}
+                  {proximos.length>0&&(
+                    <div style={{marginTop:"8px"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px"}}>
+                        <div style={{flex:1,height:"1px",background:"#e2e8f0"}}/>
+                        <span style={{fontSize:"11px",fontWeight:700,color:"#94a3b8",whiteSpace:"nowrap"}}>Próximos</span>
+                        <div style={{flex:1,height:"1px",background:"#e2e8f0"}}/>
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+                        {proximos.map(p=><TarjetaPartido key={p.id} p={p}/>)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </>
       )}
     </div>
