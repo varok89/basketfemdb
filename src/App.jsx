@@ -871,6 +871,7 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
           const proximos=ps.filter(p=>(getPartidoEstado(p)==="proximo"||getPartidoEstado(p)==="normal")&&!esHoy(p)).sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
           const hayEnJuego=ps.some(p=>getPartidoEstado(p)==="en_juego");
           const hayHoy=partHoy.length>0;
+          const expanded=expandedLigas[ligaId]??false;
 
           const TarjetaPartido=({p})=>{
             const local=equipoMap[p.id_equipo_local];
