@@ -785,6 +785,7 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
   const [ficha,setFicha]=useState(null);
   const [saving,setSaving]=useState(false);
   const [expandedLigas,setExpandedLigas]=useState({});
+  const [clasiLigaId,setClasiLigaId]=useState(null);
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap=useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
   const scrollRef=useRef(null);
@@ -832,6 +833,10 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
   };
 
   const fmtDt=iso=>{if(!iso)return"";const d=new Date(iso);return d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})+" · "+d.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});};
+
+  if(clasiLigaId){
+    return <ClasificacionGrupos partidos={partidos} equipos={equipos} ligas={ligas} ligaId={clasiLigaId} onBack={()=>setClasiLigaId(null)} onGoToTeam={onGoToTeam}/>;
+  }
 
   if(ficha){
     return <PartidoFichaView partido={ficha} equipos={equipos} ligas={ligas} players={players} onBack={()=>setFicha(null)} onGoToTeam={onGoToTeam} onGoToLeague={onGoToLeague} onGoToPlayer={id=>onGoToPlayer&&onGoToPlayer(id,{tab:"partidos",label:"Info partido"})}/>;
@@ -927,6 +932,12 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
                 {ligaMap[ligaId]?.logo&&<img src={ligaMap[ligaId].logo} alt="" style={{width:24,height:24,objectFit:"contain",flexShrink:0}}/>}
                 <span style={{fontWeight:700,fontSize:"14px",color:"#9333ea",flex:1}}>{ligaMap[ligaId]?.nombre||"Sin liga"}</span>
                 {hayEnJuego&&<span style={{width:10,height:10,borderRadius:"50%",background:"#ef4444",flexShrink:0,boxShadow:"0 0 0 3px rgba(239,68,68,0.2)",display:"inline-block"}}/>}
+                {ps.some(p=>p.resultado_local!=null&&p.notas&&/^Group [A-Z]/i.test(p.notas))&&(
+                  <button onClick={e=>{e.stopPropagation();setClasiLigaId(ligaId);}}
+                    style={{background:"#f5f3ff",color:"#7c3aed",border:"1.5px solid #ddd6fe",borderRadius:"20px",padding:"3px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer",flexShrink:0,marginRight:"4px"}}>
+                    📊
+                  </button>
+                )}
                 <span style={{fontSize:"18px",color:"#94a3b8",transform:expanded?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>›</span>
               </div>
 
@@ -979,6 +990,147 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
         })}
       </>
       )}
+    </div>
+  );
+}
+
+/* ── ClasificacionGrupos ─────────────────────────────────── */
+// Calcula la clasificación por grupos a partir de los partidos con resultado.
+// Los partidos de un grupo se identifican por el campo "notas" que empieza por "Group ".
+// Criterios de desempate FIBA: 1) puntos (2V/1D), 2) head-to-head, 3) dif. directa, 4) dif. global
+function calcClasificacion(partidos, equipoMap){
+  // Agrupar partidos con resultado por grupo (notas que empiezan por "Group ")
+  const grupos={};
+  partidos.forEach(p=>{
+    if(p.resultado_local==null||p.resultado_visitante==null)return;
+    const m=p.notas&&p.notas.match(/^(Group [A-Z])/i);
+    if(!m)return;
+    const g=m[1].toUpperCase();
+    if(!grupos[g])grupos[g]=[];
+    grupos[g].push(p);
+  });
+
+  const calcGrupo=(ps)=>{
+    const stats={};
+    const initEq=id=>{if(!stats[id])stats[id]={id,pj:0,pg:0,pp:0,pts:0,pf:0,pc:0,dif:0};};
+    ps.forEach(p=>{
+      initEq(p.id_equipo_local); initEq(p.id_equipo_visitante);
+      const sl=p.resultado_local,sv=p.resultado_visitante;
+      stats[p.id_equipo_local].pj++;   stats[p.id_equipo_visitante].pj++;
+      stats[p.id_equipo_local].pf+=sl; stats[p.id_equipo_local].pc+=sv;
+      stats[p.id_equipo_visitante].pf+=sv; stats[p.id_equipo_visitante].pc+=sl;
+      if(sl>sv){
+        stats[p.id_equipo_local].pg++;    stats[p.id_equipo_local].pts+=2;
+        stats[p.id_equipo_visitante].pp++; stats[p.id_equipo_visitante].pts+=1;
+      } else {
+        stats[p.id_equipo_visitante].pg++; stats[p.id_equipo_visitante].pts+=2;
+        stats[p.id_equipo_local].pp++;     stats[p.id_equipo_local].pts+=1;
+      }
+    });
+    Object.values(stats).forEach(e=>{e.dif=e.pf-e.pc;});
+
+    // Ordenar con desempate FIBA
+    const arr=Object.values(stats);
+    arr.sort((a,b)=>{
+      if(b.pts!==a.pts)return b.pts-a.pts;
+      // Head-to-head entre empatados con los mismos puntos
+      const tied=arr.filter(x=>x.pts===a.pts).map(x=>x.id);
+      if(tied.length>=2){
+        const hthStats={};
+        tied.forEach(id=>{hthStats[id]={pts:0,pf:0,pc:0};});
+        ps.forEach(p=>{
+          if(!tied.includes(p.id_equipo_local)||!tied.includes(p.id_equipo_visitante))return;
+          const sl=p.resultado_local,sv=p.resultado_visitante;
+          hthStats[p.id_equipo_local].pf+=sl; hthStats[p.id_equipo_local].pc+=sv;
+          hthStats[p.id_equipo_visitante].pf+=sv; hthStats[p.id_equipo_visitante].pc+=sl;
+          if(sl>sv){hthStats[p.id_equipo_local].pts+=2;hthStats[p.id_equipo_visitante].pts+=1;}
+          else{hthStats[p.id_equipo_visitante].pts+=2;hthStats[p.id_equipo_local].pts+=1;}
+        });
+        const hA=hthStats[a.id]||{pts:0,pf:0,pc:0};
+        const hB=hthStats[b.id]||{pts:0,pf:0,pc:0};
+        if(hB.pts!==hA.pts)return hB.pts-hA.pts;
+        const difA=hA.pf-hA.pc, difB=hB.pf-hB.pc;
+        if(difB!==difA)return difB-difA;
+      }
+      // Diferencia global
+      if(b.dif!==a.dif)return b.dif-a.dif;
+      return b.pf-a.pf;
+    });
+    return arr;
+  };
+
+  return Object.entries(grupos)
+    .sort(([a],[b])=>a.localeCompare(b))
+    .map(([nombre,ps])=>({nombre,equipos:calcGrupo(ps)}));
+}
+
+function ClasificacionGrupos({partidos,equipos,ligas,ligaId,onBack,onGoToTeam}){
+  const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
+  const psLiga=useMemo(()=>partidos.filter(p=>p.id_liga===ligaId),[partidos,ligaId]);
+  const grupos=useMemo(()=>calcClasificacion(psLiga,equipoMap),[psLiga,equipoMap]);
+
+  if(!grupos.length)return(
+    <div style={{maxWidth:"700px",margin:"0 auto",padding:"16px"}}>
+      <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"15px",cursor:"pointer",padding:"0 0 16px"}}>← Volver</button>
+      <p style={{color:"#94a3b8",textAlign:"center",paddingTop:"40px"}}>No hay partidos con resultado para calcular la clasificación.</p>
+    </div>
+  );
+
+  return(
+    <div style={{maxWidth:"700px",margin:"0 auto",padding:"16px",fontFamily:"system-ui,sans-serif"}}>
+      <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"15px",cursor:"pointer",padding:"0 0 16px"}}>← Volver</button>
+      <h1 style={{fontWeight:800,fontSize:"20px",color:"#1e293b",margin:"0 0 20px"}}>🏆 Clasificación de grupos</h1>
+      {grupos.map(({nombre,equipos:eqs})=>(
+        <div key={nombre} style={{background:"#fff",borderRadius:"16px",overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"16px"}}>
+          <div style={{background:"#f5f3ff",padding:"10px 16px",borderBottom:"1px solid #e9d5ff"}}>
+            <span style={{fontWeight:800,fontSize:"14px",color:"#7c3aed"}}>{nombre}</span>
+          </div>
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:"12px"}}>
+              <thead>
+                <tr style={{background:"#faf5ff"}}>
+                  <th style={{textAlign:"left",padding:"8px 12px",fontWeight:700,color:"#64748b",whiteSpace:"nowrap"}}>#</th>
+                  <th style={{textAlign:"left",padding:"8px 12px",fontWeight:700,color:"#64748b",whiteSpace:"nowrap"}}>Equipo</th>
+                  <th style={{textAlign:"center",padding:"8px 8px",fontWeight:700,color:"#64748b"}}>PJ</th>
+                  <th style={{textAlign:"center",padding:"8px 8px",fontWeight:700,color:"#64748b"}}>PG</th>
+                  <th style={{textAlign:"center",padding:"8px 8px",fontWeight:700,color:"#64748b"}}>PP</th>
+                  <th style={{textAlign:"center",padding:"8px 8px",fontWeight:700,color:"#64748b"}}>PF</th>
+                  <th style={{textAlign:"center",padding:"8px 8px",fontWeight:700,color:"#64748b"}}>PC</th>
+                  <th style={{textAlign:"center",padding:"8px 8px",fontWeight:700,color:"#64748b"}}>DIF</th>
+                  <th style={{textAlign:"center",padding:"8px 12px",fontWeight:700,color:"#9333ea"}}>PTS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {eqs.map((eq,i)=>{
+                  const team=equipoMap[eq.id];
+                  return(
+                    <tr key={eq.id} onClick={()=>onGoToTeam&&onGoToTeam(eq.id)}
+                      style={{borderTop:"1px solid #f1f5f9",background:i===0?"#faf5ff":i<2?"#fffbff":"#fff",cursor:onGoToTeam?"pointer":"default"}}>
+                      <td style={{padding:"10px 12px",fontWeight:700,color:"#94a3b8"}}>{i+1}</td>
+                      <td style={{padding:"10px 12px"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                          {team?.escudo&&<img src={team.escudo} alt="" style={{width:22,height:22,objectFit:"contain"}}/>}
+                          <span style={{fontWeight:600,color:"#1e293b",whiteSpace:"nowrap"}}>{team?.nombre||eq.id}</span>
+                        </div>
+                      </td>
+                      <td style={{textAlign:"center",padding:"10px 8px",color:"#475569"}}>{eq.pj}</td>
+                      <td style={{textAlign:"center",padding:"10px 8px",color:"#16a34a",fontWeight:600}}>{eq.pg}</td>
+                      <td style={{textAlign:"center",padding:"10px 8px",color:"#dc2626",fontWeight:600}}>{eq.pp}</td>
+                      <td style={{textAlign:"center",padding:"10px 8px",color:"#475569"}}>{eq.pf}</td>
+                      <td style={{textAlign:"center",padding:"10px 8px",color:"#475569"}}>{eq.pc}</td>
+                      <td style={{textAlign:"center",padding:"10px 8px",color:eq.dif>0?"#16a34a":eq.dif<0?"#dc2626":"#475569",fontWeight:600}}>{eq.dif>0?"+":""}{eq.dif}</td>
+                      <td style={{textAlign:"center",padding:"10px 12px",fontWeight:800,color:"#7c3aed",fontSize:"14px"}}>{eq.pts}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
+      <div style={{fontSize:"11px",color:"#94a3b8",textAlign:"center",marginTop:"8px"}}>
+        Criterios de desempate FIBA: head-to-head → diferencia directa → diferencia global → puntos anotados
+      </div>
     </div>
   );
 }
