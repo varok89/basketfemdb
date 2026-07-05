@@ -864,12 +864,13 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
         </div>
       ):(<>
         {Object.entries(byLiga).map(([ligaId,ps])=>{
+          const hoy=new Date().toDateString();
+          const esHoy=p=>new Date(p.fecha_hora).toDateString()===hoy;
+          const partHoy=ps.filter(p=>esHoy(p)).sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
+          const resultados=ps.filter(p=>getPartidoEstado(p)==="terminado"&&!esHoy(p)).sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
+          const proximos=ps.filter(p=>(getPartidoEstado(p)==="proximo"||getPartidoEstado(p)==="normal")&&!esHoy(p)).sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
           const hayEnJuego=ps.some(p=>getPartidoEstado(p)==="en_juego");
-          const expanded=expandedLigas[ligaId]??false;
-          // Separar en tres grupos
-          const enJuego=ps.filter(p=>getPartidoEstado(p)==="en_juego");
-          const resultados=ps.filter(p=>getPartidoEstado(p)==="terminado").sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
-          const proximos=ps.filter(p=>getPartidoEstado(p)==="proximo"||getPartidoEstado(p)==="normal").sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
+          const hayHoy=partHoy.length>0;
 
           const TarjetaPartido=({p})=>{
             const local=equipoMap[p.id_equipo_local];
@@ -931,10 +932,15 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
               {/* Contenido expandido */}
               {expanded&&(
                 <div style={{padding:"0 12px 14px",display:"flex",flexDirection:"column",gap:"8px"}}>
-                  {/* EN DIRECTO */}
-                  {enJuego.length>0&&(
+                  {/* HOY */}
+                  {partHoy.length>0&&(
                     <div style={{display:"flex",flexDirection:"column",gap:"8px",marginTop:"8px"}}>
-                      {enJuego.map(p=><TarjetaPartido key={p.id} p={p}/>)}
+                      <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"4px"}}>
+                        <div style={{flex:1,height:"1px",background:"#e2e8f0"}}/>
+                        <span style={{fontSize:"11px",fontWeight:700,color:hayEnJuego?"#ef4444":"#f59e0b",whiteSpace:"nowrap"}}>{hayEnJuego?"🔴 En juego":"📅 Hoy"}</span>
+                        <div style={{flex:1,height:"1px",background:"#e2e8f0"}}/>
+                      </div>
+                      {partHoy.map(p=><TarjetaPartido key={p.id} p={p}/>)}
                     </div>
                   )}
 
