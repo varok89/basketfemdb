@@ -591,7 +591,7 @@ function PartidoFld({label,children}){
 function PartidoForm({initial,equipos,ligas,onSave,onCancel,saving}){
   const inp={width:"100%",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",outline:"none",boxSizing:"border-box"};
   const inpNum={border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"16px",fontWeight:700,outline:"none",boxSizing:"border-box",width:"80px",textAlign:"center"};
-  const [f,setF]=useState({id_liga:"",id_equipo_local:"",id_equipo_visitante:"",fecha_hora:"",link:"",notas:"",resultado_local:"",resultado_visitante:"",...(initial||{})});
+  const [f,setF]=useState({id_liga:"",id_equipo_local:"",id_equipo_visitante:"",fecha_hora:"",link:"",url_stats:"",notas:"",resultado_local:"",resultado_visitante:"",...(initial||{})});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
   const Fld=PartidoFld;
   const toLocal=iso=>{if(!iso)return"";const d=new Date(iso);const pad=n=>String(n).padStart(2,"0");return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;};
@@ -639,6 +639,9 @@ function PartidoForm({initial,equipos,ligas,onSave,onCancel,saving}){
       </Fld>
       <Fld label="Link para ver el partido (opcional)">
         <input style={inp} value={f.link||""} onChange={set("link")} placeholder="https://..."/>
+      </Fld>
+      <Fld label="URL estadísticas FIBA (opcional)">
+        <input style={inp} value={f.url_stats||""} onChange={set("url_stats")} placeholder="https://www.fiba.basketball/en/events/.../games/131760-SWE-LAT"/>
       </Fld>
       <Fld label="Notas (opcional)">
         <input style={inp} value={f.notas||""} onChange={set("notas")} placeholder="Semifinal, Grupo A..."/>
@@ -709,6 +712,7 @@ function PartidoFichaView({partido,equipos,ligas,players,onBack,onGoToTeam,onGoT
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}}>
         <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"15px",cursor:"pointer",padding:0}}>← Volver</button>
         {partido.link&&<a href={partido.link} target="_blank" rel="noopener noreferrer" style={{background:"#7c3aed",color:"#fff",borderRadius:"20px",padding:"7px 16px",fontSize:"12px",fontWeight:700,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"5px"}}>▶ Ver partido</a>}
+        {partido.url_stats&&<a href={partido.url_stats} target="_blank" rel="noopener noreferrer" style={{background:"#0f172a",color:"#fff",borderRadius:"20px",padding:"7px 16px",fontSize:"12px",fontWeight:700,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"5px"}}>📊 Stats FIBA</a>}
       </div>
 
       {/* Cabecera del partido */}
@@ -811,7 +815,7 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
   const save=async f=>{
     setSaving(true);
     try{
-      const payload={id_liga:f.id_liga||null,id_equipo_local:f.id_equipo_local||null,id_equipo_visitante:f.id_equipo_visitante||null,fecha_hora:f.fecha_hora,link:f.link||null,notas:f.notas||null,resultado_local:f.resultado_local!=null&&f.resultado_local!==""?Number(f.resultado_local):null,resultado_visitante:f.resultado_visitante!=null&&f.resultado_visitante!==""?Number(f.resultado_visitante):null};
+      const payload={id_liga:f.id_liga||null,id_equipo_local:f.id_equipo_local||null,id_equipo_visitante:f.id_equipo_visitante||null,fecha_hora:f.fecha_hora,link:f.link||null,url_stats:f.url_stats||null,notas:f.notas||null,resultado_local:f.resultado_local!=null&&f.resultado_local!==""?Number(f.resultado_local):null,resultado_visitante:f.resultado_visitante!=null&&f.resultado_visitante!==""?Number(f.resultado_visitante):null};
       if(f.id){
         const{error}=await supabase.from("partidos").update(payload).eq("id",f.id);
         if(error)throw error;
@@ -915,6 +919,7 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
                 <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"10px",flexWrap:"wrap"}}>
                   <button onClick={()=>setFicha(p)} style={{background:"#f5f3ff",color:"#7c3aed",border:"1.5px solid #ddd6fe",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>+ Info</button>
                   {p.link&&<a href={p.link} target="_blank" rel="noopener noreferrer" style={{background:"#7c3aed",color:"#fff",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,textDecoration:"none"}}>▶ Ver</a>}
+                  {p.url_stats&&<a href={p.url_stats} target="_blank" rel="noopener noreferrer" style={{background:"#0f172a",color:"#fff",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,textDecoration:"none"}}>📊 Stats</a>}
                   {isAdmin&&<>
                     <button onClick={()=>setModal(p)} style={{background:"#f1f5f9",border:"none",borderRadius:"20px",padding:"4px 10px",fontSize:"11px",fontWeight:600,cursor:"pointer",color:"#475569"}}>✏️</button>
                     <button onClick={()=>del(p.id)} style={{background:"#fee2e2",border:"none",borderRadius:"20px",padding:"4px 10px",fontSize:"11px",fontWeight:600,cursor:"pointer",color:"#ef4444"}}>🗑️</button>
