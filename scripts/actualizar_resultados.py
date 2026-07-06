@@ -14,6 +14,7 @@ import urllib.request
 
 FIBA_URL = "https://www.fiba.basketball/en/events/fiba-u20-womens-eurobasket-2026/games"
 ID_LIGA = "L067"
+TEMPORADA = "2026"
 
 # Código FIBA -> id_equipo en La Basketneta
 CODIGO_A_EQUIPO = {
@@ -131,7 +132,8 @@ def main():
     # Partidos de la liga pendientes de resultado
     pendientes = supabase_request(
         "GET",
-        f"/rest/v1/partidos?id_liga=eq.{ID_LIGA}&resultado_local=is.null"
+        f"/rest/v1/partidos?id_liga=eq.{ID_LIGA}&temporada=eq.{TEMPORADA}"
+        f"&resultado_local=is.null"
         f"&select=id,id_equipo_local,id_equipo_visitante,fecha_hora",
     )
     print(f"DB: {len(pendientes)} partidos pendientes en {ID_LIGA}")
