@@ -2208,16 +2208,19 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
   const ligaMap=useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
   const currentSeason=useMemo(()=>getCurrentSeason(players),[players]);
   const fichajes=useMemo(()=>{
-    const currentAll=players.flatMap(p=>(p.seasons||[]).map(s=>({...s,player:p}))).filter(s=>s.temporada===currentSeason).sort((a,b)=>b.id-a.id);
-    const seen=new Set();const deduped=[];
-    currentAll.forEach(s=>{if(!seen.has(s.id_jugadora)){seen.add(s.id_jugadora);deduped.push(s);}});
-    // Excluimos selecciones nacionales (tipo:"seleccion") del cálculo del equipo anterior:
+    // Excluimos selecciones nacionales (tipo:"seleccion") del cálculo:
     // una convocatoria de selección no es un fichaje, y su formato de temporada ("2026")
     // gana la ordenación alfabética frente a temporadas de club ("2025-26"), generando
     // falsos positivos (ej. Aina Ayuso aparecería como fichaje sin haber cambiado de club).
     const esSeleccion=id=>equipoMap[id]?.tipo==="seleccion";
+    // Filas de la temporada actual ordenadas por id ASCENDENTE: la fila más antigua de
+    // cada jugadora+equipo es la que registró el fichaje. Duplicar una plantilla a otra
+    // competición (copa doméstica/continental) crea filas nuevas con id más alto que se
+    // descartan aquí, para que un cambio de competición no reaparezca como movimiento.
+    const currentAll=players.flatMap(p=>(p.seasons||[]).map(s=>({...s,player:p}))).filter(s=>s.temporada===currentSeason&&!esSeleccion(s.id_equipo)).sort((a,b)=>a.id-b.id);
+    const seen=new Set();const deduped=[];
+    currentAll.forEach(s=>{const k=s.id_jugadora+"|"+s.id_equipo;if(!seen.has(k)){seen.add(k);deduped.push(s);}});
     return deduped.filter(s=>{
-      if(esSeleccion(s.id_equipo))return false; // el propio equipo actual es selección → no es fichaje de club
       const prev=(s.player.seasons||[]).filter(ps=>ps.temporada!==currentSeason&&!esSeleccion(ps.id_equipo));
       if(!prev.length)return false;
       const prevSorted=[...prev].sort((a,b)=>b.temporada.localeCompare(a.temporada));
@@ -2238,8 +2241,8 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
         return false;
       };
       return !prev.some(ps=>solapa(ps.temporada)&&ps.id_equipo===s.id_equipo);
-    });
-  },[players,equipoMap]);
+    }).sort((a,b)=>b.id-a.id);
+  },[players,equipoMap,currentSeason]);
   const ligasEnFichajes=useMemo(()=>{
     const ids=[...new Set(fichajes.map(s=>s.id_liga).filter(Boolean))];
     return ids.map(id=>ligaMap[id]).filter(Boolean).sort((a,b)=>a.nombre.localeCompare(b.nombre));
