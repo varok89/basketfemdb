@@ -25,7 +25,22 @@ CODIGO_A_EQUIPO = {
 
 
 def descargar_partidos_fiba():
-    """Extrae el array `games` embebido en el HTML de la página de FIBA."""
+    """Extrae el array `games` embebido en el HTML de la página de FIBA.
+    Reintenta hasta 4 veces: los runners de GitHub a veces son rechazados."""
+    import time
+    ultimo_error = None
+    for intento in range(4):
+        if intento:
+            time.sleep(20 * intento)  # 20s, 40s, 60s
+        try:
+            return _descargar_partidos_fiba_una_vez()
+        except (RuntimeError, urllib.error.URLError) as e:
+            ultimo_error = e
+            print(f"Intento {intento + 1} fallido: {e}")
+    raise RuntimeError(f"FIBA inaccesible tras 4 intentos: {ultimo_error}")
+
+
+def _descargar_partidos_fiba_una_vez():
     req = urllib.request.Request(FIBA_URL, headers={
         "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                        "AppleWebKit/537.36 (KHTML, like Gecko) "
