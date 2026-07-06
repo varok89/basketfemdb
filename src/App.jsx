@@ -3463,7 +3463,13 @@ function CoachForm({initial,players,onSave,onCancel,saving}){
       <Fld label='2ª Nacionalidad'><input style={inp} value={f.nacionalidad2||''} onChange={set('nacionalidad2')} placeholder='Opcional'/></Fld>
     </div>
     <Fld label='Fecha nacimiento'><input style={inp} type='date' value={f.fecha_nac||''} onChange={set('fecha_nac')}/></Fld>
-    <Fld label='Foto (URL)'><input style={inp} value={f.foto||''} onChange={set('foto')} placeholder='https://...'/></Fld>
+    <Fld label='Foto (URL)'>
+      <div style={{display:'flex',gap:'8px',marginBottom:'6px'}}>
+        <button type="button" onClick={()=>setF(p=>({...p,foto:"https://static.flashscore.com/res/image/empty-face-woman-share.gif"}))} style={{background:'#f1f5f9',color:'#475569',border:'none',borderRadius:'8px',padding:'5px 12px',fontSize:'12px',cursor:'pointer',fontWeight:600}}>🖼️ Default ♀</button>
+        <button type="button" onClick={()=>setF(p=>({...p,foto:"https://static.flashscore.com/res/image/empty-face-man-share.gif"}))} style={{background:'#f1f5f9',color:'#475569',border:'none',borderRadius:'8px',padding:'5px 12px',fontSize:'12px',cursor:'pointer',fontWeight:600}}>🖼️ Default ♂</button>
+      </div>
+      <input style={inp} value={f.foto||''} onChange={set('foto')} placeholder='https://...'/>
+    </Fld>
     <Fld label='Ex jugadora (vincular)'><select style={inp} value={f.id_jugadora||''} onChange={set('id_jugadora')}>
       <option value=''>— Ninguna —</option>
       {(players||[]).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es')).map(p=><option key={p.id_jugadora} value={p.id_jugadora}>{p.nombre}</option>)}
