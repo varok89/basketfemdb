@@ -591,7 +591,7 @@ function PartidoFld({label,children}){
 function PartidoForm({initial,equipos,ligas,onSave,onCancel,saving}){
   const inp={width:"100%",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",outline:"none",boxSizing:"border-box"};
   const inpNum={border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"16px",fontWeight:700,outline:"none",boxSizing:"border-box",width:"80px",textAlign:"center"};
-  const [f,setF]=useState({id_liga:"",id_equipo_local:"",id_equipo_visitante:"",fecha_hora:"",link:"",url_stats:"",notas:"",resultado_local:"",resultado_visitante:"",...(initial||{})});
+  const [f,setF]=useState({id_liga:"",temporada:"",id_equipo_local:"",id_equipo_visitante:"",fecha_hora:"",link:"",url_stats:"",notas:"",resultado_local:"",resultado_visitante:"",...(initial||{})});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
   const Fld=PartidoFld;
   const toLocal=iso=>{if(!iso)return"";const d=new Date(iso);const pad=n=>String(n).padStart(2,"0");return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;};
@@ -608,6 +608,9 @@ function PartidoForm({initial,equipos,ligas,onSave,onCancel,saving}){
           <option value="">— Selecciona liga —</option>
           {ligasSorted.map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}</option>)}
         </select>
+      </Fld>
+      <Fld label="Temporada">
+        <input style={inp} value={f.temporada||""} onChange={set("temporada")} placeholder="2026 o 2025-26"/>
       </Fld>
       <Fld label="Equipo local">
         <select style={inp} value={f.id_equipo_local} onChange={set("id_equipo_local")}>
@@ -795,7 +798,7 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
   const scrollRef=useRef(null);
 
   const sorted=useMemo(()=>[...partidos].sort((a,b)=>new Date(b.fecha_hora)-new Date(a.fecha_hora)),[partidos]);
-  const byLiga=useMemo(()=>{const m={};sorted.forEach(p=>{const k=p.id_liga||"sin_liga";if(!m[k])m[k]=[];m[k].push(p);});return m;},[sorted]);
+  const byLiga=useMemo(()=>{const m={};sorted.forEach(p=>{const k=`${p.id_liga||"sin_liga"}|${p.temporada||""}`;if(!m[k])m[k]=[];m[k].push(p);});return m;},[sorted]);
 
   // Determinar el id del partido al que hay que hacer scroll:
   // primero un "en_juego", si no hay ninguno el primer "proximo"
@@ -815,7 +818,7 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
   const save=async f=>{
     setSaving(true);
     try{
-      const payload={id_liga:f.id_liga||null,id_equipo_local:f.id_equipo_local||null,id_equipo_visitante:f.id_equipo_visitante||null,fecha_hora:f.fecha_hora,link:f.link||null,url_stats:f.url_stats||null,notas:f.notas||null,resultado_local:f.resultado_local!=null&&f.resultado_local!==""?Number(f.resultado_local):null,resultado_visitante:f.resultado_visitante!=null&&f.resultado_visitante!==""?Number(f.resultado_visitante):null};
+      const payload={id_liga:f.id_liga||null,temporada:f.temporada||null,id_equipo_local:f.id_equipo_local||null,id_equipo_visitante:f.id_equipo_visitante||null,fecha_hora:f.fecha_hora,link:f.link||null,url_stats:f.url_stats||null,notas:f.notas||null,resultado_local:f.resultado_local!=null&&f.resultado_local!==""?Number(f.resultado_local):null,resultado_visitante:f.resultado_visitante!=null&&f.resultado_visitante!==""?Number(f.resultado_visitante):null};
       if(f.id){
         const{error}=await supabase.from("partidos").update(payload).eq("id",f.id);
         if(error)throw error;
@@ -839,7 +842,8 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
   const fmtDt=iso=>{if(!iso)return"";const d=new Date(iso);return d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})+" · "+d.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});};
 
   if(clasiLigaId){
-    return <ClasificacionGrupos partidos={partidos} equipos={equipos} ligas={ligas} ligaId={clasiLigaId} onBack={()=>setClasiLigaId(null)} onGoToTeam={onGoToTeam}/>;
+    const [cLiga,cTemporada]=clasiLigaId.split("|");
+    return <ClasificacionGrupos partidos={partidos} equipos={equipos} ligas={ligas} ligaId={cLiga} temporada={cTemporada} onBack={()=>setClasiLigaId(null)} onGoToTeam={onGoToTeam}/>;
   }
 
   if(ficha){
@@ -872,7 +876,8 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
           {isAdmin&&<div style={{fontSize:"13px",marginTop:"6px"}}>Pulsa "+ Partido" para añadir el primero</div>}
         </div>
       ):(<>
-        {Object.entries(byLiga).map(([ligaId,ps])=>{
+        {Object.entries(byLiga).map(([grupoKey,ps])=>{
+          const [ligaId,temporada]=grupoKey.split("|");
           const hoy=new Date().toDateString();
           const esHoy=p=>new Date(p.fecha_hora).toDateString()===hoy;
           const partHoy=ps.filter(p=>esHoy(p)).sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
@@ -880,7 +885,7 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
           const proximos=ps.filter(p=>(getPartidoEstado(p)==="proximo"||getPartidoEstado(p)==="normal")&&!esHoy(p)).sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
           const hayEnJuego=ps.some(p=>getPartidoEstado(p)==="en_juego");
           const hayHoy=partHoy.length>0;
-          const expanded=expandedLigas[ligaId]??false;
+          const expanded=expandedLigas[grupoKey]??false;
 
           const TarjetaPartido=({p})=>{
             const local=equipoMap[p.id_equipo_local];
@@ -930,15 +935,15 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
           };
 
           return(
-            <div key={ligaId} style={{marginBottom:"12px",background:"#fff",borderRadius:"16px",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
+            <div key={grupoKey} style={{marginBottom:"12px",background:"#fff",borderRadius:"16px",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
               {/* Cabecera de la liga: clicable para expandir/contraer */}
-              <div onClick={()=>setExpandedLigas(prev=>({...prev,[ligaId]:!expanded}))}
+              <div onClick={()=>setExpandedLigas(prev=>({...prev,[grupoKey]:!expanded}))}
                 style={{display:"flex",alignItems:"center",gap:"10px",padding:"14px 16px",cursor:"pointer",userSelect:"none",background:expanded?"#faf5ff":"#fff"}}>
                 {ligaMap[ligaId]?.logo&&<img src={ligaMap[ligaId].logo} alt="" style={{width:24,height:24,objectFit:"contain",flexShrink:0}}/>}
-                <span style={{fontWeight:700,fontSize:"14px",color:"#9333ea",flex:1}}>{ligaMap[ligaId]?.nombre||"Sin liga"}</span>
+                <span style={{fontWeight:700,fontSize:"14px",color:"#9333ea",flex:1}}>{ligaMap[ligaId]?.nombre||"Sin liga"}{temporada?` - ${temporada}`:""}</span>
                 {hayEnJuego&&<span style={{width:10,height:10,borderRadius:"50%",background:"#ef4444",flexShrink:0,boxShadow:"0 0 0 3px rgba(239,68,68,0.2)",display:"inline-block"}}/>}
                 {ps.some(p=>p.resultado_local!=null&&p.notas&&/^Group [A-Z]/i.test(p.notas))&&(
-                  <button onClick={e=>{e.stopPropagation();setClasiLigaId(ligaId);}}
+                  <button onClick={e=>{e.stopPropagation();setClasiLigaId(grupoKey);}}
                     style={{background:"#f5f3ff",color:"#7c3aed",border:"1.5px solid #ddd6fe",borderRadius:"20px",padding:"3px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer",flexShrink:0,marginRight:"4px"}}>
                     📊
                   </button>
@@ -1069,9 +1074,9 @@ function calcClasificacion(partidos, equipoMap){
     .map(([nombre,ps])=>({nombre,equipos:calcGrupo(ps)}));
 }
 
-function ClasificacionGrupos({partidos,equipos,ligas,ligaId,onBack,onGoToTeam}){
+function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,onBack,onGoToTeam}){
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
-  const psLiga=useMemo(()=>partidos.filter(p=>p.id_liga===ligaId),[partidos,ligaId]);
+  const psLiga=useMemo(()=>partidos.filter(p=>p.id_liga===ligaId&&(p.temporada||"")===(temporada||"")),[partidos,ligaId,temporada]);
   const grupos=useMemo(()=>calcClasificacion(psLiga,equipoMap),[psLiga,equipoMap]);
 
   if(!grupos.length)return(
