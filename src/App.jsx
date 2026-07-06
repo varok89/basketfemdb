@@ -1659,12 +1659,49 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     });
   };
 
+  // Nacionalidades: valores sin bandera, variantes que resuelven al mismo país
+  // y jugadoras con nacionalidad2 igual a nacionalidad.
+  var nacInfo=useMemo(function(){
+    var counts={};
+    players.forEach(function(p){
+      [p.nacionalidad,p.nacionalidad2].forEach(function(v){
+        if(!v||!String(v).trim())return;
+        var key=String(v).trim();
+        if(!counts[key])counts[key]={count:0,players:[]};
+        counts[key].count++;
+        if(counts[key].players.length<6)counts[key].players.push(p);
+      });
+    });
+    var sinBandera=[],porCodigo={};
+    Object.keys(counts).forEach(function(v){
+      var code=countryCode(v);
+      var normV=v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
+      if(code){
+        if(!porCodigo[code])porCodigo[code]=[];
+        porCodigo[code].push({valor:v,count:counts[v].count});
+      }else if(!NO_COUNTRY_FLAGS[normV]){
+        sinBandera.push({valor:v,count:counts[v].count,players:counts[v].players});
+      }
+    });
+    var variantes=Object.keys(porCodigo).filter(function(c){return porCodigo[c].length>1;}).map(function(c){
+      return {code:c,variantes:porCodigo[c].sort(function(a,b){return b.count-a.count;})};
+    });
+    var nacDup=players.filter(function(p){
+      if(!p.nacionalidad||!p.nacionalidad2)return false;
+      var c1=countryCode(p.nacionalidad),c2=countryCode(p.nacionalidad2);
+      return (c1&&c1===c2)||String(p.nacionalidad).trim().toLowerCase()===String(p.nacionalidad2).trim().toLowerCase();
+    });
+    sinBandera.sort(function(a,b){return b.count-a.count;});
+    return {sinBandera:sinBandera,variantes:variantes,nacDup:nacDup};
+  },[players]);
+
   var CAL_TABS=[
     {key:"incompletas",label:"Fichas incompletas",count:incompletasTotal},
     {key:"duplicadas",label:"Temporadas duplicadas",count:(duplicadas||[]).length},
     {key:"duplicados_nombre",label:"Posibles duplicados",count:totalNameDupes},
     {key:"huecos",label:"Huecos de IDs",count:huecos?Object.values(huecos).reduce(function(a,v){return a+(v?v.total:0);},0):0},
     {key:"escudos_rotos",label:"Escudos rotos",count:brokenInfo.broken.length},
+    {key:"nacionalidades",label:"Nacionalidades",count:nacInfo.sinBandera.length+nacInfo.variantes.length+nacInfo.nacDup.length},
   ];
 
   return(
@@ -1922,6 +1959,72 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               )}
             </div>
           )}
+          {tab==="nacionalidades"&&(
+            <div>
+              {nacInfo.sinBandera.length===0&&nacInfo.variantes.length===0&&nacInfo.nacDup.length===0?(
+                <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><div style={{fontSize:"36px"}}>✅</div><p>Todas las nacionalidades tienen bandera y no hay duplicados</p></div>
+              ):(
+                <div style={{display:"flex",flexDirection:"column",gap:"18px"}}>
+                  <div>
+                    <h3 style={{fontWeight:800,fontSize:"13px",color:"#1e293b",margin:"0 0 8px"}}>🏳️ Países sin bandera ({nacInfo.sinBandera.length})</h3>
+                    {nacInfo.sinBandera.length===0?<p style={{color:"#94a3b8",fontSize:"12px",margin:0}}>Ninguno.</p>:(
+                      <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+                        {nacInfo.sinBandera.map(function(item){return(
+                          <div key={item.valor} style={{padding:"10px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0"}}>
+                            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"10px"}}>
+                              <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>"{item.valor}"</span>
+                              <span style={{background:"#fee2e2",color:"#ef4444",borderRadius:"8px",padding:"2px 8px",fontSize:"10px",fontWeight:700,flexShrink:0}}>{item.count} jugadora{item.count!==1?"s":""}</span>
+                            </div>
+                            <div style={{display:"flex",flexWrap:"wrap",gap:"6px",marginTop:"6px"}}>
+                              {item.players.map(function(p){return(
+                                <button key={p.id_jugadora} onClick={function(){onGoToPlayer&&onGoToPlayer(p.id_jugadora);onClose();}}
+                                  style={{background:"#fff",color:"#9333ea",border:"1px solid #e9d5ff",borderRadius:"8px",padding:"3px 8px",fontSize:"11px",fontWeight:600,cursor:"pointer"}}>{p.nombre}</button>
+                              );})}
+                              {item.count>item.players.length&&<span style={{fontSize:"11px",color:"#94a3b8",alignSelf:"center"}}>+{item.count-item.players.length} más</span>}
+                            </div>
+                          </div>
+                        );})}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h3 style={{fontWeight:800,fontSize:"13px",color:"#1e293b",margin:"0 0 8px"}}>🔀 Variantes del mismo país ({nacInfo.variantes.length})</h3>
+                    <p style={{color:"#94a3b8",fontSize:"11px",margin:"0 0 8px"}}>Distintas grafías en la base de datos que resuelven a la misma bandera. Ojo: algunas son intencionadas (p. ej. "Islas Vírgenes de America").</p>
+                    {nacInfo.variantes.length===0?<p style={{color:"#94a3b8",fontSize:"12px",margin:0}}>Ninguna.</p>:(
+                      <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+                        {nacInfo.variantes.map(function(item){return(
+                          <div key={item.code} style={{display:"flex",alignItems:"center",gap:"10px",padding:"10px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0"}}>
+                            <span style={{fontSize:"18px",flexShrink:0}}>{flagEmoji(item.code)}</span>
+                            <div style={{fontSize:"13px",color:"#1e293b",minWidth:0}}>
+                              {item.variantes.map(function(v,i){return(
+                                <span key={v.valor}>{i>0&&<span style={{color:"#cbd5e1"}}> · </span>}<b>"{v.valor}"</b> <span style={{color:"#94a3b8",fontSize:"11px"}}>({v.count})</span></span>
+                              );})}
+                            </div>
+                          </div>
+                        );})}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h3 style={{fontWeight:800,fontSize:"13px",color:"#1e293b",margin:"0 0 8px"}}>👯 Jugadoras con nacionalidad repetida ({nacInfo.nacDup.length})</h3>
+                    {nacInfo.nacDup.length===0?<p style={{color:"#94a3b8",fontSize:"12px",margin:0}}>Ninguna.</p>:(
+                      <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+                        {nacInfo.nacDup.map(function(p){return(
+                          <div key={p.id_jugadora} onClick={function(){onGoToPlayer&&onGoToPlayer(p.id_jugadora);onClose();}}
+                            style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0",cursor:"pointer",gap:"10px"}}
+                            onMouseEnter={function(e){e.currentTarget.style.background="#fff7ed";}}
+                            onMouseLeave={function(e){e.currentTarget.style.background="#f8fafc";}}>
+                            <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</span>
+                            <span style={{fontSize:"11px",color:"#94a3b8",flexShrink:0}}>"{p.nacionalidad}" + "{p.nacionalidad2}"</span>
+                          </div>
+                        );})}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
       {dupDelTarget&&(
@@ -2118,7 +2221,23 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
       const prev=(s.player.seasons||[]).filter(ps=>ps.temporada!==currentSeason&&!esSeleccion(ps.id_equipo));
       if(!prev.length)return false;
       const prevSorted=[...prev].sort((a,b)=>b.temporada.localeCompare(a.temporada));
-      return prevSorted[0].id_equipo!==s.id_equipo;
+      // La temporada previa más reciente puede ser una competición de año único
+      // ("2026", p.ej. WNBA) que se solapa con temporadas de club ("2025-26"), y una
+      // jugadora puede tener varias filas en la misma temporada (liga + copas
+      // duplicadas). Por eso no basta con mirar prevSorted[0]: se considera "equipo
+      // anterior" a cualquier equipo de la temporada previa más reciente o de las que
+      // se solapan con ella. Así, seguir en el mismo club no cuenta como fichaje.
+      const lastTemp=prevSorted[0].temporada;
+      const y=parseInt(lastTemp.slice(0,4));
+      const solapa=t=>{
+        if(t===lastTemp)return true;
+        const ty=parseInt((t||"").slice(0,4));
+        const single=(t||"").trim().length===4,lastSingle=lastTemp.trim().length===4;
+        if(lastSingle&&!single)return ty===y-1||ty===y; // "2026" ~ "2025-26" y "2026-27"
+        if(!lastSingle&&single)return ty===y||ty===y+1; // "2025-26" ~ "2025" y "2026"
+        return false;
+      };
+      return !prev.some(ps=>solapa(ps.temporada)&&ps.id_equipo===s.id_equipo);
     });
   },[players,equipoMap]);
   const ligasEnFichajes=useMemo(()=>{
