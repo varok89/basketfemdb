@@ -778,6 +778,7 @@ if(typeof document!=="undefined"&&!document.getElementById("partido-pulse")){
 }
 
 function getPartidoEstado(p){
+  if(p.es_live)return"en_juego"; // dato en vivo del automatismo FIBA (autoritativo)
   if(p.resultado_local!=null&&p.resultado_visitante!=null)return"terminado";
   const now=new Date();
   const fh=new Date(p.fecha_hora);
@@ -797,6 +798,18 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap=useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
   const scrollRef=useRef(null);
+
+  // Refresco automático de marcadores en directo: cada 60s mientras haya partidos en juego.
+  // Solo re-consulta la tabla partidos (nunca loadAll) y parchea el estado local.
+  useEffect(()=>{
+    const hayLive=partidos.some(p=>p.es_live||getPartidoEstado(p)==="en_juego");
+    if(!hayLive)return;
+    const t=setInterval(async()=>{
+      const{data,error}=await supabase.from("partidos").select("*");
+      if(!error&&data)setPartidos(data);
+    },60000);
+    return()=>clearInterval(t);
+  },[partidos,setPartidos]);
 
   const sorted=useMemo(()=>[...partidos].sort((a,b)=>new Date(b.fecha_hora)-new Date(a.fecha_hora)),[partidos]);
   const byLiga=useMemo(()=>{const m={};sorted.forEach(p=>{const k=`${p.id_liga||"sin_liga"}|${p.temporada||""}`;if(!m[k])m[k]=[];m[k].push(p);});return m;},[sorted]);
@@ -913,7 +926,7 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
                   </div>
                   <div style={{flexShrink:0,textAlign:"center",minWidth:"52px"}}>
                     {tieneResultado
-                      ?<span style={{fontWeight:800,fontSize:"16px",color:"#1e293b"}}>{p.resultado_local}–{p.resultado_visitante}</span>
+                      ?<span style={{fontWeight:800,fontSize:"16px",color:estado==="en_juego"?"#ef4444":"#1e293b"}}>{p.resultado_local}–{p.resultado_visitante}</span>
                       :<span style={{fontWeight:800,fontSize:"13px",color:estado==="en_juego"?"#ef4444":"#9333ea"}}>vs</span>}
                   </div>
                   <div onClick={()=>onGoToTeam&&onGoToTeam(p.id_equipo_visitante)}
@@ -943,7 +956,7 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
                 {ligaMap[ligaId]?.logo&&<img src={ligaMap[ligaId].logo} alt="" style={{width:24,height:24,objectFit:"contain",flexShrink:0}}/>}
                 <span style={{fontWeight:700,fontSize:"14px",color:"#9333ea",flex:1}}>{ligaMap[ligaId]?.nombre||"Sin liga"}{temporada?` - ${temporada}`:""}</span>
                 {hayEnJuego&&<span style={{width:10,height:10,borderRadius:"50%",background:"#ef4444",flexShrink:0,boxShadow:"0 0 0 3px rgba(239,68,68,0.2)",display:"inline-block"}}/>}
-                {ps.some(p=>p.resultado_local!=null&&p.notas&&/^Group [A-Z]/i.test(p.notas))&&(
+                {ps.some(p=>!p.es_live&&p.resultado_local!=null&&p.notas&&/^Group [A-Z]/i.test(p.notas))&&(
                   <button onClick={e=>{e.stopPropagation();setClasiLigaId(grupoKey);}}
                     style={{background:"#f5f3ff",color:"#7c3aed",border:"1.5px solid #ddd6fe",borderRadius:"20px",padding:"3px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer",flexShrink:0,marginRight:"4px"}}>
                     📊
@@ -1013,6 +1026,7 @@ function calcClasificacion(partidos, equipoMap){
   // Agrupar partidos con resultado por grupo (notas que empiezan por "Group ")
   const grupos={};
   partidos.forEach(p=>{
+    if(p.es_live)return; // marcador parcial en directo: no cuenta para la clasificación
     if(p.resultado_local==null||p.resultado_visitante==null)return;
     const m=p.notas&&p.notas.match(/^(Group [A-Z])/i);
     if(!m)return;
