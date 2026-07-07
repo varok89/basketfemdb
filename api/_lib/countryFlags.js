@@ -66,6 +66,7 @@ const COUNTRY_CODES = {
   "dominican republic":"do","republica dominicana":"do","república dominicana":"do",
   "haiti":"ht","haití":"ht",
   "jamaica":"jm",
+  "santa lucia":"lc","saint lucia":"lc",
   "trinidad and tobago":"tt","trinidad y tobago":"tt",
   "bahamas":"bs",
   "barbados":"bb",
