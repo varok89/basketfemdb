@@ -1134,7 +1134,14 @@ function FaseFinal({psLiga,equipoMap}){
     psLiga.forEach(p=>{const mt=(p.notas||"").match(/#(\d+)/);if(mt)m[mt[1]]=p;});
     return m;
   },[psLiga]);
-  const octavos=useMemo(()=>psLiga.filter(p=>/^octavos/i.test(p.notas||"")).sort((a,b)=>a.id-b.id),[psLiga]);
+  const octavos=useMemo(()=>{
+    // Orden FIBA del cuadro: QF#37 = W25 v W30, QF#39 = W27 v W32,
+    // QF#38 = W26 v W29, QF#40 = W28 v W31 (ver bracket oficial).
+    const orden=[25,30,27,32,26,29,28,31].map(n=>byNum[String(n)]).filter(Boolean);
+    if(orden.length)return orden;
+    // Fallback para torneos sin numerar: por orden de inserción.
+    return psLiga.filter(p=>/^octavos/i.test(p.notas||"")).sort((a,b)=>a.id-b.id);
+  },[psLiga,byNum]);
   const g=n=>byNum[String(n)];
   const box=(p,caption)=><KOBox key={(p&&p.id)||caption} p={p} equipoMap={equipoMap} caption={caption}/>;
 
@@ -1144,7 +1151,7 @@ function FaseFinal({psLiga,equipoMap}){
         <BracketCard title="Cuadro final">
           <div style={{display:"flex",gap:"14px",alignItems:"stretch",minWidth:"380px"}}>
             {octavos.length>0&&<BracketCol label="Octavos">{octavos.map(p=>box(p))}</BracketCol>}
-            <BracketCol label="Cuartos">{[37,38,39,40].map(n=>box(g(n)))}</BracketCol>
+            <BracketCol label="Cuartos">{[37,39,38,40].map(n=>box(g(n)))}</BracketCol>
             <BracketCol label="Semifinales">{[47,48].map(n=>box(g(n)))}</BracketCol>
             <BracketCol label="Final">{box(g(56),"🏆 Final")}{box(g(55),"🥉 3er puesto")}</BracketCol>
           </div>
