@@ -1142,10 +1142,14 @@ function FaseFinal({psLiga,equipoMap,onOpenPartido}){
   const octavos=useMemo(()=>{
     // Orden FIBA del cuadro: QF#37 = W25 v W30, QF#39 = W27 v W32,
     // QF#38 = W26 v W29, QF#40 = W28 v W31 (ver bracket oficial).
-    const orden=[25,30,27,32,26,29,28,31].map(n=>byNum[String(n)]).filter(Boolean);
-    if(orden.length)return orden;
-    // Fallback para torneos sin numerar: por orden de inserción.
-    return psLiga.filter(p=>/^octavos/i.test(p.notas||"")).sort((a,b)=>a.id-b.id);
+    const slots=[25,30,27,32,26,29,28,31].map(n=>byNum[String(n)]||null);
+    // Las filas de octavos sin número (p.ej. si una edición web sobrescribe las notas)
+    // rellenan los huecos del orden en vez de desaparecer del cuadro.
+    const sinNumero=psLiga.filter(p=>/^octavos/i.test(p.notas||"")&&!/#\d+/.test(p.notas||"")).sort((a,b)=>a.id-b.id);
+    let si=0;
+    const res=slots.map(s=>s||(si<sinNumero.length?sinNumero[si++]:null)).filter(Boolean);
+    while(si<sinNumero.length)res.push(sinNumero[si++]);
+    return res;
   },[psLiga,byNum]);
   const g=n=>byNum[String(n)];
   const box=(p,caption)=><KOBox key={(p&&p.id)||caption} p={p} equipoMap={equipoMap} caption={caption} onOpen={onOpenPartido}/>;
