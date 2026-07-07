@@ -778,7 +778,6 @@ if(typeof document!=="undefined"&&!document.getElementById("partido-pulse")){
 }
 
 function getPartidoEstado(p){
-  if(p.es_live)return"en_juego"; // dato en vivo del automatismo FIBA (autoritativo)
   if(p.resultado_local!=null&&p.resultado_visitante!=null)return"terminado";
   const now=new Date();
   const fh=new Date(p.fecha_hora);
@@ -795,21 +794,10 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
   const [saving,setSaving]=useState(false);
   const [expandedLigas,setExpandedLigas]=useState({});
   const [clasiLigaId,setClasiLigaId]=useState(null);
+  const [clasiVista,setClasiVista]=useState("grupos");
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap=useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
   const scrollRef=useRef(null);
-
-  // Refresco automático de marcadores en directo: cada 60s mientras haya partidos en juego.
-  // Solo re-consulta la tabla partidos (nunca loadAll) y parchea el estado local.
-  useEffect(()=>{
-    const hayLive=partidos.some(p=>p.es_live||getPartidoEstado(p)==="en_juego");
-    if(!hayLive)return;
-    const t=setInterval(async()=>{
-      const{data,error}=await supabase.from("partidos").select("*");
-      if(!error&&data)setPartidos(data);
-    },60000);
-    return()=>clearInterval(t);
-  },[partidos,setPartidos]);
 
   const sorted=useMemo(()=>[...partidos].sort((a,b)=>new Date(b.fecha_hora)-new Date(a.fecha_hora)),[partidos]);
   const byLiga=useMemo(()=>{const m={};sorted.forEach(p=>{const k=`${p.id_liga||"sin_liga"}|${p.temporada||""}`;if(!m[k])m[k]=[];m[k].push(p);});return m;},[sorted]);
@@ -857,7 +845,7 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
 
   if(clasiLigaId){
     const [cLiga,cTemporada]=clasiLigaId.split("|");
-    return <ClasificacionGrupos partidos={partidos} equipos={equipos} ligas={ligas} ligaId={cLiga} temporada={cTemporada} onBack={()=>setClasiLigaId(null)} onGoToTeam={onGoToTeam}/>;
+    return <ClasificacionGrupos partidos={partidos} equipos={equipos} ligas={ligas} ligaId={cLiga} temporada={cTemporada} vistaInicial={clasiVista} onBack={()=>setClasiLigaId(null)} onGoToTeam={onGoToTeam}/>;
   }
 
   if(ficha){
@@ -913,7 +901,7 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
               <div ref={esPrimeroDestacado?scrollRef:null}
                 style={{background:"#fff",borderRadius:"14px",padding:"14px",boxShadow:estado==="en_juego"?"0 2px 12px rgba(239,68,68,0.15)":"0 1px 4px rgba(0,0,0,0.06)",border:borderStyle,...animStyle}}>
                 <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px",flexWrap:"wrap"}}>
-                  {estado==="en_juego"&&<span style={{background:"#ef4444",color:"#fff",borderRadius:"20px",padding:"2px 10px",fontSize:"11px",fontWeight:800,letterSpacing:"0.5px"}}>🔴 EN JUEGO{p.es_live&&p.periodo?` · ${p.periodo<=4?`${p.periodo}º C`:"PR"}`:""}</span>}
+                  {estado==="en_juego"&&<span style={{background:"#ef4444",color:"#fff",borderRadius:"20px",padding:"2px 10px",fontSize:"11px",fontWeight:800,letterSpacing:"0.5px"}}>🔴 EN JUEGO</span>}
                   {estado==="proximo"&&<span style={{background:"#f59e0b",color:"#fff",borderRadius:"20px",padding:"2px 10px",fontSize:"11px",fontWeight:700}}>🟡 HOY</span>}
                   <span style={{fontSize:"11px",color:"#94a3b8",fontWeight:600}}>{fmtDt(p.fecha_hora)}</span>
                   {p.notas&&<span style={{fontSize:"11px",color:"#64748b"}}>· {p.notas}</span>}
@@ -926,7 +914,7 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
                   </div>
                   <div style={{flexShrink:0,textAlign:"center",minWidth:"52px"}}>
                     {tieneResultado
-                      ?<span style={{fontWeight:800,fontSize:"16px",color:estado==="en_juego"?"#ef4444":"#1e293b"}}>{p.resultado_local}–{p.resultado_visitante}</span>
+                      ?<span style={{fontWeight:800,fontSize:"16px",color:"#1e293b"}}>{p.resultado_local}–{p.resultado_visitante}</span>
                       :<span style={{fontWeight:800,fontSize:"13px",color:estado==="en_juego"?"#ef4444":"#9333ea"}}>vs</span>}
                   </div>
                   <div onClick={()=>onGoToTeam&&onGoToTeam(p.id_equipo_visitante)}
@@ -956,10 +944,16 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
                 {ligaMap[ligaId]?.logo&&<img src={ligaMap[ligaId].logo} alt="" style={{width:24,height:24,objectFit:"contain",flexShrink:0}}/>}
                 <span style={{fontWeight:700,fontSize:"14px",color:"#9333ea",flex:1}}>{ligaMap[ligaId]?.nombre||"Sin liga"}{temporada?` - ${temporada}`:""}</span>
                 {hayEnJuego&&<span style={{width:10,height:10,borderRadius:"50%",background:"#ef4444",flexShrink:0,boxShadow:"0 0 0 3px rgba(239,68,68,0.2)",display:"inline-block"}}/>}
-                {ps.some(p=>!p.es_live&&p.resultado_local!=null&&p.notas&&/^Group [A-Z]/i.test(p.notas))&&(
-                  <button onClick={e=>{e.stopPropagation();setClasiLigaId(grupoKey);}}
+                {ps.some(p=>p.resultado_local!=null&&p.notas&&/^Group [A-Z]/i.test(p.notas))&&(
+                  <button onClick={e=>{e.stopPropagation();setClasiVista("grupos");setClasiLigaId(grupoKey);}}
                     style={{background:"#f5f3ff",color:"#7c3aed",border:"1.5px solid #ddd6fe",borderRadius:"20px",padding:"3px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer",flexShrink:0,marginRight:"4px"}}>
                     📊
+                  </button>
+                )}
+                {ps.some(p=>/#(49|5[0-6])\b/.test(p.notas||""))&&(
+                  <button onClick={e=>{e.stopPropagation();setClasiVista("standing");setClasiLigaId(grupoKey);}}
+                    style={{background:"#fffbeb",color:"#b45309",border:"1.5px solid #fde68a",borderRadius:"20px",padding:"3px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer",flexShrink:0,marginRight:"4px"}}>
+                    🏅
                   </button>
                 )}
                 <span style={{fontSize:"18px",color:"#94a3b8",transform:expanded?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>›</span>
@@ -1026,7 +1020,6 @@ function calcClasificacion(partidos, equipoMap){
   // Agrupar partidos con resultado por grupo (notas que empiezan por "Group ")
   const grupos={};
   partidos.forEach(p=>{
-    if(p.es_live)return; // marcador parcial en directo: no cuenta para la clasificación
     if(p.resultado_local==null||p.resultado_visitante==null)return;
     const m=p.notas&&p.notas.match(/^(Group [A-Z])/i);
     if(!m)return;
@@ -1089,12 +1082,164 @@ function calcClasificacion(partidos, equipoMap){
     .map(([nombre,ps])=>({nombre,equipos:calcGrupo(ps)}));
 }
 
-function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,onBack,onGoToTeam}){
+/* ── Fase final (bracket compacto solo con banderas) ─────── */
+function KOBox({p,equipoMap,caption}){
+  if(!p)return null;
+  const played=p.resultado_local!=null&&p.resultado_visitante!=null;
+  const winL=played&&Number(p.resultado_local)>Number(p.resultado_visitante);
+  const winV=played&&Number(p.resultado_visitante)>Number(p.resultado_local);
+  const row=(idEq,res,win)=>(
+    <div style={{display:"flex",alignItems:"center",gap:"5px",padding:"3px 6px",background:win?"#faf5ff":"transparent"}}>
+      {idEq&&equipoMap[idEq]
+        ?<TeamBadge team={equipoMap[idEq]} size={18}/>
+        :<div style={{width:18,height:18,borderRadius:"5px",border:"1.5px dashed #cbd5e1",flexShrink:0}}/>}
+      <span style={{marginLeft:"auto",fontSize:"11px",fontWeight:win?800:600,color:win?"#7c3aed":"#64748b",fontVariantNumeric:"tabular-nums"}}>{played?res:""}</span>
+    </div>
+  );
+  return(
+    <div style={{width:"84px",flexShrink:0}}>
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:"10px",overflow:"hidden"}}>
+        {row(p.id_equipo_local,p.resultado_local,winL)}
+        <div style={{height:"1px",background:"#f1f5f9"}}/>
+        {row(p.id_equipo_visitante,p.resultado_visitante,winV)}
+      </div>
+      {caption&&<div style={{fontSize:"9px",color:"#94a3b8",textAlign:"center",marginTop:"2px",fontWeight:700}}>{caption}</div>}
+    </div>
+  );
+}
+
+function BracketCol({label,children}){
+  return(
+    <div style={{display:"flex",flexDirection:"column",flexShrink:0}}>
+      <div style={{fontSize:"10px",fontWeight:800,color:"#94a3b8",textAlign:"center",textTransform:"uppercase",letterSpacing:"0.4px",marginBottom:"8px",whiteSpace:"nowrap"}}>{label}</div>
+      <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"space-around",gap:"8px"}}>{children}</div>
+    </div>
+  );
+}
+
+function BracketCard({title,children}){
+  return(
+    <div style={{background:"#fff",borderRadius:"16px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"16px",overflow:"hidden"}}>
+      <div style={{background:"#f5f3ff",padding:"10px 16px",borderBottom:"1px solid #e9d5ff"}}>
+        <span style={{fontWeight:800,fontSize:"14px",color:"#7c3aed"}}>{title}</span>
+      </div>
+      <div style={{padding:"14px",overflowX:"auto"}}>{children}</div>
+    </div>
+  );
+}
+
+function FaseFinal({psLiga,equipoMap}){
+  const byNum=useMemo(()=>{
+    const m={};
+    psLiga.forEach(p=>{const mt=(p.notas||"").match(/#(\d+)/);if(mt)m[mt[1]]=p;});
+    return m;
+  },[psLiga]);
+  const octavos=useMemo(()=>psLiga.filter(p=>/^octavos/i.test(p.notas||"")).sort((a,b)=>a.id-b.id),[psLiga]);
+  const g=n=>byNum[String(n)];
+  const box=(p,caption)=><KOBox key={(p&&p.id)||caption} p={p} equipoMap={equipoMap} caption={caption}/>;
+
+  return(
+    <div>
+      {(octavos.length>0||g(37)||g(56))&&(
+        <BracketCard title="Cuadro final">
+          <div style={{display:"flex",gap:"14px",alignItems:"stretch",minWidth:"380px"}}>
+            {octavos.length>0&&<BracketCol label="Octavos">{octavos.map(p=>box(p))}</BracketCol>}
+            <BracketCol label="Cuartos">{[37,38,39,40].map(n=>box(g(n)))}</BracketCol>
+            <BracketCol label="Semifinales">{[47,48].map(n=>box(g(n)))}</BracketCol>
+            <BracketCol label="Final">{box(g(56),"🏆 Final")}{box(g(55),"🥉 3er puesto")}</BracketCol>
+          </div>
+        </BracketCard>
+      )}
+      {(g(45)||g(46)||g(53)||g(54))&&(
+        <BracketCard title="Puestos 5º-8º">
+          <div style={{display:"flex",gap:"14px",alignItems:"stretch"}}>
+            <BracketCol label="Cruces">{[45,46].map(n=>box(g(n)))}</BracketCol>
+            <BracketCol label="Finales">{box(g(54),"5º-6º")}{box(g(53),"7º-8º")}</BracketCol>
+          </div>
+        </BracketCard>
+      )}
+      {(g(33)||g(34)||g(35)||g(36))&&(
+        <BracketCard title="Cruces 9º-16º">
+          <div style={{display:"flex",gap:"14px",alignItems:"stretch"}}>
+            <BracketCol label="Perdedores de octavos">{[33,34,35,36].map(n=>box(g(n)))}</BracketCol>
+          </div>
+        </BracketCard>
+      )}
+      {(g(43)||g(44)||g(51)||g(52))&&(
+        <BracketCard title="Puestos 9º-12º">
+          <div style={{display:"flex",gap:"14px",alignItems:"stretch"}}>
+            <BracketCol label="Cruces">{[43,44].map(n=>box(g(n)))}</BracketCol>
+            <BracketCol label="Finales">{box(g(52),"9º-10º")}{box(g(51),"11º-12º")}</BracketCol>
+          </div>
+        </BracketCard>
+      )}
+      {(g(41)||g(42)||g(49)||g(50))&&(
+        <BracketCard title="Puestos 13º-16º">
+          <div style={{display:"flex",gap:"14px",alignItems:"stretch"}}>
+            <BracketCol label="Cruces">{[41,42].map(n=>box(g(n)))}</BracketCol>
+            <BracketCol label="Finales">{box(g(50),"13º-14º")}{box(g(49),"15º-16º")}</BracketCol>
+          </div>
+        </BracketCard>
+      )}
+    </div>
+  );
+}
+
+function StandingFinal({psLiga,equipoMap,onGoToTeam}){
+  // Cada partido de clasificación decide dos puestos: el ganador el más alto, el perdedor el siguiente.
+  const posiciones=useMemo(()=>{
+    const byNum={};
+    psLiga.forEach(p=>{const m=(p.notas||"").match(/#(\d+)/);if(m)byNum[m[1]]=p;});
+    const decisores=[[56,1],[55,3],[54,5],[53,7],[52,9],[51,11],[50,13],[49,15]];
+    const pos={};
+    decisores.forEach(([num,puesto])=>{
+      const p=byNum[String(num)];
+      if(!p||p.resultado_local==null||p.resultado_visitante==null||!p.id_equipo_local||!p.id_equipo_visitante)return;
+      const localGana=Number(p.resultado_local)>Number(p.resultado_visitante);
+      pos[puesto]=localGana?p.id_equipo_local:p.id_equipo_visitante;
+      pos[puesto+1]=localGana?p.id_equipo_visitante:p.id_equipo_local;
+    });
+    return pos;
+  },[psLiga]);
+  const medalla=i=>i===1?"🥇":i===2?"🥈":i===3?"🥉":null;
+
+  return(
+    <div style={{background:"#fff",borderRadius:"16px",overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
+      {Array.from({length:16},(_,idx)=>{
+        const i=idx+1;
+        const team=posiciones[i]?equipoMap[posiciones[i]]:null;
+        const med=medalla(i);
+        return(
+          <div key={i} onClick={()=>team&&onGoToTeam&&onGoToTeam(team.id_equipo)}
+            style={{display:"flex",alignItems:"center",gap:"10px",padding:"9px 16px",borderTop:i>1?"1px solid #f1f5f9":"none",
+              background:i===1?"#fffbeb":i===2?"#f8fafc":i===3?"#fff7ed":"#fff",cursor:team&&onGoToTeam?"pointer":"default"}}>
+            <span style={{width:"28px",textAlign:"center",fontSize:med?"18px":"13px",fontWeight:800,color:"#94a3b8",flexShrink:0}}>{med||i}</span>
+            {team?(
+              <>
+                <TeamBadge team={team} size={26}/>
+                <span style={{fontWeight:i<=3?800:600,fontSize:"13px",color:"#1e293b"}}>{team.nombre}</span>
+              </>
+            ):(
+              <>
+                <div style={{width:26,height:26,borderRadius:"8px",border:"1.5px dashed #cbd5e1",flexShrink:0}}/>
+                <span style={{fontSize:"13px",color:"#cbd5e1"}}>—</span>
+              </>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInicial,onBack,onGoToTeam}){
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const psLiga=useMemo(()=>partidos.filter(p=>p.id_liga===ligaId&&(p.temporada||"")===(temporada||"")),[partidos,ligaId,temporada]);
   const grupos=useMemo(()=>calcClasificacion(psLiga,equipoMap),[psLiga,equipoMap]);
+  const hayKO=useMemo(()=>psLiga.some(p=>p.notas&&(/#\d+/.test(p.notas)||/^octavos/i.test(p.notas))),[psLiga]);
+  const [vista,setVista]=useState(vistaInicial||"grupos");
 
-  if(!grupos.length)return(
+  if(!grupos.length&&!hayKO)return(
     <div style={{maxWidth:"700px",margin:"0 auto",padding:"16px"}}>
       <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"15px",cursor:"pointer",padding:"0 0 16px"}}>← Volver</button>
       <p style={{color:"#94a3b8",textAlign:"center",paddingTop:"40px"}}>No hay partidos con resultado para calcular la clasificación.</p>
@@ -1104,8 +1249,20 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,onBack,onG
   return(
     <div style={{maxWidth:"700px",margin:"0 auto",padding:"16px",fontFamily:"system-ui,sans-serif"}}>
       <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"15px",cursor:"pointer",padding:"0 0 16px"}}>← Volver</button>
-      <h1 style={{fontWeight:800,fontSize:"20px",color:"#1e293b",margin:"0 0 20px"}}>🏆 Clasificación de grupos</h1>
-      {grupos.map(({nombre,equipos:eqs})=>(
+      <h1 style={{fontWeight:800,fontSize:"20px",color:"#1e293b",margin:"0 0 20px"}}>🏆 Clasificación</h1>
+      {hayKO&&(
+        <div style={{display:"flex",gap:"8px",marginBottom:"16px"}}>
+          {[["grupos","Grupos"],["final","Fase final"],["standing","🏅 Standing"]].map(([k,lbl])=>(
+            <button key={k} onClick={()=>setVista(k)}
+              style={{border:"none",borderRadius:"10px",padding:"8px 16px",fontSize:"13px",fontWeight:700,cursor:"pointer",
+                background:vista===k?"#9333ea":"#fff",color:vista===k?"#fff":"#64748b",boxShadow:vista===k?"none":"0 1px 4px rgba(0,0,0,0.06)"}}>{lbl}</button>
+          ))}
+        </div>
+      )}
+      {vista==="final"&&hayKO&&<FaseFinal psLiga={psLiga} equipoMap={equipoMap}/>}
+      {vista==="standing"&&hayKO&&<StandingFinal psLiga={psLiga} equipoMap={equipoMap} onGoToTeam={onGoToTeam}/>}
+      {vista==="grupos"&&!grupos.length&&<p style={{color:"#94a3b8",textAlign:"center",paddingTop:"40px"}}>No hay partidos con resultado para calcular la clasificación.</p>}
+      {vista==="grupos"&&grupos.map(({nombre,equipos:eqs})=>(
         <div key={nombre} style={{background:"#fff",borderRadius:"16px",overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"16px"}}>
           <div style={{background:"#f5f3ff",padding:"10px 16px",borderBottom:"1px solid #e9d5ff"}}>
             <span style={{fontWeight:800,fontSize:"14px",color:"#7c3aed"}}>{nombre}</span>
@@ -1153,9 +1310,9 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,onBack,onG
           </div>
         </div>
       ))}
-      <div style={{fontSize:"11px",color:"#94a3b8",textAlign:"center",marginTop:"8px"}}>
+      {vista==="grupos"&&grupos.length>0&&<div style={{fontSize:"11px",color:"#94a3b8",textAlign:"center",marginTop:"8px"}}>
         Criterios de desempate FIBA: head-to-head → diferencia directa → diferencia global → puntos anotados
-      </div>
+      </div>}
     </div>
   );
 }
