@@ -788,7 +788,7 @@ function getPartidoEstado(p){
   return"normal";
 }
 
-function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoToTeam,onGoToLeague,onGoToPlayer}){
+function PartidosView({partidos,equipos,ligas,players,mvps,isAdmin,setPartidos,onGoToTeam,onGoToLeague,onGoToPlayer}){
   const [modal,setModal]=useState(null);
   const [ficha,setFicha]=useState(null);
   const [saving,setSaving]=useState(false);
@@ -849,7 +849,7 @@ function PartidosView({partidos,equipos,ligas,players,isAdmin,setPartidos,onGoTo
 
   if(clasiLigaId){
     const [cLiga,cTemporada]=clasiLigaId.split("|");
-    return <ClasificacionGrupos partidos={partidos} equipos={equipos} ligas={ligas} ligaId={cLiga} temporada={cTemporada} vistaInicial={clasiVista} onBack={()=>setClasiLigaId(null)} onGoToTeam={onGoToTeam} onOpenPartido={p=>setFicha(p)} onVistaChange={setClasiVista}/>;
+    return <ClasificacionGrupos partidos={partidos} equipos={equipos} ligas={ligas} ligaId={cLiga} temporada={cTemporada} vistaInicial={clasiVista} onBack={()=>setClasiLigaId(null)} onGoToTeam={onGoToTeam} onOpenPartido={p=>setFicha(p)} onVistaChange={setClasiVista} mvps={mvps} players={players} onGoToPlayer={onGoToPlayer}/>;
   }
 
   if(modal){
@@ -1201,7 +1201,7 @@ function FaseFinal({psLiga,equipoMap,onOpenPartido}){
   );
 }
 
-function StandingFinal({psLiga,equipoMap,onGoToTeam}){
+function StandingFinal({psLiga,equipoMap,onGoToTeam,mvpPlayer,onGoToPlayer}){
   // Cada partido de clasificación decide dos puestos: el ganador el más alto, el perdedor el siguiente.
   const posiciones=useMemo(()=>{
     const byNum={};
@@ -1234,6 +1234,13 @@ function StandingFinal({psLiga,equipoMap,onGoToTeam}){
               <>
                 <TeamBadge team={team} size={26}/>
                 <span style={{fontWeight:i<=3?800:600,fontSize:"13px",color:"#1e293b"}}>{team.nombre}</span>
+                {i===1&&mvpPlayer&&(
+                  <div onClick={e=>{e.stopPropagation();onGoToPlayer&&onGoToPlayer(mvpPlayer.id_jugadora);}}
+                    style={{marginLeft:"auto",display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer",flexShrink:0}}>
+                    <Avatar photo={mvpPlayer.foto} name={mvpPlayer.nombre} size={34} fontSize={12}/>
+                    <span style={{fontSize:"9px",fontWeight:800,color:"#b45309",marginTop:"2px",letterSpacing:"0.5px"}}>MVP</span>
+                  </div>
+                )}
               </>
             ):(
               <>
@@ -1248,12 +1255,16 @@ function StandingFinal({psLiga,equipoMap,onGoToTeam}){
   );
 }
 
-function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInicial,onBack,onGoToTeam,onOpenPartido,onVistaChange}){
+function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInicial,onBack,onGoToTeam,onOpenPartido,onVistaChange,mvps,players,onGoToPlayer}){
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const psLiga=useMemo(()=>partidos.filter(p=>p.id_liga===ligaId&&(p.temporada||"")===(temporada||"")),[partidos,ligaId,temporada]);
   const grupos=useMemo(()=>calcClasificacion(psLiga,equipoMap),[psLiga,equipoMap]);
   const hayKO=useMemo(()=>psLiga.some(p=>p.notas&&(/#\d+/.test(p.notas)||/^octavos/i.test(p.notas))),[psLiga]);
   const [vista,setVista]=useState(vistaInicial||"grupos");
+  const mvpPlayer=useMemo(()=>{
+    const m=(mvps||[]).find(x=>x.id_liga===ligaId&&(x.temporada||"")===(temporada||""));
+    return m?(players||[]).find(p=>p.id_jugadora===m.id_jugadora)||null:null;
+  },[mvps,players,ligaId,temporada]);
 
   if(!grupos.length&&!hayKO)return(
     <div style={{maxWidth:"700px",margin:"0 auto",padding:"16px"}}>
@@ -1276,7 +1287,7 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
         </div>
       )}
       {vista==="final"&&hayKO&&<FaseFinal psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido}/>}
-      {vista==="standing"&&hayKO&&<StandingFinal psLiga={psLiga} equipoMap={equipoMap} onGoToTeam={onGoToTeam}/>}
+      {vista==="standing"&&hayKO&&<StandingFinal psLiga={psLiga} equipoMap={equipoMap} onGoToTeam={onGoToTeam} mvpPlayer={mvpPlayer} onGoToPlayer={onGoToPlayer}/>}
       {vista==="grupos"&&!grupos.length&&<p style={{color:"#94a3b8",textAlign:"center",paddingTop:"40px"}}>No hay partidos con resultado para calcular la clasificación.</p>}
       {vista==="grupos"&&grupos.map(({nombre,equipos:eqs})=>(
         <div key={nombre} style={{background:"#fff",borderRadius:"16px",overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"16px"}}>
@@ -4480,6 +4491,7 @@ export default function App(){
   const [tempCoach,setTempCoach] = useState([]);
   const [equiposNombres,setEquiposNombres] = useState([]);
   const [partidos,setPartidos]             = useState([]);
+  const [mvps,setMvps]                     = useState([]);
   const [loading,setLoading] = useState(true);
   const [error,setError]     = useState(null);
   const [isFirstLoad,setIsFirstLoad] = useState(true);
@@ -4560,7 +4572,7 @@ export default function App(){
   const loadAll = async()=>{
     setLoading(isFirstLoad);setError(null);
     try{
-      const [rJ,rE,rL,rT,rP,rC,rTC,rEN,rPar]=await Promise.all([
+      const [rJ,rE,rL,rT,rP,rC,rTC,rEN,rPar,rMvp]=await Promise.all([
         fetchAll("jugadoras",{order:"id_jugadora"}),
         fetchAll("equipos",{order:"id_equipo"}),
         fetchAll("ligas",{order:"id_liga"}),
@@ -4570,6 +4582,7 @@ export default function App(){
         fetchAll("temporadas_coach",{order:"id"}),
         fetchAll("equipos_nombres",{order:"id"}),
         fetchAll("partidos",{order:"fecha_hora"}),
+        fetchAll("mvps",{order:"id"}),
       ]);
       if(rJ.error)throw rJ.error;if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rT.error)throw rT.error;
       const sbp={};
@@ -4582,6 +4595,7 @@ export default function App(){
       setTempCoach(rTC.data||[]);
       setEquiposNombres(rEN?.data||[]);
       setPartidos(rPar?.data||[]);
+      setMvps(rMvp?.data||[]);
       setIsFirstLoad(false);
     }catch(e){setError(e.message||"Error cargando datos");}
     setLoading(false);
@@ -4709,7 +4723,7 @@ export default function App(){
         {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setEquipos={setEquipos} setEquiposNombres={setEquiposNombres} setPlayers={setPlayers} setPalmares={setPalmares}/>}
         {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setLigas={setLigas}/>}
         {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setCoaches={setCoaches} setTempCoach={setTempCoach} equiposNombres={equiposNombres}/>}
-        {tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id)=>goToTeam(id,null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})} onGoToPlayer={(id)=>goToPlayer(id,{tab:"partidos",label:"Ver partidos"})}/>}
+        {tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} mvps={mvps} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id)=>goToTeam(id,null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})} onGoToPlayer={(id)=>goToPlayer(id,{tab:"partidos",label:"Ver partidos"})}/>}
       </div>
     </div>
     </>);
