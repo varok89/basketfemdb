@@ -815,15 +815,19 @@ function PartidosView({partidos,equipos,ligas,players,mvps,openClasiKey,onClearC
   // ambas. Así el botón atrás del navegador (popstate -> applyUrlState -> partidosSub)
   // recorre ficha -> clasificación -> lista en orden, en vez de salirse de la pestaña.
   useEffect(()=>{
-    if(!partidosSub){setFicha(null);setClasiLigaId(null);return;}
-    if(partidosSub[0]==="partido"){
-      const p=partidos.find(x=>String(x.id)===String(partidosSub[1]));
-      if(p)setFicha(p);
-      return;
-    }
+    if(!partidosSub||partidosSub.length===0){setFicha(null);setClasiLigaId(null);return;}
     if(partidosSub[0]==="clasificacion"){
       setFicha(null);
       setClasiLigaId(`${partidosSub[1]}|${decodeURIComponent(partidosSub[2]||"")}`);
+    }
+  },[partidosSub]);
+  // Efecto aparte con dependencia de `partidos`: además de resolver la ficha en un
+  // deep-link (cuando los datos aún no habían cargado), refresca el objeto de la ficha
+  // con el marcador en vivo sin que el auto-refresh cierre la clasificación.
+  useEffect(()=>{
+    if(partidosSub&&partidosSub[0]==="partido"){
+      const p=partidos.find(x=>String(x.id)===String(partidosSub[1]));
+      if(p)setFicha(p);
     }
   },[partidosSub,partidos]);
 
@@ -4677,7 +4681,9 @@ export default function App(){
     setOpenPlayerId(parts.length===2&&parts[0]==="jugadoras"?parts[1]:null);
     setOpenTeamId(parts.length===2&&parts[0]==="equipos"?parts[1]:null);
     setOpenCoachId(parts.length===2&&parts[0]==="coaches"?parts[1]:null);
-    setPartidosSub(parts[0]==="partidos"&&parts.length>1?parts.slice(1):null);
+    // Para /partidos se guarda [] (array nuevo en cada llamada): así un popstate que
+    // vuelve a /partidos siempre cambia la referencia y dispara la resincronización.
+    setPartidosSub(parts[0]==="partidos"?parts.slice(1):null);
     if(parts[0]==="jugadoras"||parts[0]==="equipos"||parts[0]==="coaches"||parts[0]==="ligas"||parts[0]==="partidos")setTab(parts[0]==="coaches"?"cuerpo_tecnico":parts[0]);
     else if(parts.length===0)setTab("home");
   };
