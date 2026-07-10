@@ -662,7 +662,7 @@ function PartidoForm({initial,equipos,ligas,onSave,onCancel,saving}){
 }
 
 /* ── PartidoFichaView ────────────────────────────────────── */
-function PartidoFichaView({partido,equipos,ligas,players,onBack,onGoToTeam,onGoToLeague,onGoToPlayer}){
+function PartidoFichaView({partido,equipos,ligas,players,isAdmin,onToggleConvocatoria,onBack,onGoToTeam,onGoToLeague,onGoToPlayer}){
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap=useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
   const local=equipoMap[partido.id_equipo_local];
@@ -693,31 +693,56 @@ function PartidoFichaView({partido,equipos,ligas,players,onBack,onGoToTeam,onGoT
     return conTemp.sort((a,b)=>(orden.indexOf(a.posicion)-orden.indexOf(b.posicion))||a.nombre.localeCompare(b.nombre,"es"));
   };
 
+  // Convocatoria del partido: no_convocadas (jsonb) guarda ids de jugadoras de la
+  // plantilla que NO juegan este partido. Solo afecta a esta ficha, no a la plantilla.
+  const noConvocadas=useMemo(()=>new Set(partido.no_convocadas||[]),[partido]);
   const rosterLocal=useMemo(()=>rosterPara(partido.id_equipo_local),[partido,players]);
   const rosterVisit=useMemo(()=>rosterPara(partido.id_equipo_visitante),[partido,players]);
 
   const fmtDt=iso=>{if(!iso)return"";const d=new Date(iso);return d.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long",year:"numeric"})+" · "+d.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});};
 
-  const RosterCol=({equipo,roster,side})=>(
-    <div style={{flex:1,minWidth:0}}>
-      <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"12px",flexDirection:side==="right"?"row-reverse":"row"}}>
-        {equipo?.escudo&&<img src={equipo.escudo} alt="" style={{width:32,height:32,objectFit:"contain"}}/>}
-        <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b",textAlign:side==="right"?"right":"left"}}>{equipo?.nombre||"—"}</span>
+  const RosterCol=({equipo,roster,side})=>{
+    const convocadas=roster.filter(p=>!noConvocadas.has(p.id_jugadora));
+    const fuera=roster.filter(p=>noConvocadas.has(p.id_jugadora));
+    const fila=(p,esConvocada)=>(
+      <div key={p.id_jugadora} onClick={()=>onGoToPlayer&&onGoToPlayer(p.id_jugadora)}
+        style={{display:"flex",alignItems:"center",gap:"8px",padding:"6px 0",borderBottom:"1px solid #f1f5f9",flexDirection:side==="right"?"row-reverse":"row",cursor:onGoToPlayer?"pointer":"default",opacity:esConvocada?1:0.45}}>
+        <Avatar photo={p.foto} name={p.nombre} size={28} fontSize={10} fallecida={!!p.fecha_fallecimiento}/>
+        <div style={{flex:1,minWidth:0,textAlign:side==="right"?"right":"left"}}>
+          <div style={{fontSize:"12px",fontWeight:600,color:onGoToPlayer?"#9333ea":"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:esConvocada?"none":"line-through"}}>{p.nombre}</div>
+          <div style={{fontSize:"10px",color:"#94a3b8"}}>{p.posicion||""}</div>
+        </div>
+        {isAdmin&&onToggleConvocatoria&&(
+          <button title={esConvocada?"Quitar de la convocatoria de este partido":"Devolver a la convocatoria"}
+            onClick={e=>{e.stopPropagation();onToggleConvocatoria(partido,p.id_jugadora);}}
+            style={{background:esConvocada?"#fef2f2":"#f0fdf4",color:esConvocada?"#ef4444":"#16a34a",border:"none",borderRadius:"8px",width:"22px",height:"22px",fontSize:"12px",fontWeight:800,cursor:"pointer",flexShrink:0,lineHeight:1}}>
+            {esConvocada?"✕":"+"}
+          </button>
+        )}
       </div>
-      {roster.length===0?<p style={{fontSize:"12px",color:"#94a3b8",textAlign:"center"}}>Sin jugadoras en BD</p>:(
-        roster.map(p=>(
-          <div key={p.id_jugadora} onClick={()=>onGoToPlayer&&onGoToPlayer(p.id_jugadora)}
-            style={{display:"flex",alignItems:"center",gap:"8px",padding:"6px 0",borderBottom:"1px solid #f1f5f9",flexDirection:side==="right"?"row-reverse":"row",cursor:onGoToPlayer?"pointer":"default"}}>
-            <Avatar photo={p.foto} name={p.nombre} size={28} fontSize={10} fallecida={!!p.fecha_fallecimiento}/>
-            <div style={{flex:1,minWidth:0,textAlign:side==="right"?"right":"left"}}>
-              <div style={{fontSize:"12px",fontWeight:600,color:onGoToPlayer?"#9333ea":"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
-              <div style={{fontSize:"10px",color:"#94a3b8"}}>{p.posicion||""}</div>
-            </div>
-          </div>
-        ))
-      )}
-    </div>
-  );
+    );
+    return(
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"12px",flexDirection:side==="right"?"row-reverse":"row"}}>
+          {equipo?.escudo&&<img src={equipo.escudo} alt="" style={{width:32,height:32,objectFit:"contain"}}/>}
+          <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b",textAlign:side==="right"?"right":"left"}}>{equipo?.nombre||"—"}</span>
+        </div>
+        {roster.length===0?<p style={{fontSize:"12px",color:"#94a3b8",textAlign:"center"}}>Sin jugadoras en BD</p>:(
+          <>
+            {convocadas.map(p=>fila(p,true))}
+            {/* Las no convocadas solo las ve el admin (atenuadas, con + para devolverlas);
+                para el público simplemente no aparecen en el partido. */}
+            {isAdmin&&fuera.length>0&&(
+              <>
+                <div style={{fontSize:"10px",fontWeight:800,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.5px",margin:"10px 0 2px",textAlign:side==="right"?"right":"left"}}>No convocadas (solo admin)</div>
+                {fuera.map(p=>fila(p,false))}
+              </>
+            )}
+          </>
+        )}
+      </div>
+    );
+  };
 
   return(
     <div style={{maxWidth:"700px",margin:"0 auto",padding:"16px",fontFamily:"system-ui,sans-serif"}}>
@@ -842,6 +867,16 @@ function PartidosView({partidos,equipos,ligas,players,mvps,openClasiKey,onClearC
     }
   },[partidosSub,partidos]);
 
+  const toggleConvocatoria=async(partido,idJugadora)=>{
+    const actual=partido.no_convocadas||[];
+    const nueva=actual.includes(idJugadora)?actual.filter(x=>x!==idJugadora):[...actual,idJugadora];
+    const valor=nueva.length?nueva:null;
+    const{error}=await supabase.from("partidos").update({no_convocadas:valor}).eq("id",partido.id);
+    if(error){alert("Error guardando la convocatoria: "+error.message);return;}
+    setPartidos(prev=>prev.map(x=>x.id===partido.id?{...x,no_convocadas:valor}:x));
+    setFicha(prev=>prev&&prev.id===partido.id?{...prev,no_convocadas:valor}:prev);
+  };
+
   const abrirFicha=p=>{
     window.history.pushState({},"",`/partidos/partido/${p.id}`);
     setFicha(p);
@@ -916,7 +951,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,openClasiKey,onClearC
   const fmtDt=iso=>{if(!iso)return"";const d=new Date(iso);return d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})+" · "+d.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});};
 
   if(ficha){
-    return <PartidoFichaView partido={ficha} equipos={equipos} ligas={ligas} players={players} onBack={()=>window.history.back()} onGoToTeam={onGoToTeam} onGoToLeague={onGoToLeague} onGoToPlayer={id=>onGoToPlayer&&onGoToPlayer(id,{tab:"partidos",label:"Info partido"})}/>;
+    return <PartidoFichaView partido={ficha} equipos={equipos} ligas={ligas} players={players} isAdmin={isAdmin} onToggleConvocatoria={toggleConvocatoria} onBack={()=>window.history.back()} onGoToTeam={onGoToTeam} onGoToLeague={onGoToLeague} onGoToPlayer={id=>onGoToPlayer&&onGoToPlayer(id,{tab:"partidos",label:"Info partido"})}/>;
   }
 
   if(clasiLigaId){
