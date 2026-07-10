@@ -793,7 +793,7 @@ function getPartidoEstado(p){
   return"normal";
 }
 
-function PartidosView({partidos,equipos,ligas,players,mvps,openClasiKey,onClearClasi,isAdmin,setPartidos,onGoToTeam,onGoToLeague,onGoToPlayer}){
+function PartidosView({partidos,equipos,ligas,players,mvps,openClasiKey,onClearClasi,partidosSub,isAdmin,setPartidos,onGoToTeam,onGoToLeague,onGoToPlayer}){
   const [modal,setModal]=useState(null);
   const [ficha,setFicha]=useState(null);
   const [saving,setSaving]=useState(false);
@@ -801,8 +801,42 @@ function PartidosView({partidos,equipos,ligas,players,mvps,openClasiKey,onClearC
   const [clasiLigaId,setClasiLigaId]=useState(null);
   const [clasiVista,setClasiVista]=useState("grupos");
   useEffect(()=>{
-    if(openClasiKey){setClasiVista("grupos");setFicha(null);setClasiLigaId(openClasiKey);onClearClasi&&onClearClasi();}
+    if(openClasiKey){
+      const [l,t]=openClasiKey.split("|");
+      setClasiVista("grupos");
+      window.history.pushState({},"",`/partidos/clasificacion/${l}/${encodeURIComponent(t||"")}`);
+      setFicha(null);setClasiLigaId(openClasiKey);
+      onClearClasi&&onClearClasi();
+    }
   },[openClasiKey]);
+
+  // La URL es la fuente de verdad de la subvista: /partidos/partido/{id} abre la ficha,
+  // /partidos/clasificacion/{liga}/{temporada} abre la clasificación y /partidos limpia
+  // ambas. Así el botón atrás del navegador (popstate -> applyUrlState -> partidosSub)
+  // recorre ficha -> clasificación -> lista en orden, en vez de salirse de la pestaña.
+  useEffect(()=>{
+    if(!partidosSub){setFicha(null);setClasiLigaId(null);return;}
+    if(partidosSub[0]==="partido"){
+      const p=partidos.find(x=>String(x.id)===String(partidosSub[1]));
+      if(p)setFicha(p);
+      return;
+    }
+    if(partidosSub[0]==="clasificacion"){
+      setFicha(null);
+      setClasiLigaId(`${partidosSub[1]}|${decodeURIComponent(partidosSub[2]||"")}`);
+    }
+  },[partidosSub,partidos]);
+
+  const abrirFicha=p=>{
+    window.history.pushState({},"",`/partidos/partido/${p.id}`);
+    setFicha(p);
+  };
+  const abrirClasi=(grupoKey,vista)=>{
+    const [l,t]=grupoKey.split("|");
+    setClasiVista(vista);
+    window.history.pushState({},"",`/partidos/clasificacion/${l}/${encodeURIComponent(t||"")}`);
+    setFicha(null);setClasiLigaId(grupoKey);
+  };
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap=useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
   const scrollRef=useRef(null);
@@ -852,12 +886,12 @@ function PartidosView({partidos,equipos,ligas,players,mvps,openClasiKey,onClearC
   const fmtDt=iso=>{if(!iso)return"";const d=new Date(iso);return d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})+" · "+d.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});};
 
   if(ficha){
-    return <PartidoFichaView partido={ficha} equipos={equipos} ligas={ligas} players={players} onBack={()=>setFicha(null)} onGoToTeam={onGoToTeam} onGoToLeague={onGoToLeague} onGoToPlayer={id=>onGoToPlayer&&onGoToPlayer(id,{tab:"partidos",label:"Info partido"})}/>;
+    return <PartidoFichaView partido={ficha} equipos={equipos} ligas={ligas} players={players} onBack={()=>window.history.back()} onGoToTeam={onGoToTeam} onGoToLeague={onGoToLeague} onGoToPlayer={id=>onGoToPlayer&&onGoToPlayer(id,{tab:"partidos",label:"Info partido"})}/>;
   }
 
   if(clasiLigaId){
     const [cLiga,cTemporada]=clasiLigaId.split("|");
-    return <ClasificacionGrupos partidos={partidos} equipos={equipos} ligas={ligas} ligaId={cLiga} temporada={cTemporada} vistaInicial={clasiVista} onBack={()=>setClasiLigaId(null)} onGoToTeam={onGoToTeam} onOpenPartido={p=>setFicha(p)} onVistaChange={setClasiVista} mvps={mvps} players={players} onGoToPlayer={onGoToPlayer}/>;
+    return <ClasificacionGrupos partidos={partidos} equipos={equipos} ligas={ligas} ligaId={cLiga} temporada={cTemporada} vistaInicial={clasiVista} onBack={()=>window.history.back()} onGoToTeam={onGoToTeam} onOpenPartido={abrirFicha} onVistaChange={setClasiVista} mvps={mvps} players={players} onGoToPlayer={onGoToPlayer}/>;
   }
 
   if(modal){
@@ -932,7 +966,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,openClasiKey,onClearC
                   </div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"10px",flexWrap:"wrap"}}>
-                  <button onClick={()=>setFicha(p)} style={{background:"#f5f3ff",color:"#7c3aed",border:"1.5px solid #ddd6fe",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>+ Info</button>
+                  <button onClick={()=>abrirFicha(p)} style={{background:"#f5f3ff",color:"#7c3aed",border:"1.5px solid #ddd6fe",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>+ Info</button>
                   {p.link&&<a href={p.link} target="_blank" rel="noopener noreferrer" style={{background:"#7c3aed",color:"#fff",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,textDecoration:"none"}}>▶ Ver</a>}
                   {p.url_stats&&<a href={p.url_stats} target="_blank" rel="noopener noreferrer" style={{background:"#0f172a",color:"#fff",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,textDecoration:"none"}}>📊 Stats</a>}
                   {isAdmin&&<>
@@ -952,14 +986,14 @@ function PartidosView({partidos,equipos,ligas,players,mvps,openClasiKey,onClearC
                 {ligaMap[ligaId]?.logo&&<img src={ligaMap[ligaId].logo} alt="" style={{width:24,height:24,objectFit:"contain",flexShrink:0}}/>}
                 <span style={{fontWeight:700,fontSize:"14px",color:"#9333ea",flex:1}}>{ligaMap[ligaId]?.nombre||"Sin liga"}{temporada?` - ${temporada}`:""}</span>
                 {hayEnJuego&&<span style={{width:10,height:10,borderRadius:"50%",background:"#ef4444",flexShrink:0,boxShadow:"0 0 0 3px rgba(239,68,68,0.2)",display:"inline-block"}}/>}
-                {ps.some(p=>p.resultado_local!=null&&p.notas&&/^Group [A-Z]/i.test(p.notas))&&(
-                  <button onClick={e=>{e.stopPropagation();setClasiVista("grupos");setClasiLigaId(grupoKey);}}
+                {ps.some(p=>p.notas&&/^Group [A-Z]/i.test(p.notas)&&p.id_equipo_local&&p.id_equipo_visitante)&&(
+                  <button onClick={e=>{e.stopPropagation();abrirClasi(grupoKey,"grupos");}}
                     style={{background:"#f5f3ff",color:"#7c3aed",border:"1.5px solid #ddd6fe",borderRadius:"20px",padding:"3px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer",flexShrink:0,marginRight:"4px"}}>
                     📊
                   </button>
                 )}
                 {ps.some(p=>/#(49|5[0-6])\b/.test(p.notas||""))&&(
-                  <button onClick={e=>{e.stopPropagation();setClasiVista("standing");setClasiLigaId(grupoKey);}}
+                  <button onClick={e=>{e.stopPropagation();abrirClasi(grupoKey,"standing");}}
                     style={{background:"#fffbeb",color:"#b45309",border:"1.5px solid #fde68a",borderRadius:"20px",padding:"3px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer",flexShrink:0,marginRight:"4px"}}>
                     🏅
                   </button>
@@ -1025,11 +1059,10 @@ function PartidosView({partidos,equipos,ligas,players,mvps,openClasiKey,onClearC
 // Los partidos de un grupo se identifican por el campo "notas" que empieza por "Group ".
 // Criterios de desempate FIBA: 1) puntos (2V/1D), 2) head-to-head, 3) dif. directa, 4) dif. global
 function calcClasificacion(partidos, equipoMap){
-  // Agrupar partidos con resultado por grupo (notas que empiezan por "Group ")
+  // Agrupar TODOS los partidos de grupo (notas que empiezan por "Group "), tengan o no
+  // resultado: así la tabla muestra los equipos a 0 antes de que empiece el torneo.
   const grupos={};
   partidos.forEach(p=>{
-    if(p.resultado_local==null||p.resultado_visitante==null)return;
-    if(getPartidoEstado(p)==="en_juego")return; // marcador en vivo: aún no cuenta
     const m=p.notas&&p.notas.match(/^(Group [A-Z])/i);
     if(!m)return;
     const g=m[1].toUpperCase();
@@ -1039,9 +1072,11 @@ function calcClasificacion(partidos, equipoMap){
 
   const calcGrupo=(ps)=>{
     const stats={};
-    const initEq=id=>{if(!stats[id])stats[id]={id,pj:0,pg:0,pp:0,pts:0,pf:0,pc:0,dif:0};};
+    const initEq=id=>{if(id&&!stats[id])stats[id]={id,pj:0,pg:0,pp:0,pts:0,pf:0,pc:0,dif:0};};
     ps.forEach(p=>{
       initEq(p.id_equipo_local); initEq(p.id_equipo_visitante);
+      if(p.resultado_local==null||p.resultado_visitante==null)return; // sin jugar: solo registra equipos
+      if(getPartidoEstado(p)==="en_juego")return; // marcador en vivo: aún no cuenta
       const sl=p.resultado_local,sv=p.resultado_visitante;
       stats[p.id_equipo_local].pj++;   stats[p.id_equipo_visitante].pj++;
       stats[p.id_equipo_local].pf+=sl; stats[p.id_equipo_local].pc+=sv;
@@ -1066,6 +1101,8 @@ function calcClasificacion(partidos, equipoMap){
         const hthStats={};
         tied.forEach(id=>{hthStats[id]={pts:0,pf:0,pc:0};});
         ps.forEach(p=>{
+          if(p.resultado_local==null||p.resultado_visitante==null)return;
+          if(getPartidoEstado(p)==="en_juego")return;
           if(!tied.includes(p.id_equipo_local)||!tied.includes(p.id_equipo_visitante))return;
           const sl=p.resultado_local,sv=p.resultado_visitante;
           hthStats[p.id_equipo_local].pf+=sl; hthStats[p.id_equipo_local].pc+=sv;
@@ -4518,6 +4555,7 @@ export default function App(){
   const [partidos,setPartidos]             = useState([]);
   const [mvps,setMvps]                     = useState([]);
   const [openClasiKey,setOpenClasiKey]     = useState(null);
+  const [partidosSub,setPartidosSub]       = useState(null); // subruta de /partidos (["partido","85"] o ["clasificacion","L067","2025"])
   const [loading,setLoading] = useState(true);
   const [error,setError]     = useState(null);
   const [isFirstLoad,setIsFirstLoad] = useState(true);
@@ -4639,6 +4677,7 @@ export default function App(){
     setOpenPlayerId(parts.length===2&&parts[0]==="jugadoras"?parts[1]:null);
     setOpenTeamId(parts.length===2&&parts[0]==="equipos"?parts[1]:null);
     setOpenCoachId(parts.length===2&&parts[0]==="coaches"?parts[1]:null);
+    setPartidosSub(parts[0]==="partidos"&&parts.length>1?parts.slice(1):null);
     if(parts[0]==="jugadoras"||parts[0]==="equipos"||parts[0]==="coaches"||parts[0]==="ligas"||parts[0]==="partidos")setTab(parts[0]==="coaches"?"cuerpo_tecnico":parts[0]);
     else if(parts.length===0)setTab("home");
   };
@@ -4728,7 +4767,7 @@ export default function App(){
             fullscreen onClose={()=>setMobileSearchOpen(false)}/>}
           <div className="bfdb-tabs" style={{display:"flex",gap:"4px"}}>
             {TABS.map(([id,icon,label])=>(
-              <button key={id} onClick={()=>{setTab(id);const seg=id==='cuerpo_tecnico'?'coaches':id;window.history.pushState({},"",`/${seg}`);}} style={{background:tab===id?"#9333ea":"transparent",color:tab===id?"#fff":"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",transition:"all 0.15s"}}>
+              <button key={id} onClick={()=>{setTab(id);const seg=id==='cuerpo_tecnico'?'coaches':id;window.history.pushState({},"",`/${seg}`);applyUrlState(`/${seg}`);}} style={{background:tab===id?"#9333ea":"transparent",color:tab===id?"#fff":"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",transition:"all 0.15s"}}>
                 {icon}<span className="bfdb-tab-label"> {label}</span>
               </button>
             ))}
@@ -4749,7 +4788,7 @@ export default function App(){
         {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setEquipos={setEquipos} setEquiposNombres={setEquiposNombres} setPlayers={setPlayers} setPalmares={setPalmares}/>}
         {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} coaches={coaches} tempCoach={tempCoach} partidos={partidos} onGoToClasificacion={(ligaId,temporada)=>{setOpenClasiKey(`${ligaId}|${temporada||""}`);setTab("partidos");scrollTop();}} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setLigas={setLigas}/>}
         {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setCoaches={setCoaches} setTempCoach={setTempCoach} equiposNombres={equiposNombres}/>}
-        {tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} mvps={mvps} openClasiKey={openClasiKey} onClearClasi={()=>setOpenClasiKey(null)} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id,year)=>goToTeam(id,year||null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})} onGoToPlayer={(id)=>goToPlayer(id,{tab:"partidos",label:"Ver partidos"})}/>}
+        {tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} mvps={mvps} openClasiKey={openClasiKey} onClearClasi={()=>setOpenClasiKey(null)} partidosSub={partidosSub} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id,year)=>goToTeam(id,year||null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})} onGoToPlayer={(id)=>goToPlayer(id,{tab:"partidos",label:"Ver partidos"})}/>}
       </div>
     </div>
     </>);
