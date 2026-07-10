@@ -781,13 +781,11 @@ function getPartidoEstado(p){
   const now=new Date();
   const fh=new Date(p.fecha_hora);
   const diffMs=now-fh; // positivo = ya empezó
-  // La Edge Function escribe el marcador EN VIVO en resultado_local/visitante, así
-  // que "tener resultado" no implica terminado: dentro de la ventana de duración
-  // estimada de un partido se considera en juego (con o sin marcador parcial).
-  // Pasada la ventana, el resultado presente se interpreta como final.
-  const VENTANA_EN_VIVO=2*60*60*1000; // 2 horas
+  // La Edge Function escribe el marcador EN VIVO en resultado_local/visitante y
+  // marca es_live=true mientras el partido está en curso (es_live=false al acabar).
+  // Ventana de seguridad de 4h por si un fallo del scraper dejara es_live colgado.
   const tieneResultado=p.resultado_local!=null&&p.resultado_visitante!=null;
-  if(diffMs>=0&&diffMs<VENTANA_EN_VIVO)return"en_juego";
+  if(p.es_live&&diffMs>=0&&diffMs<4*60*60*1000)return"en_juego";
   if(tieneResultado)return"terminado";
   if(diffMs>=0)return"en_juego"; // pasó la hora de inicio y sin resultado
   const esHoy=fh.toDateString()===now.toDateString();
@@ -911,7 +909,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,openClasiKey,onClearC
               <div ref={esPrimeroDestacado?scrollRef:null}
                 style={{background:"#fff",borderRadius:"14px",padding:"14px",boxShadow:estado==="en_juego"?"0 2px 12px rgba(239,68,68,0.15)":"0 1px 4px rgba(0,0,0,0.06)",border:borderStyle,...animStyle}}>
                 <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px",flexWrap:"wrap"}}>
-                  {estado==="en_juego"&&<span style={{background:"#ef4444",color:"#fff",borderRadius:"20px",padding:"2px 10px",fontSize:"11px",fontWeight:800,letterSpacing:"0.5px"}}>🔴 EN JUEGO</span>}
+                  {estado==="en_juego"&&<span style={{background:"#ef4444",color:"#fff",borderRadius:"20px",padding:"2px 10px",fontSize:"11px",fontWeight:800,letterSpacing:"0.5px"}}>🔴 EN JUEGO{p.es_live&&p.periodo?` · P${p.periodo}`:""}</span>}
                   {estado==="proximo"&&<span style={{background:"#f59e0b",color:"#fff",borderRadius:"20px",padding:"2px 10px",fontSize:"11px",fontWeight:700}}>🟡 HOY</span>}
                   <span style={{fontSize:"11px",color:"#94a3b8",fontWeight:600}}>{fmtDt(p.fecha_hora)}</span>
                   {p.notas&&<span style={{fontSize:"11px",color:"#64748b"}}>· {p.notas}</span>}
