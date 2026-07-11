@@ -662,11 +662,13 @@ function PartidoForm({initial,equipos,ligas,onSave,onCancel,saving}){
 }
 
 /* ── PartidoFichaView ────────────────────────────────────── */
-function PartidoFichaView({partido,equipos,ligas,players,isAdmin,onToggleConvocatoria,onBack,onGoToTeam,onGoToLeague,onGoToPlayer}){
+function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,onToggleConvocatoria,onBack,onGoToTeam,onGoToLeague,onGoToPlayer}){
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap=useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
-  const local=equipoMap[partido.id_equipo_local];
-  const visit=equipoMap[partido.id_equipo_visitante];
+  const localBase=equipoMap[partido.id_equipo_local];
+  const local=localBase&&{...localBase,...resolveTeamData(partido.id_equipo_local,partido.temporada,equiposNombres,equipoMap)};
+  const visitBase=equipoMap[partido.id_equipo_visitante];
+  const visit=visitBase&&{...visitBase,...resolveTeamData(partido.id_equipo_visitante,partido.temporada,equiposNombres,equipoMap)};
   const liga=ligaMap[partido.id_liga];
   const pasado=new Date(partido.fecha_hora)<new Date();
   const tieneResultado=partido.resultado_local!=null&&partido.resultado_visitante!=null;
@@ -788,6 +790,28 @@ function PartidoFichaView({partido,equipos,ligas,players,isAdmin,onToggleConvoca
             <span style={{fontSize:"11px",fontWeight:600,color:"#64748b",textAlign:"center",maxWidth:"80px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{visit?.nombre||"—"}</span>
           </div>
         </div>
+        {partido.parciales&&partido.parciales.local&&(
+          <div style={{marginTop:"14px",overflowX:"auto"}}>
+            <table style={{margin:"0 auto",borderCollapse:"collapse",fontSize:"12px",fontVariantNumeric:"tabular-nums"}}>
+              <thead>
+                <tr style={{color:"#94a3b8",fontWeight:700}}>
+                  <td style={{padding:"3px 10px"}}></td>
+                  {partido.parciales.local.map((_,i)=><td key={i} style={{padding:"3px 10px",textAlign:"center"}}>Q{i+1}</td>)}
+                  {partido.parciales.prorroga&&<td style={{padding:"3px 10px",textAlign:"center"}}>PR</td>}
+                </tr>
+              </thead>
+              <tbody>
+                {[["local",local],["visitante",visit]].map(([lado,team],fila)=>(
+                  <tr key={lado} style={{borderTop:"1px solid #f1f5f9",color:"#475569"}}>
+                    <td style={{padding:"3px 10px",fontWeight:700,maxWidth:"110px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{team?.nombre||"—"}</td>
+                    {partido.parciales[lado].map((q,i)=><td key={i} style={{padding:"3px 10px",textAlign:"center"}}>{q}</td>)}
+                    {partido.parciales.prorroga&&<td style={{padding:"3px 10px",textAlign:"center",fontWeight:700,color:"#9333ea"}}>{partido.parciales.prorroga[fila]}</td>}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Rosters enfrentados */}
@@ -827,7 +851,7 @@ function getPartidoEstado(p){
   return"normal";
 }
 
-function PartidosView({partidos,equipos,ligas,players,mvps,openClasiKey,onClearClasi,partidosSub,isAdmin,setPartidos,onGoToTeam,onGoToLeague,onGoToPlayer}){
+function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openClasiKey,onClearClasi,partidosSub,isAdmin,setPartidos,onGoToTeam,onGoToLeague,onGoToPlayer}){
   const [modal,setModal]=useState(null);
   const [ficha,setFicha]=useState(null);
   const [saving,setSaving]=useState(false);
@@ -951,12 +975,12 @@ function PartidosView({partidos,equipos,ligas,players,mvps,openClasiKey,onClearC
   const fmtDt=iso=>{if(!iso)return"";const d=new Date(iso);return d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})+" · "+d.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});};
 
   if(ficha){
-    return <PartidoFichaView partido={ficha} equipos={equipos} ligas={ligas} players={players} isAdmin={isAdmin} onToggleConvocatoria={toggleConvocatoria} onBack={()=>window.history.back()} onGoToTeam={onGoToTeam} onGoToLeague={onGoToLeague} onGoToPlayer={id=>onGoToPlayer&&onGoToPlayer(id,{tab:"partidos",label:"Info partido"})}/>;
+    return <PartidoFichaView partido={ficha} equipos={equipos} ligas={ligas} players={players} equiposNombres={equiposNombres} isAdmin={isAdmin} onToggleConvocatoria={toggleConvocatoria} onBack={()=>window.history.back()} onGoToTeam={onGoToTeam} onGoToLeague={onGoToLeague} onGoToPlayer={id=>onGoToPlayer&&onGoToPlayer(id,{tab:"partidos",label:"Info partido"})}/>;
   }
 
   if(clasiLigaId){
     const [cLiga,cTemporada]=clasiLigaId.split("|");
-    return <ClasificacionGrupos partidos={partidos} equipos={equipos} ligas={ligas} ligaId={cLiga} temporada={cTemporada} vistaInicial={clasiVista} onBack={()=>window.history.back()} onGoToTeam={onGoToTeam} onOpenPartido={abrirFicha} onVistaChange={setClasiVista} mvps={mvps} players={players} onGoToPlayer={onGoToPlayer}/>;
+    return <ClasificacionGrupos partidos={partidos} equipos={equipos} ligas={ligas} ligaId={cLiga} temporada={cTemporada} vistaInicial={clasiVista} onBack={()=>window.history.back()} onGoToTeam={onGoToTeam} onOpenPartido={abrirFicha} onVistaChange={setClasiVista} mvps={mvps} players={players} onGoToPlayer={onGoToPlayer} equiposNombres={equiposNombres}/>;
   }
 
   if(modal){
@@ -1010,8 +1034,8 @@ function PartidosView({partidos,equipos,ligas,players,mvps,openClasiKey,onClearC
           const expanded=expandedLigas[grupoKey]??false;
 
           const TarjetaPartido=({p})=>{
-            const local=equipoMap[p.id_equipo_local];
-            const visit=equipoMap[p.id_equipo_visitante];
+            const local=equipoMap[p.id_equipo_local]&&{...equipoMap[p.id_equipo_local],...resolveTeamData(p.id_equipo_local,p.temporada,equiposNombres,equipoMap)};
+            const visit=equipoMap[p.id_equipo_visitante]&&{...equipoMap[p.id_equipo_visitante],...resolveTeamData(p.id_equipo_visitante,p.temporada,equiposNombres,equipoMap)};
             const tieneResultado=p.resultado_local!=null&&p.resultado_visitante!=null;
             const estado=getPartidoEstado(p);
             const esPrimeroDestacado=p.id===scrollTargetId;
@@ -1345,11 +1369,20 @@ function FaseFinal({psLiga,equipoMap,onOpenPartido}){
 function SerieBox({partidosSerie,equipoMap}){
   const ids=[];
   partidosSerie.forEach(p=>{[p.id_equipo_local,p.id_equipo_visitante].forEach(id=>{if(id&&!ids.includes(id))ids.push(id);});});
+  // Series "(ida-vuelta)": se resuelven por diferencia global de puntos (como los
+  // cuartos y semifinales de la LF Endesa 2024-25), no por victorias. Un partido
+  // puede acabar en empate y la prórroga se juega en la vuelta si el global empata.
+  const idaVuelta=/ida-vuelta/i.test(partidosSerie[0]?.notas||"");
   const wins={};
   let enVivo=false;
   partidosSerie.forEach(p=>{
     if(p.resultado_local==null||p.resultado_visitante==null)return;
     if(getPartidoEstado(p)==="en_juego"){enVivo=true;return;}
+    if(idaVuelta){
+      wins[p.id_equipo_local]=(wins[p.id_equipo_local]||0)+Number(p.resultado_local);
+      wins[p.id_equipo_visitante]=(wins[p.id_equipo_visitante]||0)+Number(p.resultado_visitante);
+      return;
+    }
     const ganador=Number(p.resultado_local)>Number(p.resultado_visitante)?p.id_equipo_local:p.id_equipo_visitante;
     wins[ganador]=(wins[ganador]||0)+1;
   });
@@ -1462,8 +1495,14 @@ function StandingFinal({psLiga,equipoMap,temporada,onGoToTeam,mvpPlayer,onGoToPl
   );
 }
 
-function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInicial,onBack,onGoToTeam,onOpenPartido,onVistaChange,mvps,players,onGoToPlayer}){
-  const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
+function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInicial,onBack,onGoToTeam,onOpenPartido,onVistaChange,mvps,players,onGoToPlayer,equiposNombres}){
+  const equipoMapBase=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
+  // Nombres y escudos históricos: cada equipo se resuelve a cómo se llamaba en ESTA temporada
+  const equipoMap=useMemo(()=>{
+    const m={};
+    equipos.forEach(e=>{m[e.id_equipo]={...e,...resolveTeamData(e.id_equipo,temporada,equiposNombres,equipoMapBase)};});
+    return m;
+  },[equipos,temporada,equiposNombres,equipoMapBase]);
   const psLiga=useMemo(()=>partidos.filter(p=>p.id_liga===ligaId&&(p.temporada||"")===(temporada||"")),[partidos,ligaId,temporada]);
   const grupos=useMemo(()=>calcClasificacion(psLiga,equipoMap),[psLiga,equipoMap]);
   const liga=useMemo(()=>(ligas||[]).find(l=>l.id_liga===ligaId),[ligas,ligaId]);
@@ -4967,7 +5006,7 @@ export default function App(){
         {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setEquipos={setEquipos} setEquiposNombres={setEquiposNombres} setPlayers={setPlayers} setPalmares={setPalmares}/>}
         {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} coaches={coaches} tempCoach={tempCoach} partidos={partidos} onGoToClasificacion={(ligaId,temporada)=>{setOpenClasiKey(`${ligaId}|${temporada||""}`);setTab("partidos");scrollTop();}} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setLigas={setLigas}/>}
         {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setCoaches={setCoaches} setTempCoach={setTempCoach} equiposNombres={equiposNombres}/>}
-        {tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} mvps={mvps} openClasiKey={openClasiKey} onClearClasi={()=>setOpenClasiKey(null)} partidosSub={partidosSub} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id,year)=>goToTeam(id,year||null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})} onGoToPlayer={(id)=>goToPlayer(id,{tab:"partidos",label:"Ver partidos"})}/>}
+        {tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} mvps={mvps} equiposNombres={equiposNombres} openClasiKey={openClasiKey} onClearClasi={()=>setOpenClasiKey(null)} partidosSub={partidosSub} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id,year)=>goToTeam(id,year||null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})} onGoToPlayer={(id)=>goToPlayer(id,{tab:"partidos",label:"Ver partidos"})}/>}
       </div>
     </div>
     </>);
