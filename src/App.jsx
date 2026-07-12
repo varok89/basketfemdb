@@ -213,7 +213,7 @@ const COUNTRY_CODES = {
   "uganda":"ug",
   "kenya":"ke","kenia":"ke",
   "ethiopia":"et","etiopia":"et","etiopía":"et",
-  "ghana":"gh",
+  "ghana":"gh","gambia":"gm",
   "antigua y barbuda":"ag","antigua and barbuda":"ag",
   "guinea ecuatorial":"gq","equatorial guinea":"gq",
   "sierra leona":"sl","sierra leone":"sl",
