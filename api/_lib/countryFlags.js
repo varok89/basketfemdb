@@ -126,6 +126,7 @@ const COUNTRY_CODES = {
   "guinea-bissau":"gw","guinea bisau":"gw","guinea-bisau":"gw",
   "camboya":"kh","cambodia":"kh",
   "libano":"lb","líbano":"lb","lebanon":"lb",
+  "gambia":"gm",
 
   /* Asia */
   "china":"cn",
