@@ -856,6 +856,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
   const [ficha,setFicha]=useState(null);
   const [saving,setSaving]=useState(false);
   const [expandedLigas,setExpandedLigas]=useState({});
+  const [expandedJornadas,setExpandedJornadas]=useState({});
   const [clasiLigaId,setClasiLigaId]=useState(null);
   const [clasiVista,setClasiVista]=useState("grupos");
   const [filtroLiga,setFiltroLiga]=useState("");
@@ -973,6 +974,8 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
   };
 
   const fmtDt=iso=>{if(!iso)return"";const d=new Date(iso);return d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})+" · "+d.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});};
+  const fmtDia=iso=>iso?new Date(iso).toLocaleDateString("es-ES",{day:"numeric",month:"short"}):"";
+  const fmtRango=games=>{if(!games.length)return"";const a=fmtDia(games[0].fecha_hora),b=fmtDia(games[games.length-1].fecha_hora);return a===b?a:a+" – "+b;};
 
   if(ficha){
     return <PartidoFichaView partido={ficha} equipos={equipos} ligas={ligas} players={players} equiposNombres={equiposNombres} isAdmin={isAdmin} onToggleConvocatoria={toggleConvocatoria} onBack={()=>window.history.back()} onGoToTeam={onGoToTeam} onGoToLeague={onGoToLeague} onGoToPlayer={id=>onGoToPlayer&&onGoToPlayer(id,{tab:"partidos",label:"Info partido"})}/>;
@@ -1032,6 +1035,28 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
           const hayEnJuego=ps.some(p=>getPartidoEstado(p)==="en_juego");
           const hayHoy=partHoy.length>0;
           const expanded=expandedLigas[grupoKey]??false;
+
+          // En competiciones tipo "liga" los partidos se agrupan por jornada (campo notas
+          // "Jornada N"); los de playoffs y los que no tienen jornada van a grupos propios.
+          const esLiga=ligaMap[ligaId]?.tipo==="liga";
+          let jornadas=[];
+          if(esLiga){
+            const buckets={};
+            ps.forEach(p=>{
+              const m=/^jornada\s+(\d+)/i.exec(p.notas||"");
+              const key=m?`J${m[1]}`:(/^playoffs/i.test(p.notas||"")?"PO":"OT");
+              (buckets[key]=buckets[key]||[]).push(p);
+            });
+            const rank=k=>k==="PO"?1000000:k==="OT"?1000001:parseInt(k.slice(1),10);
+            jornadas=Object.keys(buckets).sort((a,b)=>rank(a)-rank(b)).map(k=>{
+              const games=buckets[k].sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
+              return{key:k,label:k==="PO"?"Playoffs":k==="OT"?"Otros partidos":`Jornada ${k.slice(1)}`,games,
+                pendiente:games.some(p=>getPartidoEstado(p)!=="terminado"),
+                enJuego:games.some(p=>getPartidoEstado(p)==="en_juego")};
+            });
+            const primeraPend=jornadas.find(j=>j.pendiente);
+            if(primeraPend)primeraPend.proxima=true;
+          }
 
           const TarjetaPartido=({p})=>{
             const local=equipoMap[p.id_equipo_local]&&{...equipoMap[p.id_equipo_local],...resolveTeamData(p.id_equipo_local,p.temporada,equiposNombres,equipoMap)};
@@ -1106,6 +1131,31 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
               {/* Contenido expandido */}
               {expanded&&(
                 <div style={{padding:"0 12px 14px",display:"flex",flexDirection:"column",gap:"8px"}}>
+                  {esLiga?(
+                    /* Jornadas colapsadas: la siguiente por disputarse lleva la etiqueta "Próxima" */
+                    jornadas.map(j=>{
+                      const jk=grupoKey+"|"+j.key;
+                      const open=expandedJornadas[jk]??false;
+                      return(
+                        <div key={j.key} style={{border:j.proxima?"1.5px solid #fcd34d":"1px solid #e2e8f0",borderRadius:"12px",overflow:"hidden",marginTop:"4px"}}>
+                          <div onClick={()=>setExpandedJornadas(prev=>({...prev,[jk]:!open}))}
+                            style={{display:"flex",alignItems:"center",gap:"8px",padding:"10px 12px",cursor:"pointer",userSelect:"none",background:j.proxima?"#fffbeb":open?"#faf5ff":"#f8fafc"}}>
+                            <span style={{fontWeight:700,fontSize:"12.5px",color:j.proxima?"#b45309":"#475569",flexShrink:0}}>{j.label}</span>
+                            <span style={{fontSize:"11px",color:"#94a3b8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{fmtRango(j.games)}</span>
+                            <span style={{flex:1}}/>
+                            {j.enJuego&&<span style={{width:8,height:8,borderRadius:"50%",background:"#ef4444",flexShrink:0,boxShadow:"0 0 0 3px rgba(239,68,68,0.2)",display:"inline-block"}}/>}
+                            {j.proxima&&!j.enJuego&&<span style={{background:"#f59e0b",color:"#fff",borderRadius:"20px",padding:"2px 10px",fontSize:"10px",fontWeight:800,flexShrink:0}}>Próxima</span>}
+                            <span style={{fontSize:"16px",color:"#94a3b8",transform:open?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s",flexShrink:0}}>›</span>
+                          </div>
+                          {open&&(
+                            <div style={{padding:"10px",display:"flex",flexDirection:"column",gap:"8px",background:"#fff"}}>
+                              {j.games.map(p=><TarjetaPartido key={p.id} p={p}/>)}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ):(<>
                   {/* HOY */}
                   {partHoy.length>0&&(
                     <div style={{display:"flex",flexDirection:"column",gap:"8px",marginTop:"8px"}}>
@@ -1145,6 +1195,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                       </div>
                     </div>
                   )}
+                  </>)}
                 </div>
               )}
             </div>
@@ -2158,6 +2209,14 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     return {sinBandera:sinBandera,variantes:variantes,nacDup:nacDup};
   },[players]);
 
+  // Fotos placeholder: jugadoras y técnicos que aún tienen la silueta por defecto de Flashscore
+  var fotosPlaceholder=useMemo(function(){
+    var re=/empty-face-(woman|man)-share\.gif/;
+    var jug=players.filter(function(p){return p.foto&&re.test(p.foto);}).sort(function(a,b){return a.nombre.localeCompare(b.nombre,"es");});
+    var tec=(coaches||[]).filter(function(c){return c.foto&&re.test(c.foto);}).sort(function(a,b){return a.nombre.localeCompare(b.nombre,"es");});
+    return {jug:jug,tec:tec};
+  },[players,coaches]);
+
   var CAL_TABS=[
     {key:"incompletas",label:"Fichas incompletas",count:incompletasTotal},
     {key:"duplicadas",label:"Temporadas duplicadas",count:(duplicadas||[]).length},
@@ -2165,6 +2224,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     {key:"huecos",label:"Huecos de IDs",count:huecos?Object.values(huecos).reduce(function(a,v){return a+(v?v.total:0);},0):0},
     {key:"escudos_rotos",label:"Escudos rotos",count:brokenInfo.broken.length},
     {key:"nacionalidades",label:"Nacionalidades",count:nacInfo.sinBandera.length+nacInfo.variantes.length+nacInfo.nacDup.length},
+    {key:"fotos",label:"Fotos placeholder",count:fotosPlaceholder.jug.length+fotosPlaceholder.tec.length},
   ];
 
   return(
@@ -2483,6 +2543,51 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                         );})}
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {tab==="fotos"&&(
+            (fotosPlaceholder.jug.length+fotosPlaceholder.tec.length)===0?
+            <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><div style={{fontSize:"36px"}}>✅</div><p>Ninguna ficha usa la foto por defecto</p></div>:
+            <div style={{display:"flex",flexDirection:"column",gap:"16px"}}>
+              <p style={{fontSize:"12px",color:"#94a3b8",margin:0}}>Fichas cuya foto sigue siendo la silueta por defecto. Pulsa para abrir la ficha y cambiarla.</p>
+              {fotosPlaceholder.jug.length>0&&(
+                <div>
+                  <h3 style={{fontWeight:800,fontSize:"13px",color:"#1e293b",margin:"0 0 8px"}}>👩‍🏀 Jugadoras ({fotosPlaceholder.jug.length})</h3>
+                  <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+                    {fotosPlaceholder.jug.map(function(p){return(
+                      <div key={p.id_jugadora} onClick={function(){onGoToPlayer&&onGoToPlayer(p.id_jugadora);onClose();}}
+                        style={{display:"flex",alignItems:"center",gap:"12px",padding:"8px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0",cursor:"pointer"}}
+                        onMouseEnter={function(e){e.currentTarget.style.background="#fff7ed";}}
+                        onMouseLeave={function(e){e.currentTarget.style.background="#f8fafc";}}>
+                        <img src={p.foto} alt="" style={{width:34,height:34,borderRadius:"50%",objectFit:"cover",flexShrink:0,background:"#e2e8f0"}}/>
+                        <div style={{minWidth:0}}>
+                          <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
+                          <div style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{p.id_jugadora}</div>
+                        </div>
+                      </div>
+                    );})}
+                  </div>
+                </div>
+              )}
+              {fotosPlaceholder.tec.length>0&&(
+                <div>
+                  <h3 style={{fontWeight:800,fontSize:"13px",color:"#1e293b",margin:"0 0 8px"}}>📋 Cuerpo técnico ({fotosPlaceholder.tec.length})</h3>
+                  <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+                    {fotosPlaceholder.tec.map(function(c){return(
+                      <div key={c.id_coach} onClick={function(){onGoToCoach&&onGoToCoach(c.id_coach);onClose();}}
+                        style={{display:"flex",alignItems:"center",gap:"12px",padding:"8px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0",cursor:"pointer"}}
+                        onMouseEnter={function(e){e.currentTarget.style.background="#fff7ed";}}
+                        onMouseLeave={function(e){e.currentTarget.style.background="#f8fafc";}}>
+                        <img src={c.foto} alt="" style={{width:34,height:34,borderRadius:"50%",objectFit:"cover",flexShrink:0,background:"#e2e8f0"}}/>
+                        <div style={{minWidth:0}}>
+                          <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.nombre}</div>
+                          <div style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{c.id_coach}</div>
+                        </div>
+                      </div>
+                    );})}
                   </div>
                 </div>
               )}
