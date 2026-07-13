@@ -266,7 +266,7 @@ const COUNTRY_CODES = {
   /* Oceanía */
   "fiji":"fj","fiyi":"fj",
   "papua nueva guinea":"pg","papua new guinea":"pg",
-  "islas virgenes de america":"vi","islas virgenes de estados unidos":"vi","us virgin islands":"vi","united states virgin islands":"vi",
+  "islas virgenes de america":"vi","islas virgenes de estados unidos":"vi","islas virgenes de ee.uu.":"vi","islas virgenes de ee. uu.":"vi","islas virgenes de eeuu":"vi","us virgin islands":"vi","united states virgin islands":"vi",
   "burundi":"bi",
   "madagascar":"mg",
   "rd congo":"cd","república democrática del congo":"cd","republica democratica del congo":"cd","rdc":"cd",
@@ -2512,7 +2512,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                   </div>
                   <div>
                     <h3 style={{fontWeight:800,fontSize:"13px",color:"#1e293b",margin:"0 0 8px"}}>🔀 Variantes del mismo país ({nacInfo.variantes.length})</h3>
-                    <p style={{color:"#94a3b8",fontSize:"11px",margin:"0 0 8px"}}>Distintas grafías en la base de datos que resuelven a la misma bandera. Ojo: algunas son intencionadas (p. ej. "Islas Vírgenes de America").</p>
+                    <p style={{color:"#94a3b8",fontSize:"11px",margin:"0 0 8px"}}>Distintas grafías en la base de datos que resuelven a la misma bandera. Ojo: algunas son intencionadas (p. ej. "Islas Vírgenes de EE.UU.").</p>
                     {nacInfo.variantes.length===0?<p style={{color:"#94a3b8",fontSize:"12px",margin:0}}>Ninguna.</p>:(
                       <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
                         {nacInfo.variantes.map(function(item){return(
