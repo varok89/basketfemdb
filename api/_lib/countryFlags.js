@@ -155,7 +155,7 @@ const COUNTRY_CODES = {
   /* Oceanía */
   "fiji":"fj","fiyi":"fj",
   "papua nueva guinea":"pg","papua new guinea":"pg",
-  "islas virgenes de america":"vi","islas virgenes de estados unidos":"vi","us virgin islands":"vi","united states virgin islands":"vi",
+  "islas virgenes de america":"vi","islas virgenes de estados unidos":"vi","islas virgenes de ee.uu.":"vi","islas virgenes de ee. uu.":"vi","islas virgenes de eeuu":"vi","us virgin islands":"vi","united states virgin islands":"vi",
   "burundi":"bi",
   "madagascar":"mg",
   "rd congo":"cd","república democrática del congo":"cd","republica democratica del congo":"cd","rdc":"cd",
