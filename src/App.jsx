@@ -858,6 +858,8 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
   const [saving,setSaving]=useState(false);
   const [expandedLigas,setExpandedLigas]=useState({});
   const [expandedJornadas,setExpandedJornadas]=useState({});
+  const [archivoOpen,setArchivoOpen]=useState(false);
+  const [archivoTempOpen,setArchivoTempOpen]=useState({});
   const [clasiLigaId,setClasiLigaId]=useState(null);
   const [clasiVista,setClasiVista]=useState("grupos");
   const [filtroLiga,setFiltroLiga]=useState("");
@@ -1025,8 +1027,8 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
           <div style={{fontWeight:600,fontSize:"16px"}}>No hay partidos programados</div>
           {isAdmin&&<div style={{fontSize:"13px",marginTop:"6px"}}>Pulsa "+ Partido" para añadir el primero</div>}
         </div>
-      ):(<>
-        {Object.entries(byLiga).map(([grupoKey,ps])=>{
+      ):(()=>{
+        const renderGrupo=(grupoKey,ps)=>{
           const [ligaId,temporada]=grupoKey.split("|");
           const hoy=new Date().toDateString();
           const esHoy=p=>new Date(p.fecha_hora).toDateString()===hoy;
@@ -1201,9 +1203,51 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
               )}
             </div>
           );
-        })}
-      </>
-      )}
+        };
+        // Clasificar cada competición: activa (le quedan partidos por jugar) o finalizada (todo con resultado)
+        const esFinalizada=ps=>ps.length>0&&ps.every(p=>p.resultado_local!=null&&p.resultado_visitante!=null);
+        const entradas=Object.entries(byLiga);
+        const activas=entradas.filter(([,ps])=>!esFinalizada(ps));
+        const finalizadas=entradas.filter(([,ps])=>esFinalizada(ps));
+        // Agrupar las finalizadas por temporada para el archivo
+        const archivoPorTemp={};
+        finalizadas.forEach(([k,ps])=>{const temp=(k.split("|")[1])||"—";(archivoPorTemp[temp]=archivoPorTemp[temp]||[]).push([k,ps]);});
+        const tempsArchivo=Object.keys(archivoPorTemp).sort((a,b)=>b.localeCompare(a));
+        return(<>
+          {activas.map(([k,ps])=>renderGrupo(k,ps))}
+          {finalizadas.length>0&&(
+            <div style={{marginTop:activas.length?"22px":"0"}}>
+              <div onClick={()=>setArchivoOpen(o=>!o)}
+                style={{display:"flex",alignItems:"center",gap:"10px",padding:"14px 16px",cursor:"pointer",userSelect:"none",background:"#eef2f7",borderRadius:"14px"}}>
+                <span style={{fontSize:"18px"}}>🗄️</span>
+                <span style={{fontWeight:800,fontSize:"14px",color:"#475569",flex:1}}>Competiciones finalizadas</span>
+                <span style={{background:"#dbe2ea",color:"#64748b",borderRadius:"20px",padding:"2px 10px",fontSize:"12px",fontWeight:700}}>{finalizadas.length}</span>
+                <span style={{fontSize:"18px",color:"#94a3b8",transform:archivoOpen?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>›</span>
+              </div>
+              {archivoOpen&&(
+                <div style={{marginTop:"10px",display:"flex",flexDirection:"column",gap:"10px"}}>
+                  {tempsArchivo.map(temp=>{
+                    const grupos=archivoPorTemp[temp];
+                    const tOpen=archivoTempOpen[temp]??false;
+                    return(
+                      <div key={temp}>
+                        <div onClick={()=>setArchivoTempOpen(prev=>({...prev,[temp]:!tOpen}))}
+                          style={{display:"flex",alignItems:"center",gap:"10px",padding:"11px 16px",cursor:"pointer",userSelect:"none",background:tOpen?"#faf5ff":"#fff",borderRadius:"12px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
+                          <span style={{fontSize:"13px"}}>📅</span>
+                          <span style={{fontWeight:700,fontSize:"13px",color:"#9333ea",flex:1}}>{temp}</span>
+                          <span style={{fontSize:"11px",color:"#94a3b8"}}>{grupos.length} {grupos.length===1?"competición":"competiciones"}</span>
+                          <span style={{fontSize:"16px",color:"#94a3b8",transform:tOpen?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>›</span>
+                        </div>
+                        {tOpen&&<div style={{marginTop:"8px",display:"flex",flexDirection:"column",gap:"12px"}}>{grupos.map(([k,ps])=>renderGrupo(k,ps))}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </>);
+      })()}
     </div>
   );
 }
