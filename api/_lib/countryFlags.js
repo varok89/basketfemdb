@@ -121,6 +121,7 @@ const COUNTRY_CODES = {
   "cape verde":"cv","cabo verde":"cv",
   "gabon":"ga","gabón":"ga",
   "benin":"bj","benín":"bj",
+  "tonga":"to",
   "togo":"tg",
   "burkina faso":"bf",
   "guinea-bissau":"gw","guinea bisau":"gw","guinea-bisau":"gw",
