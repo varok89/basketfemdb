@@ -233,6 +233,7 @@ const COUNTRY_CODES = {
   "gabon":"ga","gabón":"ga",
   "benin":"bj","benín":"bj",
   "togo":"tg",
+  "tonga":"to",
   "burkina faso":"bf",
   "guinea-bissau":"gw","guinea bisau":"gw","guinea-bisau":"gw",
   "camboya":"kh","cambodia":"kh",
@@ -1113,13 +1114,13 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                 {ligaMap[ligaId]?.logo&&<img src={ligaMap[ligaId].logo} alt="" style={{width:24,height:24,objectFit:"contain",flexShrink:0}}/>}
                 <span style={{fontWeight:700,fontSize:"14px",color:"#9333ea",flex:1}}>{ligaMap[ligaId]?.nombre||"Sin liga"}{temporada?` - ${temporada}`:""}</span>
                 {hayEnJuego&&<span style={{width:10,height:10,borderRadius:"50%",background:"#ef4444",flexShrink:0,boxShadow:"0 0 0 3px rgba(239,68,68,0.2)",display:"inline-block"}}/>}
-                {(ps.some(p=>p.notas&&/^Group [A-Z]/i.test(p.notas)&&p.id_equipo_local&&p.id_equipo_visitante)||(ligaMap[ligaId]?.tipo==="liga"&&ps.some(p=>p.id_equipo_local&&p.id_equipo_visitante)))&&(
+                {(ps.some(p=>p.notas&&/^Group [A-Z]/i.test(p.notas)&&p.id_equipo_local&&p.id_equipo_visitante)||(ligaMap[ligaId]?.tipo==="liga"&&ps.some(p=>p.id_equipo_local&&p.id_equipo_visitante))||(ligaMap[ligaId]?.tipo!=="liga"&&ps.some(p=>/#\d+/.test(p.notas||"")||/^octavos/i.test(p.notas||""))))&&(
                   <button onClick={e=>{e.stopPropagation();abrirClasi(grupoKey,"grupos");}}
                     style={{background:"#f5f3ff",color:"#7c3aed",border:"1.5px solid #ddd6fe",borderRadius:"20px",padding:"3px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer",flexShrink:0,marginRight:"4px"}}>
                     📊
                   </button>
                 )}
-                {ps.some(p=>/#(49|5[0-6])\b/.test(p.notas||""))&&(
+                {ps.some(p=>/#(49|5[0-5])\b/.test(p.notas||""))&&(
                   <button onClick={e=>{e.stopPropagation();abrirClasi(grupoKey,"standing");}}
                     style={{background:"#fffbeb",color:"#b45309",border:"1.5px solid #fde68a",borderRadius:"20px",padding:"3px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer",flexShrink:0,marginRight:"4px"}}>
                     🏅
@@ -1345,7 +1346,7 @@ function BracketCard({title,children}){
   );
 }
 
-function FaseFinal({psLiga,equipoMap,onOpenPartido}){
+function FaseFinal({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlayer}){
   const byNum=useMemo(()=>{
     const m={};
     psLiga.forEach(p=>{const mt=(p.notas||"").match(/#(\d+)/);if(mt)m[mt[1]]=p;});
@@ -1372,9 +1373,15 @@ function FaseFinal({psLiga,equipoMap,onOpenPartido}){
         <BracketCard title="Cuadro final">
           <div style={{display:"flex",gap:"14px",alignItems:"stretch"}}>
             {octavos.length>0&&<BracketCol label="Octavos">{octavos.map(p=>box(p))}</BracketCol>}
-            <BracketCol label="Cuartos">{[37,39,38,40].map(n=>box(g(n)))}</BracketCol>
-            <BracketCol label="Semifinales">{[47,48].map(n=>box(g(n)))}</BracketCol>
-            <BracketCol label="Final">{box(g(56),"🏆 Final")}{box(g(55),"🥉 3er puesto")}</BracketCol>
+            {[37,39,38,40].some(n=>g(n))&&<BracketCol label="Cuartos">{[37,39,38,40].map(n=>box(g(n)))}</BracketCol>}
+            {[47,48].some(n=>g(n))&&<BracketCol label="Semifinales">{[47,48].map(n=>box(g(n)))}</BracketCol>}
+            <BracketCol label="Final">{box(g(56),"🏆 Final")}{box(g(55),"🥉 3er puesto")}{mvpPlayer&&(
+              <div onClick={()=>onGoToPlayer&&onGoToPlayer(mvpPlayer.id_jugadora)} style={{display:"flex",flexDirection:"column",alignItems:"center",cursor:onGoToPlayer?"pointer":"default",marginTop:"8px",gap:"2px"}}>
+                <Avatar photo={mvpPlayer.foto} name={mvpPlayer.nombre} size={40} fontSize={13}/>
+                <span style={{fontSize:"11px",fontWeight:700,color:"#1e293b",whiteSpace:"nowrap",maxWidth:"150px",overflow:"hidden",textOverflow:"ellipsis"}}>{mvpPlayer.nombre}</span>
+                <span style={{fontSize:"9px",fontWeight:800,color:"#b45309",letterSpacing:"0.5px"}}>🏅 MVP</span>
+              </div>
+            )}</BracketCol>
           </div>
         </BracketCard>
       )}
@@ -1560,9 +1567,13 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
   const modoLiga=liga?.tipo==="liga";
   const hayKO=useMemo(()=>!modoLiga&&psLiga.some(p=>p.notas&&(/#\d+/.test(p.notas)||/^octavos/i.test(p.notas))),[psLiga,modoLiga]);
   const hayPlayoffs=useMemo(()=>modoLiga&&psLiga.some(p=>/playoff/i.test(p.notas||"")),[psLiga,modoLiga]);
+  // Standing (clasificación por puestos) solo en torneos con cruces de clasificación 3º-16º (#49-#55).
+  // Un Final Four (solo semifinales y final) no los tiene, así que no muestra ni Grupos ni Standing.
+  const hayStanding=useMemo(()=>!modoLiga&&psLiga.some(p=>/#(49|5[0-5])\b/.test(p.notas||"")),[psLiga,modoLiga]);
   // Zonas de la tabla en modo liga (formato Liga Femenina Endesa): 8 a playoffs, 2 descensos
   const PLAYOFF_PUESTOS=8, DESCENSO_PUESTOS=2;
-  const [vista,setVista]=useState(vistaInicial||"grupos");
+  const vistaIni=(vistaInicial==="grupos"&&grupos.length)||(vistaInicial==="standing"&&hayStanding)||(vistaInicial==="final"&&hayKO)?vistaInicial:(hayKO?"final":grupos.length?"grupos":"standing");
+  const [vista,setVista]=useState(vistaIni);
   const mvpPlayer=useMemo(()=>{
     const m=(mvps||[]).find(x=>x.id_liga===ligaId&&(x.temporada||"")===(temporada||""));
     return m?(players||[]).find(p=>p.id_jugadora===m.id_jugadora)||null:null;
@@ -1579,16 +1590,22 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
     <div style={{maxWidth:"700px",margin:"0 auto",padding:"16px",fontFamily:"system-ui,sans-serif"}}>
       <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"15px",cursor:"pointer",padding:"0 0 16px"}}>← Volver</button>
       <h1 style={{fontWeight:800,fontSize:"20px",color:"#1e293b",margin:"0 0 20px"}}>🏆 Clasificación</h1>
-      {(hayKO||hayPlayoffs)&&(
-        <div style={{display:"flex",gap:"8px",marginBottom:"16px"}}>
-          {(modoLiga?[["grupos","Clasificación"],["final","Playoffs"]]:[["grupos","Grupos"],["final","Fase final"],["standing","🏅 Standing"]]).map(([k,lbl])=>(
-            <button key={k} onClick={()=>{setVista(k);onVistaChange&&onVistaChange(k);}}
-              style={{border:"none",borderRadius:"10px",padding:"8px 16px",fontSize:"13px",fontWeight:700,cursor:"pointer",
-                background:vista===k?"#9333ea":"#fff",color:vista===k?"#fff":"#64748b",boxShadow:vista===k?"none":"0 1px 4px rgba(0,0,0,0.06)"}}>{lbl}</button>
-          ))}
-        </div>
-      )}
-      {vista==="final"&&hayKO&&<FaseFinal psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido}/>}
+      {(()=>{
+        const tabs=modoLiga
+          ?[["grupos","Clasificación"],...(hayPlayoffs?[["final","Playoffs"]]:[])]
+          :[...(grupos.length?[["grupos","Grupos"]]:[]),...(hayKO?[["final","Fase final"]]:[]),...(hayStanding?[["standing","🏅 Standing"]]:[])];
+        if(tabs.length<=1)return null;
+        return(
+          <div style={{display:"flex",gap:"8px",marginBottom:"16px"}}>
+            {tabs.map(([k,lbl])=>(
+              <button key={k} onClick={()=>{setVista(k);onVistaChange&&onVistaChange(k);}}
+                style={{border:"none",borderRadius:"10px",padding:"8px 16px",fontSize:"13px",fontWeight:700,cursor:"pointer",
+                  background:vista===k?"#9333ea":"#fff",color:vista===k?"#fff":"#64748b",boxShadow:vista===k?"none":"0 1px 4px rgba(0,0,0,0.06)"}}>{lbl}</button>
+            ))}
+          </div>
+        );
+      })()}
+      {vista==="final"&&hayKO&&<FaseFinal psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido} mvpPlayer={mvpPlayer} onGoToPlayer={onGoToPlayer}/>}
       {vista==="final"&&hayPlayoffs&&<PlayoffBracket psLiga={psLiga} equipoMap={equipoMap}/>}
       {vista==="standing"&&hayKO&&<StandingFinal psLiga={psLiga} equipoMap={equipoMap} temporada={temporada} onGoToTeam={onGoToTeam} mvpPlayer={mvpPlayer} onGoToPlayer={onGoToPlayer}/>}
       {vista==="grupos"&&!grupos.length&&<p style={{color:"#94a3b8",textAlign:"center",paddingTop:"40px"}}>No hay partidos con resultado para calcular la clasificación.</p>}
