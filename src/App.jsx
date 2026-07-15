@@ -663,11 +663,12 @@ function PartidoForm({initial,equipos,ligas,onSave,onCancel,saving}){
 }
 
 /* ── PartidoFichaView ────────────────────────────────────── */
-function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,onGoToPlayer}){
+function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,onGoToPlayer}){
   const [rows,setRows]=useState(null);
   const [tab,setTab]=useState("ambos");
   const [sortK,setSortK]=useState("puntos");
   const [sortD,setSortD]=useState("desc");
+  const fotoMap=useMemo(()=>{const m={};(players||[]).forEach(p=>{m[p.id_jugadora]=p.foto;});return m;},[players]);
   useEffect(()=>{
     let cancel=false; setRows(null);
     (async()=>{
@@ -704,10 +705,13 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,onGoToPl
         <tbody>
           {sorted.map((r,i)=>(
             <tr key={i} onClick={()=>onGoToPlayer&&onGoToPlayer(r.id_jugadora)} style={{cursor:onGoToPlayer?"pointer":"default"}}>
-              <td style={{...td,textAlign:"left",fontWeight:600,maxWidth:"150px",overflow:"hidden",textOverflow:"ellipsis"}}>
-                {r.titular&&<span title="Titular" style={{color:"#9333ea",marginRight:"4px",fontWeight:800}}>●</span>}
-                {tab==="ambos"&&<span style={{fontSize:"9px",color:"#cbd5e1",marginRight:"3px",fontWeight:700}}>{r.id_equipo===equipoLocal?"L":"V"}</span>}
-                {r.nombre}
+              <td style={{...td,textAlign:"left",fontWeight:600,maxWidth:"180px"}}>
+                <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
+                  {fotoMap[r.id_jugadora]?<img src={fotoMap[r.id_jugadora]} alt="" style={{width:28,height:28,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"1px solid #f1f5f9"}} onError={e=>{e.target.style.visibility="hidden";}}/>:<div style={{width:28,height:28,borderRadius:"50%",background:"#f1f5f9",flexShrink:0}}/>}
+                  {r.titular&&<span title="Titular" style={{color:"#9333ea",fontWeight:800,flexShrink:0}}>●</span>}
+                  {tab==="ambos"&&<span style={{fontSize:"9px",color:"#cbd5e1",fontWeight:700,flexShrink:0}}>{r.id_equipo===equipoLocal?"L":"V"}</span>}
+                  <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.nombre}</span>
+                </div>
               </td>
               <td style={td}>{r.minutos}</td>
               <td style={{...td,fontWeight:700}}>{r.puntos}</td>
@@ -882,17 +886,7 @@ function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,
         )}
       </div>
 
-      <BoxscorePartido idPartido={partido.id} equipoLocal={partido.id_equipo_local} equipoVisit={partido.id_equipo_visitante} local={local} visit={visit} onGoToPlayer={onGoToPlayer}/>
-
-      {/* Rosters enfrentados */}
-      <div style={{background:"#fff",borderRadius:"20px",padding:"20px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
-        <h2 style={{fontWeight:800,fontSize:"16px",color:"#1e293b",margin:"0 0 16px"}}>Plantillas</h2>
-        <div style={{display:"flex",gap:"16px"}}>
-          <RosterCol equipo={local} roster={rosterLocal} side="left"/>
-          <div style={{width:"1px",background:"#e2e8f0",flexShrink:0}}/>
-          <RosterCol equipo={visit} roster={rosterVisit} side="right"/>
-        </div>
-      </div>
+      <BoxscorePartido idPartido={partido.id} equipoLocal={partido.id_equipo_local} equipoVisit={partido.id_equipo_visitante} local={local} visit={visit} players={players} onGoToPlayer={onGoToPlayer}/>
     </div>
   );
 }
@@ -961,6 +955,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
     if(partidosSub&&partidosSub[0]==="partido"){
       const p=partidos.find(x=>String(x.id)===String(partidosSub[1]));
       if(p)setFicha(p);
+      else{(async()=>{const {data}=await supabase.from("partidos").select("*").eq("id",partidosSub[1]).maybeSingle();if(data)setFicha(data);})();}
     }
   },[partidosSub,partidos]);
 
