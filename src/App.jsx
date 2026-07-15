@@ -3038,14 +3038,15 @@ function NacDropdown({allNacs,filterNacs,setFilterNacs}){
 }
 
 /* ── PlayersView ─────────────────────────────────────────── */
-function StatsJugadora({idJugadora,equipos}){
+function StatsJugadora({idJugadora,equipos,ligas,onOpenPartido}){
   const [rows,setRows]=useState(null);
   const [temp,setTemp]=useState(null);
+  const [comp,setComp]=useState("ALL");
   useEffect(()=>{
     let cancel=false; setRows(null);
     (async()=>{
       const {data}=await supabase.from("partido_boxscore")
-        .select("id_partido,id_equipo,minutos,puntos,tc_anotados,tc_intentados,t3_anotados,t3_intentados,tl_anotados,tl_intentados,reb_ofensivos,reb_defensivos,reb_totales,asistencias,robos,tapones,perdidas,faltas,valoracion,partidos!inner(temporada,fecha_hora,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante)")
+        .select("id_partido,id_equipo,minutos,puntos,tc_anotados,tc_intentados,t3_anotados,t3_intentados,tl_anotados,tl_intentados,reb_ofensivos,reb_defensivos,reb_totales,asistencias,robos,tapones,perdidas,faltas,valoracion,partidos!inner(temporada,id_liga,fecha_hora,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante)")
         .eq("id_jugadora",idJugadora);
       if(cancel)return;
       const r=(data||[]).map(x=>({...x,...(x.partidos||{})})).sort((a,b)=>(b.fecha_hora||"").localeCompare(a.fecha_hora||""));
@@ -3060,68 +3061,92 @@ function StatsJugadora({idJugadora,equipos}){
   if(rows.length===0)return <div style={{background:"#fff",borderRadius:"20px",padding:"40px",textAlign:"center",color:"#94a3b8",fontSize:"14px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>Aún no hay estadísticas de partido para esta jugadora.</div>;
 
   const N=v=>Number(v)||0;
+  const ligaMap={}; (ligas||[]).forEach(l=>ligaMap[l.id_liga]=l);
+  const eq=id=>equipos.find(e=>e.id_equipo===id);
+  const eqName=id=>eq(id)?.nombre||id;
   const temps=[...new Set(rows.map(x=>x.temporada))].sort((a,b)=>String(b).localeCompare(String(a)));
-  const eqName=id=>(equipos.find(e=>e.id_equipo===id)?.nombre)||id;
-  const part=rows.filter(x=>x.temporada===temp);
-  const pj=part.length;
-  const sum=k=>part.reduce((s,x)=>s+N(x[k]),0);
-  const avg=k=>pj?(sum(k)/pj):0;
-  const pctT=(a,i)=>{const I=sum(i);return I?Math.round(sum(a)/I*1000)/10:null;};
-  const cards=[["PJ",pj],["MIN",avg("minutos").toFixed(1)],["PTS",avg("puntos").toFixed(1)],["REB",avg("reb_totales").toFixed(1)],["AST",avg("asistencias").toFixed(1)],["ROB",avg("robos").toFixed(1)],["VAL",avg("valoracion").toFixed(1)]];
-  const pcts=[["TC",pctT("tc_anotados","tc_intentados")],["T3",pctT("t3_anotados","t3_intentados")],["TL",pctT("tl_anotados","tl_intentados")]];
+  const compsTemp=[...new Set(rows.filter(x=>x.temporada===temp).map(x=>x.id_liga))];
+  const compActiva=compsTemp.includes(comp)?comp:"ALL";
+  const filt=rows.filter(x=>x.temporada===temp&&(compActiva==="ALL"||x.id_liga===compActiva));
+  const porEquipo={};
+  filt.forEach(x=>{(porEquipo[x.id_equipo]=porEquipo[x.id_equipo]||[]).push(x);});
+  const equiposOrden=Object.keys(porEquipo).sort((a,b)=>porEquipo[b].length-porEquipo[a].length);
+  const varios=equiposOrden.length>1;
   const th={padding:"7px 6px",fontSize:"10px",fontWeight:700,color:"#94a3b8",textAlign:"center",whiteSpace:"nowrap",borderBottom:"2px solid #f1f5f9"};
   const td={padding:"7px 6px",fontSize:"12px",color:"#334155",textAlign:"center",whiteSpace:"nowrap",borderBottom:"1px solid #f8fafc"};
 
+  const bloque=(idEq,part)=>{
+    const pj=part.length;
+    const sum=k=>part.reduce((s,x)=>s+N(x[k]),0);
+    const avg=k=>pj?(sum(k)/pj):0;
+    const pctT=(a,i)=>{const I=sum(i);return I?Math.round(sum(a)/I*1000)/10:null;};
+    const cards=[["PJ",pj],["MIN",avg("minutos").toFixed(1)],["PTS",avg("puntos").toFixed(1)],["REB",avg("reb_totales").toFixed(1)],["AST",avg("asistencias").toFixed(1)],["ROB",avg("robos").toFixed(1)],["VAL",avg("valoracion").toFixed(1)]];
+    const pcts=[["TC",pctT("tc_anotados","tc_intentados")],["T3",pctT("t3_anotados","t3_intentados")],["TL",pctT("tl_anotados","tl_intentados")]];
+    const e=eq(idEq);
+    return(
+      <div key={idEq} style={{display:"flex",flexDirection:"column",gap:"12px",borderLeft:varios?"3px solid #ddd6fe":"none",paddingLeft:varios?"12px":"0"}}>
+        {varios&&(<div style={{display:"flex",alignItems:"center",gap:"8px"}}>{e?.escudo&&<img src={e.escudo} alt="" style={{width:26,height:26,objectFit:"contain"}}/>}<span style={{fontWeight:800,fontSize:"15px",color:"#1e293b"}}>{eqName(idEq)}</span></div>)}
+        <div style={{background:"#fff",borderRadius:"18px",padding:"18px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
+          <div style={{fontSize:"12px",fontWeight:700,color:"#9333ea",marginBottom:"12px",display:"flex",alignItems:"center",gap:"6px"}}>{!varios&&e?.escudo&&<img src={e.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>}PROMEDIOS · {temp}{!varios?` · ${eqName(idEq)}`:""}</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(58px,1fr))",gap:"8px"}}>
+            {cards.map(([l,v])=>(<div key={l} style={{textAlign:"center",background:"#faf5ff",borderRadius:"12px",padding:"10px 4px"}}><div style={{fontSize:"18px",fontWeight:800,color:"#1e293b"}}>{v}</div><div style={{fontSize:"10px",color:"#94a3b8",fontWeight:600}}>{l}</div></div>))}
+          </div>
+          <div style={{display:"flex",gap:"16px",marginTop:"12px",flexWrap:"wrap"}}>
+            {pcts.map(([l,v])=>(<div key={l} style={{fontSize:"12px",color:"#64748b"}}><span style={{fontWeight:700,color:"#334155"}}>{v==null?"—":v+"%"}</span> {l}</div>))}
+          </div>
+        </div>
+        <div style={{background:"#fff",borderRadius:"18px",padding:"14px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",overflowX:"auto"}}>
+          <div style={{fontSize:"12px",fontWeight:700,color:"#9333ea",marginBottom:"10px"}}>PARTIDO A PARTIDO</div>
+          <table style={{borderCollapse:"collapse",width:"100%",minWidth:"580px"}}>
+            <thead><tr>{["Fecha","","Rival","Res","MIN","PTS","TC","T3","TL","REB","AST","VAL"].map((h,i)=><th key={i} style={th}>{h}</th>)}</tr></thead>
+            <tbody>
+              {[...part].sort((a,b)=>(b.fecha_hora||"").localeCompare(a.fecha_hora||"")).map((x,i)=>{
+                const local=x.id_equipo===x.id_equipo_local;
+                const rival=eqName(local?x.id_equipo_visitante:x.id_equipo_local);
+                const pf=local?N(x.resultado_local):N(x.resultado_visitante);
+                const pc=local?N(x.resultado_visitante):N(x.resultado_local);
+                const win=pf>pc;
+                return(<tr key={i} onClick={()=>onOpenPartido&&onOpenPartido(x.id_partido)} style={{cursor:onOpenPartido?"pointer":"default"}}>
+                  <td style={{...td,color:"#94a3b8",fontSize:"11px"}}>{(x.fecha_hora||"").slice(5,10).split("-").reverse().join("/")}</td>
+                  <td style={{...td,fontSize:"13px"}}>{local?"🏠":"✈️"}</td>
+                  <td style={{...td,textAlign:"left",maxWidth:"130px",overflow:"hidden",textOverflow:"ellipsis"}}>{rival}</td>
+                  <td style={{...td,fontWeight:700,color:win?"#16a34a":"#ef4444"}}>{win?"V":"D"} {pf}-{pc}</td>
+                  <td style={td}>{x.minutos}</td>
+                  <td style={{...td,fontWeight:700}}>{x.puntos}</td>
+                  <td style={td}>{x.tc_anotados}/{x.tc_intentados}</td>
+                  <td style={td}>{x.t3_anotados}/{x.t3_intentados}</td>
+                  <td style={td}>{x.tl_anotados}/{x.tl_intentados}</td>
+                  <td style={td}>{x.reb_totales}</td>
+                  <td style={td}>{x.asistencias}</td>
+                  <td style={{...td,fontWeight:700}}>{x.valoracion}</td>
+                </tr>);
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
   return(
-    <div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
+    <div style={{display:"flex",flexDirection:"column",gap:"16px"}}>
       <div style={{display:"flex",alignItems:"center",gap:"10px",flexWrap:"wrap"}}>
-        <span style={{fontSize:"13px",fontWeight:600,color:"#64748b"}}>Temporada:</span>
-        <select value={temp||""} onChange={e=>setTemp(e.target.value)} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#9333ea",fontWeight:700,background:"#fff",outline:"none"}}>
+        <select value={temp||""} onChange={e=>{setTemp(e.target.value);setComp("ALL");}} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#9333ea",fontWeight:700,background:"#fff",outline:"none"}}>
           {temps.map(t=><option key={t} value={t}>{t}</option>)}
         </select>
+        {compsTemp.length>1&&(
+          <select value={compActiva} onChange={e=>setComp(e.target.value)} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#475569",fontWeight:600,background:"#fff",outline:"none"}}>
+            <option value="ALL">Todas las competiciones</option>
+            {compsTemp.map(c=><option key={c} value={c}>{ligaMap[c]?.nombre||c}</option>)}
+          </select>
+        )}
       </div>
-      <div style={{background:"#fff",borderRadius:"18px",padding:"18px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
-        <div style={{fontSize:"12px",fontWeight:700,color:"#9333ea",marginBottom:"12px"}}>PROMEDIOS · {temp}</div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(58px,1fr))",gap:"8px"}}>
-          {cards.map(([l,v])=>(<div key={l} style={{textAlign:"center",background:"#faf5ff",borderRadius:"12px",padding:"10px 4px"}}><div style={{fontSize:"18px",fontWeight:800,color:"#1e293b"}}>{v}</div><div style={{fontSize:"10px",color:"#94a3b8",fontWeight:600}}>{l}</div></div>))}
-        </div>
-        <div style={{display:"flex",gap:"16px",marginTop:"12px",flexWrap:"wrap"}}>
-          {pcts.map(([l,v])=>(<div key={l} style={{fontSize:"12px",color:"#64748b"}}><span style={{fontWeight:700,color:"#334155"}}>{v==null?"—":v+"%"}</span> {l}</div>))}
-        </div>
-      </div>
-      <div style={{background:"#fff",borderRadius:"18px",padding:"14px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",overflowX:"auto"}}>
-        <div style={{fontSize:"12px",fontWeight:700,color:"#9333ea",marginBottom:"10px"}}>PARTIDO A PARTIDO</div>
-        <table style={{borderCollapse:"collapse",width:"100%",minWidth:"560px"}}>
-          <thead><tr>{["Fecha","Rival","Res","MIN","PTS","TC","T3","TL","REB","AST","VAL"].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
-          <tbody>
-            {part.map((x,i)=>{
-              const local=x.id_equipo===x.id_equipo_local;
-              const rival=eqName(local?x.id_equipo_visitante:x.id_equipo_local);
-              const pf=local?N(x.resultado_local):N(x.resultado_visitante);
-              const pc=local?N(x.resultado_visitante):N(x.resultado_local);
-              const win=pf>pc;
-              return(<tr key={i}>
-                <td style={{...td,color:"#94a3b8",fontSize:"11px"}}>{(x.fecha_hora||"").slice(5,10).split("-").reverse().join("/")}</td>
-                <td style={{...td,textAlign:"left",maxWidth:"130px",overflow:"hidden",textOverflow:"ellipsis"}}>{local?"":"@ "}{rival}</td>
-                <td style={{...td,fontWeight:700,color:win?"#16a34a":"#ef4444"}}>{win?"V":"D"} {pf}-{pc}</td>
-                <td style={td}>{x.minutos}</td>
-                <td style={{...td,fontWeight:700}}>{x.puntos}</td>
-                <td style={td}>{x.tc_anotados}/{x.tc_intentados}</td>
-                <td style={td}>{x.t3_anotados}/{x.t3_intentados}</td>
-                <td style={td}>{x.tl_anotados}/{x.tl_intentados}</td>
-                <td style={td}>{x.reb_totales}</td>
-                <td style={td}>{x.asistencias}</td>
-                <td style={{...td,fontWeight:700}}>{x.valoracion}</td>
-              </tr>);
-            })}
-          </tbody>
-        </table>
-      </div>
+      {equiposOrden.map(idEq=>bloque(idEq,porEquipo[idEq]))}
     </div>
   );
 }
 
-function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,onGoToTeam,onGoToCoach,openPlayerId,onClearPlayer,isAdmin,onGoToTab,navHistory,onGoBack,equiposNombres,setPlayers,setTempCoach}){
+function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,onGoToTeam,onGoToCoach,openPlayerId,onClearPlayer,isAdmin,onGoToTab,navHistory,onGoBack,equiposNombres,setPlayers,setTempCoach,onGoToPartido}){
   const [search,setSearch]         = useState("");
   const [filterPos,setFilterPos]   = useState("");
   const [filterNacs,setFilterNacs] = useState(new Set());
@@ -3455,7 +3480,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
         })()}
       </div>
       )}
-      {ftab==="estadisticas"&&<StatsJugadora idJugadora={selected.id_jugadora} equipos={equipos}/>}
+      {ftab==="estadisticas"&&<StatsJugadora idJugadora={selected.id_jugadora} equipos={equipos} ligas={ligas} onOpenPartido={onGoToPartido}/>}
       {isAdmin&&seasonModal&&(()=>{
         const coachRecord=(coaches||[]).find(c=>String(c.id_jugadora)===String(selected.id_jugadora));
         return coachRecord?(<Modal title={seasonModal==="add"?"Añadir temporada coach":"Editar temporada coach"} onClose={()=>setSeasonModal(null)}>
@@ -5096,6 +5121,7 @@ export default function App(){
   const goToLeague = (id,from=null)=>{pushNav(from,"ligas",id);setOpenLigaId(id);setTab("ligas");scrollTop();};
   const goToPlayer = (id,from=null)=>{pushNav(from,"jugadoras",id);setOpenPlayerId(id);setOpenTeamId(null);setTab("jugadoras");scrollTop();};
   const goToCoach  = (id,from=null)=>{pushNav(from,"cuerpo_tecnico",id);setOpenCoachId(id);setTab("cuerpo_tecnico");scrollTop();};
+  const goToPartido= (id,from=null)=>{setPartidosSub(["partido",String(id)]);setTab("partidos");try{window.history.pushState({},"",`/partidos/partido/${id}`);}catch(e){}scrollTop();};
 
   // goBack ahora delega en el navegador: window.history.back() dispara un popstate real,
   // que ya tenemos gestionado más abajo. Mantenemos el pop de navHistory en paralelo
@@ -5259,7 +5285,7 @@ export default function App(){
       </div>
       <div style={{paddingTop:"8px"}}>
         {tab==="home"&&<HomeView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToTab={t=>setTab(t)} equiposNombres={equiposNombres}/>}
-        {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setPlayers={setPlayers} setTempCoach={setTempCoach}/>}
+        {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setPlayers={setPlayers} setTempCoach={setTempCoach} onGoToPartido={goToPartido}/>}
         {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setEquipos={setEquipos} setEquiposNombres={setEquiposNombres} setPlayers={setPlayers} setPalmares={setPalmares}/>}
         {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} coaches={coaches} tempCoach={tempCoach} partidos={partidos} onGoToClasificacion={(ligaId,temporada)=>{setOpenClasiKey(`${ligaId}|${temporada||""}`);setTab("partidos");scrollTop();}} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setLigas={setLigas}/>}
         {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setCoaches={setCoaches} setTempCoach={setTempCoach} equiposNombres={equiposNombres}/>}
