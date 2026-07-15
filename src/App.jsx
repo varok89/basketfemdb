@@ -3038,6 +3038,89 @@ function NacDropdown({allNacs,filterNacs,setFilterNacs}){
 }
 
 /* ── PlayersView ─────────────────────────────────────────── */
+function StatsJugadora({idJugadora,equipos}){
+  const [rows,setRows]=useState(null);
+  const [temp,setTemp]=useState(null);
+  useEffect(()=>{
+    let cancel=false; setRows(null);
+    (async()=>{
+      const {data}=await supabase.from("partido_boxscore")
+        .select("id_partido,id_equipo,minutos,puntos,tc_anotados,tc_intentados,t3_anotados,t3_intentados,tl_anotados,tl_intentados,reb_ofensivos,reb_defensivos,reb_totales,asistencias,robos,tapones,perdidas,faltas,valoracion,partidos!inner(temporada,fecha_hora,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante)")
+        .eq("id_jugadora",idJugadora);
+      if(cancel)return;
+      const r=(data||[]).map(x=>({...x,...(x.partidos||{})})).sort((a,b)=>(b.fecha_hora||"").localeCompare(a.fecha_hora||""));
+      setRows(r);
+      const ts=[...new Set(r.map(x=>x.temporada))].sort((a,b)=>String(b).localeCompare(String(a)));
+      setTemp(prev=>prev&&ts.includes(prev)?prev:(ts[0]||null));
+    })();
+    return ()=>{cancel=true;};
+  },[idJugadora]);
+
+  if(rows===null)return <div style={{textAlign:"center",padding:"40px",color:"#94a3b8",fontSize:"14px"}}>Cargando estadísticas…</div>;
+  if(rows.length===0)return <div style={{background:"#fff",borderRadius:"20px",padding:"40px",textAlign:"center",color:"#94a3b8",fontSize:"14px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>Aún no hay estadísticas de partido para esta jugadora.</div>;
+
+  const N=v=>Number(v)||0;
+  const temps=[...new Set(rows.map(x=>x.temporada))].sort((a,b)=>String(b).localeCompare(String(a)));
+  const eqName=id=>(equipos.find(e=>e.id_equipo===id)?.nombre)||id;
+  const part=rows.filter(x=>x.temporada===temp);
+  const pj=part.length;
+  const sum=k=>part.reduce((s,x)=>s+N(x[k]),0);
+  const avg=k=>pj?(sum(k)/pj):0;
+  const pctT=(a,i)=>{const I=sum(i);return I?Math.round(sum(a)/I*1000)/10:null;};
+  const cards=[["PJ",pj],["MIN",avg("minutos").toFixed(1)],["PTS",avg("puntos").toFixed(1)],["REB",avg("reb_totales").toFixed(1)],["AST",avg("asistencias").toFixed(1)],["ROB",avg("robos").toFixed(1)],["VAL",avg("valoracion").toFixed(1)]];
+  const pcts=[["TC",pctT("tc_anotados","tc_intentados")],["T3",pctT("t3_anotados","t3_intentados")],["TL",pctT("tl_anotados","tl_intentados")]];
+  const th={padding:"7px 6px",fontSize:"10px",fontWeight:700,color:"#94a3b8",textAlign:"center",whiteSpace:"nowrap",borderBottom:"2px solid #f1f5f9"};
+  const td={padding:"7px 6px",fontSize:"12px",color:"#334155",textAlign:"center",whiteSpace:"nowrap",borderBottom:"1px solid #f8fafc"};
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:"10px",flexWrap:"wrap"}}>
+        <span style={{fontSize:"13px",fontWeight:600,color:"#64748b"}}>Temporada:</span>
+        <select value={temp||""} onChange={e=>setTemp(e.target.value)} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#9333ea",fontWeight:700,background:"#fff",outline:"none"}}>
+          {temps.map(t=><option key={t} value={t}>{t}</option>)}
+        </select>
+      </div>
+      <div style={{background:"#fff",borderRadius:"18px",padding:"18px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
+        <div style={{fontSize:"12px",fontWeight:700,color:"#9333ea",marginBottom:"12px"}}>PROMEDIOS · {temp}</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(58px,1fr))",gap:"8px"}}>
+          {cards.map(([l,v])=>(<div key={l} style={{textAlign:"center",background:"#faf5ff",borderRadius:"12px",padding:"10px 4px"}}><div style={{fontSize:"18px",fontWeight:800,color:"#1e293b"}}>{v}</div><div style={{fontSize:"10px",color:"#94a3b8",fontWeight:600}}>{l}</div></div>))}
+        </div>
+        <div style={{display:"flex",gap:"16px",marginTop:"12px",flexWrap:"wrap"}}>
+          {pcts.map(([l,v])=>(<div key={l} style={{fontSize:"12px",color:"#64748b"}}><span style={{fontWeight:700,color:"#334155"}}>{v==null?"—":v+"%"}</span> {l}</div>))}
+        </div>
+      </div>
+      <div style={{background:"#fff",borderRadius:"18px",padding:"14px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",overflowX:"auto"}}>
+        <div style={{fontSize:"12px",fontWeight:700,color:"#9333ea",marginBottom:"10px"}}>PARTIDO A PARTIDO</div>
+        <table style={{borderCollapse:"collapse",width:"100%",minWidth:"560px"}}>
+          <thead><tr>{["Fecha","Rival","Res","MIN","PTS","TC","T3","TL","REB","AST","VAL"].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
+          <tbody>
+            {part.map((x,i)=>{
+              const local=x.id_equipo===x.id_equipo_local;
+              const rival=eqName(local?x.id_equipo_visitante:x.id_equipo_local);
+              const pf=local?N(x.resultado_local):N(x.resultado_visitante);
+              const pc=local?N(x.resultado_visitante):N(x.resultado_local);
+              const win=pf>pc;
+              return(<tr key={i}>
+                <td style={{...td,color:"#94a3b8",fontSize:"11px"}}>{(x.fecha_hora||"").slice(5,10).split("-").reverse().join("/")}</td>
+                <td style={{...td,textAlign:"left",maxWidth:"130px",overflow:"hidden",textOverflow:"ellipsis"}}>{local?"":"@ "}{rival}</td>
+                <td style={{...td,fontWeight:700,color:win?"#16a34a":"#ef4444"}}>{win?"V":"D"} {pf}-{pc}</td>
+                <td style={td}>{x.minutos}</td>
+                <td style={{...td,fontWeight:700}}>{x.puntos}</td>
+                <td style={td}>{x.tc_anotados}/{x.tc_intentados}</td>
+                <td style={td}>{x.t3_anotados}/{x.t3_intentados}</td>
+                <td style={td}>{x.tl_anotados}/{x.tl_intentados}</td>
+                <td style={td}>{x.reb_totales}</td>
+                <td style={td}>{x.asistencias}</td>
+                <td style={{...td,fontWeight:700}}>{x.valoracion}</td>
+              </tr>);
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,onGoToTeam,onGoToCoach,openPlayerId,onClearPlayer,isAdmin,onGoToTab,navHistory,onGoBack,equiposNombres,setPlayers,setTempCoach}){
   const [search,setSearch]         = useState("");
   const [filterPos,setFilterPos]   = useState("");
@@ -3060,6 +3143,8 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   const [delCoachItem,setDelCoachItem] = useState(null);
   const [saving3,setSaving3]       = useState(false);
   const [activeTipo,setActiveTipo] = useState(null);
+  const [ftab,setFtab]             = useState("carrera");
+  useEffect(()=>{setFtab("carrera");},[selId]);
   const photoRef = useRef();
 
   useEffect(()=>{if(openPlayerId){setSelId(openPlayerId);onClearPlayer();}},[openPlayerId]);
@@ -3294,6 +3379,10 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           </div>
         </div>
       </div>
+      <div style={{display:"flex",gap:"8px",marginBottom:"14px"}}>
+        {[["carrera","Carrera"],["estadisticas","Estadísticas"]].map(([k,l])=>(<button key={k} onClick={()=>setFtab(k)} style={{flex:1,padding:"10px",borderRadius:"12px",border:"none",cursor:"pointer",fontWeight:700,fontSize:"13px",background:ftab===k?"#9333ea":"#f1f5f9",color:ftab===k?"#fff":"#64748b"}}>{l}</button>))}
+      </div>
+      {ftab==="carrera"&&(
       <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px",flexWrap:"wrap",gap:"10px"}}>
           <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>Historial <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({selected.seasons.length})</span></h2>
@@ -3365,6 +3454,8 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           );
         })()}
       </div>
+      )}
+      {ftab==="estadisticas"&&<StatsJugadora idJugadora={selected.id_jugadora} equipos={equipos}/>}
       {isAdmin&&seasonModal&&(()=>{
         const coachRecord=(coaches||[]).find(c=>String(c.id_jugadora)===String(selected.id_jugadora));
         return coachRecord?(<Modal title={seasonModal==="add"?"Añadir temporada coach":"Editar temporada coach"} onClose={()=>setSeasonModal(null)}>
