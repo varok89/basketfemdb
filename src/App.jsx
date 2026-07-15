@@ -705,18 +705,16 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
         <tbody>
           {sorted.map((r,i)=>{
             const es=r.id_equipo===equipoLocal;
-            const col=es?"#f97316":"#3b82f6";
             const bg=es?"#fff7ed":"#eff6ff";
             const jug=jugMap[r.id_jugadora];
             const nom=(jug&&jug.nombre)||r.nombre;
             const foto=jug&&jug.foto;
             return(
-            <tr key={i} onClick={()=>onGoToPlayer&&onGoToPlayer(r.id_jugadora)} style={{cursor:onGoToPlayer?"pointer":"default",background:tab==="ambos"?bg:"transparent",borderLeft:`4px solid ${col}`}}>
+            <tr key={i} onClick={()=>onGoToPlayer&&onGoToPlayer(r.id_jugadora)} style={{cursor:onGoToPlayer?"pointer":"default",background:tab==="ambos"?bg:"transparent",borderLeft:r.titular?"4px solid #9333ea":"4px solid transparent"}}>
               <td style={{...td,textAlign:"left",fontWeight:600,maxWidth:"180px"}}>
                 <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
                   {foto?<img src={foto} alt="" style={{width:28,height:28,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"1px solid #f1f5f9"}} onError={e=>{e.target.style.visibility="hidden";}}/>:<div style={{width:28,height:28,borderRadius:"50%",background:"#f1f5f9",flexShrink:0}}/>}
                   {r.titular&&<span title="Titular" style={{color:"#9333ea",fontWeight:800,flexShrink:0}}>●</span>}
-                  {tab==="ambos"&&<span style={{fontSize:"9px",color:col,fontWeight:800,flexShrink:0}}>{es?"L":"V"}</span>}
                   <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nom}</span>
                 </div>
               </td>
