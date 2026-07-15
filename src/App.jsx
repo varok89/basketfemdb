@@ -668,7 +668,7 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
   const [tab,setTab]=useState("ambos");
   const [sortK,setSortK]=useState("puntos");
   const [sortD,setSortD]=useState("desc");
-  const fotoMap=useMemo(()=>{const m={};(players||[]).forEach(p=>{m[p.id_jugadora]=p.foto;});return m;},[players]);
+  const jugMap=useMemo(()=>{const m={};(players||[]).forEach(p=>{m[p.id_jugadora]=p;});return m;},[players]);
   useEffect(()=>{
     let cancel=false; setRows(null);
     (async()=>{
@@ -703,14 +703,21 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
       <table style={{borderCollapse:"collapse",width:"100%",minWidth:"640px"}}>
         <thead><tr>{cols.map(c=><th key={c.k} onClick={()=>clickSort(c.k)} style={{...th,textAlign:c.k==="nombre"?"left":"center"}}>{c.l}{sortK===c.k?(sortD==="desc"?" ▾":" ▴"):""}</th>)}</tr></thead>
         <tbody>
-          {sorted.map((r,i)=>(
-            <tr key={i} onClick={()=>onGoToPlayer&&onGoToPlayer(r.id_jugadora)} style={{cursor:onGoToPlayer?"pointer":"default"}}>
+          {sorted.map((r,i)=>{
+            const es=r.id_equipo===equipoLocal;
+            const col=es?"#f97316":"#3b82f6";
+            const bg=es?"#fff7ed":"#eff6ff";
+            const jug=jugMap[r.id_jugadora];
+            const nom=(jug&&jug.nombre)||r.nombre;
+            const foto=jug&&jug.foto;
+            return(
+            <tr key={i} onClick={()=>onGoToPlayer&&onGoToPlayer(r.id_jugadora)} style={{cursor:onGoToPlayer?"pointer":"default",background:tab==="ambos"?bg:"transparent",borderLeft:`4px solid ${col}`}}>
               <td style={{...td,textAlign:"left",fontWeight:600,maxWidth:"180px"}}>
                 <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
-                  {fotoMap[r.id_jugadora]?<img src={fotoMap[r.id_jugadora]} alt="" style={{width:28,height:28,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"1px solid #f1f5f9"}} onError={e=>{e.target.style.visibility="hidden";}}/>:<div style={{width:28,height:28,borderRadius:"50%",background:"#f1f5f9",flexShrink:0}}/>}
+                  {foto?<img src={foto} alt="" style={{width:28,height:28,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"1px solid #f1f5f9"}} onError={e=>{e.target.style.visibility="hidden";}}/>:<div style={{width:28,height:28,borderRadius:"50%",background:"#f1f5f9",flexShrink:0}}/>}
                   {r.titular&&<span title="Titular" style={{color:"#9333ea",fontWeight:800,flexShrink:0}}>●</span>}
-                  {tab==="ambos"&&<span style={{fontSize:"9px",color:"#cbd5e1",fontWeight:700,flexShrink:0}}>{r.id_equipo===equipoLocal?"L":"V"}</span>}
-                  <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.nombre}</span>
+                  {tab==="ambos"&&<span style={{fontSize:"9px",color:col,fontWeight:800,flexShrink:0}}>{es?"L":"V"}</span>}
+                  <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nom}</span>
                 </div>
               </td>
               <td style={td}>{r.minutos}</td>
@@ -726,7 +733,7 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
               <td style={td}>{r.faltas}</td>
               <td style={{...td,fontWeight:700}}>{r.valoracion}</td>
             </tr>
-          ))}
+            );})}
         </tbody>
       </table>
       <div style={{fontSize:"10px",color:"#cbd5e1",marginTop:"8px"}}><span style={{color:"#9333ea"}}>●</span> Titular · toca una columna para ordenar</div>
@@ -3102,7 +3109,7 @@ function NacDropdown({allNacs,filterNacs,setFilterNacs}){
 }
 
 /* ── PlayersView ─────────────────────────────────────────── */
-function StatsJugadora({idJugadora,equipos,ligas,onOpenPartido}){
+function StatsJugadora({idJugadora,equipos,ligas,equiposNombres,onOpenPartido}){
   const [rows,setRows]=useState(null);
   const [temp,setTemp]=useState(null);
   const [comp,setComp]=useState("ALL");
@@ -3126,8 +3133,9 @@ function StatsJugadora({idJugadora,equipos,ligas,onOpenPartido}){
 
   const N=v=>Number(v)||0;
   const ligaMap={}; (ligas||[]).forEach(l=>ligaMap[l.id_liga]=l);
-  const eq=id=>equipos.find(e=>e.id_equipo===id);
-  const eqName=id=>eq(id)?.nombre||id;
+  const equipoMap={};(equipos||[]).forEach(e=>{equipoMap[e.id_equipo]=e;});
+  const tData=(id,tmp)=>resolveTeamData(id,tmp,equiposNombres,equipoMap);
+  const eqName=(id,tmp)=>tData(id,tmp).nombre||id;
   const temps=[...new Set(rows.map(x=>x.temporada))].sort((a,b)=>String(b).localeCompare(String(a)));
   const compsTemp=[...new Set(rows.filter(x=>x.temporada===temp).map(x=>x.id_liga))];
   const compActiva=compsTemp.includes(comp)?comp:"ALL";
@@ -3146,12 +3154,12 @@ function StatsJugadora({idJugadora,equipos,ligas,onOpenPartido}){
     const pctT=(a,i)=>{const I=sum(i);return I?Math.round(sum(a)/I*1000)/10:null;};
     const cards=[["PJ",pj],["MIN",avg("minutos").toFixed(1)],["PTS",avg("puntos").toFixed(1)],["REB",avg("reb_totales").toFixed(1)],["AST",avg("asistencias").toFixed(1)],["ROB",avg("robos").toFixed(1)],["VAL",avg("valoracion").toFixed(1)]];
     const pcts=[["TC",pctT("tc_anotados","tc_intentados")],["T3",pctT("t3_anotados","t3_intentados")],["TL",pctT("tl_anotados","tl_intentados")]];
-    const e=eq(idEq);
+    const e=tData(idEq,temp);
     return(
       <div key={idEq} style={{display:"flex",flexDirection:"column",gap:"12px",borderLeft:varios?"3px solid #ddd6fe":"none",paddingLeft:varios?"12px":"0"}}>
-        {varios&&(<div style={{display:"flex",alignItems:"center",gap:"8px"}}>{e?.escudo&&<img src={e.escudo} alt="" style={{width:26,height:26,objectFit:"contain"}}/>}<span style={{fontWeight:800,fontSize:"15px",color:"#1e293b"}}>{eqName(idEq)}</span></div>)}
+        {varios&&(<div style={{display:"flex",alignItems:"center",gap:"8px"}}>{e&&e.escudo&&<img src={e.escudo} alt="" style={{width:26,height:26,objectFit:"contain"}}/>}<span style={{fontWeight:800,fontSize:"15px",color:"#1e293b"}}>{e.nombre}</span></div>)}
         <div style={{background:"#fff",borderRadius:"18px",padding:"18px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
-          <div style={{fontSize:"12px",fontWeight:700,color:"#9333ea",marginBottom:"12px",display:"flex",alignItems:"center",gap:"6px"}}>{!varios&&e?.escudo&&<img src={e.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>}PROMEDIOS · {temp}{!varios?` · ${eqName(idEq)}`:""}</div>
+          <div style={{fontSize:"12px",fontWeight:700,color:"#9333ea",marginBottom:"12px",display:"flex",alignItems:"center",gap:"6px"}}>{!varios&&e&&e.escudo&&<img src={e.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>}PROMEDIOS · {temp}{!varios?` · ${e.nombre}`:""}</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(58px,1fr))",gap:"8px"}}>
             {cards.map(([l,v])=>(<div key={l} style={{textAlign:"center",background:"#faf5ff",borderRadius:"12px",padding:"10px 4px"}}><div style={{fontSize:"18px",fontWeight:800,color:"#1e293b"}}>{v}</div><div style={{fontSize:"10px",color:"#94a3b8",fontWeight:600}}>{l}</div></div>))}
           </div>
@@ -3166,7 +3174,7 @@ function StatsJugadora({idJugadora,equipos,ligas,onOpenPartido}){
             <tbody>
               {[...part].sort((a,b)=>(b.fecha_hora||"").localeCompare(a.fecha_hora||"")).map((x,i)=>{
                 const local=x.id_equipo===x.id_equipo_local;
-                const rival=eqName(local?x.id_equipo_visitante:x.id_equipo_local);
+                const rival=eqName(local?x.id_equipo_visitante:x.id_equipo_local,x.temporada);
                 const pf=local?N(x.resultado_local):N(x.resultado_visitante);
                 const pc=local?N(x.resultado_visitante):N(x.resultado_local);
                 const win=pf>pc;
@@ -3544,7 +3552,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
         })()}
       </div>
       )}
-      {ftab==="estadisticas"&&<StatsJugadora idJugadora={selected.id_jugadora} equipos={equipos} ligas={ligas} onOpenPartido={onGoToPartido}/>}
+      {ftab==="estadisticas"&&<StatsJugadora idJugadora={selected.id_jugadora} equipos={equipos} ligas={ligas} equiposNombres={equiposNombres} onOpenPartido={onGoToPartido}/>}
       {isAdmin&&seasonModal&&(()=>{
         const coachRecord=(coaches||[]).find(c=>String(c.id_jugadora)===String(selected.id_jugadora));
         return coachRecord?(<Modal title={seasonModal==="add"?"Añadir temporada coach":"Editar temporada coach"} onClose={()=>setSeasonModal(null)}>
