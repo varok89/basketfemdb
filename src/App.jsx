@@ -3146,7 +3146,7 @@ function StatsJugadora({idJugadora,equipos,ligas,onOpenPartido}){
   );
 }
 
-function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,onGoToTeam,onGoToCoach,openPlayerId,onClearPlayer,isAdmin,onGoToTab,navHistory,onGoBack,equiposNombres,setPlayers,setTempCoach,onGoToPartido}){
+function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,onGoToTeam,onGoToCoach,openPlayerId,onClearPlayer,isAdmin,onGoToTab,navHistory,onGoBack,equiposNombres,setPlayers,setTempCoach,onGoToPartido,regExtra}){
   const [search,setSearch]         = useState("");
   const [filterPos,setFilterPos]   = useState("");
   const [filterNacs,setFilterNacs] = useState(new Set());
@@ -3516,7 +3516,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           const nTemporadas=players.flatMap(p=>p.seasons||[]).length;
           const nTempCoach=(tempCoach||[]).length;
           const nPalmares=(palmares||[]).length;
-          const total=nJugadoras+nEquipos+nLigas+nCoaches+nTemporadas+nTempCoach+nPalmares;
+          const total=nJugadoras+nEquipos+nLigas+nCoaches+nTemporadas+nTempCoach+nPalmares+(regExtra||0);
           const tabMap={"Jugadoras":"jugadoras","Equipos":"equipos","Ligas":"ligas","Coaches":"cuerpo_tecnico"};
           return [
             ["👩‍🏀",nJugadoras,"Jugadoras"],
@@ -3753,7 +3753,7 @@ function DuplicateSquadForm({initial,ligas,ligaMap,eq,onSave,onCancel,saving}){
 }
 
 /* ── TeamsView ───────────────────────────────────────────── */
-function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlayer,onGoToCoach,onGoToLeague,openTeamId,openTeamYear,onClearTeam,isAdmin,onReload,onGoToTab,navHistory,onGoBack,equiposNombres,setEquipos,setEquiposNombres,setPlayers,setPalmares}){
+function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlayer,onGoToCoach,onGoToLeague,openTeamId,openTeamYear,onClearTeam,isAdmin,onReload,onGoToTab,navHistory,onGoBack,equiposNombres,setEquipos,setEquiposNombres,setPlayers,setPalmares,regExtra}){
   const [search,setSearch]             = useState("");
   const [filterLeague,setFilterLeague] = useState("");
   const [filterSeason,setFilterSeason] = useState(null);
@@ -4190,7 +4190,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
           const nTemporadas=players.flatMap(p=>p.seasons||[]).length;
           const nTempCoach=(tempCoach||[]).length;
           const nPalmares=(palmares||[]).length;
-          const total=nJugadoras+nEquipos+nLigas+nCoaches+nTemporadas+nTempCoach+nPalmares;
+          const total=nJugadoras+nEquipos+nLigas+nCoaches+nTemporadas+nTempCoach+nPalmares+(regExtra||0);
           const tabMap={"Jugadoras":"jugadoras","Equipos":"equipos","Ligas":"ligas","Coaches":"cuerpo_tecnico"};
           return [
             ["👩‍🏀",nJugadoras,"Jugadoras"],
@@ -4379,7 +4379,7 @@ function CoachSeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
 }
 
 /* ── LeaguesView ─────────────────────────────────────────── */
-function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,onGoToTeam,onGoToClasificacion,isAdmin,onReload,openLigaId,onClearLiga,onGoToTab,navHistory,onGoBack,setLigas}){
+function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,onGoToTeam,onGoToClasificacion,isAdmin,onReload,openLigaId,onClearLiga,onGoToTab,navHistory,onGoBack,setLigas,regExtra}){
   const [selId,setSelId]     = useState(openLigaId||null);
   useEffect(()=>{if(openLigaId){setSelId(openLigaId);onClearLiga&&onClearLiga();}},[openLigaId]);
   useEffect(()=>{const seg='ligas';window.history.replaceState({},"",selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
@@ -4574,7 +4574,7 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
           const nTemporadas=players.flatMap(p=>p.seasons||[]).length;
           const nTempCoach=(tempCoach||[]).length;
           const nPalmares=(palmares||[]).length;
-          const total=nJugadoras+nEquipos+nLigas+nCoaches+nTemporadas+nTempCoach+nPalmares;
+          const total=nJugadoras+nEquipos+nLigas+nCoaches+nTemporadas+nTempCoach+nPalmares+(regExtra||0);
           const tabMap={"Jugadoras":"jugadoras","Equipos":"equipos","Ligas":"ligas","Coaches":"cuerpo_tecnico"};
           return [
             ["👩‍🏀",nJugadoras,"Jugadoras"],
@@ -4652,7 +4652,7 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
 }
 
 /* ── CoachesView ────────────────────────────────────────── */
-function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPlayer,onGoToTeam,openCoachId,onClearCoach,isAdmin,onReload,onGoToTab,navHistory,onGoBack,setCoaches,setTempCoach,equiposNombres}){
+function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPlayer,onGoToTeam,openCoachId,onClearCoach,isAdmin,onReload,onGoToTab,navHistory,onGoBack,setCoaches,setTempCoach,equiposNombres,regExtra}){
   const [coachModal,setCoachModal]=useState(null);
   const [seasonModal,setSeasonModal]=useState(null);
   const [saving2,setSaving2]=useState(false);
@@ -4891,7 +4891,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
           const nTemporadas=players.flatMap(p=>p.seasons||[]).length;
           const nTempCoach=(tempCoach||[]).length;
           const nPalmares=(palmares||[]).length;
-          const total=nJugadoras+nEquipos+nLigas+nCoaches+nTemporadas+nTempCoach+nPalmares;
+          const total=nJugadoras+nEquipos+nLigas+nCoaches+nTemporadas+nTempCoach+nPalmares+(regExtra||0);
           const tabMap={"Jugadoras":"jugadoras","Equipos":"equipos","Ligas":"ligas","Coaches":"cuerpo_tecnico"};
           return [
             ["👩‍🏀",nJugadoras,"Jugadoras"],
@@ -5052,6 +5052,7 @@ export default function App(){
   const [equiposNombres,setEquiposNombres] = useState([]);
   const [partidos,setPartidos]             = useState([]);
   const [mvps,setMvps]                     = useState([]);
+  const [boxCount,setBoxCount]             = useState(0);
   const [openClasiKey,setOpenClasiKey]     = useState(null);
   const [partidosSub,setPartidosSub]       = useState(null); // subruta de /partidos (["partido","85"] o ["clasificacion","L067","2025"])
   const [loading,setLoading] = useState(true);
@@ -5122,6 +5123,7 @@ export default function App(){
   const goToPlayer = (id,from=null)=>{pushNav(from,"jugadoras",id);setOpenPlayerId(id);setOpenTeamId(null);setTab("jugadoras");scrollTop();};
   const goToCoach  = (id,from=null)=>{pushNav(from,"cuerpo_tecnico",id);setOpenCoachId(id);setTab("cuerpo_tecnico");scrollTop();};
   const goToPartido= (id,from=null)=>{setPartidosSub(["partido",String(id)]);setTab("partidos");try{window.history.pushState({},"",`/partidos/partido/${id}`);}catch(e){}scrollTop();};
+  const regExtra=(mvps?.length||0)+(partidos?.length||0)+boxCount+(equiposNombres?.length||0);
 
   // goBack ahora delega en el navegador: window.history.back() dispara un popstate real,
   // que ya tenemos gestionado más abajo. Mantenemos el pop de navHistory en paralelo
@@ -5159,6 +5161,13 @@ export default function App(){
       setEquiposNombres(rEN?.data||[]);
       setPartidos(rPar?.data||[]);
       setMvps(rMvp?.data||[]);
+      try{
+        const [bc,sc]=await Promise.all([
+          supabase.from("partido_boxscore").select("*",{count:"exact",head:true}),
+          supabase.from("partido_stats").select("*",{count:"exact",head:true}),
+        ]);
+        setBoxCount((bc.count||0)+(sc.count||0));
+      }catch(e){}
       setIsFirstLoad(false);
     }catch(e){setError(e.message||"Error cargando datos");}
     setLoading(false);
@@ -5285,10 +5294,10 @@ export default function App(){
       </div>
       <div style={{paddingTop:"8px"}}>
         {tab==="home"&&<HomeView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToTab={t=>setTab(t)} equiposNombres={equiposNombres}/>}
-        {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setPlayers={setPlayers} setTempCoach={setTempCoach} onGoToPartido={goToPartido}/>}
-        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setEquipos={setEquipos} setEquiposNombres={setEquiposNombres} setPlayers={setPlayers} setPalmares={setPalmares}/>}
-        {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} coaches={coaches} tempCoach={tempCoach} partidos={partidos} onGoToClasificacion={(ligaId,temporada)=>{setOpenClasiKey(`${ligaId}|${temporada||""}`);setTab("partidos");scrollTop();}} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setLigas={setLigas}/>}
-        {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setCoaches={setCoaches} setTempCoach={setTempCoach} equiposNombres={equiposNombres}/>}
+        {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setPlayers={setPlayers} setTempCoach={setTempCoach} onGoToPartido={goToPartido} regExtra={regExtra}/>}
+        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setEquipos={setEquipos} setEquiposNombres={setEquiposNombres} setPlayers={setPlayers} setPalmares={setPalmares} regExtra={regExtra}/>}
+        {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} coaches={coaches} tempCoach={tempCoach} partidos={partidos} onGoToClasificacion={(ligaId,temporada)=>{setOpenClasiKey(`${ligaId}|${temporada||""}`);setTab("partidos");scrollTop();}} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setLigas={setLigas} regExtra={regExtra}/>}
+        {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setCoaches={setCoaches} setTempCoach={setTempCoach} equiposNombres={equiposNombres} regExtra={regExtra}/>}
         {tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} mvps={mvps} equiposNombres={equiposNombres} openClasiKey={openClasiKey} onClearClasi={()=>setOpenClasiKey(null)} partidosSub={partidosSub} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id,year)=>goToTeam(id,year||null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})} onGoToPlayer={(id)=>goToPlayer(id,{tab:"partidos",label:"Ver partidos"})}/>}
       </div>
     </div>
