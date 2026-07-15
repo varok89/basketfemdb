@@ -714,7 +714,6 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
               <td style={{...td,textAlign:"left",fontWeight:600,maxWidth:"180px"}}>
                 <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
                   {foto?<img src={foto} alt="" style={{width:28,height:28,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"1px solid #f1f5f9"}} onError={e=>{e.target.style.visibility="hidden";}}/>:<div style={{width:28,height:28,borderRadius:"50%",background:"#f1f5f9",flexShrink:0}}/>}
-                  {r.titular&&<span title="Titular" style={{color:"#9333ea",fontWeight:800,flexShrink:0}}>●</span>}
                   <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nom}</span>
                 </div>
               </td>
@@ -734,7 +733,7 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
             );})}
         </tbody>
       </table>
-      <div style={{fontSize:"10px",color:"#cbd5e1",marginTop:"8px"}}><span style={{color:"#9333ea"}}>●</span> Titular · toca una columna para ordenar</div>
+      <div style={{fontSize:"10px",color:"#cbd5e1",marginTop:"8px"}}><span style={{display:"inline-block",width:"3px",height:"10px",background:"#9333ea",borderRadius:"1px",verticalAlign:"middle",marginRight:"4px"}}></span>Titular · toca una columna para ordenar</div>
     </div>
   );
 }
