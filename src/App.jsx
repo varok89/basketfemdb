@@ -663,6 +663,73 @@ function PartidoForm({initial,equipos,ligas,onSave,onCancel,saving}){
 }
 
 /* ── PartidoFichaView ────────────────────────────────────── */
+function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,onGoToPlayer}){
+  const [rows,setRows]=useState(null);
+  const [tab,setTab]=useState("ambos");
+  const [sortK,setSortK]=useState("puntos");
+  const [sortD,setSortD]=useState("desc");
+  useEffect(()=>{
+    let cancel=false; setRows(null);
+    (async()=>{
+      const {data}=await supabase.from("partido_boxscore").select("id_jugadora,id_equipo,nombre,titular,minutos,puntos,tc_anotados,tc_intentados,t3_anotados,t3_intentados,tl_anotados,tl_intentados,reb_totales,asistencias,robos,tapones,perdidas,faltas,valoracion").eq("id_partido",idPartido);
+      if(!cancel)setRows(data||[]);
+    })();
+    return ()=>{cancel=true;};
+  },[idPartido]);
+  if(rows===null||rows.length===0)return null;
+
+  const N=v=>Number(v)||0;
+  const filt=tab==="local"?rows.filter(r=>r.id_equipo===equipoLocal):tab==="visit"?rows.filter(r=>r.id_equipo===equipoVisit):rows;
+  const cols=[{k:"nombre",l:"Jugadora"},{k:"minutos",l:"MIN"},{k:"puntos",l:"PTS"},{k:"tc_anotados",l:"TC"},{k:"t3_anotados",l:"T3"},{k:"tl_anotados",l:"TL"},{k:"reb_totales",l:"REB"},{k:"asistencias",l:"AST"},{k:"robos",l:"ROB"},{k:"tapones",l:"TAP"},{k:"perdidas",l:"PER"},{k:"faltas",l:"FAL"},{k:"valoracion",l:"VAL"}];
+  const sorted=[...filt].sort((a,b)=>{
+    if(sortK==="nombre")return sortD==="asc"?(a.nombre||"").localeCompare(b.nombre||""):(b.nombre||"").localeCompare(a.nombre||"");
+    const d=N(a[sortK])-N(b[sortK]); return sortD==="asc"?d:-d;
+  });
+  const clickSort=k=>{if(sortK===k)setSortD(d=>d==="desc"?"asc":"desc");else{setSortK(k);setSortD(k==="nombre"?"asc":"desc");}};
+  const th={padding:"7px 5px",fontSize:"10px",fontWeight:700,color:"#94a3b8",whiteSpace:"nowrap",cursor:"pointer",borderBottom:"2px solid #f1f5f9",userSelect:"none"};
+  const td={padding:"7px 5px",fontSize:"12px",color:"#334155",textAlign:"center",whiteSpace:"nowrap",borderBottom:"1px solid #f8fafc"};
+  const Esc=({e})=>e&&e.escudo?<img src={e.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>:null;
+  const tabBtn=(k,content)=><button key={k} onClick={()=>setTab(k)} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:"5px",padding:"9px 6px",borderRadius:"10px",border:"none",cursor:"pointer",fontWeight:700,fontSize:"12px",background:tab===k?"#9333ea":"#f1f5f9",color:tab===k?"#fff":"#64748b",minWidth:0}}>{content}</button>;
+
+  return(
+    <div style={{background:"#fff",borderRadius:"20px",padding:"16px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",overflowX:"auto"}}>
+      <h2 style={{fontWeight:800,fontSize:"16px",color:"#1e293b",margin:"0 0 12px"}}>Estadísticas</h2>
+      <div style={{display:"flex",gap:"8px",marginBottom:"14px"}}>
+        {tabBtn("ambos",<><Esc e={local}/><Esc e={visit}/></>)}
+        {tabBtn("local",<><Esc e={local}/><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{local&&local.nombre}</span></>)}
+        {tabBtn("visit",<><Esc e={visit}/><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{visit&&visit.nombre}</span></>)}
+      </div>
+      <table style={{borderCollapse:"collapse",width:"100%",minWidth:"640px"}}>
+        <thead><tr>{cols.map(c=><th key={c.k} onClick={()=>clickSort(c.k)} style={{...th,textAlign:c.k==="nombre"?"left":"center"}}>{c.l}{sortK===c.k?(sortD==="desc"?" ▾":" ▴"):""}</th>)}</tr></thead>
+        <tbody>
+          {sorted.map((r,i)=>(
+            <tr key={i} onClick={()=>onGoToPlayer&&onGoToPlayer(r.id_jugadora)} style={{cursor:onGoToPlayer?"pointer":"default"}}>
+              <td style={{...td,textAlign:"left",fontWeight:600,maxWidth:"150px",overflow:"hidden",textOverflow:"ellipsis"}}>
+                {r.titular&&<span title="Titular" style={{color:"#9333ea",marginRight:"4px",fontWeight:800}}>●</span>}
+                {tab==="ambos"&&<span style={{fontSize:"9px",color:"#cbd5e1",marginRight:"3px",fontWeight:700}}>{r.id_equipo===equipoLocal?"L":"V"}</span>}
+                {r.nombre}
+              </td>
+              <td style={td}>{r.minutos}</td>
+              <td style={{...td,fontWeight:700}}>{r.puntos}</td>
+              <td style={td}>{r.tc_anotados}/{r.tc_intentados}</td>
+              <td style={td}>{r.t3_anotados}/{r.t3_intentados}</td>
+              <td style={td}>{r.tl_anotados}/{r.tl_intentados}</td>
+              <td style={td}>{r.reb_totales}</td>
+              <td style={td}>{r.asistencias}</td>
+              <td style={td}>{r.robos}</td>
+              <td style={td}>{r.tapones}</td>
+              <td style={td}>{r.perdidas}</td>
+              <td style={td}>{r.faltas}</td>
+              <td style={{...td,fontWeight:700}}>{r.valoracion}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div style={{fontSize:"10px",color:"#cbd5e1",marginTop:"8px"}}><span style={{color:"#9333ea"}}>●</span> Titular · toca una columna para ordenar</div>
+    </div>
+  );
+}
+
 function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,onToggleConvocatoria,onBack,onGoToTeam,onGoToLeague,onGoToPlayer}){
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap=useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
@@ -814,6 +881,8 @@ function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,
           </div>
         )}
       </div>
+
+      <BoxscorePartido idPartido={partido.id} equipoLocal={partido.id_equipo_local} equipoVisit={partido.id_equipo_visitante} local={local} visit={visit} onGoToPlayer={onGoToPlayer}/>
 
       {/* Rosters enfrentados */}
       <div style={{background:"#fff",borderRadius:"20px",padding:"20px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
