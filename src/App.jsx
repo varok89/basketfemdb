@@ -3826,7 +3826,7 @@ function DuplicateSquadForm({initial,ligas,ligaMap,eq,onSave,onCancel,saving}){
 }
 
 /* ── TeamsView ───────────────────────────────────────────── */
-function CalendarioEquipo({idEquipo,temporada,equipos,equiposNombres,onGoToPartido}){
+function CalendarioEquipo({idEquipo,temporada,equipos,ligas,equiposNombres,onGoToPartido,onGoToLeague}){
   const [games,setGames]=useState(null);
   const [open,setOpen]=useState(false);
   const [shown,setShown]=useState(5);
@@ -3834,7 +3834,7 @@ function CalendarioEquipo({idEquipo,temporada,equipos,equiposNombres,onGoToParti
   useEffect(()=>{
     let cancel=false;setGames(null);setShown(5);
     (async()=>{
-      let q=supabase.from("partidos").select("id,fecha_hora,temporada,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas").or(`id_equipo_local.eq.${idEquipo},id_equipo_visitante.eq.${idEquipo}`).order("fecha_hora",{ascending:true});
+      let q=supabase.from("partidos").select("id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas").or(`id_equipo_local.eq.${idEquipo},id_equipo_visitante.eq.${idEquipo}`).order("fecha_hora",{ascending:true});
       if(temporada)q=q.eq("temporada",temporada);
       const {data}=await q;
       if(!cancel)setGames(data||[]);
@@ -3868,15 +3868,19 @@ function CalendarioEquipo({idEquipo,temporada,equipos,equiposNombres,onGoToParti
   };
   return(
     <>
-      {prox&&(()=>{const rv=rdata(prox);const local=prox.id_equipo_local===idEquipo;return(
+      {prox&&(()=>{const rv=rdata(prox);const local=prox.id_equipo_local===idEquipo;const liga=(ligas||[]).find(l=>l.id_liga===prox.id_liga);return(
         <div onClick={()=>onGoToPartido&&onGoToPartido(prox.id)} style={{...card,cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",borderLeft:"4px solid #9333ea"}}>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:"11px",fontWeight:700,color:"#9333ea",textTransform:"uppercase",letterSpacing:"0.04em",marginBottom:"5px"}}>Próximo partido{prox.notas?` · ${prox.notas}`:""}</div>
-            <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:liga?"5px":0}}>
               <span style={{fontSize:"12px"}}>{local?"🏠":"✈️"}</span>
               {rv.escudo&&<img src={rv.escudo} alt="" style={{width:24,height:24,objectFit:"contain"}}/>}
               <span style={{fontSize:"15px",fontWeight:800,color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{rv.nombre}</span>
             </div>
+            {liga&&<div onClick={e=>{e.stopPropagation();onGoToLeague&&onGoToLeague(liga.id_liga);}} style={{display:"inline-flex",alignItems:"center",gap:"5px",cursor:"pointer"}}>
+              {liga.logo&&<img src={liga.logo} alt="" style={{width:16,height:16,objectFit:"contain"}}/>}
+              <span style={{fontSize:"12px",fontWeight:600,color:"#3b82f6",textDecoration:"underline",textDecorationColor:"#bfdbfe"}}>{liga.nombre}</span>
+            </div>}
           </div>
           <span style={{fontSize:"11px",color:"#94a3b8",textAlign:"right",flexShrink:0}}>{fmt(prox.fecha_hora)}</span>
         </div>
@@ -4175,7 +4179,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
             })()}
           </div>
         </div>
-        <CalendarioEquipo idEquipo={eq.id_equipo} temporada={effectiveYear} equipos={equipos} equiposNombres={equiposNombres} onGoToPartido={onGoToPartido}/>
+        <CalendarioEquipo idEquipo={eq.id_equipo} temporada={effectiveYear} equipos={equipos} ligas={ligas} equiposNombres={equiposNombres} onGoToPartido={onGoToPartido} onGoToLeague={onGoToLeague}/>
         {(()=>{const nombres=(equiposNombres||[]).filter(n=>n.id_equipo===eq.id_equipo).sort((a,b)=>b.temporada_inicio.localeCompare(a.temporada_inicio));
           if(!nombres.length&&!isAdmin)return null;
           return(<div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
