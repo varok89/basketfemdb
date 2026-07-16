@@ -3139,7 +3139,11 @@ function StatsJugadora({idJugadora,equipos,ligas,equiposNombres,onOpenPartido}){
   const filt=rows.filter(x=>x.temporada===temp&&(compActiva==="ALL"||x.id_liga===compActiva));
   const porEquipo={};
   filt.forEach(x=>{(porEquipo[x.id_equipo]=porEquipo[x.id_equipo]||[]).push(x);});
-  const equiposOrden=Object.keys(porEquipo).sort((a,b)=>porEquipo[b].length-porEquipo[a].length);
+  const equiposOrden=Object.keys(porEquipo).sort((a,b)=>{
+    const fa=Math.max(...porEquipo[a].map(x=>new Date(x.fecha_hora||0).getTime()));
+    const fb=Math.max(...porEquipo[b].map(x=>new Date(x.fecha_hora||0).getTime()));
+    return fb-fa;
+  });
   const varios=equiposOrden.length>1;
   const th={padding:"7px 6px",fontSize:"10px",fontWeight:700,color:"#94a3b8",textAlign:"center",whiteSpace:"nowrap",borderBottom:"2px solid #f1f5f9"};
   const td={padding:"7px 6px",fontSize:"12px",color:"#334155",textAlign:"center",whiteSpace:"nowrap",borderBottom:"1px solid #f8fafc"};
