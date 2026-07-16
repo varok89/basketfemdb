@@ -3207,10 +3207,14 @@ function StatsJugadora({idJugadora,equipos,ligas,equiposNombres,onOpenPartido}){
         <select value={temp||""} onChange={e=>{setTemp(e.target.value);setComp("ALL");}} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#9333ea",fontWeight:700,background:"#fff",outline:"none"}}>
           {temps.map(t=><option key={t} value={t}>{t}</option>)}
         </select>
-        {compsTemp.length>1&&(
+        {compsTemp.length>1?(
           <select value={compActiva} onChange={e=>setComp(e.target.value)} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#475569",fontWeight:600,background:"#fff",outline:"none"}}>
             <option value="ALL">Todas las competiciones</option>
             {compsTemp.map(c=><option key={c} value={c}>{ligaMap[c]?.nombre||c}</option>)}
+          </select>
+        ):compsTemp.length===1&&(
+          <select value={compsTemp[0]} disabled style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#475569",fontWeight:600,background:"#f8fafc",outline:"none",cursor:"default"}}>
+            <option value={compsTemp[0]}>{ligaMap[compsTemp[0]]?.nombre||compsTemp[0]}</option>
           </select>
         )}
       </div>
