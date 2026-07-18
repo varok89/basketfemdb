@@ -1542,7 +1542,7 @@ function FaseFinal({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlayer}){
 // Convención de notas: "Playoffs Cuartos #1".."#4", "Playoffs Semifinales #1","#2",
 // "Playoffs Final". Todos los partidos de una misma serie llevan la misma nota; la
 // caja muestra las victorias de cada equipo en la serie.
-function SerieBox({partidosSerie,equipoMap}){
+function SerieBox({partidosSerie,equipoMap,compacto,onOpen}){
   const ids=[];
   partidosSerie.forEach(p=>{[p.id_equipo_local,p.id_equipo_visitante].forEach(id=>{if(id&&!ids.includes(id))ids.push(id);});});
   // Series "(ida-vuelta)": se resuelven por diferencia global de puntos (como los
@@ -1562,23 +1562,31 @@ function SerieBox({partidosSerie,equipoMap}){
     const ganador=Number(p.resultado_local)>Number(p.resultado_visitante)?p.id_equipo_local:p.id_equipo_visitante;
     wins[ganador]=(wins[ganador]||0)+1;
   });
+  const etiqueta=team=>{
+    if(team.codigo)return team.codigo;
+    const w=(team.nombre||"").replace(/[^A-Za-zÀ-ÿ ]/g,"").split(/\s+/).filter(Boolean);
+    return (w[w.length-1]||team.nombre||"?").slice(0,4).toUpperCase();
+  };
   const row=idEq=>{
     const team=idEq?equipoMap[idEq]:null;
     const w=idEq?(wins[idEq]||0):null;
     const lidera=idEq&&w>0&&w>=Math.max(...ids.map(x=>wins[x]||0))&&ids.some(x=>x!==idEq&&(wins[x]||0)<w);
     return(
-      <div key={idEq||Math.random()} style={{display:"flex",alignItems:"center",gap:"6px",padding:"3px 7px",background:lidera?"#faf5ff":"transparent",minWidth:0}}>
+      <div key={idEq||Math.random()} style={{display:"flex",alignItems:"center",gap:compacto?"4px":"6px",padding:compacto?"3px 6px":"3px 7px",background:lidera?"#faf5ff":"transparent",minWidth:0}}>
         {team
-          ?<TeamBadge team={team} size={18}/>
-          :<div style={{width:18,height:18,borderRadius:"5px",border:"1.5px dashed #cbd5e1",flexShrink:0}}/>}
-        <span style={{flex:1,fontSize:"11px",fontWeight:lidera?800:600,color:team?(lidera?"#7c3aed":"#334155"):"#cbd5e1",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{team?team.nombre:"—"}</span>
-        <span style={{fontSize:"11px",fontWeight:lidera?800:600,color:lidera?"#7c3aed":"#64748b",fontVariantNumeric:"tabular-nums",flexShrink:0}}>{idEq&&partidosSerie.some(p=>p.resultado_local!=null)?w:""}</span>
+          ?<TeamBadge team={team} size={compacto?15:18}/>
+          :<div style={{width:compacto?15:18,height:compacto?15:18,borderRadius:"5px",border:"1.5px dashed #cbd5e1",flexShrink:0}}/>}
+        <span title={team?team.nombre:""} style={{flex:1,fontSize:compacto?"10px":"11px",fontWeight:lidera?800:600,color:team?(lidera?"#7c3aed":"#334155"):"#cbd5e1",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{team?(compacto?etiqueta(team):team.nombre):"—"}</span>
+        <span style={{fontSize:compacto?"10px":"11px",fontWeight:lidera?800:600,color:lidera?"#7c3aed":"#64748b",fontVariantNumeric:"tabular-nums",flexShrink:0}}>{idEq&&partidosSerie.some(p=>p.resultado_local!=null)?w:""}</span>
       </div>
     );
   };
+  const clic=onOpen&&partidosSerie[0]?()=>onOpen(partidosSerie[0]):undefined;
   return(
-    <div style={{width:"150px",flexShrink:0}}>
-      <div style={{background:"#fff",border:enVivo?"1.5px solid #ef4444":"1px solid #e2e8f0",borderRadius:"10px",overflow:"hidden"}}>
+    <div onClick={clic} style={{width:compacto?"96px":"150px",flexShrink:0,cursor:clic?"pointer":"default"}}>
+      <div style={{background:"#fff",border:enVivo?"1.5px solid #ef4444":"1px solid #e2e8f0",borderRadius:"10px",overflow:"hidden",transition:"border-color 0.15s"}}
+        onMouseEnter={clic?e=>e.currentTarget.style.borderColor="#c084fc":undefined}
+        onMouseLeave={clic?e=>e.currentTarget.style.borderColor=enVivo?"#ef4444":"#e2e8f0":undefined}>
         {row(ids[0])}
         <div style={{height:"1px",background:"#f1f5f9"}}/>
         {row(ids[1])}
@@ -1587,7 +1595,7 @@ function SerieBox({partidosSerie,equipoMap}){
   );
 }
 
-function PlayoffBracket({psLiga,equipoMap,soloPrevia}){
+function PlayoffBracket({psLiga,equipoMap,soloPrevia,onOpenPartido}){
   const series=useMemo(()=>{
     const m={};
     psLiga.forEach(p=>{
@@ -1623,7 +1631,7 @@ function PlayoffBracket({psLiga,equipoMap,soloPrevia}){
         <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
           {previa.map((s,i)=>{const w=winnerOf(s);const t=w&&equipoMap[w];return(
             <div key={i} style={{display:"flex",alignItems:"center",gap:"10px"}}>
-              <SerieBox partidosSerie={s} equipoMap={equipoMap}/>
+              <SerieBox partidosSerie={s} equipoMap={equipoMap} onOpen={onOpenPartido}/>
               {t&&<div style={{display:"flex",alignItems:"center",gap:"5px",whiteSpace:"nowrap"}}>
                 <span style={{color:"#22c55e",fontWeight:800,fontSize:"14px"}}>→</span>
                 <TeamBadge team={t} size={18}/>
@@ -1653,11 +1661,11 @@ function PlayoffBracket({psLiga,equipoMap,soloPrevia}){
     cur.forEach(s=>{if(!used.has(s))nw.push(s);});
     cols[i][1]=nw;
   }
-  const alinear=dieci.length>0?"flex-start":"space-around";
+  const compacto=dieci.length>0;
   return(
     <BracketCard title="Playoffs">
       <div style={{display:"flex",gap:"14px",alignItems:"stretch"}}>
-        {cols.map(([lbl,s])=><BracketCol key={lbl} label={lbl} align={alinear}>{s.map((serie,i)=><SerieBox key={i} partidosSerie={serie} equipoMap={equipoMap}/>)}</BracketCol>)}
+        {cols.map(([lbl,s])=><BracketCol key={lbl} label={lbl}>{s.map((serie,i)=><SerieBox key={i} partidosSerie={serie} equipoMap={equipoMap} compacto={compacto} onOpen={onOpenPartido}/>)}</BracketCol>)}
       </div>
     </BracketCard>
   );
@@ -1772,10 +1780,10 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
           </div>
         );
       })()}
-      {vista==="previa"&&hayPreviaIV&&<PlayoffBracket psLiga={psLiga} equipoMap={equipoMap} soloPrevia/>}
-      {vista==="final"&&hayBracketIV&&<PlayoffBracket psLiga={psLiga} equipoMap={equipoMap}/>}
+      {vista==="previa"&&hayPreviaIV&&<PlayoffBracket psLiga={psLiga} equipoMap={equipoMap} soloPrevia onOpenPartido={onOpenPartido}/>}
+      {vista==="final"&&hayBracketIV&&<PlayoffBracket psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido}/>}
       {vista==="final"&&hayKO&&<FaseFinal psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido} mvpPlayer={mvpPlayer} onGoToPlayer={onGoToPlayer}/>}
-      {vista==="final"&&hayPlayoffs&&<PlayoffBracket psLiga={psLiga} equipoMap={equipoMap}/>}
+      {vista==="final"&&hayPlayoffs&&<PlayoffBracket psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido}/>}
       {vista==="standing"&&hayKO&&<StandingFinal psLiga={psLiga} equipoMap={equipoMap} temporada={temporada} onGoToTeam={onGoToTeam} mvpPlayer={mvpPlayer} onGoToPlayer={onGoToPlayer}/>}
       {vista==="grupos"&&!grupos.length&&<p style={{color:"#94a3b8",textAlign:"center",paddingTop:"40px"}}>No hay partidos con resultado para calcular la clasificación.</p>}
       {vista==="grupos"&&grupos.map(({nombre,equipos:eqs})=>(
