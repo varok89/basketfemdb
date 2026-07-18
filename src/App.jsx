@@ -1444,11 +1444,11 @@ function KOBox({p,equipoMap,caption,onOpen}){
   );
 }
 
-function BracketCol({label,children}){
+function BracketCol({label,children,align}){
   return(
     <div style={{display:"flex",flexDirection:"column",flexShrink:0}}>
       <div style={{fontSize:"10px",fontWeight:800,color:"#94a3b8",textAlign:"center",textTransform:"uppercase",letterSpacing:"0.4px",marginBottom:"8px",whiteSpace:"nowrap"}}>{label}</div>
-      <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"space-around",gap:"8px"}}>{children}</div>
+      <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:align||"space-around",gap:"8px"}}>{children}</div>
     </div>
   );
 }
@@ -1600,17 +1600,43 @@ function PlayoffBracket({psLiga,equipoMap,soloPrevia}){
   },[psLiga]);
   const numDe=k=>{const mt=k.match(/#(\d+)/);return mt?parseInt(mt[1],10):0;};
   const buscar=(regex)=>Object.keys(series).filter(k=>regex.test(k)).sort((a,b)=>numDe(a)-numDe(b)).map(k=>series[k]);
+  const idaVuelta=s=>/ida-vuelta/i.test(s[0]?.notas||"");
+  const teamsOf=s=>[...new Set(s.flatMap(p=>[p.id_equipo_local,p.id_equipo_visitante]).filter(Boolean))];
+  const winnerOf=s=>{
+    const ag={};
+    s.forEach(p=>{
+      if(p.resultado_local==null||p.resultado_visitante==null)return;
+      if(idaVuelta(s)){ag[p.id_equipo_local]=(ag[p.id_equipo_local]||0)+Number(p.resultado_local);ag[p.id_equipo_visitante]=(ag[p.id_equipo_visitante]||0)+Number(p.resultado_visitante);}
+      else{const gn=Number(p.resultado_local)>Number(p.resultado_visitante)?p.id_equipo_local:p.id_equipo_visitante;ag[gn]=(ag[gn]||0)+1;}
+    });
+    const ids=teamsOf(s);
+    if(ids.length<2)return null;
+    const a=ag[ids[0]]||0,b=ag[ids[1]]||0;
+    return a>b?ids[0]:(b>a?ids[1]:null);
+  };
+
   if(soloPrevia){
     const previa=buscar(/previa/i);
     if(!previa.length)return<p style={{color:"#94a3b8",textAlign:"center",paddingTop:"40px"}}>Sin fase previa.</p>;
     return(
       <BracketCard title="Fase previa">
-        <div style={{display:"flex",gap:"14px",alignItems:"stretch"}}>
-          <BracketCol label="Eliminatorias">{previa.map((s,i)=><SerieBox key={i} partidosSerie={s} equipoMap={equipoMap}/>)}</BracketCol>
+        <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
+          {previa.map((s,i)=>{const w=winnerOf(s);const t=w&&equipoMap[w];return(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:"10px"}}>
+              <SerieBox partidosSerie={s} equipoMap={equipoMap}/>
+              {t&&<div style={{display:"flex",alignItems:"center",gap:"5px",whiteSpace:"nowrap"}}>
+                <span style={{color:"#22c55e",fontWeight:800,fontSize:"14px"}}>→</span>
+                <TeamBadge team={t} size={18}/>
+                <span style={{fontSize:"11px",fontWeight:800,color:"#16a34a"}}>{t.nombre}</span>
+                <span style={{fontSize:"10px",color:"#94a3b8"}}>a grupos</span>
+              </div>}
+            </div>
+          );})}
         </div>
       </BracketCard>
     );
   }
+
   const dieci=buscar(/dieciseisavos/i);
   const octavos=buscar(/octavos/i);
   const cuartos=buscar(/cuartos/i);
@@ -1619,14 +1645,19 @@ function PlayoffBracket({psLiga,equipoMap,soloPrevia}){
   if(!dieci.length&&!octavos.length&&!cuartos.length&&!semis.length&&!final.length)return(
     <p style={{color:"#94a3b8",textAlign:"center",paddingTop:"40px"}}>El cuadro se rellenará cuando avance la competición.</p>
   );
+  // Ordenar cada ronda siguiendo el árbol: los dos cruces que alimentan a uno superior van juntos.
+  const cols=[["Dieciseisavos",dieci],["Octavos",octavos],["Cuartos",cuartos],["Semifinales",semis],["Final",final]].filter(([,s])=>s.length);
+  for(let i=cols.length-2;i>=0;i--){
+    const above=cols[i+1][1], cur=cols[i][1], used=new Set(), nw=[];
+    above.forEach(as=>{teamsOf(as).forEach(team=>{const f=cur.find(s=>!used.has(s)&&winnerOf(s)===team);if(f){used.add(f);nw.push(f);}});});
+    cur.forEach(s=>{if(!used.has(s))nw.push(s);});
+    cols[i][1]=nw;
+  }
+  const alinear=dieci.length>0?"flex-start":"space-around";
   return(
     <BracketCard title="Playoffs">
       <div style={{display:"flex",gap:"14px",alignItems:"stretch"}}>
-        {dieci.length>0&&<BracketCol label="Dieciseisavos">{dieci.map((s,i)=><SerieBox key={i} partidosSerie={s} equipoMap={equipoMap}/>)}</BracketCol>}
-        {octavos.length>0&&<BracketCol label="Octavos">{octavos.map((s,i)=><SerieBox key={i} partidosSerie={s} equipoMap={equipoMap}/>)}</BracketCol>}
-        {cuartos.length>0&&<BracketCol label="Cuartos">{cuartos.map((s,i)=><SerieBox key={i} partidosSerie={s} equipoMap={equipoMap}/>)}</BracketCol>}
-        {semis.length>0&&<BracketCol label="Semifinales">{semis.map((s,i)=><SerieBox key={i} partidosSerie={s} equipoMap={equipoMap}/>)}</BracketCol>}
-        {final.length>0&&<BracketCol label="Final">{final.map((s,i)=><SerieBox key={i} partidosSerie={s} equipoMap={equipoMap}/>)}</BracketCol>}
+        {cols.map(([lbl,s])=><BracketCol key={lbl} label={lbl} align={alinear}>{s.map((serie,i)=><SerieBox key={i} partidosSerie={serie} equipoMap={equipoMap}/>)}</BracketCol>)}
       </div>
     </BracketCard>
   );
