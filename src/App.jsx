@@ -683,7 +683,7 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
   },[idPartido]);
   if(rows===null||rows.length===0)return null;
 
-  const N=v=>Number(v)||0;
+  const N=v=>{if(typeof v==="string"&&v.indexOf(":")>=0){const p=v.split(":");return (parseInt(p[0],10)||0)+(parseInt(p[1],10)||0)/60;}return Number(v)||0;};
   const filt=tab==="local"?rows.filter(r=>r.id_equipo===equipoLocal):tab==="visit"?rows.filter(r=>r.id_equipo===equipoVisit):rows;
   const cols=[{k:"nombre",l:"Jugadora"},{k:"minutos",l:"MIN"},{k:"puntos",l:"PTS"},{k:"tc_anotados",l:"TC"},{k:"t3_anotados",l:"T3"},{k:"tl_anotados",l:"TL"},{k:"reb_totales",l:"REB"},{k:"asistencias",l:"AST"},{k:"robos",l:"ROB"},{k:"tapones",l:"TAP"},{k:"perdidas",l:"PER"},{k:"faltas",l:"FAL"},{k:"valoracion",l:"VAL"}];
   const sorted=[...filt].sort((a,b)=>{
@@ -2087,13 +2087,27 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   var scTempState=useState("");var scTemp=scTempState[0];var setScTemp=scTempState[1];
   var scSlugState=useState("");var scSlug=scSlugState[0];var setScSlug=scSlugState[1];
   var scDryState=useState(true);var scDry=scDryState[0];var setScDry=scDryState[1];
+  var scCrearState=useState(false);var scCrear=scCrearState[0];var setScCrear=scCrearState[1];
   var scBusyState=useState(false);var scBusy=scBusyState[0];var setScBusy=scBusyState[1];
   var scResState=useState(null);var scRes=scResState[0];var setScRes=scResState[1];
+  // Construye el slug FIBA desde la plantilla de la liga (columna slug_fiba) y la temporada.
+  // Tokens: {t}=temporada tal cual · {ss}=temporada corta (2025-26→25-26) · {yyyy}=año · {yy}=año 2 díg.
+  function buildSlug(tpl,t){
+    t=(t||"").trim(); if(!tpl)return "";
+    var m=t.match(/^(\d{4})-(\d{2})$/);
+    var yyyy=m?m[1]:(/^\d{4}$/.test(t)?t:t);
+    var ss=m?(m[1].slice(2)+"-"+m[2]):(/^\d{4}$/.test(t)?t.slice(2):t);
+    var yy=m?m[1].slice(2):(/^\d{4}$/.test(t)?t.slice(2):t);
+    return tpl.replace(/\{t\}/g,t).replace(/\{ss\}/g,ss).replace(/\{yyyy\}/g,yyyy).replace(/\{yy\}/g,yy);
+  }
+  function ligaTpl(id){var l=(ligas||[]).find(function(x){return x.id_liga===id;});return l?l.slug_fiba:null;}
+  function onScLiga(id){setScLiga(id);var tpl=ligaTpl(id);setScSlug(tpl?buildSlug(tpl,scTemp):"");}
+  function onScTemp(t){setScTemp(t);var tpl=ligaTpl(scLiga);if(tpl)setScSlug(buildSlug(tpl,t));}
   async function runScraper(){
     if(!scLiga||!scSlug.trim()){setScRes({error:"Liga y slug son obligatorios"});return;}
     setScBusy(true);setScRes(null);
     try{
-      var inv=await supabase.functions.invoke("cargar-boxscores-fiba",{body:{id_liga:scLiga,temporada:scTemp.trim(),slug:scSlug.trim(),dry:scDry}});
+      var inv=await supabase.functions.invoke("cargar-boxscores-fiba",{body:{id_liga:scLiga,temporada:scTemp.trim(),slug:scSlug.trim(),dry:scDry,crear:scCrear}});
       if(inv.error){setScRes({error:String((inv.error&&inv.error.message)||inv.error)});}
       else{setScRes(inv.data);}
     }catch(e){setScRes({error:String(e)});}
@@ -2467,20 +2481,23 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               <p style={{color:"#64748b",fontSize:"13px",marginBottom:"14px"}}>Reconstruye los boxscores (estadísticas por jugadora) de una competición FIBA a partir del play-by-play. Solo toca partidos que <b>ya tienen resultado</b> y aún no tienen boxscore; las jugadoras deben existir ya en sus temporadas. Si tarda mucho o se corta, vuelve a pulsar: continúa donde lo dejó.</p>
               <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
                 <label style={{fontSize:"12px",fontWeight:700,color:"#475569"}}>Liga
-                  <select value={scLiga} onChange={function(e){setScLiga(e.target.value);}} style={{width:"100%",marginTop:"4px",padding:"9px 10px",borderRadius:"10px",border:"1px solid #e2e8f0",fontSize:"13px",background:"#fff"}}>
+                  <select value={scLiga} onChange={function(e){onScLiga(e.target.value);}} style={{width:"100%",marginTop:"4px",padding:"9px 10px",borderRadius:"10px",border:"1px solid #e2e8f0",fontSize:"13px",background:"#fff"}}>
                     <option value="">— elige liga —</option>
                     {ligas.slice().sort(function(a,b){return (a.nombre||"").localeCompare(b.nombre||"");}).map(function(l){return <option key={l.id_liga} value={l.id_liga}>{l.nombre} ({l.id_liga})</option>;})}
                   </select>
                 </label>
                 <label style={{fontSize:"12px",fontWeight:700,color:"#475569"}}>Temporada
-                  <input value={scTemp} onChange={function(e){setScTemp(e.target.value);}} placeholder="2026  ·  ó  2025-26" style={{width:"100%",marginTop:"4px",padding:"9px 10px",borderRadius:"10px",border:"1px solid #e2e8f0",fontSize:"13px",boxSizing:"border-box"}}/>
+                  <input value={scTemp} onChange={function(e){onScTemp(e.target.value);}} placeholder="2026  ·  ó  2025-26" style={{width:"100%",marginTop:"4px",padding:"9px 10px",borderRadius:"10px",border:"1px solid #e2e8f0",fontSize:"13px",boxSizing:"border-box"}}/>
                 </label>
                 <label style={{fontSize:"12px",fontWeight:700,color:"#475569"}}>Slug del evento FIBA
                   <input value={scSlug} onChange={function(e){setScSlug(e.target.value);}} placeholder="fiba-u17-womens-basketball-world-cup-2026" style={{width:"100%",marginTop:"4px",padding:"9px 10px",borderRadius:"10px",border:"1px solid #e2e8f0",fontSize:"13px",boxSizing:"border-box",fontFamily:"monospace"}}/>
-                  <span style={{display:"block",fontWeight:400,color:"#94a3b8",fontSize:"11px",marginTop:"3px"}}>El trozo de la URL de FIBA: fiba.basketball/en/events/<b>este-trozo</b>/games</span>
+                  <span style={{display:"block",fontWeight:400,color:"#94a3b8",fontSize:"11px",marginTop:"3px"}}>Se rellena solo si la liga tiene plantilla guardada (y puedes editarlo). Es el trozo de la URL de FIBA: fiba.basketball/en/events/<b>este-trozo</b>/games</span>
                 </label>
                 <label style={{display:"flex",alignItems:"center",gap:"8px",fontSize:"13px",color:"#475569",cursor:"pointer"}}>
                   <input type="checkbox" checked={scDry} onChange={function(e){setScDry(e.target.checked);}}/> Prueba (dry-run): no escribe nada, solo informa de lo que haría
+                </label>
+                <label style={{display:"flex",alignItems:"center",gap:"8px",fontSize:"13px",color:"#475569",cursor:"pointer"}}>
+                  <input type="checkbox" checked={scCrear} onChange={function(e){setScCrear(e.target.checked);}}/> Crear también los partidos que falten (los baja de la lista del evento y mapea equipos por nombre)
                 </label>
                 <button onClick={runScraper} disabled={scBusy||!scLiga||!scSlug.trim()} style={{background:scBusy||!scLiga||!scSlug.trim()?"#cbd5e1":(scDry?"#0f172a":"#9333ea"),color:"#fff",border:"none",borderRadius:"10px",padding:"11px 20px",fontWeight:700,fontSize:"13px",cursor:scBusy||!scLiga||!scSlug.trim()?"default":"pointer"}}>{scBusy?"Scrapeando… (puede tardar)":(scDry?"▶ Probar":"⬇️ Scrapear boxscores")}</button>
               </div>
@@ -2488,7 +2505,9 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                 <div style={{marginTop:"16px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:"12px",padding:"14px"}}>
                   {scRes.error?<div style={{color:"#ef4444",fontSize:"13px"}}>❌ {scRes.error}</div>:(
                     <div style={{fontSize:"13px",color:"#334155"}}>
-                      <div style={{fontWeight:700,marginBottom:"4px"}}>{scRes.dry?"🔎 Prueba · ":"✅ "}Partidos: {scRes.partidos} · Hechos: {scRes.hechos} · Saltados: {scRes.saltados} · Filas: {scRes.filas}</div>
+                      <div style={{fontWeight:700,marginBottom:"4px"}}>{scRes.dry?"🔎 Prueba · ":"✅ "}Partidos: {scRes.partidos}{scRes.creados>0?` · Creados: ${scRes.creados}`:""} · Hechos: {scRes.hechos} · Saltados: {scRes.saltados} · Filas: {scRes.filas}</div>
+                      {scRes.sin_mapear_equipos&&scRes.sin_mapear_equipos.length>0&&<div style={{marginTop:"8px",color:"#dc2626",fontSize:"12px"}}><b>Equipos sin mapear ({scRes.sin_mapear_equipos.length})</b> — no se creó ese partido; revisa el nombre del equipo: {scRes.sin_mapear_equipos.join("  ·  ")}</div>}
+                      {scRes.creados_detalle&&scRes.creados_detalle.length>0&&<div style={{marginTop:"8px",fontSize:"12px",color:"#0f766e"}}><b>Partidos {scRes.dry?"a crear":"creados"} ({scRes.creados_detalle.length}):</b><ul style={{margin:"4px 0 0",paddingLeft:"18px",maxHeight:"140px",overflowY:"auto"}}>{scRes.creados_detalle.map(function(d,i){return <li key={i} style={{marginBottom:"2px"}}>{d}</li>;})}</ul></div>}
                       {scRes.mensaje&&<div style={{color:"#64748b"}}>{scRes.mensaje}</div>}
                       {scRes.sin_mapear&&scRes.sin_mapear.length>0&&<div style={{marginTop:"8px",color:"#b45309",fontSize:"12px"}}><b>Sin mapear ({scRes.sin_mapear.length})</b> — revísalas a mano: {scRes.sin_mapear.join("  ·  ")}</div>}
                       {scRes.detalles&&scRes.detalles.length>0&&<ul style={{margin:"8px 0 0",paddingLeft:"18px",maxHeight:"200px",overflowY:"auto"}}>{scRes.detalles.map(function(d,i){return <li key={i} style={{fontSize:"12px",color:"#64748b",marginBottom:"2px"}}>{d}</li>;})}</ul>}
@@ -3250,7 +3269,7 @@ function StatsJugadora({idJugadora,equipos,ligas,equiposNombres,onOpenPartido}){
   if(rows===null)return <div style={{textAlign:"center",padding:"40px",color:"#94a3b8",fontSize:"14px"}}>Cargando estadísticas…</div>;
   if(rows.length===0)return <div style={{background:"#fff",borderRadius:"20px",padding:"40px",textAlign:"center",color:"#94a3b8",fontSize:"14px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>Aún no hay estadísticas de partido para esta jugadora.</div>;
 
-  const N=v=>Number(v)||0;
+  const N=v=>{if(typeof v==="string"&&v.indexOf(":")>=0){const p=v.split(":");return (parseInt(p[0],10)||0)+(parseInt(p[1],10)||0)/60;}return Number(v)||0;};
   const ligaMap={}; (ligas||[]).forEach(l=>ligaMap[l.id_liga]=l);
   const equipoMap={};(equipos||[]).forEach(e=>{equipoMap[e.id_equipo]=e;});
   const tData=(id,tmp)=>resolveTeamData(id,tmp,equiposNombres,equipoMap);
