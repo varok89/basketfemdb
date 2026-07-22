@@ -1468,72 +1468,54 @@ function BracketCard({title,children}){
 }
 
 function FaseFinal({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlayer}){
-  const byNum=useMemo(()=>{
-    const m={};
-    psLiga.forEach(p=>{const mt=(p.notas||"").match(/#(\d+)/);if(mt)m[mt[1]]=p;});
-    return m;
-  },[psLiga]);
-  const octavos=useMemo(()=>{
-    // Orden FIBA del cuadro: QF#37 = W25 v W30, QF#39 = W27 v W32,
-    // QF#38 = W26 v W29, QF#40 = W28 v W31 (ver bracket oficial).
-    const slots=[25,30,27,32,26,29,28,31].map(n=>byNum[String(n)]||null);
-    // Las filas de octavos sin número (p.ej. si una edición web sobrescribe las notas)
-    // rellenan los huecos del orden en vez de desaparecer del cuadro.
-    const sinNumero=psLiga.filter(p=>/^octavos/i.test(p.notas||"")&&!/#\d+/.test(p.notas||"")).sort((a,b)=>a.id-b.id);
-    let si=0;
-    const res=slots.map(s=>s||(si<sinNumero.length?sinNumero[si++]:null)).filter(Boolean);
-    while(si<sinNumero.length)res.push(sinNumero[si++]);
-    return res;
-  },[psLiga,byNum]);
-  const g=n=>byNum[String(n)];
+  // El cuadro se arma POR RONDAS (no por numeros fijos), leyendo el nombre de la ronda
+  // de las notas (espanol o ingles) y ordenando por #N. Asi vale para 8, 16 o cualquier tamano.
+  const nt=p=>(p&&p.notas)||"";
+  const num=p=>{const m=nt(p).match(/#(\d+)/);return m?parseInt(m[1],10):99999;};
   const box=(p,caption)=><KOBox key={(p&&p.id)||caption} p={p} equipoMap={equipoMap} caption={caption} onOpen={onOpenPartido}/>;
-
+  const sortN=arr=>arr.slice().sort((a,b)=>num(a)-num(b)||a.id-b.id);
+  const esGrupo=p=>/\bgrupo\b|\bgroup\b|fase de grupos/i.test(nt(p))&&!/#\d+/.test(nt(p));
+  const es3er=p=>/3er|tercer|bronce|3rd\s*place/i.test(nt(p));
+  const esClasif=p=>!es3er(p)&&/clasific|classification|placement/i.test(nt(p));
+  const esOctavos=p=>/octavos|round of 16|dieciseisavos/i.test(nt(p));
+  const esCuartos=p=>/cuartos|quarter/i.test(nt(p));
+  const esSemi=p=>/semi/i.test(nt(p));
+  const esFinal=p=>/\bfinal\b/i.test(nt(p))&&!esSemi(p)&&!esCuartos(p)&&!esOctavos(p)&&!es3er(p)&&!esClasif(p);
+  const ko=psLiga.filter(p=>!esGrupo(p)&&(/#\d+/.test(nt(p))||/octavos|cuartos|semi|\bfinal\b|quarter|round of 16|clasific|classification|bronce|3er/i.test(nt(p))));
+  const octavos=sortN(ko.filter(esOctavos));
+  const cuartos=sortN(ko.filter(p=>esCuartos(p)&&!esOctavos(p)));
+  const semis=sortN(ko.filter(esSemi));
+  const finalP=sortN(ko.filter(esFinal))[0]||null;
+  const bronce=sortN(ko.filter(es3er))[0]||null;
+  const clasif=sortN(ko.filter(esClasif));
+  const capClasif=p=>nt(p).replace(/#\d+/g,"").replace(/clasificaci[o\u00f3]n|classification|placement/ig,"").replace(/\u00b7/g,"").trim()||"Clasificacion";
+  const hayCuadro=octavos.length||cuartos.length||semis.length||finalP||bronce;
   return(
     <div>
-      {(octavos.length>0||g(37)||g(56))&&(
+      {hayCuadro&&(
         <BracketCard title="Cuadro final">
           <div style={{display:"flex",gap:"14px",alignItems:"stretch"}}>
             {octavos.length>0&&<BracketCol label="Octavos">{octavos.map(p=>box(p))}</BracketCol>}
-            {[37,39,38,40].some(n=>g(n))&&<BracketCol label="Cuartos">{[37,39,38,40].map(n=>box(g(n)))}</BracketCol>}
-            {[47,48].some(n=>g(n))&&<BracketCol label="Semifinales">{[47,48].map(n=>box(g(n)))}</BracketCol>}
-            <BracketCol label="Final">{box(g(56),"🏆 Final")}{box(g(55),"🥉 3er puesto")}{mvpPlayer&&(
-              <div onClick={()=>onGoToPlayer&&onGoToPlayer(mvpPlayer.id_jugadora)} style={{display:"flex",flexDirection:"column",alignItems:"center",cursor:onGoToPlayer?"pointer":"default",marginTop:"8px",gap:"2px"}}>
-                <Avatar photo={mvpPlayer.foto} name={mvpPlayer.nombre} size={40} fontSize={13}/>
-                <span style={{fontSize:"11px",fontWeight:700,color:"#1e293b",whiteSpace:"nowrap",maxWidth:"150px",overflow:"hidden",textOverflow:"ellipsis"}}>{mvpPlayer.nombre}</span>
-                <span style={{fontSize:"9px",fontWeight:800,color:"#b45309",letterSpacing:"0.5px"}}>🏅 MVP</span>
-              </div>
-            )}</BracketCol>
+            {cuartos.length>0&&<BracketCol label="Cuartos">{cuartos.map(p=>box(p))}</BracketCol>}
+            {semis.length>0&&<BracketCol label="Semifinales">{semis.map(p=>box(p))}</BracketCol>}
+            <BracketCol label="Final">
+              {finalP&&box(finalP,"\ud83c\udfc6 Final")}
+              {bronce&&box(bronce,"\ud83e\udd49 3er puesto")}
+              {mvpPlayer&&(
+                <div onClick={()=>onGoToPlayer&&onGoToPlayer(mvpPlayer.id_jugadora)} style={{display:"flex",flexDirection:"column",alignItems:"center",cursor:onGoToPlayer?"pointer":"default",marginTop:"8px",gap:"2px"}}>
+                  <Avatar photo={mvpPlayer.foto} name={mvpPlayer.nombre} size={40} fontSize={13}/>
+                  <span style={{fontSize:"11px",fontWeight:700,color:"#1e293b",whiteSpace:"nowrap",maxWidth:"150px",overflow:"hidden",textOverflow:"ellipsis"}}>{mvpPlayer.nombre}</span>
+                  <span style={{fontSize:"9px",fontWeight:800,color:"#b45309",letterSpacing:"0.5px"}}>\ud83c\udfc5 MVP</span>
+                </div>
+              )}
+            </BracketCol>
           </div>
         </BracketCard>
       )}
-      {(g(45)||g(46)||g(53)||g(54))&&(
-        <BracketCard title="Puestos 5º-8º">
-          <div style={{display:"flex",gap:"14px",alignItems:"stretch"}}>
-            <BracketCol label="Cruces">{[45,46].map(n=>box(g(n)))}</BracketCol>
-            <BracketCol label="Finales">{box(g(54),"5º-6º")}{box(g(53),"7º-8º")}</BracketCol>
-          </div>
-        </BracketCard>
-      )}
-      {(g(33)||g(34)||g(35)||g(36))&&(
-        <BracketCard title="Cruces 9º-16º">
-          <div style={{display:"flex",gap:"14px",alignItems:"stretch"}}>
-            <BracketCol label="Perdedores de octavos">{[33,34,35,36].map(n=>box(g(n)))}</BracketCol>
-          </div>
-        </BracketCard>
-      )}
-      {(g(43)||g(44)||g(51)||g(52))&&(
-        <BracketCard title="Puestos 9º-12º">
-          <div style={{display:"flex",gap:"14px",alignItems:"stretch"}}>
-            <BracketCol label="Cruces">{[43,44].map(n=>box(g(n)))}</BracketCol>
-            <BracketCol label="Finales">{box(g(52),"9º-10º")}{box(g(51),"11º-12º")}</BracketCol>
-          </div>
-        </BracketCard>
-      )}
-      {(g(41)||g(42)||g(49)||g(50))&&(
-        <BracketCard title="Puestos 13º-16º">
-          <div style={{display:"flex",gap:"14px",alignItems:"stretch"}}>
-            <BracketCol label="Cruces">{[41,42].map(n=>box(g(n)))}</BracketCol>
-            <BracketCol label="Finales">{box(g(50),"13º-14º")}{box(g(49),"15º-16º")}</BracketCol>
+      {clasif.length>0&&(
+        <BracketCard title="Clasificacion">
+          <div style={{display:"flex",gap:"14px",alignItems:"stretch",flexWrap:"wrap"}}>
+            {clasif.map(p=>box(p,capClasif(p)))}
           </div>
         </BracketCard>
       )}
