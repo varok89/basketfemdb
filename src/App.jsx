@@ -2515,7 +2515,13 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                       {scRes.sin_mapear_equipos&&scRes.sin_mapear_equipos.length>0&&<div style={{marginTop:"8px",color:"#dc2626",fontSize:"12px"}}><b>Equipos sin mapear ({scRes.sin_mapear_equipos.length})</b> — no se creó ese partido; revisa el nombre del equipo: {scRes.sin_mapear_equipos.join("  ·  ")}</div>}
                       {scRes.creados_detalle&&scRes.creados_detalle.length>0&&<div style={{marginTop:"8px",fontSize:"12px",color:"#0f766e"}}><b>Partidos {scRes.dry?"a crear":"creados"} ({scRes.creados_detalle.length}):</b><ul style={{margin:"4px 0 0",paddingLeft:"18px",maxHeight:"140px",overflowY:"auto"}}>{scRes.creados_detalle.map(function(d,i){return <li key={i} style={{marginBottom:"2px"}}>{d}</li>;})}</ul></div>}
                       {scRes.mensaje&&<div style={{color:"#64748b"}}>{scRes.mensaje}</div>}
-                      {scRes.sin_mapear&&scRes.sin_mapear.length>0&&<div style={{marginTop:"8px",color:"#b45309",fontSize:"12px"}}><b>Sin mapear ({scRes.sin_mapear.length})</b> — revísalas a mano: {scRes.sin_mapear.join("  ·  ")}</div>}
+                      {scRes.sin_mapear&&scRes.sin_mapear.length>0&&(function(){
+                        // Las entradas vienen como "idPartido EQUIPO Nombre": agrupamos por jugadora
+                        var m={};
+                        scRes.sin_mapear.forEach(function(s){var k=String(s).replace(/^\S+\s+/,"");m[k]=(m[k]||0)+1;});
+                        var ks=Object.keys(m).sort();
+                        return <div style={{marginTop:"8px",color:"#b45309",fontSize:"12px"}}><b>Jugadoras sin mapear ({ks.length})</b> — crea o corrige su ficha y vuelve a lanzar: {ks.map(function(k){return k+(m[k]>1?" ("+m[k]+" partidos)":"");}).join("  ·  ")}</div>;
+                      })()}
                       {scRes.detalles&&scRes.detalles.length>0&&<ul style={{margin:"8px 0 0",paddingLeft:"18px",maxHeight:"200px",overflowY:"auto"}}>{scRes.detalles.map(function(d,i){return <li key={i} style={{fontSize:"12px",color:"#64748b",marginBottom:"2px"}}>{d}</li>;})}</ul>}
                     </div>
                   )}
