@@ -1331,28 +1331,10 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
 // Calcula la clasificación por grupos a partir de los partidos con resultado.
 // Los partidos de un grupo se identifican por el campo "notas" que empieza por "Group ".
 // Criterios de desempate FIBA: 1) puntos (2V/1D), 2) head-to-head, 3) dif. directa, 4) dif. global
-function calcClasificacion(partidos, equipoMap){
-  // Agrupar TODOS los partidos de grupo (notas que empiezan por "Group "), tengan o no
-  // resultado: así la tabla muestra los equipos a 0 antes de que empiece el torneo.
-  const grupos={};
-  const ligaRegular=[]; // partidos sin "Group X": jornadas de liga regular (excluye playoffs y eliminatorias)
-  partidos.forEach(p=>{
-    const m=p.notas&&p.notas.match(/^(Group [A-Z])/i);
-    const m2=!m&&p.notas&&p.notas.match(/Grupo ([A-Z])\b/i);
-    if(m||m2){
-      const g=m?m[1].toUpperCase():("Grupo "+m2[1].toUpperCase());
-      if(!grupos[g])grupos[g]=[];
-      grupos[g].push(p);
-      return;
-    }
-    if(/playoff/i.test(p.notas||""))return;
-    if(/#\d+/.test(p.notas||"")||/^octavos/i.test(p.notas||""))return; // eliminatorias de torneo
-    if(/^(fase previa|dieciseisavos|octavos|cuartos|semifinal|final)/i.test(p.notas||""))return; // EuroCup: previa y cuadro fuera de la tabla
-    if(!p.id_equipo_local||!p.id_equipo_visitante)return;
-    ligaRegular.push(p);
-  });
+/* Tabla de un grupo con desempates FIBA. Extraida para poder reusarla con
+   subconjuntos de partidos (p.ej. Euroliga: 2a ronda arrastrando la 1a). */
+function calcTablaGrupo(ps){
 
-  const calcGrupo=(ps)=>{
     const stats={};
     const initEq=id=>{if(id&&!stats[id])stats[id]={id,pj:0,pg:0,pp:0,pts:0,pf:0,pc:0,dif:0};};
     ps.forEach(p=>{
@@ -1403,7 +1385,30 @@ function calcClasificacion(partidos, equipoMap){
       return b.pf-a.pf;
     });
     return arr;
-  };
+}
+
+function calcClasificacion(partidos, equipoMap){
+  // Agrupar TODOS los partidos de grupo (notas que empiezan por "Group "), tengan o no
+  // resultado: así la tabla muestra los equipos a 0 antes de que empiece el torneo.
+  const grupos={};
+  const ligaRegular=[]; // partidos sin "Group X": jornadas de liga regular (excluye playoffs y eliminatorias)
+  partidos.forEach(p=>{
+    const m=p.notas&&p.notas.match(/^(Group [A-Z])/i);
+    const m2=!m&&p.notas&&p.notas.match(/Grupo ([A-Z])\b/i);
+    if(m||m2){
+      const g=m?m[1].toUpperCase():("Grupo "+m2[1].toUpperCase());
+      if(!grupos[g])grupos[g]=[];
+      grupos[g].push(p);
+      return;
+    }
+    if(/playoff/i.test(p.notas||""))return;
+    if(/#\d+/.test(p.notas||"")||/^octavos/i.test(p.notas||""))return; // eliminatorias de torneo
+    if(/^(fase previa|dieciseisavos|octavos|cuartos|semifinal|final)/i.test(p.notas||""))return; // EuroCup: previa y cuadro fuera de la tabla
+    if(!p.id_equipo_local||!p.id_equipo_visitante)return;
+    ligaRegular.push(p);
+  });
+
+  const calcGrupo=calcTablaGrupo;
 
   const conGrupos=Object.entries(grupos)
     .sort(([a],[b])=>a.localeCompare(b))
@@ -1413,6 +1418,115 @@ function calcClasificacion(partidos, equipoMap){
   // (enfrentamientos particulares -> diferencia particular -> diferencia general -> puntos anotados).
   if(ligaRegular.length)return [{nombre:"Clasificación",equipos:calcGrupo(ligaRegular),esLiga:true}];
   return [];
+}
+
+/* ── Euroliga: fases propias (previa, 1a y 2a ronda, play-ins, final six) ───────
+   Se activa sola cuando la competicion tiene notas "Primera Ronda" y "Segunda Ronda".
+   La 2a ronda arrastra los resultados de la 1a entre equipos que ya se enfrentaron. */
+function EuroligaFases({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlayer}){
+  const nt=p=>(p&&p.notas)||"";
+  const [tab,setTab]=useState("primera");
+  const de=re=>psLiga.filter(p=>re.test(nt(p)));
+  const previa=de(/fase previa/i);
+  const r1=de(/^Primera Ronda/i), r2=de(/^Segunda Ronda/i);
+  const playins=de(/^Play-In/i);
+  const six=de(/^(Cuartos de final|Semifinal|3er puesto|Final)\b/i);
+  const letras=ps=>[...new Set(ps.map(p=>{const m=nt(p).match(/Grupo ([A-Z])/i);return m?m[1].toUpperCase():null;}).filter(Boolean))].sort();
+  const delGrupo=(ps,L)=>ps.filter(p=>new RegExp("Grupo "+L+"\\b","i").test(nt(p)));
+  // 2a ronda: se suman los partidos de 1a ronda entre equipos que coinciden en el nuevo grupo
+  const tablaSegunda=L=>{
+    const ps=delGrupo(r2,L);
+    const eq=new Set(); ps.forEach(p=>{eq.add(p.id_equipo_local);eq.add(p.id_equipo_visitante);});
+    const arrastre=r1.filter(p=>eq.has(p.id_equipo_local)&&eq.has(p.id_equipo_visitante));
+    return {filas:calcTablaGrupo([...ps,...arrastre]),arrastre:arrastre.length};
+  };
+  const zonaColor={verde:"#16a34a",naranja:"#ea580c",azul:"#2563eb",gris:"#94a3b8"};
+  const Tabla=({titulo,filas,zonas,nota})=>(
+    <div style={{background:"#fff",borderRadius:"16px",overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"16px"}}>
+      <div style={{background:"#f5f3ff",padding:"10px 16px",borderBottom:"1px solid #e9d5ff",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span style={{fontWeight:800,fontSize:"14px",color:"#7c3aed"}}>{titulo}</span>
+        {nota&&<span style={{fontSize:"11px",color:"#94a3b8"}}>{nota}</span>}
+      </div>
+      <table style={{width:"100%",borderCollapse:"collapse",fontSize:"13px"}}>
+        <thead><tr style={{background:"#fafafa",color:"#64748b",fontSize:"11px"}}>
+          <th style={{padding:"6px 8px",textAlign:"left"}}>#</th><th style={{padding:"6px",textAlign:"left"}}>Equipo</th>
+          <th style={{padding:"6px"}}>PJ</th><th style={{padding:"6px"}}>PG</th><th style={{padding:"6px"}}>PP</th><th style={{padding:"6px"}}>DIF</th>
+        </tr></thead>
+        <tbody>
+          {filas.map((e,i)=>{
+            const z=zonas(i+1);
+            const eq=equipoMap[e.id]||{};
+            return(
+              <tr key={e.id} style={{borderTop:"1px solid #f1f5f9"}}>
+                <td style={{padding:"7px 8px",borderLeft:"4px solid "+(z?zonaColor[z.color]:"transparent"),fontWeight:700,color:"#475569"}}>{i+1}</td>
+                <td style={{padding:"7px 6px",color:"#1e293b",fontWeight:600}}>{eq.nombre||e.id}{z&&<span style={{display:"block",fontSize:"10px",fontWeight:700,color:zonaColor[z.color]}}>{z.txt}</span>}</td>
+                <td style={{padding:"7px 6px",textAlign:"center",color:"#64748b"}}>{e.pj}</td>
+                <td style={{padding:"7px 6px",textAlign:"center",fontWeight:700,color:"#16a34a"}}>{e.pg}</td>
+                <td style={{padding:"7px 6px",textAlign:"center",color:"#ef4444"}}>{e.pp}</td>
+                <td style={{padding:"7px 6px",textAlign:"center",color:e.dif>0?"#16a34a":e.dif<0?"#ef4444":"#64748b"}}>{e.dif>0?"+":""}{e.dif}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+  const zonasR1=n=>n<=3?{color:"verde",txt:"Pasa a Segunda Ronda"}:{color:"naranja",txt:"Desciende a EuroCup"};
+  const zonasR2=n=>n<=2?{color:"verde",txt:"Play-In Semifinales"}:n<=4?{color:"azul",txt:"Play-In Cuartos"}:{color:"gris",txt:"Eliminado"};
+  // Play-In: series al mejor de 3
+  const series=ps=>{
+    const m=new Map();
+    ps.forEach(p=>{const k=(nt(p).match(/#(\d+)/)||[])[1]||"?";if(!m.has(k))m.set(k,[]);m.get(k).push(p);});
+    return [...m.entries()].sort((a,b)=>a[0]-b[0]).map(([n,arr])=>{
+      arr.sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
+      const v={};
+      arr.forEach(p=>{if(p.resultado_local==null||p.resultado_visitante==null)return;
+        const g=p.resultado_local>p.resultado_visitante?p.id_equipo_local:p.id_equipo_visitante;v[g]=(v[g]||0)+1;});
+      const ganador=Object.keys(v).find(k=>v[k]>=2)||null;
+      return {n,arr,ganador,marcador:v,titulo:nt(arr[0]).replace(/\s*\(al mejor de 3\)/i,"")};
+    });
+  };
+  const TarjetaSeries=({titulo,ps})=>(
+    <BracketCard title={titulo}>
+      <div style={{display:"flex",gap:"14px",alignItems:"flex-start",flexWrap:"wrap"}}>
+        {series(ps).map(s=>(
+          <BracketCol key={s.n} label={s.titulo}>
+            {s.arr.map((p,i)=><KOBox key={p.id} p={p} equipoMap={equipoMap} caption={["1er partido","2o partido","3er partido"][i]} onOpen={onOpenPartido}/>)}
+            <div style={{fontSize:"11px",fontWeight:700,marginTop:"4px",color:s.ganador?"#16a34a":"#94a3b8",textAlign:"center"}}>
+              {s.ganador?("Pasa: "+((equipoMap[s.ganador]||{}).nombre||s.ganador)):"Serie en juego"}
+            </div>
+          </BracketCol>
+        ))}
+      </div>
+    </BracketCard>
+  );
+  const tabs=[...(previa.length?[["previa","Fase Previa"]]:[]),...(r1.length?[["primera","Primera Ronda"]]:[]),
+    ...(r2.length?[["segunda","Segunda Ronda"]]:[]),...(playins.length?[["playins","Play-Ins"]]:[]),...(six.length?[["six","Final Six"]]:[])];
+  return(
+    <div>
+      <div style={{display:"flex",gap:"8px",marginBottom:"16px",flexWrap:"wrap"}}>
+        {tabs.map(([k,lbl])=>(
+          <button key={k} onClick={()=>setTab(k)} style={{border:"none",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",fontWeight:700,cursor:"pointer",
+            background:tab===k?"#9333ea":"#fff",color:tab===k?"#fff":"#64748b",boxShadow:tab===k?"none":"0 1px 4px rgba(0,0,0,0.06)"}}>{lbl}</button>
+        ))}
+      </div>
+      {tab==="previa"&&<PlayoffBracket psLiga={previa} equipoMap={equipoMap} soloPrevia onOpenPartido={onOpenPartido}/>}
+      {tab==="primera"&&letras(r1).map(L=>(
+        <Tabla key={L} titulo={"Grupo "+L} filas={calcTablaGrupo(delGrupo(r1,L))} zonas={zonasR1}/>
+      ))}
+      {tab==="segunda"&&letras(r2).map(L=>{
+        const t=tablaSegunda(L);
+        return <Tabla key={L} titulo={"Grupo "+L} filas={t.filas} zonas={zonasR2} nota={t.arrastre?"incluye "+t.arrastre+" partidos arrastrados de la Primera Ronda":null}/>;
+      })}
+      {tab==="playins"&&(
+        <div>
+          {playins.some(p=>/Semifinales/i.test(nt(p)))&&<TarjetaSeries titulo="Play-In Semifinales · el ganador va a semifinales" ps={playins.filter(p=>/Semifinales/i.test(nt(p)))}/>}
+          {playins.some(p=>/Cuartos/i.test(nt(p)))&&<TarjetaSeries titulo="Play-In Cuartos · el ganador va a cuartos" ps={playins.filter(p=>/Cuartos/i.test(nt(p)))}/>}
+        </div>
+      )}
+      {tab==="six"&&<FaseFinal psLiga={six} equipoMap={equipoMap} onOpenPartido={onOpenPartido} mvpPlayer={mvpPlayer} onGoToPlayer={onGoToPlayer}/>}
+    </div>
+  );
 }
 
 /* ── Fase final (bracket compacto solo con banderas) ─────── */
@@ -1761,10 +1875,20 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
     return m?(players||[]).find(p=>p.id_jugadora===m.id_jugadora)||null:null;
   },[mvps,players,ligaId,temporada]);
 
+  // Euroliga: estructura propia (1a ronda, 2a ronda, play-ins, final six)
+  const esEuroliga=useMemo(()=>psLiga.some(p=>/^Primera Ronda/i.test(p.notas||""))&&psLiga.some(p=>/^Segunda Ronda/i.test(p.notas||"")),[psLiga]);
   if(!grupos.length&&!hayKO&&!hayBracketIV&&!hayPreviaIV)return(
     <div style={{maxWidth:"700px",margin:"0 auto",padding:"16px"}}>
       <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"15px",cursor:"pointer",padding:"0 0 16px"}}>← Volver</button>
       <p style={{color:"#94a3b8",textAlign:"center",paddingTop:"40px"}}>No hay partidos con resultado para calcular la clasificación.</p>
+    </div>
+  );
+
+  if(esEuroliga)return(
+    <div style={{maxWidth:"700px",margin:"0 auto",padding:"16px",fontFamily:"system-ui,sans-serif"}}>
+      <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"15px",cursor:"pointer",padding:"0 0 16px"}}>← Volver</button>
+      <h1 style={{fontWeight:800,fontSize:"20px",color:"#1e293b",margin:"0 0 20px"}}>🏆 Clasificación</h1>
+      <EuroligaFases psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido} mvpPlayer={mvpPlayer} onGoToPlayer={onGoToPlayer}/>
     </div>
   );
 
