@@ -2090,7 +2090,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     setScBusy(true);setScRes(null);
     // Se procesa por lotes: la Edge Function tiene limite de tiempo, asi que pedimos
     // ventanas de partidos y vamos acumulando hasta que no quede siguiente_offset.
-    var acc={partidos:0,total:0,creados:0,notas_rellenadas:0,hechos:0,saltados:0,filas:0,via_global:0,plantilla_altas:0,sin_mapear:[],sin_mapear_equipos:[],creados_detalle:[],dry:scDry};
+    var acc={partidos:0,total:0,creados:0,notas_rellenadas:0,hechos:0,saltados:0,filas:0,via_global:0,plantilla_altas:0,sin_mapear:[],sin_mapear_equipos:[],colisiones:[],creados_detalle:[],dry:scDry};
     try{
       var offset=0,primera=true,guard=0;
       while(guard<80){
@@ -2105,6 +2105,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
         acc.via_global+=d.via_global||0;acc.plantilla_altas+=d.plantilla_altas||0;
         acc.sin_mapear=Array.from(new Set(acc.sin_mapear.concat(d.sin_mapear||[])));
         acc.sin_mapear_equipos=Array.from(new Set(acc.sin_mapear_equipos.concat(d.sin_mapear_equipos||[])));
+        acc.colisiones=Array.from(new Set(acc.colisiones.concat(d.colisiones||[])));
         acc.creados_detalle=acc.creados_detalle.concat(d.creados_detalle||[]);
         acc.mensaje=d.mensaje;
         var hechoHasta=(d.siguiente_offset!=null?d.siguiente_offset:(d.total||0));
@@ -2510,6 +2511,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                     <div style={{fontSize:"13px",color:"#334155"}}>
                       <div style={{fontWeight:700,marginBottom:"4px"}}>{scRes.dry?"🔎 Prueba · ":"✅ "}Partidos: {scRes.partidos}{scRes.creados>0?` · Creados: ${scRes.creados}`:""}{scRes.notas_rellenadas>0?` · Notas: ${scRes.notas_rellenadas}`:""} · Hechos: {scRes.hechos} · Saltados: {scRes.saltados} · Filas: {scRes.filas}{scRes.via_global>0?` · Global: ${scRes.via_global}`:""}{scRes.plantilla_altas>0?` · Altas plantilla: ${scRes.plantilla_altas}`:""}</div>
                       {scRes.progreso&&<div style={{fontSize:"12px",color:"#64748b",marginBottom:"4px"}}>{scBusy?"⏳ Procesando por lotes… ":"Lotes completados: "}{scRes.progreso}{scRes.dry?" (en Prueba solo se procesa el primer lote)":""}</div>}
+                      {scRes.colisiones&&scRes.colisiones.length>0&&<div style={{marginTop:"8px",color:"#dc2626",fontSize:"12px"}}><b>Colisiones ({scRes.colisiones.length})</b> — dos jugadoras del acta apuntan a la misma ficha, ese partido no se guardó: {scRes.colisiones.join("  ·  ")}</div>}
                       {scRes.sin_mapear_equipos&&scRes.sin_mapear_equipos.length>0&&<div style={{marginTop:"8px",color:"#dc2626",fontSize:"12px"}}><b>Equipos sin mapear ({scRes.sin_mapear_equipos.length})</b> — no se creó ese partido; revisa el nombre del equipo: {scRes.sin_mapear_equipos.join("  ·  ")}</div>}
                       {scRes.creados_detalle&&scRes.creados_detalle.length>0&&<div style={{marginTop:"8px",fontSize:"12px",color:"#0f766e"}}><b>Partidos {scRes.dry?"a crear":"creados"} ({scRes.creados_detalle.length}):</b><ul style={{margin:"4px 0 0",paddingLeft:"18px",maxHeight:"140px",overflowY:"auto"}}>{scRes.creados_detalle.map(function(d,i){return <li key={i} style={{marginBottom:"2px"}}>{d}</li>;})}</ul></div>}
                       {scRes.mensaje&&<div style={{color:"#64748b"}}>{scRes.mensaje}</div>}
