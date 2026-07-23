@@ -1468,27 +1468,47 @@ function BracketCard({title,children}){
 }
 
 function FaseFinal({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlayer}){
-  // El cuadro se arma POR RONDAS (no por numeros fijos), leyendo el nombre de la ronda
-  // de las notas (espanol o ingles) y ordenando por #N. Asi vale para 8, 16 o cualquier tamano.
+  // El cuadro se arma POR RONDAS leyendo la nota (espanol o ingles) y ordenando por #N,
+  // asi vale para 8, 16 o cualquier tamano. Play-In y fase previa van en tarjetas aparte.
   const nt=p=>(p&&p.notas)||"";
   const num=p=>{const m=nt(p).match(/#(\d+)/);return m?parseInt(m[1],10):99999;};
   const box=(p,caption)=><KOBox key={(p&&p.id)||caption} p={p} equipoMap={equipoMap} caption={caption} onOpen={onOpenPartido}/>;
-  const sortN=arr=>arr.slice().sort((a,b)=>num(a)-num(b)||a.id-b.id);
+  const sortN=arr=>arr.slice().sort((a,b)=>num(a)-num(b)||(new Date(a.fecha_hora)-new Date(b.fecha_hora))||a.id-b.id);
   const esGrupo=p=>/\bgrupo\b|\bgroup\b|fase de grupos/i.test(nt(p))&&!/#\d+/.test(nt(p));
-  const es3er=p=>/3er|tercer|bronce|3rd\s*place/i.test(nt(p));
-  const esClasif=p=>!es3er(p)&&/clasific|classification|placement/i.test(nt(p));
-  const esOctavos=p=>/octavos|round of 16|dieciseisavos/i.test(nt(p));
-  const esCuartos=p=>/cuartos|quarter/i.test(nt(p));
-  const esSemi=p=>/semi/i.test(nt(p));
-  const esFinal=p=>/\bfinal\b/i.test(nt(p))&&!esSemi(p)&&!esCuartos(p)&&!esOctavos(p)&&!es3er(p)&&!esClasif(p);
-  const ko=psLiga.filter(p=>!esGrupo(p)&&(/#\d+/.test(nt(p))||/octavos|cuartos|semi|\bfinal\b|quarter|round of 16|clasific|classification|bronce|3er/i.test(nt(p))));
-  const octavos=sortN(ko.filter(esOctavos));
-  const cuartos=sortN(ko.filter(p=>esCuartos(p)&&!esOctavos(p)));
-  const semis=sortN(ko.filter(esSemi));
-  const finalP=sortN(ko.filter(esFinal))[0]||null;
-  const bronce=sortN(ko.filter(es3er))[0]||null;
-  const clasif=sortN(ko.filter(esClasif));
-  const capClasif=p=>nt(p).replace(/#\d+/g,"").replace(/clasificaci[o\u00f3]n|classification|placement/ig,"").replace(/\u00b7/g,"").trim()||"Clasificacion";
+  const esRegular=p=>/regular season|temporada regular|liga regular|jornada/i.test(nt(p));
+  const esPlayIn=p=>/play\s*-?\s*in/i.test(nt(p));
+  const esPrevia=p=>!esPlayIn(p)&&/qualifier|fase previa|previa|clasificatoria|preliminar/i.test(nt(p));
+  const es3er=p=>/3er|tercer|bronce|3rd\s*place|third\s*place/i.test(nt(p));
+  const esClasif=p=>!es3er(p)&&!esPrevia(p)&&!esPlayIn(p)&&/clasificaci|classification|placement|puestos/i.test(nt(p));
+  const base=p=>!esGrupo(p)&&!esRegular(p)&&!esPlayIn(p)&&!esPrevia(p)&&!esClasif(p)&&!es3er(p);
+  const esOctavos=p=>base(p)&&/octavos|round of 16|dieciseisavos/i.test(nt(p));
+  const esCuartos=p=>base(p)&&!esOctavos(p)&&/cuartos|quarter/i.test(nt(p));
+  const esSemi=p=>base(p)&&!esOctavos(p)&&!esCuartos(p)&&/semi/i.test(nt(p));
+  const esFinal=p=>base(p)&&!esOctavos(p)&&!esCuartos(p)&&!esSemi(p)&&/\bfinal\b/i.test(nt(p));
+  const usable=psLiga.filter(p=>!esGrupo(p)&&!esRegular(p)&&nt(p));
+  const octavos=sortN(usable.filter(esOctavos));
+  const cuartos=sortN(usable.filter(esCuartos));
+  const semis=sortN(usable.filter(esSemi));
+  const finales=sortN(usable.filter(esFinal));
+  const finalP=finales[0]||null;
+  const bronce=sortN(usable.filter(es3er))[0]||null;
+  const clasif=sortN(usable.filter(esClasif));
+  const playin=sortN(usable.filter(esPlayIn));
+  const previa=sortN(usable.filter(esPrevia));
+  const capLimpia=p=>nt(p).replace(/#\d+/g,"").replace(/\(ida-vuelta\)/ig,"").replace(/\u00b7/g,"").trim();
+  // Series a doble partido: varios partidos comparten #N
+  const porSerie=arr=>{const m=new Map();arr.forEach(p=>{const k=num(p);if(!m.has(k))m.set(k,[]);m.get(k).push(p);});return [...m.entries()].sort((a,b)=>a[0]-b[0]);};
+  const tarjetaSerie=(titulo,arr)=>(
+    <BracketCard title={titulo}>
+      <div style={{display:"flex",gap:"14px",alignItems:"flex-start",flexWrap:"wrap"}}>
+        {porSerie(arr).map(([n,ps])=>(
+          <BracketCol key={n} label={(capLimpia(ps[0])||titulo)+(ps.length>1?" · serie":"")}>
+            {ps.map((p,i)=>box(p,ps.length>1?(i===0?"Ida":(i===1?"Vuelta":"3er partido")):undefined))}
+          </BracketCol>
+        ))}
+      </div>
+    </BracketCard>
+  );
   const hayCuadro=octavos.length||cuartos.length||semis.length||finalP||bronce;
   return(
     <div>
@@ -1512,13 +1532,15 @@ function FaseFinal({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlayer}){
           </div>
         </BracketCard>
       )}
+      {playin.length>0&&tarjetaSerie("Play-In",playin)}
       {clasif.length>0&&(
         <BracketCard title="Clasificacion">
           <div style={{display:"flex",gap:"14px",alignItems:"stretch",flexWrap:"wrap"}}>
-            {clasif.map(p=>box(p,capClasif(p)))}
+            {clasif.map(p=>box(p,capLimpia(p)||"Clasificacion"))}
           </div>
         </BracketCard>
       )}
+      {previa.length>0&&tarjetaSerie("Fase previa",previa)}
     </div>
   );
 }
