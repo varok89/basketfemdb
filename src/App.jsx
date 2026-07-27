@@ -3306,6 +3306,61 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
   const visible=fichajesFiltrados.slice(0,visibleCount);
   return(
     <div className="bfdb-container" style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
+      {user&&favoritos.length>0&&(()=>{
+        const favEquipos=favoritos.filter(f=>f.tipo==="equipo").map(f=>f.id_referencia);
+        const favJugadoras=favoritos.filter(f=>f.tipo==="jugadora").map(f=>f.id_referencia);
+        const favLigas=favoritos.filter(f=>f.tipo==="liga").map(f=>f.id_referencia);
+        const now=new Date();
+        const proxPartidos=favEquipos.length?(partidos||[]).filter(p=>(favEquipos.includes(p.id_equipo_local)||favEquipos.includes(p.id_equipo_visitante))&&p.fecha_hora&&new Date(p.fecha_hora)>now).sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora)).slice(0,5):[];
+        const ultResultadosLiga=favLigas.length?(partidos||[]).filter(p=>favLigas.includes(p.id_liga)&&p.resultado_local!=null).sort((a,b)=>new Date(b.fecha_hora)-new Date(a.fecha_hora)).slice(0,8):[];
+        const ultResultadosEquipo=favEquipos.length?(partidos||[]).filter(p=>(favEquipos.includes(p.id_equipo_local)||favEquipos.includes(p.id_equipo_visitante))&&p.resultado_local!=null).sort((a,b)=>new Date(b.fecha_hora)-new Date(a.fecha_hora)).slice(0,5):[];
+        const fichEquipos=favEquipos.length?players.flatMap(p=>(p.seasons||[]).filter(ss=>favEquipos.includes(ss.id_equipo)&&ss.temporada===currentSeason).map(ss=>({player:p,...ss}))).sort((a,b)=>b.id-a.id).slice(0,8):[];
+        const fichLigas=favLigas.length?players.flatMap(p=>(p.seasons||[]).filter(ss=>favLigas.includes(ss.id_liga)&&ss.temporada===currentSeason).map(ss=>({player:p,...ss}))).sort((a,b)=>b.id-a.id).slice(0,8):[];
+        const fichajes=[...fichEquipos,...fichLigas].filter((v,i,a)=>a.findIndex(x=>x.id_jugadora===v.id_jugadora&&x.id_equipo===v.id_equipo)===i).slice(0,8);
+        const PartidoRow=({p})=>{const tL=equipoMap[p.id_equipo_local]||{},tV=equipoMap[p.id_equipo_visitante]||{};const played=p.resultado_local!=null;const d=p.fecha_hora?new Date(p.fecha_hora):null;
+          return(<div onClick={()=>onGoToPartido&&onGoToPartido(p)} style={{display:"flex",alignItems:"center",padding:"8px 10px",cursor:"pointer",borderRadius:"10px",transition:"background 0.1s"}} onMouseEnter={e=>e.currentTarget.style.background="#faf5ff"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+            <div style={{flex:1,display:"flex",alignItems:"center",gap:"6px",justifyContent:"flex-end"}}>{tL.escudo&&<img src={tL.escudo} alt="" style={{width:20,height:20,objectFit:"contain"}}/>}<span style={{fontSize:"13px",fontWeight:played&&Number(p.resultado_local)>Number(p.resultado_visitante)?700:500,color:"#1e293b"}}>{tL.nombre||"?"}</span></div>
+            <div style={{width:"70px",textAlign:"center",fontSize:"14px",fontWeight:700,color:"#7c3aed",flexShrink:0}}>{played?`${p.resultado_local} - ${p.resultado_visitante}`:d?`${d.getDate()}/${d.getMonth()+1}`:"vs"}</div>
+            <div style={{flex:1,display:"flex",alignItems:"center",gap:"6px"}}><span style={{fontSize:"13px",fontWeight:played&&Number(p.resultado_visitante)>Number(p.resultado_local)?700:500,color:"#1e293b"}}>{tV.nombre||"?"}</span>{tV.escudo&&<img src={tV.escudo} alt="" style={{width:20,height:20,objectFit:"contain"}}/>}</div>
+          </div>);};
+        return(
+          <div style={{marginBottom:"24px"}}>
+            <h2 style={{fontWeight:800,fontSize:"20px",color:"#1e293b",margin:"0 0 16px",display:"flex",alignItems:"center",gap:"8px"}}>⭐ Mis favoritos</h2>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:"16px"}}>
+              {proxPartidos.length>0&&<div style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0"}}>
+                <h3 style={{fontWeight:800,fontSize:"14px",color:"#9333ea",margin:"0 0 10px"}}>📅 Próximos partidos</h3>
+                {proxPartidos.map(p=><PartidoRow key={p.id} p={p}/>)}
+              </div>}
+              {ultResultadosEquipo.length>0&&<div style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0"}}>
+                <h3 style={{fontWeight:800,fontSize:"14px",color:"#9333ea",margin:"0 0 10px"}}>🏀 Últimos resultados</h3>
+                {ultResultadosEquipo.map(p=><PartidoRow key={p.id} p={p}/>)}
+              </div>}
+              {ultResultadosLiga.length>0&&<div style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0"}}>
+                <h3 style={{fontWeight:800,fontSize:"14px",color:"#9333ea",margin:"0 0 10px"}}>🏆 Resultados de mis ligas</h3>
+                {ultResultadosLiga.map(p=><PartidoRow key={p.id} p={p}/>)}
+              </div>}
+              {favJugadoras.length>0&&<div style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0"}}>
+                <h3 style={{fontWeight:800,fontSize:"14px",color:"#9333ea",margin:"0 0 10px"}}>👩‍🏀 Mis jugadoras</h3>
+                {favJugadoras.map(jid=>{const p=players.find(x=>x.id_jugadora===jid);if(!p)return null;const lastSeason=(p.seasons||[]).filter(ss=>ss.temporada===currentSeason)[0];const eq=lastSeason?equipoMap[lastSeason.id_equipo]:null;
+                  return(<div key={jid} onClick={()=>onGoToPlayer(jid)} style={{display:"flex",alignItems:"center",gap:"10px",padding:"6px 8px",cursor:"pointer",borderRadius:"10px",transition:"background 0.1s"}} onMouseEnter={e=>e.currentTarget.style.background="#faf5ff"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                    <Avatar photo={p.foto} name={p.nombre} size={32} fontSize={12}/>
+                    <div style={{flex:1,minWidth:0}}><div style={{fontSize:"13px",fontWeight:700,color:"#1e293b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>{eq&&<div style={{fontSize:"11px",color:"#64748b"}}>{eq.nombre}</div>}</div>
+                  </div>);
+                })}
+              </div>}
+              {fichajes.length>0&&<div style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0"}}>
+                <h3 style={{fontWeight:800,fontSize:"14px",color:"#9333ea",margin:"0 0 10px"}}>✍️ Últimos fichajes</h3>
+                {fichajes.map((f,i)=>{const eq=equipoMap[f.id_equipo];
+                  return(<div key={i} onClick={()=>onGoToPlayer(f.id_jugadora)} style={{display:"flex",alignItems:"center",gap:"10px",padding:"6px 8px",cursor:"pointer",borderRadius:"10px",transition:"background 0.1s"}} onMouseEnter={e=>e.currentTarget.style.background="#faf5ff"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                    <Avatar photo={f.player?.foto} name={f.player?.nombre} size={32} fontSize={12}/>
+                    <div style={{flex:1,minWidth:0}}><div style={{fontSize:"13px",fontWeight:700,color:"#1e293b"}}>{f.player?.nombre}</div><div style={{fontSize:"11px",color:"#64748b"}}>→ {eq?.nombre||f.id_equipo}</div></div>
+                  </div>);
+                })}
+              </div>}
+            </div>
+          </div>
+        );
+      })()}
       <div style={{marginBottom:"16px"}}>
         <h2 style={{fontWeight:800,fontSize:"20px",color:"#1e293b",margin:"0 0 4px",display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}>
           ✍️ Últimos fichajes
@@ -4256,7 +4311,7 @@ function CalendarioEquipo({idEquipo,temporada,equipos,ligas,equiposNombres,onGoT
   );
 }
 
-function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlayer,onGoToCoach,onGoToLeague,openTeamId,openTeamYear,onClearTeam,isAdmin,onReload,onGoToTab,navHistory,onGoBack,equiposNombres,setEquipos,setEquiposNombres,setPlayers,setPalmares,regExtra,onGoToPartido}){
+function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlayer,onGoToCoach,onGoToLeague,openTeamId,openTeamYear,onClearTeam,isAdmin,onReload,onGoToTab,navHistory,onGoBack,equiposNombres,setEquipos,setEquiposNombres,setPlayers,setPalmares,regExtra,onGoToPartido,isFavFn,onToggleFav}){
   const [search,setSearch]             = useState("");
   const [filterLeague,setFilterLeague] = useState("");
   const [filterSeason,setFilterSeason] = useState(null);
@@ -4493,7 +4548,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
           <div style={{display:"flex",alignItems:"center",gap:"20px",flexWrap:"wrap"}}>
             <TeamBadge team={eq} size={80}/>
             <div style={{flex:1,minWidth:"180px"}}>
-              <div><h1 style={{fontWeight:800,fontSize:"22px",color:"#1e293b",margin:"0 0 4px"}}>{eq.nombre}</h1>{isAdmin&&<span style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{eq.id_equipo}</span>}</div>
+              <div><div style={{display:"flex",alignItems:"center",gap:"8px"}}><h1 style={{fontWeight:800,fontSize:"22px",color:"#1e293b",margin:"0 0 4px"}}>{eq.nombre}</h1>{onToggleFav&&<button onClick={e=>{e.stopPropagation();onToggleFav("equipo",eq.id_equipo);}} title={isFavFn?.("equipo",eq.id_equipo)?"Quitar de favoritos":"Añadir a favoritos"} style={{background:"none",border:"none",cursor:"pointer",fontSize:"20px",padding:0,lineHeight:1,flexShrink:0}}>{isFavFn?.("equipo",eq.id_equipo)?"⭐":"☆"}</button>}</div>{isAdmin&&<span style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{eq.id_equipo}</span>}</div>
               <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
                 {eq.pais&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center"}}><FlagImg country={eq.pais}/>{eq.pais}</span>}
                 {eq.ciudad&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px"}}>📍 {eq.ciudad}</span>}
@@ -5504,7 +5559,7 @@ function Landing({onEnter}){
         <div style={{background:"rgba(255,255,255,0.04)",borderRadius:"14px",padding:"16px 20px",marginBottom:"24px",border:"1px solid rgba(255,255,255,0.07)",textAlign:"left"}}>
           <div style={{fontWeight:700,fontSize:"12px",color:"#94a3b8",marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Aviso legal</div>
           <p style={{fontSize:"12px",color:"#64748b",lineHeight:"1.6",margin:0}}>
-            Los datos mostrados en esta aplicación son de carácter público y han sido obtenidos de fuentes oficiales como webs de federaciones deportivas. Esta plataforma no tiene ánimo de lucro y su uso es exclusivamente informativo. Si eres jugadora, entrenadora o representante de algún club y deseas solicitar la modificación o eliminación de tus datos, contacta con nosotros en <span style={{color:"#9333ea",fontWeight:600}}>basketfemdb@gmail.com</span>.
+            Los datos mostrados en esta aplicación son de carácter público y han sido obtenidos de fuentes oficiales como webs de federaciones deportivas. Esta plataforma no tiene ánimo de lucro y su uso es exclusivamente informativo. Si eres jugadora, entrenadora o representante de algún club y deseas solicitar la modificación o eliminación de tus datos, contacta con nosotros en <span style={{color:"#9333ea",fontWeight:600}}>labasketneta@gmail.com</span>.
           </p>
         </div>
         <button onClick={onEnter}
@@ -5521,17 +5576,48 @@ function Landing({onEnter}){
   );
 }
 
+/* ── PrivacidadView ─────────────────────────────────────── */
+function PrivacidadView({onBack}){
+  return(
+    <div style={{maxWidth:"720px",margin:"0 auto",padding:"24px 20px"}}>
+      <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"13px",cursor:"pointer",padding:"0 0 16px",display:"flex",alignItems:"center",gap:"4px"}}>{"← Volver"}</button>
+      <h1 style={{fontWeight:800,fontSize:"24px",color:"#1e293b",margin:"0 0 8px"}}>{"Política de Privacidad"}</h1>
+      <p style={{fontSize:"13px",color:"#94a3b8",margin:"0 0 24px"}}>{"Última actualización: julio 2026"}</p>
+      <div style={{display:"flex",flexDirection:"column",gap:"20px",fontSize:"14px",color:"#475569",lineHeight:"1.7"}}>
+        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"#1e293b",margin:"0 0 8px"}}>{"1. Quién somos"}</h2><p style={{margin:0}}>{"La Basketneta (labasketneta.app) es una aplicación web dedicada a la recopilación y visualización de estadísticas de baloncesto femenino. Es un proyecto independiente sin ánimo de lucro."}</p></div>
+        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"#1e293b",margin:"0 0 8px"}}>{"2. Qué datos recogemos"}</h2><p style={{margin:0}}>{"Cuando creas una cuenta o inicias sesión con Google, recogemos únicamente: tu dirección de correo electrónico, tu nombre y foto de perfil (si inicias sesión con Google), y tus selecciones de favoritos (jugadoras, equipos y ligas). No recogemos datos de navegación, ubicación, ni ningún otro tipo de información personal."}</p></div>
+        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"#1e293b",margin:"0 0 8px"}}>{"3. Para qué usamos tus datos"}</h2><p style={{margin:0}}>{"Permitirte iniciar sesión, guardar y mostrar tus favoritos, y personalizar tu página de inicio con información relevante."}</p></div>
+        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"#1e293b",margin:"0 0 8px"}}>{"4. Con quién compartimos tus datos"}</h2><p style={{margin:0}}>{"No compartimos, vendemos ni cedemos tus datos personales a terceros bajo ninguna circunstancia. Tus datos se almacenan de forma segura en Supabase (infraestructura en la Unión Europea)."}</p></div>
+        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"#1e293b",margin:"0 0 8px"}}>{"5. Cuánto tiempo conservamos tus datos"}</h2><p style={{margin:0}}>{"Tus datos se conservan mientras mantengas tu cuenta activa. Puedes solicitar la eliminación de tu cuenta y todos los datos asociados en cualquier momento contactando con nosotros."}</p></div>
+        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"#1e293b",margin:"0 0 8px"}}>{"6. Tus derechos"}</h2><p style={{margin:0}}>{"De acuerdo con el Reglamento General de Protección de Datos (RGPD), tienes derecho a acceder a tus datos personales, rectificar datos inexactos, solicitar la eliminación de tus datos y retirar tu consentimiento en cualquier momento."}</p></div>
+        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"#1e293b",margin:"0 0 8px"}}>{"7. Seguridad"}</h2><p style={{margin:0}}>{"Utilizamos medidas de seguridad estándar de la industria para proteger tus datos, incluyendo cifrado en tránsito (HTTPS), autenticación segura y políticas de acceso a nivel de fila (Row Level Security) en la base de datos."}</p></div>
+        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"#1e293b",margin:"0 0 8px"}}>{"8. Contacto"}</h2><p style={{margin:0}}>{"Los datos mostrados en esta aplicación son de carácter público y han sido obtenidos de fuentes oficiales como webs de federaciones deportivas. Esta plataforma no tiene ánimo de lucro y su uso es exclusivamente informativo. Si eres jugadora, entrenadora o representante de algún club y deseas solicitar la modificación o eliminación de tus datos, o para cualquier consulta relacionada con tu privacidad, contacta con nosotros en: "}<a href="mailto:labasketneta@gmail.com" style={{color:"#9333ea",fontWeight:600}}>{"labasketneta@gmail.com"}</a></p></div>
+      </div>
+    </div>
+  );
+}
+
 /* ── LoginModal ─────────────────────────────────────────── */
-function LoginModal({onLogin,onClose,loading,error}){
+function LoginModal({onLogin,onGoogleLogin,onClose,loading,error,mode,setMode}){
   const [email,setEmail]=useState("");
   const [pass,setPass]=useState("");
+  const isReg=mode==="register";
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}
       onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
       <div style={{background:"#1e293b",borderRadius:"20px",padding:"32px",width:"340px",boxShadow:"0 20px 60px rgba(0,0,0,0.5)"}}>
         <div style={{textAlign:"center",marginBottom:"24px"}}>
-          <div style={{fontSize:"32px",marginBottom:"8px"}}>🔐</div>
-          <div style={{fontWeight:800,fontSize:"18px",color:"#f1f5f9"}}>Acceso Admin</div>
+          <div style={{fontSize:"32px",marginBottom:"8px"}}>🏀</div>
+          <div style={{fontWeight:800,fontSize:"18px",color:"#f1f5f9"}}>{isReg?"Crear cuenta":"Iniciar sesión"}</div>
+          <div style={{fontSize:"12px",color:"#94a3b8",marginTop:"4px"}}>Guarda tus jugadoras y equipos favoritos</div>
+        </div>
+        <button onClick={onGoogleLogin}
+          style={{width:"100%",background:"#fff",color:"#1e293b",border:"none",borderRadius:"10px",padding:"11px",fontWeight:700,fontSize:"14px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",marginBottom:"16px"}}>
+          <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+          Continuar con Google
+        </button>
+        <div style={{display:"flex",alignItems:"center",gap:"12px",margin:"16px 0"}}>
+          <div style={{flex:1,height:"1px",background:"#334155"}}/><span style={{color:"#64748b",fontSize:"12px"}}>o</span><div style={{flex:1,height:"1px",background:"#334155"}}/>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
           <input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}
@@ -5542,10 +5628,15 @@ function LoginModal({onLogin,onClose,loading,error}){
             onKeyDown={e=>e.key==="Enter"&&onLogin(email,pass)}/>
           {error&&<div style={{color:"#f87171",fontSize:"12px",textAlign:"center"}}>{error}</div>}
           <button onClick={()=>onLogin(email,pass)} disabled={loading}
-            style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"11px",fontWeight:700,fontSize:"14px",cursor:"pointer",marginTop:"4px"}}>
-            {loading?"Entrando...":"Entrar"}
+            style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"11px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>
+            {loading?(isReg?"Creando...":"Entrando..."):(isReg?"Crear cuenta":"Entrar")}
           </button>
         </div>
+        <div style={{textAlign:"center",marginTop:"16px",fontSize:"12px",color:"#94a3b8"}}>
+          {isReg?"¿Ya tienes cuenta? ":"¿No tienes cuenta? "}
+          <span onClick={()=>setMode(isReg?"login":"register")} style={{color:"#a78bfa",cursor:"pointer",fontWeight:700}}>{isReg?"Inicia sesión":"Regístrate"}</span>
+        </div>
+        <div style={{textAlign:"center",marginTop:"12px"}}><a href="/privacidad" target="_blank" style={{fontSize:"11px",color:"#64748b",textDecoration:"none"}}>Política de privacidad</a></div>
       </div>
     </div>
   );
@@ -5577,24 +5668,105 @@ export default function App(){
     try{localStorage.setItem("bfdb_accepted","1");}catch{}
     setShowLanding(false);
   };
+  const ADMIN_EMAILS=["varok89@gmail.com","alvaro@basketfemdb.com","rumore@basketfemdb.com","jesus@basketfemdb.com"];
+  const VAPID_PUBLIC="BJA0yYZKko4boy2Gpdoj4SFEE-MII_zEW86PTb1XhYmNtfavkE4ee44shsGAFuluzn5U39eB_L5TTTiAPtG1zns";
+  const [pushEnabled,setPushEnabled]=useState(false);
+  const [notifCount,setNotifCount]=useState(0);
+  const [showNotifs,setShowNotifs]=useState(false);
+  const [notificaciones,setNotificaciones]=useState([]);
+
+  const checkPushStatus=async()=>{
+    if(!("serviceWorker" in navigator)||!("PushManager" in window))return;
+    try{const reg=await navigator.serviceWorker.ready;const sub=await reg.pushManager.getSubscription();setPushEnabled(!!sub);}catch{}
+  };
+
+  const togglePush=async()=>{
+    if(!user)return;
+    const reg=await navigator.serviceWorker.ready;
+    if(pushEnabled){
+      const sub=await reg.pushManager.getSubscription();
+      if(sub){await sub.unsubscribe();await supabase.from("push_subscriptions").delete().eq("endpoint",sub.endpoint);}
+      setPushEnabled(false);
+    }else{
+      const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:Uint8Array.from(atob(VAPID_PUBLIC.replace(/-/g,"+").replace(/_/g,"/")),c=>c.charCodeAt(0))});
+      const key=sub.getKey("p256dh");const auth=sub.getKey("auth");
+      await supabase.from("push_subscriptions").upsert({user_id:user.id,endpoint:sub.endpoint,p256dh:btoa(String.fromCharCode(...new Uint8Array(key))),auth:btoa(String.fromCharCode(...new Uint8Array(auth)))},{onConflict:"user_id,endpoint"});
+      setPushEnabled(true);
+    }
+  };
+
+  const loadNotifs=async()=>{
+    if(!user)return;
+    const {data}=await supabase.from("notificaciones").select("*").eq("user_id",user.id).order("created_at",{ascending:false}).limit(20);
+    setNotificaciones(data||[]);
+    setNotifCount((data||[]).filter(n=>!n.leida).length);
+  };
+
+  const markRead=async()=>{
+    if(!user)return;
+    await supabase.from("notificaciones").update({leida:true}).eq("user_id",user.id).eq("leida",false);
+    setNotifCount(0);
+    setNotificaciones(prev=>prev.map(n=>({...n,leida:true})));
+  };
   const [isAdmin,setIsAdmin]       = useState(false);
+  const [user,setUser]             = useState(null);
+  const [favoritos,setFavoritos]   = useState([]);
   const [showLogin,setShowLogin]   = useState(false);
   const [loginErr,setLoginErr]     = useState("");
   const [loginLoading,setLoginLoading] = useState(false);
+  const [loginMode,setLoginMode]   = useState("login"); // login | register
+  const [showUserMenu,setShowUserMenu] = useState(false);
+  const [showPrivacidad,setShowPrivacidad] = useState(false);
 
   useEffect(()=>{
-    supabase.auth.getSession().then(({data:{session}})=>{if(session)setIsAdmin(true);});
-    const {data:{subscription}} = supabase.auth.onAuthStateChange((_,session)=>setIsAdmin(!!session));
+    const setupUser=async(session)=>{
+      const u=session?.user||null;
+      setUser(u);
+      setIsAdmin(u?ADMIN_EMAILS.includes(u.email):false);
+      if(u){
+        const {data}=await supabase.from("favoritos").select("*").eq("user_id",u.id);
+        setFavoritos(data||[]);
+        checkPushStatus();
+        const {data:notifs}=await supabase.from("notificaciones").select("*").eq("user_id",u.id).order("created_at",{ascending:false}).limit(20);
+        setNotificaciones(notifs||[]);
+        setNotifCount((notifs||[]).filter(n=>!n.leida).length);
+      }else{setFavoritos([]);setNotificaciones([]);setNotifCount(0);}
+    };
+    supabase.auth.getSession().then(({data:{session}})=>setupUser(session));
+    const {data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>setupUser(session));
     return ()=>subscription.unsubscribe();
   },[]);
 
+  const isFav=(tipo,idRef)=>favoritos.some(f=>f.tipo===tipo&&f.id_referencia===idRef);
+  const toggleFav=async(tipo,idRef)=>{
+    if(!user){setShowLogin(true);return;}
+    const ex=favoritos.find(f=>f.tipo===tipo&&f.id_referencia===idRef);
+    if(ex){
+      await supabase.from("favoritos").delete().eq("id",ex.id);
+      setFavoritos(prev=>prev.filter(f=>f.id!==ex.id));
+    }else{
+      const {data}=await supabase.from("favoritos").insert({user_id:user.id,tipo,id_referencia:idRef}).select().single();
+      if(data)setFavoritos(prev=>[...prev,data]);
+    }
+  };
+
   const handleLogin=async(email,password)=>{
     setLoginLoading(true);setLoginErr("");
-    const {error}=await supabase.auth.signInWithPassword({email,password});
-    if(error){setLoginErr("Credenciales incorrectas");setLoginLoading(false);}
-    else{setShowLogin(false);setLoginLoading(false);}
+    if(loginMode==="register"){
+      const {error}=await supabase.auth.signUp({email,password});
+      if(error){setLoginErr(error.message);setLoginLoading(false);}
+      else{setLoginErr("");setLoginLoading(false);setShowLogin(false);}
+    }else{
+      const {error}=await supabase.auth.signInWithPassword({email,password});
+      if(error){setLoginErr("Credenciales incorrectas");setLoginLoading(false);}
+      else{setShowLogin(false);setLoginLoading(false);}
+    }
   };
-  const handleLogout=async()=>{await supabase.auth.signOut();setIsAdmin(false);};
+  const handleGoogleLogin=async()=>{
+    const {error}=await supabase.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin}});
+    if(error)setLoginErr(error.message);
+  };
+  const handleLogout=async()=>{await supabase.auth.signOut();setUser(null);setIsAdmin(false);setFavoritos([]);};
   const [tab,setTab]         = useState("home");
   const [openPlayerId,setOpenPlayerId] = useState(null);
   const [openTeamId,setOpenTeamId]     = useState(null);
@@ -5698,6 +5870,7 @@ export default function App(){
     // Para /partidos se guarda [] (array nuevo en cada llamada): así un popstate que
     // vuelve a /partidos siempre cambia la referencia y dispara la resincronización.
     setPartidosSub(parts[0]==="partidos"?parts.slice(1):null);
+    if(parts[0]==="privacidad"){setShowPrivacidad(true);return;}else{setShowPrivacidad(false);}
     if(parts[0]==="jugadoras"||parts[0]==="equipos"||parts[0]==="coaches"||parts[0]==="ligas"||parts[0]==="partidos")setTab(parts[0]==="coaches"?"cuerpo_tecnico":parts[0]);
     else if(parts.length===0)setTab("home");
   };
@@ -5727,7 +5900,7 @@ export default function App(){
       onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToCoach={goToCoach} onReload={loadAll}
       setPlayers={setPlayers} setEquipos={setEquipos} setLigas={setLigas} setCoaches={setCoaches} setTempCoach={setTempCoach}/>;
   }
-  if(showLogin) return <LoginModal onLogin={handleLogin} onClose={()=>{setShowLogin(false);setLoginErr("");}} loading={loginLoading} error={loginErr}/>;
+  if(showLogin) return <LoginModal onLogin={handleLogin} onGoogleLogin={handleGoogleLogin} onClose={()=>{setShowLogin(false);setLoginErr("");setLoginMode("login");}} loading={loginLoading} error={loginErr} mode={loginMode} setMode={setLoginMode}/>;
 
   if(loading) return(
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f1f5f9",fontFamily:"system-ui,sans-serif"}}>
@@ -5795,20 +5968,46 @@ export default function App(){
             {isAdmin&&<button title="Calidad de datos" onClick={()=>setShowCalidad(true)} style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}}>🩺</button>}
 
             <button onClick={()=>setShowLanding(true)} title="Información" style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"14px",fontWeight:700}}>ℹ</button>
-            {isAdmin
-              ?<button onClick={handleLogout} title="Cerrar sesión admin" style={{background:"rgba(249,115,22,0.15)",color:"#c084fc",border:"1.5px solid rgba(249,115,22,0.3)",borderRadius:"10px",padding:"5px 10px",cursor:"pointer",fontSize:"12px",fontWeight:700}}>🔐 Admin</button>
-              :<button onClick={()=>setShowLogin(true)} title="Acceso admin" style={{background:"transparent",color:"#475569",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}}>🔒</button>
+            {user&&<div style={{position:"relative"}}>
+              <button onClick={()=>{setShowNotifs(!showNotifs);if(!showNotifs)markRead();}} style={{background:"transparent",color:notifCount>0?"#f59e0b":"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px",position:"relative"}}>🔔{notifCount>0&&<span style={{position:"absolute",top:"2px",right:"4px",background:"#ef4444",color:"#fff",fontSize:"9px",fontWeight:800,borderRadius:"50%",width:"16px",height:"16px",display:"flex",alignItems:"center",justifyContent:"center"}}>{notifCount>9?"9+":notifCount}</span>}</button>
+              {showNotifs&&<><div onClick={()=>setShowNotifs(false)} style={{position:"fixed",inset:0,zIndex:99}}/><div style={{position:"absolute",right:0,top:"calc(100% + 8px)",background:"#1e293b",borderRadius:"12px",padding:"12px",boxShadow:"0 10px 40px rgba(0,0,0,0.5)",zIndex:100,width:"300px",maxHeight:"400px",overflowY:"auto",border:"1px solid #334155"}}>
+                <div style={{fontWeight:800,fontSize:"14px",color:"#f1f5f9",marginBottom:"8px"}}>Notificaciones</div>
+                {notificaciones.length===0&&<div style={{fontSize:"12px",color:"#64748b",padding:"16px 0",textAlign:"center"}}>Sin notificaciones</div>}
+                {notificaciones.map(n=><div key={n.id} style={{padding:"8px",borderRadius:"8px",background:n.leida?"transparent":"rgba(147,51,234,0.1)",marginBottom:"4px"}}>
+                  <div style={{fontSize:"12px",fontWeight:700,color:"#f1f5f9"}}>{n.titulo}</div>
+                  {n.cuerpo&&<div style={{fontSize:"11px",color:"#94a3b8"}}>{n.cuerpo}</div>}
+                  <div style={{fontSize:"10px",color:"#64748b",marginTop:"2px"}}>{new Date(n.created_at).toLocaleDateString("es-ES",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div>
+                </div>)}
+              </div></>}
+            </div>}
+            {user
+              ?<div style={{position:"relative"}}>
+                <button onClick={()=>setShowUserMenu(!showUserMenu)} style={{background:isAdmin?"rgba(249,115,22,0.15)":"rgba(147,51,234,0.15)",color:isAdmin?"#c084fc":"#a78bfa",border:`1.5px solid ${isAdmin?"rgba(249,115,22,0.3)":"rgba(147,51,234,0.3)"}`,borderRadius:"10px",padding:"5px 10px",cursor:"pointer",fontSize:"12px",fontWeight:700}}>{isAdmin?"🔐 Admin":"👤"}</button>
+                {showUserMenu&&<>
+                  <div onClick={()=>setShowUserMenu(false)} style={{position:"fixed",inset:0,zIndex:99}}/>
+                  <div style={{position:"absolute",right:0,top:"calc(100% + 8px)",background:"#1e293b",borderRadius:"12px",padding:"16px",boxShadow:"0 10px 40px rgba(0,0,0,0.5)",zIndex:100,minWidth:"220px",border:"1px solid #334155"}}>
+                    <div style={{fontSize:"13px",fontWeight:700,color:"#f1f5f9",marginBottom:"4px"}}>{user.user_metadata?.full_name||user.email.split("@")[0]}</div>
+                    <div style={{fontSize:"11px",color:"#94a3b8",marginBottom:"4px"}}>{user.email}</div>
+                    {isAdmin&&<div style={{fontSize:"10px",color:"#c084fc",fontWeight:700,marginBottom:"8px"}}>Administrador</div>}
+                    <div style={{height:"1px",background:"#334155",margin:"8px 0"}}/>
+                    <button onClick={togglePush} style={{width:"100%",background:pushEnabled?"rgba(34,197,94,0.15)":"rgba(147,51,234,0.15)",color:pushEnabled?"#4ade80":"#a78bfa",border:`1px solid ${pushEnabled?"rgba(34,197,94,0.3)":"rgba(147,51,234,0.3)"}`,borderRadius:"8px",padding:"8px",fontWeight:700,fontSize:"12px",cursor:"pointer",marginBottom:"8px"}}>{pushEnabled?"🔔 Notificaciones activadas":"🔕 Activar notificaciones"}</button>
+                    <button onClick={()=>{handleLogout();setShowUserMenu(false);}} style={{width:"100%",background:"#ef4444",color:"#fff",border:"none",borderRadius:"8px",padding:"8px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>Cerrar sesión</button>
+                  </div>
+                </>}
+              </div>
+              :<button onClick={()=>setShowLogin(true)} title="Iniciar sesión" style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px"}}>👤</button>
             }
           </div>
         </div>
       </div>
       <div style={{paddingTop:"8px"}}>
-        {tab==="home"&&<HomeView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToTab={t=>setTab(t)} equiposNombres={equiposNombres}/>}
-        {tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setPlayers={setPlayers} setTempCoach={setTempCoach} onGoToPartido={goToPartido} regExtra={regExtra}/>}
-        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setEquipos={setEquipos} setEquiposNombres={setEquiposNombres} setPlayers={setPlayers} setPalmares={setPalmares} regExtra={regExtra} onGoToPartido={goToPartido}/>}
+        {showPrivacidad&&<PrivacidadView onBack={()=>{setShowPrivacidad(false);window.history.back();}}/>}
+        {!showPrivacidad&&tab==="home"&&<HomeView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToTab={t=>setTab(t)} equiposNombres={equiposNombres}/>}
+        {!showPrivacidad&&tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setPlayers={setPlayers} setTempCoach={setTempCoach} onGoToPartido={goToPartido} regExtra={regExtra}/>}
+        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setEquipos={setEquipos} setEquiposNombres={setEquiposNombres} setPlayers={setPlayers} setPalmares={setPalmares} regExtra={regExtra} onGoToPartido={goToPartido} isFavFn={isFav} onToggleFav={toggleFav}/>}
         {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} coaches={coaches} tempCoach={tempCoach} partidos={partidos} onGoToClasificacion={(ligaId,temporada)=>{setOpenClasiKey(`${ligaId}|${temporada||""}`);setTab("partidos");scrollTop();}} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setLigas={setLigas} regExtra={regExtra}/>}
-        {tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setCoaches={setCoaches} setTempCoach={setTempCoach} equiposNombres={equiposNombres} regExtra={regExtra}/>}
-        {tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} mvps={mvps} equiposNombres={equiposNombres} openClasiKey={openClasiKey} onClearClasi={()=>setOpenClasiKey(null)} partidosSub={partidosSub} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id,year)=>goToTeam(id,year||null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})} onGoToPlayer={(id)=>goToPlayer(id,{tab:"partidos",label:"Ver partidos"})}/>}
+        {!showPrivacidad&&tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setCoaches={setCoaches} setTempCoach={setTempCoach} equiposNombres={equiposNombres} regExtra={regExtra}/>}
+        {!showPrivacidad&&tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} mvps={mvps} equiposNombres={equiposNombres} openClasiKey={openClasiKey} onClearClasi={()=>setOpenClasiKey(null)} partidosSub={partidosSub} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id,year)=>goToTeam(id,year||null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})} onGoToPlayer={(id)=>goToPlayer(id,{tab:"partidos",label:"Ver partidos"})}/>}
       </div>
     </div>
     </>);
