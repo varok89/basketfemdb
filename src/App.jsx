@@ -1870,6 +1870,7 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
   // Zonas de clasificación por liga
   const ZONAS_LIGA={
     L001:{playoff:8,descenso:2,copa:8,copaLabel:"Copa de la Reina (8 primeros al final de la 1ª vuelta)"},
+    L002:{ascenso:1,ascensoLabel:"Ascenso directo a LF Endesa",playoffAsc:9,playoffAscLabel:"Playoffs de ascenso (2º-9º)",descenso:2},
   };
   const zl=ZONAS_LIGA[liga?.id_liga]||{};
   const PLAYOFF_PUESTOS=zl.playoff||8, DESCENSO_PUESTOS=zl.descenso||2;
@@ -1946,14 +1947,16 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
               <tbody>
                 {eqs.map((eq,i)=>{
                   const team=equipoMap[eq.id];
-                  const zonaPO=modoLiga&&i<PLAYOFF_PUESTOS;
+                  const zonaAsc=modoLiga&&zl.ascenso&&i<zl.ascenso;
+                  const zonaPOAsc=modoLiga&&zl.playoffAsc&&!zonaAsc&&i<zl.playoffAsc;
+                  const zonaPO=modoLiga&&!zonaAsc&&!zonaPOAsc&&i<PLAYOFF_PUESTOS;
                   const zonaDesc=modoLiga&&i>=eqs.length-DESCENSO_PUESTOS;
-                  const fondo=modoLiga?(zonaDesc?"#fef2f2":zonaPO?"#faf5ff":"#fff"):(i===0?"#faf5ff":i<2?"#fffbff":"#fff");
-                  const borde=modoLiga?(zonaDesc?"3px solid #ef4444":zonaPO?"3px solid #9333ea":"3px solid transparent"):undefined;
+                  const fondo=modoLiga?(zonaDesc?"#fef2f2":zonaAsc?"#ecfdf5":zonaPOAsc?"#eff6ff":zonaPO?"#faf5ff":"#fff"):(i===0?"#faf5ff":i<2?"#fffbff":"#fff");
+                  const borde=modoLiga?(zonaDesc?"3px solid #ef4444":zonaAsc?"3px solid #16a34a":zonaPOAsc?"3px solid #2563eb":zonaPO?"3px solid #9333ea":"3px solid transparent"):undefined;
                   return(
                     <tr key={eq.id} onClick={()=>onGoToTeam&&onGoToTeam(eq.id,temporada)}
                       style={{borderTop:"1px solid #f1f5f9",background:fondo,cursor:onGoToTeam?"pointer":"default",borderLeft:borde}}>
-                      <td style={{padding:"10px 12px",fontWeight:700,color:zonaDesc?"#ef4444":zonaPO&&modoLiga?"#9333ea":"#94a3b8"}}>{i+1}</td>
+                      <td style={{padding:"10px 12px",fontWeight:700,color:zonaDesc?"#ef4444":zonaAsc?"#16a34a":zonaPOAsc?"#2563eb":zonaPO&&modoLiga?"#9333ea":"#94a3b8"}}>{i+1}</td>
                       <td style={{padding:"10px 12px"}}>
                         <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                           {team?.escudo&&<img src={team.escudo} alt="" style={{width:22,height:22,objectFit:"contain"}}/>}
@@ -1977,7 +1980,9 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
       ))}
       {vista==="grupos"&&grupos.length>0&&(modoLiga?(
         <div style={{fontSize:"11px",color:"#94a3b8",textAlign:"center",marginTop:"8px",lineHeight:"1.7"}}>
-          <span style={{display:"inline-block",width:10,height:10,background:"#9333ea",borderRadius:"3px",verticalAlign:"middle",marginRight:"4px"}}/> Playoffs (1º-{PLAYOFF_PUESTOS}º)
+          {zl.ascenso&&<><span style={{display:"inline-block",width:10,height:10,background:"#16a34a",borderRadius:"3px",verticalAlign:"middle",marginRight:"4px"}}/>{zl.ascensoLabel||"Ascenso directo"}</>}
+          {zl.playoffAsc&&<><span style={{display:"inline-block",width:10,height:10,background:"#2563eb",borderRadius:"3px",verticalAlign:"middle",margin:"0 4px 0 14px"}}/>{zl.playoffAscLabel||("Playoffs de ascenso ("+zl.ascenso+"º-"+(zl.playoffAsc)+"º)")}</>}
+          {!zl.ascenso&&<><span style={{display:"inline-block",width:10,height:10,background:"#9333ea",borderRadius:"3px",verticalAlign:"middle",marginRight:"4px"}}/> Playoffs (1º-{PLAYOFF_PUESTOS}º)</>}
           {COPA_PUESTOS>0&&<><span style={{display:"inline-block",width:10,height:10,background:"#f59e0b",borderRadius:"3px",verticalAlign:"middle",margin:"0 4px 0 14px"}}/>{COPA_LABEL}</>}
           <span style={{display:"inline-block",width:10,height:10,background:"#ef4444",borderRadius:"3px",verticalAlign:"middle",margin:"0 4px 0 14px"}}/> Descenso
           <br/>Criterios de desempate FEB: enfrentamientos particulares → diferencia particular → diferencia general → puntos anotados
