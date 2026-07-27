@@ -1664,11 +1664,9 @@ function FaseFinal({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlayer}){
 // "Playoffs Final". Todos los partidos de una misma serie llevan la misma nota; la
 // caja muestra las victorias de cada equipo en la serie.
 function SerieBox({partidosSerie,equipoMap,compacto,onOpen}){
+  const [abierta,setAbierta]=useState(false);
   const ids=[];
   partidosSerie.forEach(p=>{[p.id_equipo_local,p.id_equipo_visitante].forEach(id=>{if(id&&!ids.includes(id))ids.push(id);});});
-  // Series "(ida-vuelta)": se resuelven por diferencia global de puntos (como los
-  // cuartos y semifinales de la LF Endesa 2024-25), no por victorias. Un partido
-  // puede acabar en empate y la prórroga se juega en la vuelta si el global empata.
   const idaVuelta=/ida-vuelta/i.test(partidosSerie[0]?.notas||"");
   const wins={};
   let enVivo=false;
@@ -1702,16 +1700,39 @@ function SerieBox({partidosSerie,equipoMap,compacto,onOpen}){
       </div>
     );
   };
-  const clic=onOpen&&partidosSerie[0]?()=>onOpen(partidosSerie[0]):undefined;
+  const multi=partidosSerie.length>1;
+  const toggleSerie=e=>{e.stopPropagation();setAbierta(!abierta);};
   return(
-    <div onClick={clic} style={{width:compacto?"96px":"150px",flexShrink:0,cursor:clic?"pointer":"default"}}>
-      <div style={{background:"#fff",border:enVivo?"1.5px solid #ef4444":"1px solid #e2e8f0",borderRadius:"10px",overflow:"hidden",transition:"border-color 0.15s"}}
-        onMouseEnter={clic?e=>e.currentTarget.style.borderColor="#c084fc":undefined}
-        onMouseLeave={clic?e=>e.currentTarget.style.borderColor=enVivo?"#ef4444":"#e2e8f0":undefined}>
+    <div style={{width:compacto?"96px":"150px",flexShrink:0}}>
+      <div onClick={multi?toggleSerie:(onOpen&&partidosSerie[0]?()=>onOpen(partidosSerie[0]):undefined)}
+        style={{background:"#fff",border:enVivo?"1.5px solid #ef4444":(abierta?"1.5px solid #c084fc":"1px solid #e2e8f0"),borderRadius:"10px",overflow:"hidden",transition:"border-color 0.15s",cursor:"pointer"}}
+        onMouseEnter={e=>e.currentTarget.style.borderColor="#c084fc"}
+        onMouseLeave={e=>e.currentTarget.style.borderColor=enVivo?"#ef4444":(abierta?"#c084fc":"#e2e8f0")}>
         {row(ids[0])}
         <div style={{height:"1px",background:"#f1f5f9"}}/>
         {row(ids[1])}
       </div>
+      {multi&&abierta&&(
+        <div style={{marginTop:"4px",display:"flex",flexDirection:"column",gap:"3px"}}>
+          {partidosSerie.sort((a,b)=>new Date(a.fecha_hora||0)-new Date(b.fecha_hora||0)).map((p,i)=>{
+            const played=p.resultado_local!=null;
+            const winL=played&&Number(p.resultado_local)>Number(p.resultado_visitante);
+            const winV=played&&!winL&&Number(p.resultado_visitante)>Number(p.resultado_local);
+            const tL=equipoMap[p.id_equipo_local],tV=equipoMap[p.id_equipo_visitante];
+            return(
+              <div key={p.id} onClick={e=>{e.stopPropagation();onOpen&&onOpen(p);}}
+                style={{background:"#faf5ff",border:"1px solid #e9d5ff",borderRadius:"8px",padding:"4px 6px",cursor:onOpen?"pointer":"default",fontSize:"10px"}}>
+                <div style={{color:"#94a3b8",fontWeight:700,marginBottom:"2px"}}>{idaVuelta?["Ida","Vuelta","3er partido"][i]||"":("Partido "+(i+1))}</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontWeight:winL?800:500,color:winL?"#7c3aed":"#475569"}}>{tL?(compacto?etiqueta(tL):tL.nombre):"—"}</span>
+                  <span style={{fontWeight:800,color:"#7c3aed",margin:"0 4px"}}>{played?(p.resultado_local+" - "+p.resultado_visitante):"vs"}</span>
+                  <span style={{fontWeight:winV?800:500,color:winV?"#7c3aed":"#475569"}}>{tV?(compacto?etiqueta(tV):tV.nombre):"—"}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
