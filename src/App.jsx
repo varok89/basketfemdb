@@ -3306,7 +3306,14 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
   const visible=fichajesFiltrados.slice(0,visibleCount);
   return(
     <div className="bfdb-container" style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
-      {user&&favoritos.length>0&&(()=>{
+      {user&&(()=>{
+        if(!favoritos.length)return(
+          <div style={{marginBottom:"24px",background:"#fff",borderRadius:"16px",padding:"24px",border:"1px solid #e2e8f0",textAlign:"center"}}>
+            <div style={{fontSize:"32px",marginBottom:"8px"}}>⭐</div>
+            <div style={{fontWeight:800,fontSize:"16px",color:"#1e293b",marginBottom:"4px"}}>Aún no tienes favoritos</div>
+            <div style={{fontSize:"13px",color:"#94a3b8"}}>Marca jugadoras, equipos o ligas con la estrella ☆ para ver aquí sus próximos partidos, resultados y fichajes.</div>
+          </div>
+        );
         const favEquipos=favoritos.filter(f=>f.tipo==="equipo").map(f=>f.id_referencia);
         const favJugadoras=favoritos.filter(f=>f.tipo==="jugadora").map(f=>f.id_referencia);
         const favLigas=favoritos.filter(f=>f.tipo==="liga").map(f=>f.id_referencia);
