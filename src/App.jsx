@@ -1902,6 +1902,7 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
   const ZONAS_LIGA={
     L001:{playoff:8,descenso:2,copa:8,copaLabel:"Copa de la Reina (8 primeros al final de la 1ª vuelta)"},
     L002:{ascenso:1,ascensoLabel:"Ascenso directo a LF Endesa",playoffAsc:9,playoffAscLabel:"Playoffs de ascenso (2º-9º)",descenso:2},
+    L003:{ascenso:1,ascensoLabel:"Final de campeones (ascenso directo)",playoffAsc:4,playoffAscLabel:"Playoffs de ascenso (2º-4º)",descenso:3},
   };
   const zl=ZONAS_LIGA[liga?.id_liga]||{};
   const PLAYOFF_PUESTOS=zl.playoff||8, DESCENSO_PUESTOS=zl.descenso||2;
