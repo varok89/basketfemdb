@@ -55,3 +55,50 @@ self.addEventListener("fetch", (e) => {
     );
   }
 });
+// ──── AÑADIR ESTO AL FINAL DE TU sw.js ACTUAL ────
+
+// Push notifications
+self.addEventListener('push', function(event) {
+  let data = { title: 'La Basketneta', body: '' };
+  try {
+    data = event.data.json();
+  } catch {
+    data.body = event.data ? event.data.text() : '';
+  }
+  
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'La Basketneta', {
+      body: data.body || '',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      data: data.data || {},
+      vibrate: [200, 100, 200],
+      tag: data.data?.tipo || 'general',
+      renotify: true,
+    })
+  );
+});
+
+// Al hacer clic en la notificación, abrir la app
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  
+  const data = event.notification.data || {};
+  let url = '/';
+  
+  if (data.id_jugadora) url = `/jugadoras/${data.id_jugadora}`;
+  else if (data.id_partido) url = `/partidos/partido/${data.id_partido}`;
+  else if (data.id_equipo) url = `/equipos/${data.id_equipo}`;
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+      for (const client of clientList) {
+        if (client.url.includes('labasketneta.app') && 'focus' in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      return clients.openWindow(url);
+    })
+  );
+});
