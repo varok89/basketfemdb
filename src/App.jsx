@@ -3250,7 +3250,7 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
 
 /* ── NacDropdown ────────────────────────────────────────── */
 /* ── HomeView ───────────────────────────────────────────── */
-function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer,onGoToTeam,onGoToTab,equiposNombres}){
+function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer,onGoToTeam,onGoToTab,equiposNombres,user,favoritos,partidos,isFavFn,onToggleFav,onGoToLeague,onGoToPartido}){
   const [visibleCount,setVisibleCount]=useState(10);
   const [filterLiga,setFilterLiga]=useState("ALL");
   const [filterEquipo,setFilterEquipo]=useState("ALL");
