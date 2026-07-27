@@ -1907,8 +1907,8 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
   const zl=ZONAS_LIGA[liga?.id_liga]||{};
   const PLAYOFF_PUESTOS=zl.playoff||(zl.ascenso?0:8), DESCENSO_PUESTOS=zl.descenso||2;
   const COPA_PUESTOS=zl.copa||0, COPA_LABEL=zl.copaLabel||"";
-  const multiGrupoInit=modoLiga&&grupos.length>1;
-  const vistaIni=multiGrupoInit?"grp0":(vistaInicial==="grupos"&&grupos.length)||(vistaInicial==="standing"&&hayStanding)||(vistaInicial==="final"&&(hayKO||hayBracketIV))?vistaInicial:(grupos.length?"grupos":hayPreviaIV?"previa":(hayKO||hayBracketIV)?"final":"standing");
+  const multiGrupo=modoLiga&&grupos.length>1;
+  const vistaIni=multiGrupo?"grp0":(vistaInicial==="grupos"&&grupos.length)||(vistaInicial==="standing"&&hayStanding)||(vistaInicial==="final"&&(hayKO||hayBracketIV))?vistaInicial:(grupos.length?"grupos":hayPreviaIV?"previa":(hayKO||hayBracketIV)?"final":"standing");
   const [vista,setVista]=useState(vistaIni);
   const [grupoSel,setGrupoSel]=useState(0);
   const mvpPlayer=useMemo(()=>{
