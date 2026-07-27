@@ -1121,14 +1121,17 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
           if(esLiga){
             const buckets={};
             ps.forEach(p=>{
-              const m=/^jornada\s+(\d+)/i.exec(p.notas||"");
-              const key=m?`J${m[1]}`:(/^playoffs/i.test(p.notas||"")?"PO":"OT");
+              const m=/(?:^|·\s*)jornada\s+(\d+)/i.exec(p.notas||"");
+              const grpM=/^grupo\s+(\w+)/i.exec(p.notas||"");
+              const key=m?(grpM?`G${grpM[1]}J${m[1]}`:`J${m[1]}`):(/^playoffs/i.test(p.notas||"")?"PO":"OT");
               (buckets[key]=buckets[key]||[]).push(p);
             });
-            const rank=k=>k==="PO"?1000000:k==="OT"?1000001:parseInt(k.slice(1),10);
+            const rank=k=>{if(k==="PO")return 1000000;if(k==="OT")return 1000001;const gm=k.match(/^G(\w+)J(\d+)$/);if(gm)return gm[1].charCodeAt(0)*10000+parseInt(gm[2]);return parseInt(k.slice(1),10);};
             jornadas=Object.keys(buckets).sort((a,b)=>rank(a)-rank(b)).map(k=>{
               const games=buckets[k].sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
-              return{key:k,label:k==="PO"?"Playoffs":k==="OT"?"Otros partidos":`Jornada ${k.slice(1)}`,games,
+              const gm=k.match(/^G(\w+)J(\d+)$/);
+              const lbl=k==="PO"?"Playoffs":k==="OT"?"Otros partidos":gm?`Grupo ${gm[1]} · Jornada ${gm[2]}`:`Jornada ${k.slice(1)}`;
+              return{key:k,label:lbl,games,
                 pendiente:games.some(p=>getPartidoEstado(p)!=="terminado"),
                 enJuego:games.some(p=>getPartidoEstado(p)==="en_juego")};
             });
@@ -2017,52 +2020,6 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
           </div>
         </div>
       );})}
-      {modoLiga&&grupos.length>1&&vista?.startsWith("grp")&&(()=>{
-        const gi=parseInt(vista.slice(3),10);
-        const grp=grupos[gi];
-        if(!grp)return null;
-        const grpIds=new Set(grp.equipos.map(e=>e.id));
-        const grpPartidos=psLiga.filter(p=>grpIds.has(p.id_equipo_local)&&grpIds.has(p.id_equipo_visitante)).sort((a,b)=>{
-          const ja=((a.notas||"").match(/Jornada\s+(\d+)/i)||[])[1]||"999";
-          const jb=((b.notas||"").match(/Jornada\s+(\d+)/i)||[])[1]||"999";
-          return parseInt(ja)-parseInt(jb)||new Date(a.fecha_hora||0)-new Date(b.fecha_hora||0);
-        });
-        const byJornada=new Map();
-        grpPartidos.forEach(p=>{const j=(p.notas||"").replace(/^Grupo\s+\w+\s+·\s+/i,"").trim()||"Sin jornada";if(!byJornada.has(j))byJornada.set(j,[]);byJornada.get(j).push(p);});
-        return(
-          <div style={{marginTop:"16px"}}>
-            <h3 style={{fontWeight:800,fontSize:"15px",color:"#1e293b",marginBottom:"12px"}}>Partidos</h3>
-            {[...byJornada.entries()].map(([jornada,ps])=>(
-              <div key={jornada} style={{marginBottom:"12px"}}>
-                <div style={{fontSize:"11px",fontWeight:800,color:"#9333ea",textTransform:"uppercase",letterSpacing:"0.5px",padding:"6px 0",borderBottom:"1px solid #f1f5f9",marginBottom:"4px"}}>{jornada}</div>
-                {ps.map(p=>{
-                  const tL=equipoMap[p.id_equipo_local]||{}, tV=equipoMap[p.id_equipo_visitante]||{};
-                  const played=p.resultado_local!=null;
-                  const winL=played&&Number(p.resultado_local)>Number(p.resultado_visitante);
-                  const winV=played&&Number(p.resultado_visitante)>Number(p.resultado_local);
-                  return(
-                    <div key={p.id} onClick={()=>onOpenPartido&&onOpenPartido(p)}
-                      style={{display:"flex",alignItems:"center",padding:"6px 8px",cursor:"pointer",borderRadius:"8px",marginBottom:"2px",transition:"background 0.1s"}}
-                      onMouseEnter={e=>e.currentTarget.style.background="#faf5ff"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                      <div style={{flex:1,display:"flex",alignItems:"center",gap:"6px",justifyContent:"flex-end"}}>
-                        <span style={{fontSize:"12px",fontWeight:winL?700:500,color:winL?"#1e293b":"#64748b",textAlign:"right"}}>{tL.nombre||"?"}</span>
-                        {tL.escudo&&<img src={tL.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>}
-                      </div>
-                      <div style={{width:"60px",textAlign:"center",fontSize:"13px",fontWeight:700,color:"#7c3aed",flexShrink:0}}>
-                        {played?`${p.resultado_local} - ${p.resultado_visitante}`:"vs"}
-                      </div>
-                      <div style={{flex:1,display:"flex",alignItems:"center",gap:"6px"}}>
-                        {tV.escudo&&<img src={tV.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>}
-                        <span style={{fontSize:"12px",fontWeight:winV?700:500,color:winV?"#1e293b":"#64748b"}}>{tV.nombre||"?"}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        );
-      })()}
       {(vista==="grupos"||(modoLiga&&vista?.startsWith("grp")))&&grupos.length>0&&(modoLiga?(
         <div style={{fontSize:"11px",color:"#94a3b8",textAlign:"center",marginTop:"8px",lineHeight:"1.7"}}>
           {zl.ascenso&&<><span style={{display:"inline-block",width:10,height:10,background:"#16a34a",borderRadius:"3px",verticalAlign:"middle",marginRight:"4px"}}/>{zl.ascensoLabel||"Ascenso directo"}</>}
