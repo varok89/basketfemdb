@@ -5640,13 +5640,17 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
       </div>
 
       {/* ── JUGADORAS ── */}
-      {(filtro==="todo"||filtro==="jugadora")&&jugCards.map(({player:p,lastBox,rivalEq,partido})=>(
+      {(filtro==="todo"||filtro==="jugadora")&&jugCards.map(({player:p,lastBox,rivalEq,partido})=>{
+        const liga=partido?ligaMap[partido.id_liga]:null;
+        const resultado=partido?(partido.id_equipo_local===lastBox?.id_equipo?`${partido.resultado_local}-${partido.resultado_visitante}`:`${partido.resultado_visitante}-${partido.resultado_local}`):null;
+        return(
         <div key={p.id_jugadora} style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0",marginBottom:"16px"}}>
           <div onClick={()=>onGoToPlayer(p.id_jugadora)} style={{display:"flex",alignItems:"center",gap:"14px",cursor:"pointer",marginBottom:lastBox?"12px":"0"}}>
             <Avatar photo={p.foto} name={p.nombre} size={52} fontSize={18}/>
             <div style={{flex:1}}>
               <div style={{fontWeight:800,fontSize:"16px",color:"#1e293b"}}>{p.nombre}</div>
-              {rivalEq&&<div style={{fontSize:"12px",color:"#64748b"}}>vs {rivalEq.nombre}</div>}
+              {rivalEq&&<div style={{fontSize:"13px",color:"#475569",fontWeight:600}}>vs {rivalEq.nombre}{resultado?" · "+resultado:""}</div>}
+              {liga&&<div style={{fontSize:"11px",color:"#9333ea",fontWeight:600}}>{liga.nombre}</div>}
             </div>
           </div>
           {lastBox&&<div style={{display:"flex",gap:"8px",flexWrap:"wrap"}}>
@@ -5658,7 +5662,7 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
             ))}
           </div>}
         </div>
-      ))}
+        );})}
 
       {/* ── EQUIPOS ── */}
       {(filtro==="todo"||filtro==="equipo")&&eqCards.map(({eq,comps,ultPartido,proxPartido,ultFichaje})=>(
