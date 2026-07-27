@@ -5524,6 +5524,23 @@ function Landing({onEnter}){
 /* ── FavoritosView ─────────────────────────────────────── */
 function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToPartido,isFavFn,onToggleFav}){
   const [filtro,setFiltro]=useState("todo"); // todo | jugadora | equipo | liga
+  const [favBoxscores,setFavBoxscores]=useState({});
+  const favJugIds=useMemo(()=>favoritos.filter(f=>f.tipo==="jugadora").map(f=>f.id_referencia),[favoritos]);
+  useEffect(()=>{
+    if(!favJugIds.length)return;
+    (async()=>{
+      const map={};
+      for(const jid of favJugIds){
+        const {data}=await supabase.from("partido_boxscore").select("*").eq("id_jugadora",jid).order("id_partido",{ascending:false}).limit(1);
+        if(data&&data[0]){
+          const box=data[0];
+          const {data:pData}=await supabase.from("partidos").select("id,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,fecha_hora,id_liga").eq("id",box.id_partido).single();
+          map[jid]={box,partido:pData};
+        }
+      }
+      setFavBoxscores(map);
+    })();
+  },[favJugIds.join(",")]);
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap=useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
 
@@ -5548,12 +5565,11 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
   // ── Datos de jugadoras ──
   const jugCards=favJugadoras.map(jid=>{
     const p=players.find(x=>x.id_jugadora===jid);if(!p)return null;
-    const lastBox=(p.boxscores||[]).sort((a,b)=>(b.id_partido||0)-(a.id_partido||0))[0];
-    let rivalEq=null,partido=null;
-    if(lastBox){
-      partido=partidos.find(pt=>pt.id===lastBox.id_partido);
-      if(partido){const rivalId=partido.id_equipo_local===lastBox.id_equipo?partido.id_equipo_visitante:partido.id_equipo_local;rivalEq=equipoMap[rivalId];}
-    }
+    const fbData=favBoxscores[jid];
+    const lastBox=fbData?.box||null;
+    const partido=fbData?.partido||null;
+    let rivalEq=null;
+    if(lastBox&&partido){const rivalId=partido.id_equipo_local===lastBox.id_equipo?partido.id_equipo_visitante:partido.id_equipo_local;rivalEq=equipoMap[rivalId];}
     return{player:p,lastBox,rivalEq,partido};
   }).filter(Boolean);
 
@@ -5563,7 +5579,11 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
     const comps=[...new Set((partidos||[]).filter(p=>(p.id_equipo_local===eid||p.id_equipo_visitante===eid)&&p.temporada===currentSeason).map(p=>p.id_liga))].map(lid=>ligaMap[lid]).filter(Boolean);
     const ultPartido=(partidos||[]).filter(p=>(p.id_equipo_local===eid||p.id_equipo_visitante===eid)&&p.resultado_local!=null).sort((a,b)=>new Date(b.fecha_hora)-new Date(a.fecha_hora))[0];
     const proxPartido=(partidos||[]).filter(p=>(p.id_equipo_local===eid||p.id_equipo_visitante===eid)&&p.resultado_local==null&&p.fecha_hora&&new Date(p.fecha_hora)>hoy).sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora))[0];
-    const ultFichaje=players.flatMap(pl=>(pl.seasons||[]).filter(ss=>ss.id_equipo===eid).map(ss=>({player:pl,...ss}))).sort((a,b)=>(b.id||0)-(a.id||0))[0];
+    const ultFichaje=players.flatMap(pl=>(pl.seasons||[]).filter(ss=>ss.id_equipo===eid).map(ss=>({player:pl,...ss}))).sort((a,b)=>{
+      const ta=(a.temporada||"").replace("-",".");const tb=(b.temporada||"").replace("-",".");
+      if(ta!==tb)return tb.localeCompare(ta);
+      return(b.id||0)-(a.id||0);
+    })[0];
     return{eq,comps,ultPartido,proxPartido,ultFichaje};
   }).filter(Boolean);
 
