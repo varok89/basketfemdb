@@ -1905,10 +1905,12 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
     L003:{ascenso:1,ascensoLabel:"Final de campeones (ascenso directo)",playoffAsc:4,playoffAscLabel:"Playoffs de ascenso (2º-4º)",descenso:3},
   };
   const zl=ZONAS_LIGA[liga?.id_liga]||{};
-  const PLAYOFF_PUESTOS=zl.playoff||8, DESCENSO_PUESTOS=zl.descenso||2;
+  const PLAYOFF_PUESTOS=zl.playoff||(zl.ascenso?0:8), DESCENSO_PUESTOS=zl.descenso||2;
   const COPA_PUESTOS=zl.copa||0, COPA_LABEL=zl.copaLabel||"";
-  const vistaIni=(vistaInicial==="grupos"&&grupos.length)||(vistaInicial==="standing"&&hayStanding)||(vistaInicial==="final"&&(hayKO||hayBracketIV))?vistaInicial:(grupos.length?"grupos":hayPreviaIV?"previa":(hayKO||hayBracketIV)?"final":"standing");
+  const multiGrupoInit=modoLiga&&grupos.length>1;
+  const vistaIni=multiGrupoInit?"grp0":(vistaInicial==="grupos"&&grupos.length)||(vistaInicial==="standing"&&hayStanding)||(vistaInicial==="final"&&(hayKO||hayBracketIV))?vistaInicial:(grupos.length?"grupos":hayPreviaIV?"previa":(hayKO||hayBracketIV)?"final":"standing");
   const [vista,setVista]=useState(vistaIni);
+  const [grupoSel,setGrupoSel]=useState(0);
   const mvpPlayer=useMemo(()=>{
     const m=(mvps||[]).find(x=>x.id_liga===ligaId&&(x.temporada||"")===(temporada||""));
     return m?(players||[]).find(p=>p.id_jugadora===m.id_jugadora)||null:null;
@@ -1937,7 +1939,7 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
       <h1 style={{fontWeight:800,fontSize:"20px",color:"#1e293b",margin:"0 0 20px"}}>🏆 Clasificación</h1>
       {(()=>{
         const tabs=modoLiga
-          ?[["grupos","Clasificación"],...(hayPlayoffs?[["final","Playoffs"]]:[])]
+          ?[...(multiGrupo?grupos.map((g,i)=>[`grp${i}`,g.nombre]):[["grupos","Clasificación"]]),...(hayPlayoffs?[["final","Playoffs"]]:[])]
           :[...(hayPreviaIV?[["previa","Fase previa"]]:[]),...(grupos.length?[["grupos","Grupos"]]:[]),...((hayKO||hayBracketIV)?[["final","Fase final"]]:[]),...(hayStanding?[["standing","🏅 Standing"]]:[])];
         if(tabs.length<=1)return null;
         return(
@@ -1956,7 +1958,12 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
       {vista==="final"&&hayPlayoffs&&<PlayoffBracket psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido}/>}
       {vista==="standing"&&hayKO&&<StandingFinal psLiga={psLiga} equipoMap={equipoMap} temporada={temporada} onGoToTeam={onGoToTeam} mvpPlayer={mvpPlayer} onGoToPlayer={onGoToPlayer}/>}
       {vista==="grupos"&&!grupos.length&&<p style={{color:"#94a3b8",textAlign:"center",paddingTop:"40px"}}>No hay partidos con resultado para calcular la clasificación.</p>}
-      {vista==="grupos"&&grupos.map(({nombre,equipos:eqs})=>(
+      {grupos.map(({nombre,equipos:eqs},gi)=>{
+        const grpKey=`grp${gi}`;
+        if(modoLiga&&grupos.length>1&&vista!==grpKey)return null;
+        if(modoLiga&&grupos.length<=1&&vista!=="grupos")return null;
+        if(!modoLiga&&vista!=="grupos")return null;
+        return(
         <div key={nombre} style={{background:"#fff",borderRadius:"16px",overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"16px"}}>
           <div style={{background:"#f5f3ff",padding:"10px 16px",borderBottom:"1px solid #e9d5ff"}}>
             <span style={{fontWeight:800,fontSize:"14px",color:"#7c3aed"}}>{nombre}</span>
@@ -2009,8 +2016,54 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
             </table>
           </div>
         </div>
-      ))}
-      {vista==="grupos"&&grupos.length>0&&(modoLiga?(
+      );})}
+      {modoLiga&&grupos.length>1&&vista?.startsWith("grp")&&(()=>{
+        const gi=parseInt(vista.slice(3),10);
+        const grp=grupos[gi];
+        if(!grp)return null;
+        const grpIds=new Set(grp.equipos.map(e=>e.id));
+        const grpPartidos=psLiga.filter(p=>grpIds.has(p.id_equipo_local)&&grpIds.has(p.id_equipo_visitante)).sort((a,b)=>{
+          const ja=((a.notas||"").match(/Jornada\s+(\d+)/i)||[])[1]||"999";
+          const jb=((b.notas||"").match(/Jornada\s+(\d+)/i)||[])[1]||"999";
+          return parseInt(ja)-parseInt(jb)||new Date(a.fecha_hora||0)-new Date(b.fecha_hora||0);
+        });
+        const byJornada=new Map();
+        grpPartidos.forEach(p=>{const j=(p.notas||"").replace(/^Grupo\s+\w+\s+·\s+/i,"").trim()||"Sin jornada";if(!byJornada.has(j))byJornada.set(j,[]);byJornada.get(j).push(p);});
+        return(
+          <div style={{marginTop:"16px"}}>
+            <h3 style={{fontWeight:800,fontSize:"15px",color:"#1e293b",marginBottom:"12px"}}>Partidos</h3>
+            {[...byJornada.entries()].map(([jornada,ps])=>(
+              <div key={jornada} style={{marginBottom:"12px"}}>
+                <div style={{fontSize:"11px",fontWeight:800,color:"#9333ea",textTransform:"uppercase",letterSpacing:"0.5px",padding:"6px 0",borderBottom:"1px solid #f1f5f9",marginBottom:"4px"}}>{jornada}</div>
+                {ps.map(p=>{
+                  const tL=equipoMap[p.id_equipo_local]||{}, tV=equipoMap[p.id_equipo_visitante]||{};
+                  const played=p.resultado_local!=null;
+                  const winL=played&&Number(p.resultado_local)>Number(p.resultado_visitante);
+                  const winV=played&&Number(p.resultado_visitante)>Number(p.resultado_local);
+                  return(
+                    <div key={p.id} onClick={()=>onOpenPartido&&onOpenPartido(p)}
+                      style={{display:"flex",alignItems:"center",padding:"6px 8px",cursor:"pointer",borderRadius:"8px",marginBottom:"2px",transition:"background 0.1s"}}
+                      onMouseEnter={e=>e.currentTarget.style.background="#faf5ff"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                      <div style={{flex:1,display:"flex",alignItems:"center",gap:"6px",justifyContent:"flex-end"}}>
+                        <span style={{fontSize:"12px",fontWeight:winL?700:500,color:winL?"#1e293b":"#64748b",textAlign:"right"}}>{tL.nombre||"?"}</span>
+                        {tL.escudo&&<img src={tL.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>}
+                      </div>
+                      <div style={{width:"60px",textAlign:"center",fontSize:"13px",fontWeight:700,color:"#7c3aed",flexShrink:0}}>
+                        {played?`${p.resultado_local} - ${p.resultado_visitante}`:"vs"}
+                      </div>
+                      <div style={{flex:1,display:"flex",alignItems:"center",gap:"6px"}}>
+                        {tV.escudo&&<img src={tV.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>}
+                        <span style={{fontSize:"12px",fontWeight:winV?700:500,color:winV?"#1e293b":"#64748b"}}>{tV.nombre||"?"}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+      {(vista==="grupos"||(modoLiga&&vista?.startsWith("grp")))&&grupos.length>0&&(modoLiga?(
         <div style={{fontSize:"11px",color:"#94a3b8",textAlign:"center",marginTop:"8px",lineHeight:"1.7"}}>
           {zl.ascenso&&<><span style={{display:"inline-block",width:10,height:10,background:"#16a34a",borderRadius:"3px",verticalAlign:"middle",marginRight:"4px"}}/>{zl.ascensoLabel||"Ascenso directo"}</>}
           {zl.playoffAsc&&<><span style={{display:"inline-block",width:10,height:10,background:"#2563eb",borderRadius:"3px",verticalAlign:"middle",margin:"0 4px 0 14px"}}/>{zl.playoffAscLabel||("Playoffs de ascenso ("+zl.ascenso+"º-"+(zl.playoffAsc)+"º)")}</>}
