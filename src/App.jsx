@@ -5531,11 +5531,16 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
     (async()=>{
       const map={};
       for(const jid of favJugIds){
-        const {data}=await supabase.from("partido_boxscore").select("*").eq("id_jugadora",jid).order("id_partido",{ascending:false}).limit(1);
-        if(data&&data[0]){
-          const box=data[0];
-          const {data:pData}=await supabase.from("partidos").select("id,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,fecha_hora,id_liga").eq("id",box.id_partido).single();
-          map[jid]={box,partido:pData};
+        // Buscar el partido más reciente por fecha donde jugó
+        const {data:boxes}=await supabase.from("partido_boxscore").select("*").eq("id_jugadora",jid).limit(50);
+        if(boxes&&boxes.length){
+          const pIds=[...new Set(boxes.map(b=>b.id_partido))];
+          const {data:partis}=await supabase.from("partidos").select("id,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,fecha_hora,id_liga").in("id",pIds).not("resultado_local","is",null).order("fecha_hora",{ascending:false}).limit(1);
+          if(partis&&partis[0]){
+            const partido=partis[0];
+            const box=boxes.find(b=>b.id_partido===partido.id);
+            if(box)map[jid]={box,partido};
+          }
         }
       }
       setFavBoxscores(map);
