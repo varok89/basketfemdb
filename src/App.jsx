@@ -1126,7 +1126,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
               const key=m?(grpM?`G${grpM[1]}J${m[1]}`:`J${m[1]}`):(/^playoffs/i.test(p.notas||"")?"PO":"OT");
               (buckets[key]=buckets[key]||[]).push(p);
             });
-            const rank=k=>{if(k==="PO")return 1000000;if(k==="OT")return 1000001;const gm=k.match(/^G(\w+)J(\d+)$/);if(gm)return gm[1].charCodeAt(0)*10000+parseInt(gm[2]);return parseInt(k.slice(1),10);};
+            const rank=k=>{if(k==="PO")return 1000000;if(k==="OT")return 1000001;const gm=k.match(/^G(\w+)J(\d+)$/);if(gm)return parseInt(gm[2])*100+gm[1].charCodeAt(0);return parseInt(k.slice(1),10);};
             jornadas=Object.keys(buckets).sort((a,b)=>rank(a)-rank(b)).map(k=>{
               const games=buckets[k].sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
               const gm=k.match(/^G(\w+)J(\d+)$/);
