@@ -3306,68 +3306,6 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
   const visible=fichajesFiltrados.slice(0,visibleCount);
   return(
     <div className="bfdb-container" style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
-      {user&&(()=>{
-        if(!favoritos.length)return(
-          <div style={{marginBottom:"24px",background:"#fff",borderRadius:"16px",padding:"24px",border:"1px solid #e2e8f0",textAlign:"center"}}>
-            <div style={{fontSize:"32px",marginBottom:"8px"}}>⭐</div>
-            <div style={{fontWeight:800,fontSize:"16px",color:"#1e293b",marginBottom:"4px"}}>Aún no tienes favoritos</div>
-            <div style={{fontSize:"13px",color:"#94a3b8"}}>Marca jugadoras, equipos o ligas con la estrella ☆ para ver aquí sus próximos partidos, resultados y fichajes.</div>
-          </div>
-        );
-        const favEquipos=favoritos.filter(f=>f.tipo==="equipo").map(f=>f.id_referencia);
-        const favJugadoras=favoritos.filter(f=>f.tipo==="jugadora").map(f=>f.id_referencia);
-        const favLigas=favoritos.filter(f=>f.tipo==="liga").map(f=>f.id_referencia);
-        const now=new Date();
-        const proxPartidos=favEquipos.length?(partidos||[]).filter(p=>(favEquipos.includes(p.id_equipo_local)||favEquipos.includes(p.id_equipo_visitante))&&p.fecha_hora&&new Date(p.fecha_hora)>now).sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora)).slice(0,5):[];
-        const ultResultadosLiga=favLigas.length?(partidos||[]).filter(p=>favLigas.includes(p.id_liga)&&p.resultado_local!=null).sort((a,b)=>new Date(b.fecha_hora)-new Date(a.fecha_hora)).slice(0,8):[];
-        const ultResultadosEquipo=favEquipos.length?(partidos||[]).filter(p=>(favEquipos.includes(p.id_equipo_local)||favEquipos.includes(p.id_equipo_visitante))&&p.resultado_local!=null).sort((a,b)=>new Date(b.fecha_hora)-new Date(a.fecha_hora)).slice(0,5):[];
-        const fichEquipos=favEquipos.length?players.flatMap(p=>(p.seasons||[]).filter(ss=>favEquipos.includes(ss.id_equipo)&&ss.temporada===currentSeason).map(ss=>({player:p,...ss}))).sort((a,b)=>b.id-a.id).slice(0,8):[];
-        const fichLigas=favLigas.length?players.flatMap(p=>(p.seasons||[]).filter(ss=>favLigas.includes(ss.id_liga)&&ss.temporada===currentSeason).map(ss=>({player:p,...ss}))).sort((a,b)=>b.id-a.id).slice(0,8):[];
-        const fichajes=[...fichEquipos,...fichLigas].filter((v,i,a)=>a.findIndex(x=>x.id_jugadora===v.id_jugadora&&x.id_equipo===v.id_equipo)===i).slice(0,8);
-        const PartidoRow=({p})=>{const tL=equipoMap[p.id_equipo_local]||{},tV=equipoMap[p.id_equipo_visitante]||{};const played=p.resultado_local!=null;const d=p.fecha_hora?new Date(p.fecha_hora):null;
-          return(<div onClick={()=>onGoToPartido&&onGoToPartido(p)} style={{display:"flex",alignItems:"center",padding:"8px 10px",cursor:"pointer",borderRadius:"10px",transition:"background 0.1s"}} onMouseEnter={e=>e.currentTarget.style.background="#faf5ff"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-            <div style={{flex:1,display:"flex",alignItems:"center",gap:"6px",justifyContent:"flex-end"}}>{tL.escudo&&<img src={tL.escudo} alt="" style={{width:20,height:20,objectFit:"contain"}}/>}<span style={{fontSize:"13px",fontWeight:played&&Number(p.resultado_local)>Number(p.resultado_visitante)?700:500,color:"#1e293b"}}>{tL.nombre||"?"}</span></div>
-            <div style={{width:"70px",textAlign:"center",fontSize:"14px",fontWeight:700,color:"#7c3aed",flexShrink:0}}>{played?`${p.resultado_local} - ${p.resultado_visitante}`:d?`${d.getDate()}/${d.getMonth()+1}`:"vs"}</div>
-            <div style={{flex:1,display:"flex",alignItems:"center",gap:"6px"}}><span style={{fontSize:"13px",fontWeight:played&&Number(p.resultado_visitante)>Number(p.resultado_local)?700:500,color:"#1e293b"}}>{tV.nombre||"?"}</span>{tV.escudo&&<img src={tV.escudo} alt="" style={{width:20,height:20,objectFit:"contain"}}/>}</div>
-          </div>);};
-        return(
-          <div style={{marginBottom:"24px"}}>
-            <h2 style={{fontWeight:800,fontSize:"20px",color:"#1e293b",margin:"0 0 16px",display:"flex",alignItems:"center",gap:"8px"}}>⭐ Mis favoritos</h2>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:"16px"}}>
-              {proxPartidos.length>0&&<div style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0"}}>
-                <h3 style={{fontWeight:800,fontSize:"14px",color:"#9333ea",margin:"0 0 10px"}}>📅 Próximos partidos</h3>
-                {proxPartidos.map(p=><PartidoRow key={p.id} p={p}/>)}
-              </div>}
-              {ultResultadosEquipo.length>0&&<div style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0"}}>
-                <h3 style={{fontWeight:800,fontSize:"14px",color:"#9333ea",margin:"0 0 10px"}}>🏀 Últimos resultados</h3>
-                {ultResultadosEquipo.map(p=><PartidoRow key={p.id} p={p}/>)}
-              </div>}
-              {ultResultadosLiga.length>0&&<div style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0"}}>
-                <h3 style={{fontWeight:800,fontSize:"14px",color:"#9333ea",margin:"0 0 10px"}}>🏆 Resultados de mis ligas</h3>
-                {ultResultadosLiga.map(p=><PartidoRow key={p.id} p={p}/>)}
-              </div>}
-              {favJugadoras.length>0&&<div style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0"}}>
-                <h3 style={{fontWeight:800,fontSize:"14px",color:"#9333ea",margin:"0 0 10px"}}>👩‍🏀 Mis jugadoras</h3>
-                {favJugadoras.map(jid=>{const p=players.find(x=>x.id_jugadora===jid);if(!p)return null;const lastSeason=(p.seasons||[]).filter(ss=>ss.temporada===currentSeason)[0];const eq=lastSeason?equipoMap[lastSeason.id_equipo]:null;
-                  return(<div key={jid} onClick={()=>onGoToPlayer(jid)} style={{display:"flex",alignItems:"center",gap:"10px",padding:"6px 8px",cursor:"pointer",borderRadius:"10px",transition:"background 0.1s"}} onMouseEnter={e=>e.currentTarget.style.background="#faf5ff"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                    <Avatar photo={p.foto} name={p.nombre} size={32} fontSize={12}/>
-                    <div style={{flex:1,minWidth:0}}><div style={{fontSize:"13px",fontWeight:700,color:"#1e293b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>{eq&&<div style={{fontSize:"11px",color:"#64748b"}}>{eq.nombre}</div>}</div>
-                  </div>);
-                })}
-              </div>}
-              {fichajes.length>0&&<div style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0"}}>
-                <h3 style={{fontWeight:800,fontSize:"14px",color:"#9333ea",margin:"0 0 10px"}}>✍️ Últimos fichajes</h3>
-                {fichajes.map((f,i)=>{const eq=equipoMap[f.id_equipo];
-                  return(<div key={i} onClick={()=>onGoToPlayer(f.id_jugadora)} style={{display:"flex",alignItems:"center",gap:"10px",padding:"6px 8px",cursor:"pointer",borderRadius:"10px",transition:"background 0.1s"}} onMouseEnter={e=>e.currentTarget.style.background="#faf5ff"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                    <Avatar photo={f.player?.foto} name={f.player?.nombre} size={32} fontSize={12}/>
-                    <div style={{flex:1,minWidth:0}}><div style={{fontSize:"13px",fontWeight:700,color:"#1e293b"}}>{f.player?.nombre}</div><div style={{fontSize:"11px",color:"#64748b"}}>→ {eq?.nombre||f.id_equipo}</div></div>
-                  </div>);
-                })}
-              </div>}
-            </div>
-          </div>
-        );
-      })()}
       <div style={{marginBottom:"16px"}}>
         <h2 style={{fontWeight:800,fontSize:"20px",color:"#1e293b",margin:"0 0 4px",display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}>
           ✍️ Últimos fichajes
@@ -5583,6 +5521,126 @@ function Landing({onEnter}){
   );
 }
 
+/* ── FavoritosView ─────────────────────────────────────── */
+function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToPartido,isFavFn,onToggleFav}){
+  const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
+  const ligaMap=useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
+  const hoy=new Date();
+  const anio=hoy.getMonth()>=8?hoy.getFullYear():hoy.getFullYear()-1;
+  const currentSeason=`${anio}-${String((anio+1)%100).padStart(2,"0")}`;
+
+  const favEquipos=favoritos.filter(f=>f.tipo==="equipo").map(f=>f.id_referencia);
+  const favJugadoras=favoritos.filter(f=>f.tipo==="jugadora").map(f=>f.id_referencia);
+  const favLigas=favoritos.filter(f=>f.tipo==="liga").map(f=>f.id_referencia);
+
+  const proxPartidos=favEquipos.length?(partidos||[]).filter(p=>(favEquipos.includes(p.id_equipo_local)||favEquipos.includes(p.id_equipo_visitante))&&p.fecha_hora&&new Date(p.fecha_hora)>hoy&&p.resultado_local==null).sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora)).slice(0,6):[];
+  const ultResultados=favEquipos.length?(partidos||[]).filter(p=>(favEquipos.includes(p.id_equipo_local)||favEquipos.includes(p.id_equipo_visitante))&&p.resultado_local!=null).sort((a,b)=>new Date(b.fecha_hora)-new Date(a.fecha_hora)).slice(0,6):[];
+  const ultResultadosLiga=favLigas.length?(partidos||[]).filter(p=>favLigas.includes(p.id_liga)&&p.resultado_local!=null&&!favEquipos.includes(p.id_equipo_local)&&!favEquipos.includes(p.id_equipo_visitante)).sort((a,b)=>new Date(b.fecha_hora)-new Date(a.fecha_hora)).slice(0,8):[];
+
+  const fichajes=useMemo(()=>{
+    const all=[];
+    for(const p of players){
+      for(const ss of (p.seasons||[])){
+        if(ss.temporada!==currentSeason)continue;
+        if(favEquipos.includes(ss.id_equipo)||favLigas.includes(ss.id_liga)){
+          all.push({player:p,...ss});
+        }
+      }
+    }
+    all.sort((a,b)=>(b.id||0)-(a.id||0));
+    const seen=new Set();
+    return all.filter(f=>{const k=f.id_jugadora+"|"+f.id_equipo;if(seen.has(k))return false;seen.add(k);return true;}).slice(0,10);
+  },[players,favEquipos,favLigas,currentSeason]);
+
+  const PartidoRow=({p})=>{
+    const tL=equipoMap[p.id_equipo_local]||{},tV=equipoMap[p.id_equipo_visitante]||{};
+    const played=p.resultado_local!=null;
+    const d=p.fecha_hora?new Date(p.fecha_hora):null;
+    const winL=played&&Number(p.resultado_local)>Number(p.resultado_visitante);
+    const winV=played&&Number(p.resultado_visitante)>Number(p.resultado_local);
+    return(
+      <div onClick={()=>onGoToPartido&&onGoToPartido(p)} style={{display:"flex",alignItems:"center",padding:"8px 10px",cursor:"pointer",borderRadius:"10px",transition:"background 0.1s"}} onMouseEnter={e=>e.currentTarget.style.background="#faf5ff"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+        <div style={{flex:1,display:"flex",alignItems:"center",gap:"6px",justifyContent:"flex-end"}}>{tL.escudo&&<img src={tL.escudo} alt="" style={{width:20,height:20,objectFit:"contain"}}/>}<span style={{fontSize:"13px",fontWeight:winL?700:500,color:"#1e293b",textAlign:"right"}}>{tL.nombre||"?"}</span></div>
+        <div style={{width:"80px",textAlign:"center",fontSize:"14px",fontWeight:700,color:"#7c3aed",flexShrink:0}}>{played?`${p.resultado_local} - ${p.resultado_visitante}`:d?`${d.getDate()}/${d.getMonth()+1} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`:"vs"}</div>
+        <div style={{flex:1,display:"flex",alignItems:"center",gap:"6px"}}><span style={{fontSize:"13px",fontWeight:winV?700:500,color:"#1e293b"}}>{tV.nombre||"?"}</span>{tV.escudo&&<img src={tV.escudo} alt="" style={{width:20,height:20,objectFit:"contain"}}/>}</div>
+      </div>
+    );
+  };
+
+  if(!favoritos.length)return(
+    <div className="bfdb-container" style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
+      <div style={{background:"#fff",borderRadius:"16px",padding:"40px 24px",border:"1px solid #e2e8f0",textAlign:"center"}}>
+        <div style={{fontSize:"48px",marginBottom:"12px"}}>⭐</div>
+        <div style={{fontWeight:800,fontSize:"18px",color:"#1e293b",marginBottom:"8px"}}>Aún no tienes favoritos</div>
+        <div style={{fontSize:"14px",color:"#94a3b8",maxWidth:"400px",margin:"0 auto"}}>Marca jugadoras, equipos o ligas con la estrella ☆ en sus fichas para ver aquí sus próximos partidos, resultados y fichajes.</div>
+      </div>
+    </div>
+  );
+
+  return(
+    <div className="bfdb-container" style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
+      <h2 style={{fontWeight:800,fontSize:"20px",color:"#1e293b",margin:"0 0 16px"}}>⭐ Mis favoritos</h2>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:"16px"}}>
+
+        {proxPartidos.length>0&&<div style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0"}}>
+          <h3 style={{fontWeight:800,fontSize:"14px",color:"#9333ea",margin:"0 0 10px"}}>📅 Próximos partidos</h3>
+          {proxPartidos.map(p=><PartidoRow key={p.id} p={p}/>)}
+        </div>}
+
+        {ultResultados.length>0&&<div style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0"}}>
+          <h3 style={{fontWeight:800,fontSize:"14px",color:"#9333ea",margin:"0 0 10px"}}>🏀 Últimos resultados</h3>
+          {ultResultados.map(p=><PartidoRow key={p.id} p={p}/>)}
+        </div>}
+
+        {ultResultadosLiga.length>0&&<div style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0"}}>
+          <h3 style={{fontWeight:800,fontSize:"14px",color:"#9333ea",margin:"0 0 10px"}}>🏆 Resultados de mis ligas</h3>
+          {ultResultadosLiga.map(p=><PartidoRow key={p.id} p={p}/>)}
+        </div>}
+
+        {favJugadoras.length>0&&<div style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0"}}>
+          <h3 style={{fontWeight:800,fontSize:"14px",color:"#9333ea",margin:"0 0 10px"}}>{"👩‍🏀 Mis jugadoras"}</h3>
+          {favJugadoras.map(jid=>{const p=players.find(x=>x.id_jugadora===jid);if(!p)return null;const lastSeason=(p.seasons||[]).filter(ss=>ss.temporada===currentSeason)[0];const eq=lastSeason?equipoMap[lastSeason.id_equipo]:null;
+            return(<div key={jid} onClick={()=>onGoToPlayer(jid)} style={{display:"flex",alignItems:"center",gap:"10px",padding:"6px 8px",cursor:"pointer",borderRadius:"10px",transition:"background 0.1s"}} onMouseEnter={e=>e.currentTarget.style.background="#faf5ff"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+              <Avatar photo={p.foto} name={p.nombre} size={36} fontSize={13}/>
+              <div style={{flex:1,minWidth:0}}><div style={{fontSize:"13px",fontWeight:700,color:"#1e293b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>{eq&&<div style={{fontSize:"11px",color:"#64748b"}}>{eq.nombre}</div>}</div>
+            </div>);
+          })}
+        </div>}
+
+        {fichajes.length>0&&<div style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0"}}>
+          <h3 style={{fontWeight:800,fontSize:"14px",color:"#9333ea",margin:"0 0 10px"}}>✍️ Últimos fichajes</h3>
+          {fichajes.map((f,i)=>{const eq=equipoMap[f.id_equipo];const liga=ligaMap[f.id_liga];
+            return(<div key={i} onClick={()=>onGoToPlayer(f.id_jugadora)} style={{display:"flex",alignItems:"center",gap:"10px",padding:"6px 8px",cursor:"pointer",borderRadius:"10px",transition:"background 0.1s"}} onMouseEnter={e=>e.currentTarget.style.background="#faf5ff"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+              <Avatar photo={f.player?.foto} name={f.player?.nombre} size={36} fontSize={13}/>
+              <div style={{flex:1,minWidth:0}}><div style={{fontSize:"13px",fontWeight:700,color:"#1e293b"}}>{f.player?.nombre}</div><div style={{fontSize:"11px",color:"#64748b"}}>→ {eq?.nombre||f.id_equipo}{liga?" · "+liga.nombre:""}</div></div>
+            </div>);
+          })}
+        </div>}
+
+        {favEquipos.length>0&&<div style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0"}}>
+          <h3 style={{fontWeight:800,fontSize:"14px",color:"#9333ea",margin:"0 0 10px"}}>🏟️ Mis equipos</h3>
+          {favEquipos.map(eid=>{const eq=equipoMap[eid];if(!eq)return null;
+            return(<div key={eid} onClick={()=>onGoToTeam(eid)} style={{display:"flex",alignItems:"center",gap:"10px",padding:"6px 8px",cursor:"pointer",borderRadius:"10px",transition:"background 0.1s"}} onMouseEnter={e=>e.currentTarget.style.background="#faf5ff"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+              {eq.escudo?<img src={eq.escudo} alt="" style={{width:36,height:36,objectFit:"contain"}}/>:<div style={{width:36,height:36,borderRadius:"8px",background:"#f1f5f9",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"16px"}}>🏟️</div>}
+              <div style={{fontSize:"13px",fontWeight:700,color:"#1e293b"}}>{eq.nombre}</div>
+            </div>);
+          })}
+        </div>}
+
+        {favLigas.length>0&&<div style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0"}}>
+          <h3 style={{fontWeight:800,fontSize:"14px",color:"#9333ea",margin:"0 0 10px"}}>🏆 Mis ligas</h3>
+          {favLigas.map(lid=>{const l=ligaMap[lid];if(!l)return null;
+            return(<div key={lid} onClick={()=>onGoToLeague(lid)} style={{display:"flex",alignItems:"center",gap:"10px",padding:"6px 8px",cursor:"pointer",borderRadius:"10px",transition:"background 0.1s"}} onMouseEnter={e=>e.currentTarget.style.background="#faf5ff"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+              <div style={{fontSize:"13px",fontWeight:700,color:"#1e293b"}}>{l.nombre}</div>
+            </div>);
+          })}
+        </div>}
+
+      </div>
+    </div>
+  );
+}
+
 /* ── PrivacidadView ─────────────────────────────────────── */
 function PrivacidadView({onBack}){
   return(
@@ -5897,7 +5955,7 @@ export default function App(){
     return()=>window.removeEventListener("popstate",onPopState);
   },[]);
 
-  const TABS=[["home","✍️","Inicio"],["jugadoras","👩‍🏀","Jugadoras"],["equipos","🏟️","Equipos"],["ligas","🏆","Ligas"],["cuerpo_tecnico","📋","Cuerpo Técnico"],["partidos","📺","Ver partidos"]];
+  const TABS=[["home","✍️","Inicio"],...(user?[["favoritos","⭐","Favoritos"]]:[]),["jugadoras","👩‍🏀","Jugadoras"],["equipos","🏟️","Equipos"],["ligas","🏆","Ligas"],["cuerpo_tecnico","📋","Cuerpo Técnico"],["partidos","📺","Ver partidos"]];
 
   if(showLanding) return <Landing onEnter={handleEnter}/>;
   if(showCalidad){
@@ -6009,6 +6067,7 @@ export default function App(){
       </div>
       <div style={{paddingTop:"8px"}}>
         {showPrivacidad&&<PrivacidadView onBack={()=>{setShowPrivacidad(false);window.history.back();}}/>}
+        {!showPrivacidad&&tab==="favoritos"&&user&&<FavoritosView players={players} equipos={equipos} ligas={ligas} partidos={partidos} favoritos={favoritos} user={user} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToPartido={goToPartido} isFavFn={isFav} onToggleFav={toggleFav}/>}
         {!showPrivacidad&&tab==="home"&&<HomeView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToTab={t=>setTab(t)} equiposNombres={equiposNombres}/>}
         {!showPrivacidad&&tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setPlayers={setPlayers} setTempCoach={setTempCoach} onGoToPartido={goToPartido} regExtra={regExtra} isFavFn={isFav} onToggleFav={toggleFav}/>}
         {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setEquipos={setEquipos} setEquiposNombres={setEquiposNombres} setPlayers={setPlayers} setPalmares={setPalmares} regExtra={regExtra} onGoToPartido={goToPartido} isFavFn={isFav} onToggleFav={toggleFav}/>}
