@@ -6051,7 +6051,7 @@ export default function App(){
     return()=>window.removeEventListener("popstate",onPopState);
   },[]);
 
-  const TABS=[["home","✍️","Inicio"],...(user?[["favoritos","⭐","Favoritos"]]:[]),["jugadoras","👩‍🏀","Jugadoras"],["equipos","🏟️","Equipos"],["ligas","🏆","Ligas"],["cuerpo_tecnico","📋","Cuerpo Técnico"],["partidos","📺","Ver partidos"]];
+  const TABS=[["home","✍️","Mercado"],...(user?[["favoritos","⭐","Favoritos"]]:[]),["jugadoras","👩‍🏀","Jugadoras"],["equipos","🏟️","Equipos"],["ligas","🏆","Ligas"],["cuerpo_tecnico","📋","Cuerpo Técnico"],["partidos","📺","Ver partidos"]];
 
   if(showLanding) return <Landing onEnter={handleEnter}/>;
   if(showCalidad){
