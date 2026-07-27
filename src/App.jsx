@@ -1686,17 +1686,27 @@ function SerieBox({partidosSerie,equipoMap,compacto,onOpen}){
     const w=(team.nombre||"").replace(/[^A-Za-zÀ-ÿ ]/g,"").split(/\s+/).filter(Boolean);
     return (w[w.length-1]||team.nombre||"?").slice(0,4).toUpperCase();
   };
+  const unico=partidosSerie.length===1;
   const row=idEq=>{
     const team=idEq?equipoMap[idEq]:null;
-    const w=idEq?(wins[idEq]||0):null;
-    const lidera=idEq&&w>0&&w>=Math.max(...ids.map(x=>wins[x]||0))&&ids.some(x=>x!==idEq&&(wins[x]||0)<w);
+    // Si es un solo partido, mostrar resultado real; si es serie, mostrar global
+    let w, lidera;
+    if(unico){
+      const p0=partidosSerie[0];
+      const played=p0.resultado_local!=null;
+      w=played?(idEq===p0.id_equipo_local?p0.resultado_local:p0.resultado_visitante):null;
+      lidera=played&&((idEq===p0.id_equipo_local&&Number(p0.resultado_local)>Number(p0.resultado_visitante))||(idEq===p0.id_equipo_visitante&&Number(p0.resultado_visitante)>Number(p0.resultado_local)));
+    }else{
+      w=idEq?(wins[idEq]||0):null;
+      lidera=idEq&&w>0&&w>=Math.max(...ids.map(x=>wins[x]||0))&&ids.some(x=>x!==idEq&&(wins[x]||0)<w);
+    }
     return(
       <div key={idEq||Math.random()} style={{display:"flex",alignItems:"center",gap:compacto?"4px":"6px",padding:compacto?"3px 6px":"3px 7px",background:lidera?"#faf5ff":"transparent",minWidth:0}}>
         {team
           ?<TeamBadge team={team} size={compacto?15:18}/>
           :<div style={{width:compacto?15:18,height:compacto?15:18,borderRadius:"5px",border:"1.5px dashed #cbd5e1",flexShrink:0}}/>}
         <span title={team?team.nombre:""} style={{flex:1,fontSize:compacto?"10px":"11px",fontWeight:lidera?800:600,color:team?(lidera?"#7c3aed":"#334155"):"#cbd5e1",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{team?(compacto?etiqueta(team):team.nombre):"—"}</span>
-        <span style={{fontSize:compacto?"10px":"11px",fontWeight:lidera?800:600,color:lidera?"#7c3aed":"#64748b",fontVariantNumeric:"tabular-nums",flexShrink:0}}>{idEq&&partidosSerie.some(p=>p.resultado_local!=null)?w:""}</span>
+        <span style={{fontSize:compacto?"10px":"11px",fontWeight:lidera?800:600,color:lidera?"#7c3aed":"#64748b",fontVariantNumeric:"tabular-nums",flexShrink:0}}>{w!=null&&partidosSerie.some(p=>p.resultado_local!=null)?w:""}</span>
       </div>
     );
   };
