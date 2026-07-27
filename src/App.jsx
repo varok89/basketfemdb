@@ -1867,7 +1867,13 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
   // Un Final Four (solo semifinales y final) no los tiene, así que no muestra ni Grupos ni Standing.
   const hayStanding=useMemo(()=>!modoLiga&&psLiga.some(p=>/#(49|5[0-5])\b/.test(p.notas||"")),[psLiga,modoLiga]);
   // Zonas de la tabla en modo liga (formato Liga Femenina Endesa): 8 a playoffs, 2 descensos
-  const PLAYOFF_PUESTOS=8, DESCENSO_PUESTOS=2;
+  // Zonas de clasificación por liga
+  const ZONAS_LIGA={
+    L001:{playoff:8,descenso:2,copa:8,copaLabel:"Copa de la Reina (8 primeros al final de la 1ª vuelta)"},
+  };
+  const zl=ZONAS_LIGA[liga?.id_liga]||{};
+  const PLAYOFF_PUESTOS=zl.playoff||8, DESCENSO_PUESTOS=zl.descenso||2;
+  const COPA_PUESTOS=zl.copa||0, COPA_LABEL=zl.copaLabel||"";
   const vistaIni=(vistaInicial==="grupos"&&grupos.length)||(vistaInicial==="standing"&&hayStanding)||(vistaInicial==="final"&&(hayKO||hayBracketIV))?vistaInicial:(grupos.length?"grupos":hayPreviaIV?"previa":(hayKO||hayBracketIV)?"final":"standing");
   const [vista,setVista]=useState(vistaIni);
   const mvpPlayer=useMemo(()=>{
@@ -1972,6 +1978,7 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
       {vista==="grupos"&&grupos.length>0&&(modoLiga?(
         <div style={{fontSize:"11px",color:"#94a3b8",textAlign:"center",marginTop:"8px",lineHeight:"1.7"}}>
           <span style={{display:"inline-block",width:10,height:10,background:"#9333ea",borderRadius:"3px",verticalAlign:"middle",marginRight:"4px"}}/> Playoffs (1º-{PLAYOFF_PUESTOS}º)
+          {COPA_PUESTOS>0&&<><span style={{display:"inline-block",width:10,height:10,background:"#f59e0b",borderRadius:"3px",verticalAlign:"middle",margin:"0 4px 0 14px"}}/>{COPA_LABEL}</>}
           <span style={{display:"inline-block",width:10,height:10,background:"#ef4444",borderRadius:"3px",verticalAlign:"middle",margin:"0 4px 0 14px"}}/> Descenso
           <br/>Criterios de desempate FEB: enfrentamientos particulares → diferencia particular → diferencia general → puntos anotados
         </div>
