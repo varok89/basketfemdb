@@ -1404,7 +1404,7 @@ function calcClasificacion(partidos, equipoMap){
       grupos[g].push(p);
       return;
     }
-    if(/playoff/i.test(p.notas||""))return;
+    if(/playoff|final campeones/i.test(p.notas||""))return;
     if(/#\d+/.test(p.notas||"")||/^octavos/i.test(p.notas||""))return; // eliminatorias de torneo
     if(/^(fase previa|dieciseisavos|octavos|cuartos|semifinal|final)/i.test(p.notas||""))return; // EuroCup: previa y cuadro fuera de la tabla
     if(!p.id_equipo_local||!p.id_equipo_visitante)return;
@@ -1754,7 +1754,7 @@ function PlayoffBracket({psLiga,equipoMap,soloPrevia,onOpenPartido}){
   const series=useMemo(()=>{
     const m={};
     psLiga.forEach(p=>{
-      if(!/playoff/i.test(p.notas||""))return;
+      if(!/playoff|final campeones/i.test(p.notas||""))return;
       const clave=p.notas.trim();
       if(!m[clave])m[clave]=[];
       m[clave].push(p);
@@ -1896,7 +1896,7 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
   const hayKO=useMemo(()=>!modoLiga&&psLiga.some(p=>p.notas&&!/playoff/i.test(p.notas)&&(/#\d+/.test(p.notas)||/^octavos/i.test(p.notas))),[psLiga,modoLiga]);
   const hayBracketIV=useMemo(()=>!modoLiga&&psLiga.some(p=>/playoff/i.test(p.notas||"")&&!/previa/i.test(p.notas||"")),[psLiga,modoLiga]);
   const hayPreviaIV=useMemo(()=>!modoLiga&&psLiga.some(p=>/playoff/i.test(p.notas||"")&&/previa/i.test(p.notas||"")),[psLiga,modoLiga]);
-  const hayPlayoffs=useMemo(()=>modoLiga&&psLiga.some(p=>/playoff/i.test(p.notas||"")),[psLiga,modoLiga]);
+  const hayPlayoffs=useMemo(()=>modoLiga&&psLiga.some(p=>/playoff|final campeones/i.test(p.notas||"")),[psLiga,modoLiga]);
   // Standing (clasificación por puestos) solo en torneos con cruces de clasificación 3º-16º (#49-#55).
   // Un Final Four (solo semifinales y final) no los tiene, así que no muestra ni Grupos ni Standing.
   const hayStanding=useMemo(()=>!modoLiga&&psLiga.some(p=>/#(49|5[0-5])\b/.test(p.notas||"")),[psLiga,modoLiga]);
