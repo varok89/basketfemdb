@@ -2339,9 +2339,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
         else noEncontradas.push(`${nombre} — error: ${error.message}`);
       }
       // Ajustar secuencia
-      await supabase.rpc("setval_temporadas",{}).catch(()=>{});
       // Intentar setval directamente
-      const {data:mx2}=await supabase.from("temporadas").select("id").order("id",{ascending:false}).limit(1);
       setLotRes({total:nombres.length,encontradas:encontradas.length,anadidas,yaEstaban,noEncontradas});
       if(anadidas.length)onReload();
     }catch(e){setLotRes({error:e.message});}
