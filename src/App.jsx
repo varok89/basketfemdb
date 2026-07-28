@@ -2531,6 +2531,68 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   var dupCheckState=useState({checked:false,checking:false});
   var dupCheckInfo=dupCheckState[0];var setDupCheckInfo=dupCheckState[1];
   var nameDupesState=useState({jugadoras:[],equipos:[],ligas:[],coaches:[]});
+  var [mergeTarget,setMergeTarget]=useState(null); // {tipo, items: [{id, nombre, ...}], keepIdx: 0}
+  var [merging,setMerging]=useState(false);
+
+  async function doMerge(){
+    if(!mergeTarget||mergeTarget.keepIdx==null)return;
+    setMerging(true);
+    try{
+      const keep=mergeTarget.items[mergeTarget.keepIdx];
+      const remove=mergeTarget.items.filter((_,i)=>i!==mergeTarget.keepIdx);
+      const idKey={jugadoras:"id_jugadora",equipos:"id_equipo",ligas:"id_liga",coaches:"id_coach"}[mergeTarget.tipo];
+      const keepId=keep[idKey];
+      for(const rem of remove){
+        const remId=rem[idKey];
+        if(mergeTarget.tipo==="jugadoras"){
+          // Mover temporadas
+          const {data:existTemp}=await supabase.from("temporadas").select("id_equipo,id_liga,temporada").eq("id_jugadora",keepId);
+          const existSet=new Set((existTemp||[]).map(t=>t.id_equipo+"|"+t.id_liga+"|"+t.temporada));
+          const {data:remTemp}=await supabase.from("temporadas").select("id,id_equipo,id_liga,temporada").eq("id_jugadora",remId);
+          for(const t of (remTemp||[])){
+            if(existSet.has(t.id_equipo+"|"+t.id_liga+"|"+t.temporada)){
+              await supabase.from("temporadas").delete().eq("id",t.id);
+            }else{
+              await supabase.from("temporadas").update({id_jugadora:keepId}).eq("id",t.id);
+            }
+          }
+          // Mover boxscores
+          await supabase.from("partido_boxscore").update({id_jugadora:keepId}).eq("id_jugadora",remId);
+          // Copiar datos que falten
+          const {data:keepData}=await supabase.from("jugadoras").select("*").eq("id_jugadora",keepId).single();
+          const {data:remData}=await supabase.from("jugadoras").select("*").eq("id_jugadora",remId).single();
+          if(keepData&&remData){
+            const upd={};
+            ["posicion","nacionalidad","fecha_nac","altura_cm","nacionalidad2","id_ext","foto"].forEach(f=>{
+              if(!keepData[f]&&remData[f])upd[f]=remData[f];
+            });
+            if(Object.keys(upd).length)await supabase.from("jugadoras").update(upd).eq("id_jugadora",keepId);
+          }
+          // Borrar la duplicada
+          await supabase.from("jugadoras").delete().eq("id_jugadora",remId);
+        }else if(mergeTarget.tipo==="equipos"){
+          await supabase.from("partidos").update({id_equipo_local:keepId}).eq("id_equipo_local",remId);
+          await supabase.from("partidos").update({id_equipo_visitante:keepId}).eq("id_equipo_visitante",remId);
+          await supabase.from("partido_boxscore").update({id_equipo:keepId}).eq("id_equipo",remId);
+          const {data:remTemp}=await supabase.from("temporadas").select("id,id_jugadora,id_liga,temporada").eq("id_equipo",remId);
+          const {data:existTemp}=await supabase.from("temporadas").select("id_jugadora,id_liga,temporada").eq("id_equipo",keepId);
+          const existSet=new Set((existTemp||[]).map(t=>t.id_jugadora+"|"+t.id_liga+"|"+t.temporada));
+          for(const t of (remTemp||[])){
+            if(existSet.has(t.id_jugadora+"|"+t.id_liga+"|"+t.temporada)){
+              await supabase.from("temporadas").delete().eq("id",t.id);
+            }else{
+              await supabase.from("temporadas").update({id_equipo:keepId}).eq("id",t.id);
+            }
+          }
+          await supabase.from("equipos").delete().eq("id_equipo",remId);
+        }
+      }
+      setMergeTarget(null);
+      onReload();
+      checkNameDupes();
+    }catch(e){alert("Error al fusionar: "+e.message);}
+    setMerging(false);
+  }
   var nameDupesComputed=nameDupesState[0];var setNameDupesComputed=nameDupesState[1];
   var checkNameDupes=function(){
     setDupCheckInfo({checked:false,checking:true});
@@ -3000,10 +3062,20 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                         <div key={tipo+gi} style={{border:"1.5px solid #fed7aa",borderRadius:"14px",overflow:"hidden"}}>
                           <div style={{background:"#fff7ed",padding:"8px 14px",fontSize:"12px",fontWeight:700,color:"#c2410c",borderBottom:"1px solid #fed7aa",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                             <span>{icon} {group.items.length} coincidencias</span>
-                            <button onClick={function(){ignoreGroup(tipo,group);}} title="Marcar como falso positivo"
-                              style={{background:"#fff",border:"1.5px solid #cbd5e1",borderRadius:"8px",padding:"3px 10px",fontSize:"11px",fontWeight:700,color:"#64748b",cursor:"pointer"}}>
-                              ✓ No es duplicado
-                            </button>
+                            <div style={{display:"flex",gap:"4px"}}>
+                              {isAdmin&&tipo==="jugadoras"&&<button onClick={function(){setMergeTarget({tipo:tipo,items:group.items,keepIdx:null});}} title="Fusionar registros"
+                                style={{background:"#eff6ff",border:"1.5px solid #93c5fd",borderRadius:"8px",padding:"3px 10px",fontSize:"11px",fontWeight:700,color:"#2563eb",cursor:"pointer"}}>
+                                🔗 Fusionar
+                              </button>}
+                              {isAdmin&&tipo==="equipos"&&<button onClick={function(){setMergeTarget({tipo:tipo,items:group.items,keepIdx:null});}} title="Fusionar registros"
+                                style={{background:"#eff6ff",border:"1.5px solid #93c5fd",borderRadius:"8px",padding:"3px 10px",fontSize:"11px",fontWeight:700,color:"#2563eb",cursor:"pointer"}}>
+                                🔗 Fusionar
+                              </button>}
+                              <button onClick={function(){ignoreGroup(tipo,group);}} title="Marcar como falso positivo"
+                                style={{background:"#fff",border:"1.5px solid #cbd5e1",borderRadius:"8px",padding:"3px 10px",fontSize:"11px",fontWeight:700,color:"#64748b",cursor:"pointer"}}>
+                                ✓ No es duplicado
+                              </button>
+                            </div>
                           </div>
                           {group.items.map(function(it,ii){
                             var seasons=tipo==="jugadoras"?(it.seasons||[]):null;
@@ -3048,7 +3120,47 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               )}
             </div>
           )}
-          {tab==="huecos"&&(
+          {mergeTarget&&(
+            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}} onClick={e=>{if(e.target===e.currentTarget)setMergeTarget(null);}}>
+              <div style={{background:"#fff",borderRadius:"16px",padding:"24px",maxWidth:"400px",width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+                <h3 style={{fontWeight:800,fontSize:"16px",color:"#1e293b",margin:"0 0 8px"}}>🔗 Fusionar registros</h3>
+                <p style={{fontSize:"13px",color:"#64748b",margin:"0 0 16px"}}>Elige cuál conservar. Los datos del otro se moverán a este y se eliminará el duplicado.</p>
+                <div style={{display:"flex",flexDirection:"column",gap:"8px",marginBottom:"16px"}}>
+                  {mergeTarget.items.map(function(it,i){
+                    var idKey={jugadoras:"id_jugadora",equipos:"id_equipo",ligas:"id_liga",coaches:"id_coach"}[mergeTarget.tipo];
+                    var selected=mergeTarget.keepIdx===i;
+                    var seasons=it.seasons||[];
+                    return(
+                      <div key={i} onClick={function(){setMergeTarget(Object.assign({},mergeTarget,{keepIdx:i}));}}
+                        style={{border:selected?"2px solid #9333ea":"1.5px solid #e2e8f0",borderRadius:"12px",padding:"12px",cursor:"pointer",background:selected?"#faf5ff":"#fff"}}>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                          <div>
+                            <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{it.nombre}</div>
+                            <div style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{it[idKey]}</div>
+                          </div>
+                          {selected&&<span style={{background:"#9333ea",color:"#fff",fontSize:"10px",fontWeight:800,padding:"2px 8px",borderRadius:"10px"}}>CONSERVAR</span>}
+                        </div>
+                        {mergeTarget.tipo==="jugadoras"&&<div style={{fontSize:"11px",color:"#64748b",marginTop:"4px"}}>
+                          {it.posicion&&<span>{it.posicion} · </span>}
+                          {it.nacionalidad&&<span>{it.nacionalidad} · </span>}
+                          {seasons.length} temporada{seasons.length!==1?"s":""}
+                          {it.id_ext&&<span> · ext:{it.id_ext}</span>}
+                        </div>}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{display:"flex",gap:"8px"}}>
+                  <button onClick={function(){setMergeTarget(null);}} style={{flex:1,background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"10px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#64748b"}}>Cancelar</button>
+                  <button onClick={doMerge} disabled={mergeTarget.keepIdx==null||merging}
+                    style={{flex:1,background:mergeTarget.keepIdx!=null?"#2563eb":"#cbd5e1",color:"#fff",border:"none",borderRadius:"10px",padding:"10px",fontWeight:700,fontSize:"13px",cursor:mergeTarget.keepIdx!=null?"pointer":"not-allowed",opacity:merging?0.5:1}}>
+                    {merging?"Fusionando...":"Fusionar"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+                    {tab==="huecos"&&(
             <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
               {Object.entries(huecos||{}).map(function(entry){
                 var tabla=entry[0];var info=entry[1];
