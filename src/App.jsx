@@ -2728,17 +2728,26 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     return {jug:jug,tec:tec};
   },[players,coaches]);
 
-  var CAL_TABS=[
-    {key:"incompletas",label:"Fichas incompletas",count:incompletasTotal},
-    {key:"duplicadas",label:"Temporadas duplicadas",count:(duplicadas||[]).length},
-    {key:"duplicados_nombre",label:"Posibles duplicados",count:totalNameDupes},
-    {key:"huecos",label:"Huecos de IDs",count:huecos?Object.values(huecos).reduce(function(a,v){return a+(v?v.total:0);},0):0},
-    {key:"escudos_rotos",label:"Escudos rotos",count:brokenInfo.broken.length},
-    {key:"nacionalidades",label:"Nacionalidades",count:nacInfo.sinBandera.length+nacInfo.variantes.length+nacInfo.nacDup.length},
-    {key:"fotos",label:"Fotos placeholder",count:fotosPlaceholder.jug.length+fotosPlaceholder.tec.length},
+  var CAL_GROUPS=[
+    {title:"Revisión",items:[
+      {key:"incompletas",label:"Fichas incompletas",count:incompletasTotal},
+      {key:"duplicadas",label:"Temp. duplicadas",count:(duplicadas||[]).length},
+      {key:"duplicados_nombre",label:"Duplicados",count:totalNameDupes},
+    ]},
+    {title:"Media",items:[
+      {key:"escudos_rotos",label:"Escudos rotos",count:brokenInfo.broken.length},
+      {key:"fotos",label:"Fotos placeholder",count:fotosPlaceholder.jug.length+fotosPlaceholder.tec.length},
+      {key:"nacionalidades",label:"Nacionalidades",count:nacInfo.sinBandera.length+nacInfo.variantes.length+nacInfo.nacDup.length},
+    ]},
+    {title:"Sistema",items:[
+      {key:"huecos",label:"Huecos de IDs",count:huecos?Object.values(huecos).reduce(function(a,v){return a+(v?v.total:0);},0):0},
+    ]},
+    ...(isAdmin?[{title:"Herramientas",items:[
+      {key:"scraper",label:"Scraper FIBA",count:0},
+      {key:"lotes",label:"Alta por lotes",count:0},
+    ]}]:[]),
   ];
-  if(isAdmin)CAL_TABS.push({key:"scraper",label:"⬇️ Scraper FIBA",count:0});
-  if(isAdmin)CAL_TABS.push({key:"lotes",label:"📋 Alta por lotes",count:0});
+  var CAL_TABS=CAL_GROUPS.flatMap(g=>g.items);
 
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
@@ -2750,13 +2759,20 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           </div>
           <button onClick={onClose} style={{background:"none",border:"none",fontSize:"22px",color:"#94a3b8",cursor:"pointer"}}>×</button>
         </div>
-        <div style={{display:"flex",gap:"4px",padding:"0 24px 12px",borderBottom:"1px solid #f1f5f9"}}>
-          {CAL_TABS.map(function(t){return(
-            <button key={t.key} onClick={function(){setTab(t.key);}}
-              style={{flex:1,background:tab===t.key?"#fff7ed":"transparent",border:tab===t.key?"1.5px solid #fed7aa":"1.5px solid transparent",borderRadius:"10px",padding:"8px 4px",cursor:"pointer",fontSize:"11px",fontWeight:700,color:tab===t.key?"#c2410c":"#94a3b8"}}>
-              {t.label}
-              {t.count>0&&<span style={{display:"inline-block",marginLeft:"4px",background:"#ef4444",color:"#fff",borderRadius:"10px",padding:"0 5px",fontSize:"10px"}}>{t.count}</span>}
-            </button>
+        <div style={{padding:"0 24px 12px",borderBottom:"1px solid #f1f5f9",overflowX:"auto"}}>
+          {CAL_GROUPS.map(function(g,gi){return(
+            <div key={gi} style={{marginBottom:"6px"}}>
+              <div style={{fontSize:"9px",fontWeight:800,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"1px",padding:"4px 4px 2px"}}>{g.title}</div>
+              <div style={{display:"flex",gap:"4px",flexWrap:"wrap"}}>
+                {g.items.map(function(t){return(
+                  <button key={t.key} onClick={function(){setTab(t.key);}}
+                    style={{background:tab===t.key?"#fff7ed":"transparent",border:tab===t.key?"1.5px solid #fed7aa":"1.5px solid transparent",borderRadius:"8px",padding:"6px 10px",cursor:"pointer",fontSize:"11px",fontWeight:700,color:tab===t.key?"#c2410c":"#64748b",whiteSpace:"nowrap"}}>
+                    {t.label}
+                    {t.count>0&&<span style={{display:"inline-block",marginLeft:"4px",background:"#ef4444",color:"#fff",borderRadius:"10px",padding:"0 5px",fontSize:"10px"}}>{t.count}</span>}
+                  </button>
+                );})}
+              </div>
+            </div>
           );})}
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"16px 24px 24px"}}>
