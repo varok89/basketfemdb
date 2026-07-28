@@ -1800,16 +1800,30 @@ function PlayoffBracket({psLiga,equipoMap,soloPrevia,onOpenPartido}){
     );
   }
 
+  // Separar Final de Campeones del bracket de ascenso
+  const finalCampeones=buscar(/final campeones/i);
   const dieci=buscar(/dieciseisavos/i);
   const octavos=buscar(/octavos/i);
   const cuartos=buscar(/cuartos/i);
   const semis=buscar(/semi/i);
-  const final=buscar(/final(?!.*semi)/i).filter(s=>!/semi/i.test(s[0].notas)&&!/previa/i.test(s[0].notas));
-  if(!dieci.length&&!octavos.length&&!cuartos.length&&!semis.length&&!final.length)return(
+  const finalAsc=buscar(/playoffs final/i).filter(s=>!/semi/i.test(s[0].notas)&&!/previa/i.test(s[0].notas)&&!/campeones/i.test(s[0].notas));
+  const hayBracket=dieci.length||octavos.length||cuartos.length||semis.length||finalAsc.length;
+
+  if(!finalCampeones.length&&!hayBracket)return(
     <p style={{color:"#94a3b8",textAlign:"center",paddingTop:"40px"}}>El cuadro se rellenará cuando avance la competición.</p>
   );
-  // Ordenar cada ronda siguiendo el árbol: los dos cruces que alimentan a uno superior van juntos.
-  const cols=[["Dieciseisavos",dieci],["Octavos",octavos],["Cuartos",cuartos],["Semifinales",semis],["Final",final]].filter(([,s])=>s.length);
+
+  const AscLabel=({serie})=>{const w=winnerOf(serie);const t=w&&equipoMap[w];if(!t)return null;return(
+    <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"8px"}}>
+      <span style={{color:"#22c55e",fontWeight:800,fontSize:"16px"}}>→</span>
+      <TeamBadge team={t} size={20}/>
+      <span style={{fontSize:"12px",fontWeight:800,color:"#16a34a"}}>{t.nombre}</span>
+      <span style={{background:"#dcfce7",color:"#15803d",fontSize:"10px",fontWeight:800,padding:"2px 8px",borderRadius:"10px"}}>ASCENDIDO</span>
+    </div>
+  );};
+
+  // Ordenar rondas del bracket de ascenso
+  const cols=[["Dieciseisavos",dieci],["Octavos",octavos],["Cuartos",cuartos],["Semifinales",semis],["Final",finalAsc]].filter(([,s])=>s.length);
   for(let i=cols.length-2;i>=0;i--){
     const above=cols[i+1][1], cur=cols[i][1], used=new Set(), nw=[];
     above.forEach(as=>{teamsOf(as).forEach(team=>{const f=cur.find(s=>!used.has(s)&&winnerOf(s)===team);if(f){used.add(f);nw.push(f);}});});
@@ -1818,11 +1832,29 @@ function PlayoffBracket({psLiga,equipoMap,soloPrevia,onOpenPartido}){
   }
   const compacto=dieci.length>0;
   return(
-    <BracketCard title="Playoffs">
-      <div style={{display:"flex",gap:"14px",alignItems:"stretch"}}>
-        {cols.map(([lbl,s])=><BracketCol key={lbl} label={lbl}>{s.map((serie,i)=><SerieBox key={i} partidosSerie={serie} equipoMap={equipoMap} compacto={compacto} onOpen={onOpenPartido}/>)}</BracketCol>)}
-      </div>
-    </BracketCard>
+    <div style={{display:"flex",flexDirection:"column",gap:"20px"}}>
+      {finalCampeones.length>0&&<BracketCard title="🏆 Final de Campeones">
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"8px"}}>
+          {finalCampeones.map((s,i)=>(
+            <div key={i}>
+              <SerieBox partidosSerie={s} equipoMap={equipoMap} onOpen={onOpenPartido}/>
+              <AscLabel serie={s}/>
+            </div>
+          ))}
+        </div>
+      </BracketCard>}
+      {hayBracket&&<BracketCard title="🏀 Playoff de Ascenso">
+        <div style={{display:"flex",gap:"14px",alignItems:"stretch"}}>
+          {cols.map(([lbl,s],ci)=><BracketCol key={lbl} label={lbl}>{s.map((serie,i)=>{
+            const esFinal=ci===cols.length-1;
+            return(<div key={i}>
+              <SerieBox partidosSerie={serie} equipoMap={equipoMap} compacto={compacto} onOpen={onOpenPartido}/>
+              {esFinal&&<AscLabel serie={serie}/>}
+            </div>);
+          })}</BracketCol>)}
+        </div>
+      </BracketCard>}
+    </div>
   );
 }
 
