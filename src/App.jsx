@@ -1642,7 +1642,7 @@ function FaseFinal({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlayer}){
                 <div onClick={()=>onGoToPlayer&&onGoToPlayer(mvpPlayer.id_jugadora)} style={{display:"flex",flexDirection:"column",alignItems:"center",cursor:onGoToPlayer?"pointer":"default",marginTop:"8px",gap:"2px"}}>
                   <Avatar photo={mvpPlayer.foto} name={mvpPlayer.nombre} size={40} fontSize={13}/>
                   <span style={{fontSize:"11px",fontWeight:700,color:"#1e293b",whiteSpace:"nowrap",maxWidth:"150px",overflow:"hidden",textOverflow:"ellipsis"}}>{mvpPlayer.nombre}</span>
-                  <span style={{fontSize:"9px",fontWeight:800,color:"#b45309",letterSpacing:"0.5px"}}>\ud83c\udfc5 MVP</span>
+                  <span style={{fontSize:"9px",fontWeight:800,color:"#b45309",letterSpacing:"0.5px"}}>🏅 MVP</span>
                 </div>
               )}
             </BracketCol>
@@ -1750,7 +1750,7 @@ function SerieBox({partidosSerie,equipoMap,compacto,onOpen}){
   );
 }
 
-function PlayoffBracket({psLiga,equipoMap,soloPrevia,onOpenPartido}){
+function PlayoffBracket({psLiga,equipoMap,soloPrevia,onOpenPartido,showAscenso}){
   const series=useMemo(()=>{
     const m={};
     psLiga.forEach(p=>{
@@ -1813,7 +1813,7 @@ function PlayoffBracket({psLiga,equipoMap,soloPrevia,onOpenPartido}){
     <p style={{color:"#94a3b8",textAlign:"center",paddingTop:"40px"}}>El cuadro se rellenará cuando avance la competición.</p>
   );
 
-  const AscLabel=({serie})=>{const w=winnerOf(serie);const t=w&&equipoMap[w];if(!t)return null;return(
+  const AscLabel=({serie})=>{if(!showAscenso)return null;const w=winnerOf(serie);const t=w&&equipoMap[w];if(!t)return null;return(
     <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"8px"}}>
       <span style={{color:"#22c55e",fontWeight:800,fontSize:"16px"}}>→</span>
       <TeamBadge team={t} size={20}/>
@@ -1990,7 +1990,7 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
       {vista==="previa"&&hayPreviaIV&&<PlayoffBracket psLiga={psLiga} equipoMap={equipoMap} soloPrevia onOpenPartido={onOpenPartido}/>}
       {vista==="final"&&hayBracketIV&&<PlayoffBracket psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido}/>}
       {vista==="final"&&hayKO&&<FaseFinal psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido} mvpPlayer={mvpPlayer} onGoToPlayer={onGoToPlayer}/>}
-      {vista==="final"&&hayPlayoffs&&<PlayoffBracket psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido}/>}
+      {vista==="final"&&hayPlayoffs&&<PlayoffBracket psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido} showAscenso={!!zl.ascenso}/>}
       {vista==="standing"&&hayKO&&<StandingFinal psLiga={psLiga} equipoMap={equipoMap} temporada={temporada} onGoToTeam={onGoToTeam} mvpPlayer={mvpPlayer} onGoToPlayer={onGoToPlayer}/>}
       {vista==="grupos"&&!grupos.length&&<p style={{color:"#94a3b8",textAlign:"center",paddingTop:"40px"}}>No hay partidos con resultado para calcular la clasificación.</p>}
       {grupos.map(({nombre,equipos:eqs},gi)=>{
