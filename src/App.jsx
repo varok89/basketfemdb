@@ -2760,20 +2760,21 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           <button onClick={onClose} style={{background:"none",border:"none",fontSize:"22px",color:"#94a3b8",cursor:"pointer"}}>×</button>
         </div>
         <div style={{padding:"0 24px 12px",borderBottom:"1px solid #f1f5f9",overflowX:"auto"}}>
-          {CAL_GROUPS.map(function(g,gi){return(
-            <div key={gi} style={{marginBottom:"6px"}}>
-              <div style={{fontSize:"9px",fontWeight:800,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"1px",padding:"4px 4px 2px"}}>{g.title}</div>
-              <div style={{display:"flex",gap:"4px",flexWrap:"wrap"}}>
+          <div style={{display:"flex",gap:"4px",flexWrap:"wrap",alignItems:"center"}}>
+            {CAL_GROUPS.map(function(g,gi){return(
+              <React.Fragment key={gi}>
+                {gi>0&&<div style={{width:"1px",height:"20px",background:"#e2e8f0",margin:"0 4px",flexShrink:0}}/>}
+                <span style={{fontSize:"9px",fontWeight:800,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.5px",flexShrink:0,padding:"0 2px"}}>{g.title}</span>
                 {g.items.map(function(t){return(
                   <button key={t.key} onClick={function(){setTab(t.key);}}
-                    style={{background:tab===t.key?"#fff7ed":"transparent",border:tab===t.key?"1.5px solid #fed7aa":"1.5px solid transparent",borderRadius:"8px",padding:"6px 10px",cursor:"pointer",fontSize:"11px",fontWeight:700,color:tab===t.key?"#c2410c":"#64748b",whiteSpace:"nowrap"}}>
+                    style={{background:tab===t.key?"#fff7ed":"transparent",border:tab===t.key?"1.5px solid #fed7aa":"1.5px solid transparent",borderRadius:"8px",padding:"5px 8px",cursor:"pointer",fontSize:"11px",fontWeight:700,color:tab===t.key?"#c2410c":"#64748b",whiteSpace:"nowrap",flexShrink:0}}>
                     {t.label}
-                    {t.count>0&&<span style={{display:"inline-block",marginLeft:"4px",background:"#ef4444",color:"#fff",borderRadius:"10px",padding:"0 5px",fontSize:"10px"}}>{t.count}</span>}
+                    {t.count>0&&<span style={{display:"inline-block",marginLeft:"3px",background:"#ef4444",color:"#fff",borderRadius:"10px",padding:"0 5px",fontSize:"9px"}}>{t.count}</span>}
                   </button>
                 );})}
-              </div>
-            </div>
-          );})}
+              </React.Fragment>
+            );})}
+          </div>
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"16px 24px 24px"}}>
           {tab==="scraper"&&(
