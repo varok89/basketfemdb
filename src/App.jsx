@@ -1337,6 +1337,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
 /* Tabla de un grupo con desempates FIBA. Extraida para poder reusarla con
    subconjuntos de partidos (p.ej. Euroliga: 2a ronda arrastrando la 1a). */
 function calcTablaGrupo(ps){
+  ps=ps.filter(p=>!/playoff|final campeones|cuartos|semifinal|^final/i.test(p.notas||""));
 
     const stats={};
     const initEq=id=>{if(id&&!stats[id])stats[id]={id,pj:0,pg:0,pp:0,pts:0,pf:0,pc:0,dif:0};};
