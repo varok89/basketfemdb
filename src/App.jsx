@@ -2298,6 +2298,55 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   var tab=tabState[0];var setTab=tabState[1];
   // ── Scraper FIBA (rellena boxscores desde el play-by-play vía Edge Function) ──
   var scLigaState=useState("");var scLiga=scLigaState[0];var setScLiga=scLigaState[1];
+  // Alta por lotes
+  var [lotEquipo,setLotEquipo]=useState("");
+  var [lotLiga,setLotLiga]=useState("");
+  var [lotTemp,setLotTemp]=useState("");
+  var [lotTexto,setLotTexto]=useState("");
+  var [lotBusy,setLotBusy]=useState(false);
+  var [lotRes,setLotRes]=useState(null);
+
+  async function runLotes(){
+    if(!lotEquipo||!lotLiga||!lotTemp||!lotTexto.trim()){alert("Rellena equipo, liga, temporada y la lista de jugadoras.");return;}
+    setLotBusy(true);setLotRes(null);
+    try{
+      const nombres=lotTexto.split("\n").map(n=>n.trim()).filter(Boolean);
+      const encontradas=[];const noEncontradas=[];const yaEstaban=[];const anadidas=[];
+      // Buscar el max id de temporadas
+      const {data:maxRow}=await supabase.from("temporadas").select("id").order("id",{ascending:false}).limit(1);
+      let nextId=(Number(maxRow?.[0]?.id)||0)+1;
+      for(const nombre of nombres){
+        // Buscar por apellido (última palabra)
+        const partes=nombre.split(/\s+/);
+        const apellido=partes[partes.length-1];
+        const {data:cands}=await supabase.from("jugadoras").select("id_jugadora,nombre").ilike("nombre",`%${apellido}%`).limit(50);
+        // Score matching
+        let best=null,bestScore=0;
+        const normNom=nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+        for(const c of (cands||[])){
+          const cn=c.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+          const score=normNom.split(/\s+/).filter(w=>w.length>2&&cn.includes(w)).length;
+          if(score>bestScore){bestScore=score;best=c;}
+        }
+        if(!best||bestScore<2){noEncontradas.push(nombre);continue;}
+        encontradas.push({nombre,id:best.id_jugadora,nombreBD:best.nombre});
+        // Comprobar si ya está en ese equipo/liga/temporada
+        const {data:ex}=await supabase.from("temporadas").select("id").eq("id_jugadora",best.id_jugadora).eq("id_equipo",lotEquipo).eq("id_liga",lotLiga).eq("temporada",lotTemp).maybeSingle();
+        if(ex){yaEstaban.push(nombre);continue;}
+        // Insertar
+        const {error}=await supabase.from("temporadas").insert({id:nextId++,id_jugadora:best.id_jugadora,id_equipo:lotEquipo,id_liga:lotLiga,temporada:lotTemp,orden:0});
+        if(!error)anadidas.push(`${best.nombre} (${best.id_jugadora})`);
+        else noEncontradas.push(`${nombre} — error: ${error.message}`);
+      }
+      // Ajustar secuencia
+      await supabase.rpc("setval_temporadas",{}).catch(()=>{});
+      // Intentar setval directamente
+      const {data:mx2}=await supabase.from("temporadas").select("id").order("id",{ascending:false}).limit(1);
+      setLotRes({total:nombres.length,encontradas:encontradas.length,anadidas,yaEstaban,noEncontradas});
+      if(anadidas.length)onReload();
+    }catch(e){setLotRes({error:e.message});}
+    setLotBusy(false);
+  }
   var scTempState=useState("");var scTemp=scTempState[0];var setScTemp=scTempState[1];
   var scSlugState=useState("");var scSlug=scSlugState[0];var setScSlug=scSlugState[1];
   var scDryState=useState(true);var scDry=scDryState[0];var setScDry=scDryState[1];
@@ -2691,6 +2740,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     {key:"fotos",label:"Fotos placeholder",count:fotosPlaceholder.jug.length+fotosPlaceholder.tec.length},
   ];
   if(isAdmin)CAL_TABS.push({key:"scraper",label:"⬇️ Scraper FIBA",count:0});
+  if(isAdmin)CAL_TABS.push({key:"lotes",label:"📋 Alta por lotes",count:0});
 
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
@@ -2761,7 +2811,55 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               )}
             </div>
           )}
-          {tab==="incompletas"&&(
+          {tab==="lotes"&&(
+            <div style={{padding:"16px"}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"10px",marginBottom:"14px"}}>
+                <div>
+                  <label style={{fontSize:"11px",fontWeight:700,color:"#64748b",marginBottom:"4px",display:"block"}}>EQUIPO</label>
+                  <select value={lotEquipo} onChange={e=>setLotEquipo(e.target.value)} style={{width:"100%",padding:"8px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px"}}>
+                    <option value="">Seleccionar...</option>
+                    {equipos.sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"")).map(e=><option key={e.id_equipo} value={e.id_equipo}>{e.nombre}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{fontSize:"11px",fontWeight:700,color:"#64748b",marginBottom:"4px",display:"block"}}>LIGA</label>
+                  <select value={lotLiga} onChange={e=>setLotLiga(e.target.value)} style={{width:"100%",padding:"8px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px"}}>
+                    <option value="">Seleccionar...</option>
+                    {ligas.sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"")).map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{fontSize:"11px",fontWeight:700,color:"#64748b",marginBottom:"4px",display:"block"}}>TEMPORADA</label>
+                  <input value={lotTemp} onChange={e=>setLotTemp(e.target.value)} placeholder="2025-26" style={{width:"100%",padding:"8px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px",boxSizing:"border-box"}}/>
+                </div>
+              </div>
+              <div style={{marginBottom:"14px"}}>
+                <label style={{fontSize:"11px",fontWeight:700,color:"#64748b",marginBottom:"4px",display:"block"}}>JUGADORAS (una por línea)</label>
+                <textarea value={lotTexto} onChange={e=>setLotTexto(e.target.value)} rows={12} placeholder={"Lauren Betts\nKiki Rice\nGabriela Jaquez\n..."} style={{width:"100%",padding:"10px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px",fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
+              </div>
+              <button onClick={runLotes} disabled={lotBusy} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"10px 24px",fontWeight:700,fontSize:"14px",cursor:"pointer",opacity:lotBusy?0.5:1}}>
+                {lotBusy?"Procesando...":"Procesar lista"}
+              </button>
+              {lotRes&&<div style={{marginTop:"16px",background:"#f8fafc",borderRadius:"12px",padding:"14px",border:"1px solid #e2e8f0"}}>
+                {lotRes.error?<div style={{color:"#ef4444",fontWeight:700}}>{lotRes.error}</div>:<>
+                  <div style={{fontSize:"13px",marginBottom:"8px"}}><strong>{lotRes.total}</strong> nombres procesados</div>
+                  {lotRes.anadidas.length>0&&<div style={{marginBottom:"8px"}}>
+                    <div style={{fontSize:"12px",fontWeight:700,color:"#16a34a",marginBottom:"4px"}}>✅ Añadidas ({lotRes.anadidas.length}):</div>
+                    {lotRes.anadidas.map((n,i)=><div key={i} style={{fontSize:"12px",color:"#475569",paddingLeft:"12px"}}>{n}</div>)}
+                  </div>}
+                  {lotRes.yaEstaban.length>0&&<div style={{marginBottom:"8px"}}>
+                    <div style={{fontSize:"12px",fontWeight:700,color:"#f59e0b",marginBottom:"4px"}}>⚠️ Ya estaban ({lotRes.yaEstaban.length}):</div>
+                    {lotRes.yaEstaban.map((n,i)=><div key={i} style={{fontSize:"12px",color:"#475569",paddingLeft:"12px"}}>{n}</div>)}
+                  </div>}
+                  {lotRes.noEncontradas.length>0&&<div>
+                    <div style={{fontSize:"12px",fontWeight:700,color:"#ef4444",marginBottom:"4px"}}>❌ No encontradas ({lotRes.noEncontradas.length}):</div>
+                    {lotRes.noEncontradas.map((n,i)=><div key={i} style={{fontSize:"12px",color:"#475569",paddingLeft:"12px"}}>{n}</div>)}
+                  </div>}
+                </>}
+              </div>}
+            </div>
+          )}
+                    {tab==="incompletas"&&(
             <div>
               <div style={{display:"flex",gap:"4px",marginBottom:"14px"}}>
                 {[["jugadoras","👩‍🏀 Jugadoras"],["equipos","🏟️ Equipos"],["ligas","🏆 Ligas"],["coaches","📋 Cuerpo técnico"]].map(function(st){return(
