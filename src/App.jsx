@@ -2299,6 +2299,43 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   var tab=tabState[0];var setTab=tabState[1];
   // ── Scraper FIBA (rellena boxscores desde el play-by-play vía Edge Function) ──
   var scLigaState=useState("");var scLiga=scLigaState[0];var setScLiga=scLigaState[1];
+  // NCAA ESPN
+  var [ncaaStep,setNcaaStep]=useState("idle"); // idle | mapping | loading | done
+  var [ncaaTeamId,setNcaaTeamId]=useState("");
+  var [ncaaSeason,setNcaaSeason]=useState("2026");
+  var [ncaaTemp,setNcaaTemp]=useState("2025-26");
+  var [ncaaRes,setNcaaRes]=useState(null);
+  var [ncaaEquipos,setNcaaEquipos]=useState([]);
+
+  useEffect(()=>{
+    if(tab==="ncaa"&&!ncaaEquipos.length){
+      (async()=>{
+        const {data}=await supabase.from("equipos").select("id_equipo,nombre,id_ext").not("id_ext","is",null).order("nombre").limit(2000);
+        setNcaaEquipos((data||[]).filter(e=>e.id_ext&&/^\d+$/.test(e.id_ext)));
+      })();
+    }
+  },[tab]);
+
+  async function ncaaMapear(){
+    setNcaaStep("mapping");setNcaaRes(null);
+    try{
+      const r=await fetch(SB_URL+"/functions/v1/cargar-ncaa-espn",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({modo:"mapear_equipos",id_liga:"L020",temporada:ncaaTemp})});
+      setNcaaRes(await r.json());
+    }catch(e){setNcaaRes({error:e.message});}
+    setNcaaStep("done");
+  }
+
+  async function ncaaCargar(){
+    if(!ncaaTeamId){alert("Selecciona un equipo");return;}
+    setNcaaStep("loading");setNcaaRes(null);
+    try{
+      const r=await fetch(SB_URL+"/functions/v1/cargar-ncaa-espn",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({modo:"boxscores",espn_team_id:ncaaTeamId,season:parseInt(ncaaSeason),id_liga:"L020",temporada:ncaaTemp})});
+      setNcaaRes(await r.json());
+    }catch(e){setNcaaRes({error:e.message});}
+    setNcaaStep("done");
+    onReload();
+  }
+
   // Alta por lotes
   var [lotEquipo,setLotEquipo]=useState("");
   var [lotLiga,setLotLiga]=useState("");
@@ -2807,6 +2844,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     ]},
     ...(isAdmin?[{title:"Herramientas",items:[
       {key:"scraper",label:"Scraper FIBA",count:0},
+      {key:"ncaa",label:"NCAA ESPN",count:0},
       {key:"lotes",label:"Alta por lotes",count:0},
     ]}]:[]),
   ];
@@ -2896,7 +2934,56 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               )}
             </div>
           )}
-          {tab==="lotes"&&(
+          {tab==="ncaa"&&(
+            <div style={{padding:"16px"}}>
+              <div style={{marginBottom:"16px"}}>
+                <h3 style={{fontWeight:800,fontSize:"15px",color:"#1e293b",margin:"0 0 8px"}}>1. Mapear equipos ESPN → BD</h3>
+                <p style={{fontSize:"12px",color:"#64748b",margin:"0 0 8px"}}>Descarga los equipos de ESPN y los empareja con los de tu BD por nombre.</p>
+                <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
+                  <input value={ncaaTemp} onChange={e=>setNcaaTemp(e.target.value)} placeholder="2025-26" style={{width:"100px",padding:"8px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px"}}/>
+                  <button onClick={ncaaMapear} disabled={ncaaStep==="mapping"} style={{background:"#2563eb",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:ncaaStep==="mapping"?0.5:1}}>
+                    {ncaaStep==="mapping"?"Mapeando...":"Mapear equipos"}
+                  </button>
+                </div>
+              </div>
+              <div style={{height:"1px",background:"#e2e8f0",margin:"16px 0"}}/>
+              <div style={{marginBottom:"16px"}}>
+                <h3 style={{fontWeight:800,fontSize:"15px",color:"#1e293b",margin:"0 0 8px"}}>2. Cargar boxscores de un equipo</h3>
+                <div style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:"8px",marginBottom:"8px"}}>
+                  <select value={ncaaTeamId} onChange={e=>setNcaaTeamId(e.target.value)} style={{padding:"8px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px"}}>
+                    <option value="">Seleccionar equipo...</option>
+                    {ncaaEquipos.map(e=><option key={e.id_equipo} value={e.id_ext}>{e.nombre} ({e.id_ext})</option>)}
+                  </select>
+                  <input value={ncaaSeason} onChange={e=>setNcaaSeason(e.target.value)} placeholder="2026" style={{width:"70px",padding:"8px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px"}}/>
+                  <button onClick={ncaaCargar} disabled={ncaaStep==="loading"} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:ncaaStep==="loading"?0.5:1}}>
+                    {ncaaStep==="loading"?"Cargando...":"Cargar"}
+                  </button>
+                </div>
+              </div>
+              {ncaaRes&&<div style={{background:"#f8fafc",borderRadius:"12px",padding:"14px",border:"1px solid #e2e8f0",marginTop:"12px"}}>
+                {ncaaRes.error?<div style={{color:"#ef4444",fontWeight:700}}>{ncaaRes.error}</div>:<>
+                  {ncaaRes.modo==="mapear_equipos"&&<>
+                    <div style={{fontSize:"13px",marginBottom:"4px"}}>ESPN: <strong>{ncaaRes.espn_total}</strong> equipos</div>
+                    <div style={{fontSize:"13px",color:"#16a34a",marginBottom:"4px"}}>✅ Mapeados: <strong>{ncaaRes.mapeados}</strong></div>
+                    <div style={{fontSize:"13px",color:"#f59e0b",marginBottom:"4px"}}>⚠️ Ya estaban: <strong>{ncaaRes.ya_estaban}</strong></div>
+                    <div style={{fontSize:"13px",color:"#ef4444",marginBottom:"4px"}}>❌ Sin mapear: <strong>{ncaaRes.sin_mapear}</strong></div>
+                    {ncaaRes.sin_mapear_detalle?.length>0&&<details style={{marginTop:"8px"}}><summary style={{fontSize:"11px",cursor:"pointer",color:"#64748b"}}>Ver sin mapear</summary><div style={{maxHeight:"200px",overflowY:"auto",fontSize:"11px",color:"#475569",marginTop:"4px"}}>{ncaaRes.sin_mapear_detalle.map((s,i)=><div key={i}>{s}</div>)}</div></details>}
+                  </>}
+                  {ncaaRes.modo==="boxscores"&&<>
+                    <div style={{fontSize:"13px",marginBottom:"4px"}}>Schedule: <strong>{ncaaRes.partidos_en_schedule}</strong> partidos</div>
+                    <div style={{fontSize:"13px",color:"#16a34a",marginBottom:"4px"}}>✅ Partidos creados: <strong>{ncaaRes.partidos_creados}</strong></div>
+                    <div style={{fontSize:"13px",color:"#16a34a",marginBottom:"4px"}}>📊 Líneas de boxscore: <strong>{ncaaRes.boxscores_lineas}</strong></div>
+                    <div style={{fontSize:"13px",marginBottom:"4px"}}>📋 Altas de plantilla: <strong>{ncaaRes.plantilla_altas}</strong></div>
+                    {ncaaRes.equipos_sin_mapear>0&&<div style={{fontSize:"13px",color:"#ef4444",marginBottom:"4px"}}>❌ Equipos sin mapear: {ncaaRes.equipos_sin_mapear}</div>}
+                    {ncaaRes.jugadoras_sin_mapear>0&&<div style={{fontSize:"13px",color:"#ef4444",marginBottom:"4px"}}>❌ Jugadoras sin mapear: {ncaaRes.jugadoras_sin_mapear}</div>}
+                    {ncaaRes.sin_mapear_equipos?.length>0&&<details style={{marginTop:"8px"}}><summary style={{fontSize:"11px",cursor:"pointer",color:"#64748b"}}>Ver equipos sin mapear</summary><div style={{maxHeight:"150px",overflowY:"auto",fontSize:"11px",color:"#475569",marginTop:"4px"}}>{ncaaRes.sin_mapear_equipos.map((s,i)=><div key={i}>{s}</div>)}</div></details>}
+                    {ncaaRes.sin_mapear_jugadoras?.length>0&&<details style={{marginTop:"8px"}}><summary style={{fontSize:"11px",cursor:"pointer",color:"#64748b"}}>Ver jugadoras sin mapear</summary><div style={{maxHeight:"150px",overflowY:"auto",fontSize:"11px",color:"#475569",marginTop:"4px"}}>{ncaaRes.sin_mapear_jugadoras.map((s,i)=><div key={i}>{s}</div>)}</div></details>}
+                  </>}
+                </>}
+              </div>}
+            </div>
+          )}
+                    {tab==="lotes"&&(
             <div style={{padding:"16px"}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"10px",marginBottom:"14px"}}>
                 <div>
@@ -5638,15 +5725,6 @@ function Landing({onEnter,players,equipos,ligas,coaches,tempCoach,palmares,regEx
           <img src="/icon-home.png" alt="La Basketneta" style={{height:"120px",objectFit:"contain"}}/>
         </div>
         <div style={{fontSize:"14px",color:"#94a3b8",marginBottom:"36px",fontWeight:500}}>Base de datos del baloncesto femenino</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"36px",textAlign:"left"}}>
-          {[["👩‍🏀","Jugadoras","Fichas completas con historial de temporadas"],["🏟️","Equipos","Plantillas, palmarés y cuerpo técnico"],["🏆","Ligas","Competiciones nacionales e internacionales"],["📋","Cuerpo Técnico","Entrenadores y entrenadoras"]].map(([e,t,d])=>(
-            <div key={t} style={{background:"rgba(255,255,255,0.05)",borderRadius:"14px",padding:"14px",border:"1px solid rgba(255,255,255,0.08)"}}>
-              <div style={{fontSize:"22px",marginBottom:"6px"}}>{e}</div>
-              <div style={{fontWeight:700,fontSize:"13px",color:"#f1f5f9",marginBottom:"3px"}}>{t}</div>
-              <div style={{fontSize:"11px",color:"#64748b",lineHeight:"1.4"}}>{d}</div>
-            </div>
-          ))}
-        </div>
         {players&&<div style={{background:"rgba(255,255,255,0.04)",borderRadius:"14px",padding:"16px 20px",marginBottom:"16px",border:"1px solid rgba(255,255,255,0.07)"}}>
           <div style={{fontWeight:700,fontSize:"12px",color:"#94a3b8",marginBottom:"12px",textTransform:"uppercase",letterSpacing:"0.5px"}}>La Basketneta en números</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"8px"}}>
