@@ -2345,7 +2345,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     if(!ncaaTeamId){alert("Selecciona un equipo");return;}
     setNcaaStep("loading");setNcaaRes(null);
     try{
-      const r=await fetch(SUPABASE_URL+"/functions/v1/cargar-ncaa-espn",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({modo:"boxscores",espn_team_id:ncaaTeamId,season:parseInt(ncaaSeason),id_liga:"L020",temporada:ncaaTemp})});
+      const r=await fetch(SUPABASE_URL+"/functions/v1/cargar-ncaa-espn",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({modo:"boxscores",espn_team_id:ncaaTeamId,season:parseInt(ncaaSeason),id_liga:"L020",temporada:ncaaTemp,max_games:10})});
       setNcaaRes(await r.json());
     }catch(e){setNcaaRes({error:e.message});}
     setNcaaStep("done");
