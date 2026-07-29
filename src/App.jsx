@@ -2310,8 +2310,8 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   useEffect(()=>{
     if(tab==="ncaa"&&!ncaaEquipos.length){
       (async()=>{
-        const {data}=await supabase.from("equipos").select("id_equipo,nombre,id_ext").not("id_ext","is",null).order("nombre").limit(2000);
-        setNcaaEquipos((data||[]).filter(e=>e.id_ext&&/^\d+$/.test(e.id_ext)));
+        const {data}=await supabase.from("equipos").select("id_equipo,nombre,id_espn").not("id_espn","is",null).order("nombre").limit(2000);
+        setNcaaEquipos(data||[]);
       })();
     }
   },[tab]);
@@ -2952,7 +2952,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                 <div style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:"8px",marginBottom:"8px"}}>
                   <select value={ncaaTeamId} onChange={e=>setNcaaTeamId(e.target.value)} style={{padding:"8px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px"}}>
                     <option value="">Seleccionar equipo...</option>
-                    {ncaaEquipos.map(e=><option key={e.id_equipo} value={e.id_ext}>{e.nombre} ({e.id_ext})</option>)}
+                    {ncaaEquipos.map(e=><option key={e.id_equipo} value={e.id_espn}>{e.nombre}</option>)}
                   </select>
                   <input value={ncaaSeason} onChange={e=>setNcaaSeason(e.target.value)} placeholder="2026" style={{width:"70px",padding:"8px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px"}}/>
                   <button onClick={ncaaCargar} disabled={ncaaStep==="loading"} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:ncaaStep==="loading"?0.5:1}}>
