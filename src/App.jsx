@@ -279,6 +279,22 @@ const COUNTRY_CODES = {
   "yugoslavia":"rs","checoslovaquia":"cz","czechoslovakia":"cz",
   "alemania oriental":"de","rda":"de","east germany":"de",
   "alemania occidental":"de","rfa":"de","west germany":"de",
+  "oman":"om",
+  "maldivas":"mv",
+  "islas cook":"ck",
+  "sri lanka":"lk",
+  "irak":"iq",
+  "guam":"gu",
+  "botsuana":"bw",
+  "taipei chino":"tw",
+  "islas marianas del norte":"mp",
+  "liberia":"lr",
+  "republica centroafricana":"cf",
+  "nueva caledonia":"nc",
+  "palestina":"ps",
+  "kirguistan":"kg",
+  "malaui":"mw",
+  "namibia":"na",
 };
 
 const ACP_COUNTRIES = new Set([
