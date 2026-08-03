@@ -6237,7 +6237,7 @@ export default function App(){
     setLoading(isFirstLoad);setError(null);
     try{
       const [rJ,rE,rL,rT,rP,rC,rTC,rEN,rPar,rMvp]=await Promise.all([
-        fetchAll("jugadoras",{order:"id_jugadora",select:"id_jugadora,nombre,posicion,nacionalidad,nacionalidad2,fecha_nac,altura_cm,id_ext,id_espn,fuente"}),
+        fetchAll("jugadoras",{order:"id_jugadora",select:"id_jugadora,nombre,posicion,nacionalidad,nacionalidad2,fecha_nac,altura_cm,id_ext,id_espn,fuente,foto"}),
         fetchAll("equipos",{order:"id_equipo"}),
         fetchAll("ligas",{order:"id_liga"}),
         fetchAll("temporadas",{order:"id",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.neq("id_liga","L020")}),
