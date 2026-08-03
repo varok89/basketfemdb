@@ -1,5 +1,11 @@
 const { createClient } = require("@supabase/supabase-js");
 
+// Cliente Supabase reutilizado entre invocaciones (warm lambda)
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
+
 function escapeHtml(str) {
   return String(str || "")
     .replace(/&/g, "&amp;")
@@ -11,40 +17,25 @@ function escapeHtml(str) {
 module.exports = async (req, res) => {
   const { id } = req.query;
 
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_KEY = process.env.SUPABASE_KEY;
-
-  if (!SUPABASE_URL || !SUPABASE_KEY) {
-    res.status(500).send("Faltan variables de entorno de Supabase en este proyecto de Vercel.");
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
+    res.status(500).send("Faltan variables de entorno de Supabase.");
     return;
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-  const { data: equipo, error } = await supabase
+  const { data: equipo } = await supabase
     .from("equipos")
     .select("nombre,ciudad,pais,escudo")
     .eq("id_equipo", id)
     .maybeSingle();
 
   const nombre = equipo?.nombre || "La Basketneta";
-  const ciudad = equipo?.ciudad;
-  const pais = equipo?.pais;
-  // Sin fallback fijo hardcodeado aquí: si no hay escudo, omitimos og:image
-  // en vez de forzar una imagen por defecto que el propio Alvaro decidió no fijar
-  // de forma permanente en el código (ver discusión sobre la URL de gstatic).
   const escudo = equipo?.escudo;
-
-  const descParts = [ciudad, pais].filter(Boolean);
+  const descParts = [equipo?.ciudad, equipo?.pais].filter(Boolean);
   const descripcion = descParts.length
     ? `${descParts.join(", ")} — La Basketneta`
     : "Ficha de equipo en La Basketneta";
 
   const pageUrl = `https://${req.headers.host}/equipos/${id}`;
-  // og:url fijo a propósito (misma decisión que en el endpoint de jugadora):
-  // si el dominio de producción cambia, este valor no se actualiza solo.
-  const cleanDomainUrl = "https://labasketneta.app";
-
   const imageTag = escudo
     ? `<meta property="og:image" content="${escapeHtml(escudo)}">
 <meta name="twitter:image" content="${escapeHtml(escudo)}">`
@@ -60,7 +51,7 @@ module.exports = async (req, res) => {
 <meta property="og:title" content="${escapeHtml(nombre)}">
 <meta property="og:description" content="${escapeHtml(descripcion)}">
 ${imageTag}
-<meta property="og:url" content="${escapeHtml(cleanDomainUrl)}">
+<meta property="og:url" content="https://labasketneta.app">
 <meta name="twitter:card" content="${escudo ? "summary_large_image" : "summary"}">
 <meta name="twitter:title" content="${escapeHtml(nombre)}">
 <meta name="twitter:description" content="${escapeHtml(descripcion)}">

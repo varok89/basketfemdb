@@ -3,8 +3,12 @@ const { countryFlag } = require("../_lib/countryFlags.js");
 
 const FALLBACK_PHOTO = "https://static.flashscore.com/res/image/empty-face-woman-share.gif";
 
-// Escapa texto para insertarlo de forma segura dentro de atributos HTML.
-// Sin esto, un nombre con comillas o "&" rompería el HTML generado.
+// Cliente Supabase reutilizado entre invocaciones (warm lambda)
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
+
 function escapeHtml(str) {
   return String(str || "")
     .replace(/&/g, "&amp;")
@@ -16,45 +20,28 @@ function escapeHtml(str) {
 module.exports = async (req, res) => {
   const { id } = req.query;
 
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_KEY = process.env.SUPABASE_KEY;
-
-  if (!SUPABASE_URL || !SUPABASE_KEY) {
-    res.status(500).send("Faltan variables de entorno de Supabase en este proyecto de Vercel.");
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
+    res.status(500).send("Faltan variables de entorno de Supabase.");
     return;
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-  const { data: jugadora, error } = await supabase
+  const { data: jugadora } = await supabase
     .from("jugadoras")
     .select("nombre,posicion,posicion2,nacionalidad,nacionalidad2,foto")
     .eq("id_jugadora", id)
     .maybeSingle();
 
-  // Si no existe la jugadora (id inválido, borrada, etc.), no inventamos datos:
-  // servimos metadatos genéricos de la app y dejamos que el cliente decida qué mostrar.
   const nombre = jugadora?.nombre || "La Basketneta";
   const posiciones = [jugadora?.posicion, jugadora?.posicion2].filter(Boolean).join("/");
-  // Banderas en emoji, no nombres de país en texto. Si un país no se reconoce en la tabla
-  // de mapeo (countryFlag devuelve ""), se omite en vez de dejar un hueco vacío.
   const banderas = [countryFlag(jugadora?.nacionalidad), countryFlag(jugadora?.nacionalidad2)]
-    .filter(Boolean)
-    .join(" ");
+    .filter(Boolean).join(" ");
   const foto = jugadora?.foto || FALLBACK_PHOTO;
-
   const descParts = [posiciones, banderas].filter(Boolean);
   const descripcion = descParts.length
     ? `${descParts.join(" · ")} — La Basketneta`
     : "Ficha de jugadora en La Basketneta";
 
   const pageUrl = `https://${req.headers.host}/jugadoras/${id}`;
-  // og:url muestra el dominio limpio en la tarjeta de WhatsApp (lo que se ve bajo el título),
-  // pero el enlace real al que navega el click sigue siendo pageUrl (vía http-equiv=refresh y el <a> de abajo).
-  // Confirmado: og:url es solo metadato informativo, no controla la navegación al pulsar la tarjeta.
-  // Valor FIJO a propósito (decisión explícita de Alvaro): si el dominio de producción cambia
-  // en el futuro, este valor NO se actualiza solo — hay que editarlo a mano aquí.
-  const cleanDomainUrl = "https://labasketneta.app";
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -66,7 +53,7 @@ module.exports = async (req, res) => {
 <meta property="og:title" content="${escapeHtml(nombre)}">
 <meta property="og:description" content="${escapeHtml(descripcion)}">
 <meta property="og:image" content="${escapeHtml(foto)}">
-<meta property="og:url" content="${escapeHtml(cleanDomainUrl)}">
+<meta property="og:url" content="https://labasketneta.app">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${escapeHtml(nombre)}">
 <meta name="twitter:description" content="${escapeHtml(descripcion)}">
@@ -78,8 +65,6 @@ module.exports = async (req, res) => {
 </body>
 </html>`;
 
-  // Cache corto en el borde de Vercel: si editas la jugadora, el preview se refresca
-  // en minutos, no se queda servida una versión vieja indefinidamente.
   res.setHeader("Cache-Control", "public, max-age=0, s-maxage=600, stale-while-revalidate=86400");
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.status(200).send(html);
