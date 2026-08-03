@@ -1253,7 +1253,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                     🏅
                   </button>
                 )}
-                {isAdmin&&ps.some(p=>p.fuente==="fiba")&&<button onClick={e=>{e.stopPropagation();setFibaSlug("");setFibaFechaIni("");setFibaFechaFin("");setFibaMensaje("");setFibaModal({ligaId,temporada});}} style={{background:"#ecfdf5",color:"#059669",border:"1.5px solid #6ee7b7",borderRadius:"20px",padding:"3px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer",flexShrink:0,marginRight:"4px"}}>⚡ Live</button>}
+                {isAdmin&&ps.some(p=>p.fuente==="fiba")&&<button onClick={e=>{e.stopPropagation();setFibaSlug("");setFibaMensaje("");setFibaResultado(null);setFibaModal({ligaId,temporada});}} style={{background:"#ecfdf5",color:"#059669",border:"1.5px solid #6ee7b7",borderRadius:"20px",padding:"3px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer",flexShrink:0,marginRight:"4px"}}>⚡ Live</button>}
                 <span style={{fontSize:"18px",color:"#94a3b8",transform:expanded?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>›</span>
               </div>
 
