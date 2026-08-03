@@ -6,11 +6,13 @@ const SUPABASE_KEY = process.env.REACT_APP_SUPABASE_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 async function fetchAll(table, opts={}) {
-  const {order="id", ascending=true} = opts;
+  const {order="id", ascending=true, select="*", filter=null} = opts;
   let all = [], from = 0;
   const PAGE = 1000;
   while (true) {
-    const {data, error} = await supabase.from(table).select("*").order(order,{ascending}).range(from, from+PAGE-1);
+    let q = supabase.from(table).select(select).order(order,{ascending}).range(from, from+PAGE-1);
+    if (filter) q = filter(q);
+    const {data, error} = await q;
     if (error) throw error;
     all = all.concat(data||[]);
     if (!data || data.length < PAGE) break;
@@ -6229,19 +6231,21 @@ export default function App(){
     window.history.back();
   };
 
-  const loadAll = async()=>{
+  const loadAll = async(forzar=false)=>{
+    // Caché de sesión: no recargar si ya están en memoria
+    if(!forzar && players.length>0 && equipos.length>0){return;}
     setLoading(isFirstLoad);setError(null);
     try{
       const [rJ,rE,rL,rT,rP,rC,rTC,rEN,rPar,rMvp]=await Promise.all([
-        fetchAll("jugadoras",{order:"id_jugadora"}),
+        fetchAll("jugadoras",{order:"id_jugadora",select:"id_jugadora,nombre,posicion,nacionalidad,nacionalidad2,fecha_nac,altura_cm,id_ext,id_espn,fuente"}),
         fetchAll("equipos",{order:"id_equipo"}),
         fetchAll("ligas",{order:"id_liga"}),
-        fetchAll("temporadas",{order:"id"}),
+        fetchAll("temporadas",{order:"id",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.neq("id_liga","L020")}),
         fetchAll("palmares",{order:"temporada"}),
         fetchAll("coach",{order:"id_coach"}),
         fetchAll("temporadas_coach",{order:"id"}),
         fetchAll("equipos_nombres",{order:"id"}),
-        fetchAll("partidos",{order:"fecha_hora"}),
+        fetchAll("partidos",{order:"fecha_hora",filter:q=>q.neq("id_liga","L020")}),
         fetchAll("mvps",{order:"id"}),
       ]);
       if(rJ.error)throw rJ.error;if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rT.error)throw rT.error;
