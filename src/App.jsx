@@ -949,6 +949,32 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
   const [ficha,setFicha]=useState(null);
   const [saving,setSaving]=useState(false);
   const [expandedLigas,setExpandedLigas]=useState({});
+  const [fibaModal,setFibaModal]=useState(null); // {ligaId,temporada}
+  const [fibaSlug,setFibaSlug]=useState("");
+  const [fibaGuardando,setFibaGuardando]=useState(false);
+  const [fibaMensaje,setFibaMensaje]=useState("");
+  const [fibaResultado,setFibaResultado]=useState(null);
+
+  async function fibaActivar(){
+    if(!fibaModal.ligaId||!fibaModal.temporada){setFibaMensaje("Selecciona liga y temporada");return;}
+    if(!fibaSlug.trim()){setFibaMensaje("Introduce el slug de FIBA");return;}
+    setFibaGuardando(true);setFibaMensaje("");setFibaResultado(null);
+    try{
+      const r=await fetch(SUPABASE_URL+"/functions/v1/actualizar-resultados-fiba",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({modo:"crear_evento",id_liga:fibaModal.ligaId,temporada:fibaModal.temporada,slug:fibaSlug.trim()})
+      });
+      const d=await r.json();
+      if(d.ok){
+        setFibaResultado(d);
+        setFibaMensaje("✅ Hecho");
+      } else {
+        setFibaMensaje("❌ "+(d.error||"Error desconocido"));
+      }
+    }catch(e){setFibaMensaje("❌ "+e.message);}
+    setFibaGuardando(false);
+  }
   const [expandedJornadas,setExpandedJornadas]=useState({});
   const [archivoOpen,setArchivoOpen]=useState(false);
   const [archivoTempOpen,setArchivoTempOpen]=useState({});
@@ -1098,7 +1124,10 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
 
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"20px",flexWrap:"wrap",gap:"10px"}}>
         <h1 style={{fontWeight:800,fontSize:"22px",color:"#1e293b",margin:0}}>📺 Ver partidos</h1>
-        {isAdmin&&<button onClick={()=>setModal("add")} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"12px",padding:"9px 18px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Partido</button>}
+        <div style={{display:"flex",gap:"8px"}}>
+          {isAdmin&&<button onClick={()=>{setFibaSlug("");setFibaMensaje("");setFibaResultado(null);setFibaModal({ligaId:filtroLiga||"",temporada:"",global:true});}} style={{background:"#ecfdf5",color:"#059669",border:"1.5px solid #6ee7b7",borderRadius:"12px",padding:"9px 18px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>⚡ FIBA Live</button>}
+          {isAdmin&&<button onClick={()=>setModal("add")} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"12px",padding:"9px 18px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Partido</button>}
+        </div>
       </div>
 
       <div style={{display:"flex",gap:"10px",marginBottom:"16px",flexWrap:"wrap"}}>
@@ -1224,6 +1253,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                     🏅
                   </button>
                 )}
+                {isAdmin&&ps.some(p=>p.fuente==="fiba")&&<button onClick={e=>{e.stopPropagation();setFibaSlug("");setFibaFechaIni("");setFibaFechaFin("");setFibaMensaje("");setFibaModal({ligaId,temporada});}} style={{background:"#ecfdf5",color:"#059669",border:"1.5px solid #6ee7b7",borderRadius:"20px",padding:"3px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer",flexShrink:0,marginRight:"4px"}}>⚡ Live</button>}
                 <span style={{fontSize:"18px",color:"#94a3b8",transform:expanded?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>›</span>
               </div>
 
