@@ -1715,26 +1715,70 @@ function FaseFinal({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlayer}){
       </div>
     </BracketCard>
   );
+  // Bracket árbol: cada ronda alineada con sus pares de la ronda anterior
+  const GAME_H=58,GAME_GAP=10,SLOT=68,GAME_W=152,CONN_W=24;
+  const octS=[...octavos].sort((a,b)=>num(a)-num(b));
+  const qfS=[...cuartos].sort((a,b)=>num(a)-num(b));
+  const sfS=[...semis].sort((a,b)=>num(a)-num(b));
+  const nBase=Math.max(octS.length,qfS.length*2,sfS.length*4,1);
+  const totalH=nBase*SLOT-GAME_GAP;
+  const r16C=octS.map((_,i)=>i*SLOT+GAME_H/2);
+  const qfC=qfS.map((_,i)=>{const c1=r16C[i*2]??i*SLOT*2+GAME_H/2,c2=r16C[i*2+1]??c1;return(c1+c2)/2;});
+  const sfC=sfS.map((_,i)=>{const c1=qfC[i*2]??r16C[i*4]??0,c2=qfC[i*2+1]??c1;return(c1+c2)/2;});
+  const finC=sfC.length>=2?(sfC[0]+sfC[sfC.length-1])/2:sfC[0]??qfC[Math.floor(qfC.length/2)]??r16C[Math.floor(r16C.length/2)]??totalH/2;
+  const GBox=({g,top,cap})=>!g?null:(<div style={{position:"absolute",top:top-GAME_H/2,left:0,width:GAME_W}}><KOBox p={g} equipoMap={equipoMap} caption={cap} onOpen={onOpenPartido}/></div>);
+  const Conn=({froms,to})=>{const mn=Math.min(...froms),mx=Math.max(...froms);return(<svg style={{position:"absolute",top:0,left:0,width:CONN_W,height:totalH,overflow:"visible",pointerEvents:"none"}} viewBox={"0 0 "+CONN_W+" "+totalH}>{froms.map((f,fi)=><line key={fi} x1={0} y1={f} x2={CONN_W/2} y2={f} stroke="#e2e8f0" strokeWidth={1.5}/>)}{mn!==mx&&<line x1={CONN_W/2} y1={mn} x2={CONN_W/2} y2={mx} stroke="#e2e8f0" strokeWidth={1.5}/>}<line x1={CONN_W/2} y1={to} x2={CONN_W} y2={to} stroke="#e2e8f0" strokeWidth={1.5}/></svg>);};
+  const Hdr=({label,left,w})=>(<div style={{position:"absolute",top:-22,left,width:w,textAlign:"center",fontSize:"9px",fontWeight:800,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.4px",whiteSpace:"nowrap"}}>{label}</div>);
+  const hasQF=qfS.length>0,hasSF=sfS.length>0,hasFin=!!(finalP||bronce);
+  const colW=GAME_W+CONN_W;
+  const totalW=GAME_W+(hasQF?colW:0)+(hasSF?colW:0)+(hasFin?colW:0);
   const hayCuadro=octavos.length||cuartos.length||semis.length||finalP||bronce;
   return(
     <div>
       {hayCuadro&&(
         <BracketCard title="Cuadro final">
-          <div style={{display:"flex",gap:"14px",alignItems:"stretch"}}>
-            {octavos.length>0&&<BracketCol label="Octavos">{octavos.map(p=>box(p))}</BracketCol>}
-            {cuartos.length>0&&<BracketCol label="Cuartos">{cuartos.map(p=>box(p))}</BracketCol>}
-            {semis.length>0&&<BracketCol label="Semifinales">{semis.map(p=>box(p))}</BracketCol>}
-            <BracketCol label="Final">
-              {finalP&&box(finalP,"\ud83c\udfc6 Final")}
-              {bronce&&box(bronce,"\ud83e\udd49 3er puesto")}
-              {mvpPlayer&&(
-                <div onClick={()=>onGoToPlayer&&onGoToPlayer(mvpPlayer.id_jugadora)} style={{display:"flex",flexDirection:"column",alignItems:"center",cursor:onGoToPlayer?"pointer":"default",marginTop:"8px",gap:"2px"}}>
-                  <Avatar photo={mvpPlayer.foto} name={mvpPlayer.nombre} size={40} fontSize={13}/>
-                  <span style={{fontSize:"11px",fontWeight:700,color:"#1e293b",whiteSpace:"nowrap",maxWidth:"150px",overflow:"hidden",textOverflow:"ellipsis"}}>{mvpPlayer.nombre}</span>
-                  <span style={{fontSize:"9px",fontWeight:800,color:"#b45309",letterSpacing:"0.5px"}}>🏅 MVP</span>
+          <div style={{overflowX:"auto",paddingTop:"24px",paddingBottom:"4px"}}>
+            <div style={{position:"relative",height:totalH,width:totalW,minWidth:totalW}}>
+              {/* Columna 1: R16 u Octavos */}
+              {octS.length>0&&<Hdr label={octS.length>4?"Octavos":"Cuartos"} left={0} w={GAME_W}/>}
+              {octS.map((g,i)=><GBox key={g.id} g={g} top={r16C[i]}/>)}
+              {/* Cuartos */}
+              {hasQF&&<>
+                <Hdr label="Cuartos" left={GAME_W+CONN_W} w={GAME_W}/>
+                <div style={{position:"absolute",top:0,left:GAME_W,width:CONN_W,height:totalH}}>
+                  {qfS.map((_,i)=><Conn key={i} froms={[r16C[i*2]??finC,r16C[i*2+1]??r16C[i*2]??finC]} to={qfC[i]}/>)}
                 </div>
-              )}
-            </BracketCol>
+                <div style={{position:"absolute",top:0,left:GAME_W+CONN_W,width:GAME_W,height:totalH}}>
+                  {qfS.map((g,i)=><GBox key={g.id||"qf"+i} g={g} top={qfC[i]}/>)}
+                </div>
+              </>}
+              {/* Semis */}
+              {hasSF&&<>
+                <Hdr label="Semifinales" left={GAME_W+(hasQF?colW:0)+CONN_W} w={GAME_W}/>
+                <div style={{position:"absolute",top:0,left:GAME_W+(hasQF?colW:0),width:CONN_W,height:totalH}}>
+                  {sfS.map((_,i)=><Conn key={i} froms={[qfC[i*2]??r16C[i*2]??finC,qfC[i*2+1]??qfC[i*2]??finC]} to={sfC[i]}/>)}
+                </div>
+                <div style={{position:"absolute",top:0,left:GAME_W+(hasQF?colW:0)+CONN_W,width:GAME_W,height:totalH}}>
+                  {sfS.map((g,i)=><GBox key={g.id||"sf"+i} g={g} top={sfC[i]}/>)}
+                </div>
+              </>}
+              {/* Final */}
+              {hasFin&&<>
+                <Hdr label="Final" left={GAME_W+(hasQF?colW:0)+(hasSF?colW:0)+CONN_W} w={GAME_W}/>
+                <div style={{position:"absolute",top:0,left:GAME_W+(hasQF?colW:0)+(hasSF?colW:0),width:CONN_W,height:totalH}}>
+                  <Conn froms={sfC.length>=2?sfC:hasSF?sfC:[finC]} to={finC}/>
+                </div>
+                <div style={{position:"absolute",top:0,left:GAME_W+(hasQF?colW:0)+(hasSF?colW:0)+CONN_W,width:GAME_W,height:totalH}}>
+                  {finalP&&<GBox g={finalP} top={finC} cap="🏆 Final"/>}
+                  {bronce&&<GBox g={bronce} top={finC+GAME_H+GAME_GAP} cap="🥉 3er puesto"/>}
+                  {mvpPlayer&&(<div onClick={()=>onGoToPlayer&&onGoToPlayer(mvpPlayer.id_jugadora)} style={{position:"absolute",top:finC+GAME_H*2+GAME_GAP*2+4,left:0,display:"flex",flexDirection:"column",alignItems:"center",cursor:onGoToPlayer?"pointer":"default",gap:"2px",width:GAME_W}}>
+                    <Avatar photo={mvpPlayer.foto} name={mvpPlayer.nombre} size={40} fontSize={13}/>
+                    <span style={{fontSize:"11px",fontWeight:700,color:"#1e293b",whiteSpace:"nowrap",maxWidth:"150px",overflow:"hidden",textOverflow:"ellipsis"}}>{mvpPlayer.nombre}</span>
+                    <span style={{fontSize:"9px",fontWeight:800,color:"#b45309",letterSpacing:"0.5px"}}>🏅 MVP</span>
+                  </div>)}
+                </div>
+              </>}
+            </div>
           </div>
         </BracketCard>
       )}
