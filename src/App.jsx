@@ -6447,9 +6447,6 @@ export default function App(){
                 </button>
               ))}
               <div style={{height:"1px",background:"#334155",margin:"6px 0"}}/>
-              <button onClick={()=>{loadAll();setMenuOpen(false);}} style={{display:"flex",alignItems:"center",gap:"10px",width:"100%",background:"transparent",color:"#cbd5e1",border:"none",borderRadius:"8px",padding:"10px 14px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>
-                <span style={{fontSize:"16px"}}>🔄</span>Recargar
-              </button>
               {isAdmin&&<button onClick={()=>{setShowCalidad(true);setMenuOpen(false);}} style={{display:"flex",alignItems:"center",gap:"10px",width:"100%",background:"transparent",color:"#cbd5e1",border:"none",borderRadius:"8px",padding:"10px 14px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>
                 <span style={{fontSize:"16px"}}>🩺</span>Calidad de datos
               </button>}
@@ -6458,6 +6455,9 @@ export default function App(){
               </button>
             </div></>}
           </div>
+
+          {/* 🔄 Recargar */}
+          <button onClick={()=>loadAll(true)} title="Recargar datos" style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px",flexShrink:0}}>🔄</button>
 
           {/* 🔔 Notificaciones */}
           {user&&<div style={{position:"relative",flexShrink:0}}>
