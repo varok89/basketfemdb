@@ -1679,7 +1679,8 @@ function FaseFinal({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlayer}){
   const nt=p=>(p&&p.notas)||"";
   const num=p=>{const m=nt(p).match(/#(\d+)/);return m?parseInt(m[1],10):99999;};
   const box=(p,caption)=><KOBox key={(p&&p.id)||caption} p={p} equipoMap={equipoMap} caption={caption} onOpen={onOpenPartido}/>;
-  const sortN=arr=>arr.slice().sort((a,b)=>num(a)-num(b)||(new Date(a.fecha_hora)-new Date(b.fecha_hora))||a.id-b.id);
+  const bpos=p=>p.bracket_pos!=null?p.bracket_pos:99999;
+  const sortN=arr=>arr.slice().sort((a,b)=>(bpos(a)-bpos(b))||num(a)-num(b)||(new Date(a.fecha_hora)-new Date(b.fecha_hora))||a.id-b.id);
   const esGrupo=p=>/\bgrupo\b|\bgroup\b|fase de grupos/i.test(nt(p))&&!/#\d+/.test(nt(p));
   const esRegular=p=>/regular season|temporada regular|liga regular|jornada/i.test(nt(p));
   const esPlayIn=p=>/play\s*-?\s*in/i.test(nt(p));
@@ -6359,7 +6360,7 @@ export default function App(){
         fetchAll("coach",{order:"id_coach"}),
         fetchAll("temporadas_coach",{order:"id"}),
         fetchAll("equipos_nombres",{order:"id"}),
-        fetchAll("partidos",{order:"fecha_hora",filter:q=>q.neq("id_liga","L020")}),
+        fetchAll("partidos",{order:"fecha_hora",select:"id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas,es_live,periodo,id_ext,fuente,bracket_pos",filter:q=>q.neq("id_liga","L020")}),
         fetchAll("mvps",{order:"id"}),
       ]);
       if(rJ.error)throw rJ.error;if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rT.error)throw rT.error;
