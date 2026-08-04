@@ -1114,6 +1114,46 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
 
   return(
     <div style={{maxWidth:"700px",margin:"0 auto",padding:"16px",fontFamily:"system-ui,sans-serif"}}>
+    {fibaModal&&(
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
+        <div style={{background:"#fff",borderRadius:"20px",padding:"24px",width:"100%",maxWidth:"400px",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+          <div style={{fontWeight:800,fontSize:"16px",color:"#1e293b",marginBottom:"4px"}}>⚡ Activar seguimiento FIBA live</div>
+          {fibaModal.global?(
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"16px"}}>
+              <div>
+                <div style={{fontSize:"12px",fontWeight:600,color:"#475569",marginBottom:"4px"}}>Liga</div>
+                <select value={fibaModal.ligaId} onChange={e=>setFibaModal(m=>({...m,ligaId:e.target.value}))} style={{width:"100%",padding:"9px 10px",borderRadius:"10px",border:"1.5px solid #e2e8f0",fontSize:"13px"}}>
+                  <option value="">Seleccionar...</option>
+                  {ligas.map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}</option>)}
+                </select>
+              </div>
+              <div>
+                <div style={{fontSize:"12px",fontWeight:600,color:"#475569",marginBottom:"4px"}}>Temporada</div>
+                <input value={fibaModal.temporada} onChange={e=>setFibaModal(m=>({...m,temporada:e.target.value}))} placeholder="2026" style={{width:"100%",padding:"9px 10px",borderRadius:"10px",border:"1.5px solid #e2e8f0",fontSize:"13px",boxSizing:"border-box"}}/>
+              </div>
+            </div>
+          ):(
+            <div style={{fontSize:"12px",color:"#64748b",marginBottom:"16px"}}>{fibaModal.ligaId} · {fibaModal.temporada}</div>
+          )}
+          <div style={{marginBottom:"16px"}}>
+            <div style={{fontSize:"12px",fontWeight:600,color:"#475569",marginBottom:"4px"}}>Slug de FIBA</div>
+            <input value={fibaSlug} onChange={e=>setFibaSlug(e.target.value)} placeholder="fiba-u18-womens-eurobasket-2026" style={{width:"100%",padding:"10px 12px",borderRadius:"10px",border:"1.5px solid #e2e8f0",fontSize:"13px",boxSizing:"border-box"}}/>
+            <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>URL: fiba.basketball/en/events/<b>SLUG</b>/games · Fechas detectadas automáticamente</div>
+          </div>
+          {fibaMensaje&&<div style={{fontSize:"13px",color:fibaMensaje.startsWith("✅")?"#059669":"#ef4444",marginBottom:"12px",fontWeight:600}}>{fibaMensaje}</div>}
+          {fibaResultado&&<div style={{background:"#f0fdf4",borderRadius:"10px",padding:"12px",marginBottom:"12px",fontSize:"12px",color:"#166534"}}>
+            <div>📅 {fibaResultado.fecha_ini} → {fibaResultado.fecha_fin}</div>
+            <div>✅ Partidos creados: <b>{fibaResultado.creados}</b> · Ya existían: <b>{fibaResultado.ya_existian}</b></div>
+            <div>🔑 Equipos mapeados: <b>{fibaResultado.codigos_generados}</b></div>
+            {fibaResultado.sin_mapear?.length>0&&<div style={{color:"#b45309",marginTop:"4px"}}>⚠️ Sin mapear: {fibaResultado.sin_mapear.join(", ")}</div>}
+          </div>}
+          <div style={{display:"flex",gap:"10px"}}>
+            <button onClick={()=>{setFibaModal(null);setFibaResultado(null);}} style={{flex:1,padding:"10px",borderRadius:"12px",border:"1.5px solid #e2e8f0",background:"#f8fafc",fontWeight:600,fontSize:"13px",cursor:"pointer"}}>Cerrar</button>
+            {!fibaResultado&&<button onClick={fibaActivar} disabled={fibaGuardando} style={{flex:1,padding:"10px",borderRadius:"12px",border:"none",background:"#059669",color:"#fff",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:fibaGuardando?0.6:1}}>{fibaGuardando?"Cargando...":"Activar"}</button>}
+          </div>
+        </div>
+      </div>
+    )}
       <div style={{background:"linear-gradient(135deg,#fef3c7,#fde68a)",border:"1.5px solid #f59e0b",borderRadius:"16px",padding:"16px 20px",marginBottom:"20px",display:"flex",alignItems:"center",gap:"12px"}}>
         <span style={{fontSize:"24px"}}>🚧</span>
         <div>
