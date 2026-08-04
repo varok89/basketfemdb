@@ -962,7 +962,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
     try{
       const r=await fetch(SUPABASE_URL+"/functions/v1/actualizar-resultados-fiba",{
         method:"POST",
-        headers:{"Content-Type":"application/json"},
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},
         body:JSON.stringify({modo:"crear_evento",id_liga:fibaModal.ligaId,temporada:fibaModal.temporada,slug:fibaSlug.trim()})
       });
       const d=await r.json();
@@ -2407,7 +2407,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   async function ncaaMapear(){
     setNcaaStep("mapping");setNcaaRes(null);
     try{
-      const r=await fetch(SUPABASE_URL+"/functions/v1/cargar-ncaa-espn",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({modo:"mapear_equipos",id_liga:"L020",temporada:ncaaTemp})});
+      const r=await fetch(SUPABASE_URL+"/functions/v1/cargar-ncaa-espn",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:JSON.stringify({modo:"mapear_equipos",id_liga:"L020",temporada:ncaaTemp})});
       setNcaaRes(await r.json());
     }catch(e){setNcaaRes({error:e.message});}
     setNcaaStep("done");
@@ -2417,7 +2417,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     if(!ncaaTeamId){alert("Selecciona un equipo");return;}
     setNcaaStep("loading");setNcaaRes(null);
     try{
-      const r=await fetch(SUPABASE_URL+"/functions/v1/cargar-ncaa-espn",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({modo:"boxscores",espn_team_id:ncaaTeamId,season:parseInt(ncaaSeason),id_liga:"L020",temporada:ncaaTemp,max_games:10})});
+      const r=await fetch(SUPABASE_URL+"/functions/v1/cargar-ncaa-espn",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:JSON.stringify({modo:"boxscores",espn_team_id:ncaaTeamId,season:parseInt(ncaaSeason),id_liga:"L020",temporada:ncaaTemp,max_games:10})});
       setNcaaRes(await r.json());
     }catch(e){setNcaaRes({error:e.message});}
     setNcaaStep("done");
