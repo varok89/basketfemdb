@@ -3082,7 +3082,35 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               </div>
               <div style={{height:"1px",background:"#e2e8f0",margin:"16px 0"}}/>
               <div style={{marginBottom:"16px"}}>
-                <h3 style={{fontWeight:800,fontSize:"15px",color:"#1e293b",margin:"0 0 8px"}}>2. Cargar boxscores de un equipo</h3>
+                <h3 style={{fontWeight:800,fontSize:"15px",color:"#1e293b",margin:"0 0 4px"}}>2. Cargar equipo por roster ESPN</h3>
+                <p style={{fontSize:"12px",color:"#64748b",margin:"0 0 8px"}}>Carga jugadoras y temporadas correctas desde la API de ESPN (sin boxscores, sin errores).</p>
+                <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
+                  <select value={ncaaTeamId} onChange={e=>setNcaaTeamId(e.target.value)} style={{flex:1,padding:"8px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px"}}>
+                    <option value="">Seleccionar equipo...</option>
+                    {ncaaEquipos.map(e=><option key={e.id_equipo} value={e.id_espn}>{e.nombre}</option>)}
+                  </select>
+                  <button onClick={async()=>{
+                    if(!ncaaTeamId){alert("Selecciona un equipo");return;}
+                    setNcaaStep("roster");setNcaaRes(null);
+                    try{
+                      const r=await fetch(SUPABASE_URL+"/functions/v1/cargar-ncaa-espn-equipo",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:JSON.stringify({id_espn_equipo:ncaaTeamId,espn_year:2026})});
+                      setNcaaRes({...await r.json(),modo:"roster"});
+                    }catch(e){setNcaaRes({error:e.message});}
+                    setNcaaStep("done");
+                  }} disabled={ncaaStep==="roster"} style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",whiteSpace:"nowrap",opacity:ncaaStep==="roster"?0.5:1}}>
+                    {ncaaStep==="roster"?"Cargando...":"Cargar roster"}
+                  </button>
+                </div>
+                {ncaaRes?.modo==="roster"&&!ncaaRes.error&&<div style={{background:"#f0fdf4",borderRadius:"10px",padding:"10px",marginTop:"8px",border:"1px solid #bbf7d0",fontSize:"13px"}}>
+                  <div>Equipo: <b>{ncaaRes.equipo}</b> | Roster ESPN: {ncaaRes.total_roster}</div>
+                  <div style={{color:"#16a34a"}}>Nuevas: <b>{ncaaRes.jugadoras_nuevas}</b> | Actualizadas: <b>{ncaaRes.jugadoras_actualizadas}</b></div>
+                  <div style={{color:"#2563eb"}}>Temporadas creadas: <b>{ncaaRes.temporadas_nuevas}</b></div>
+                  {ncaaRes.errores?.length>0&&<div style={{color:"#ef4444"}}>Errores: {ncaaRes.errores.length}</div>}
+                </div>}
+              </div>
+              <div style={{height:"1px",background:"#e2e8f0",margin:"16px 0"}}/>
+              <div style={{marginBottom:"16px"}}>
+                <h3 style={{fontWeight:800,fontSize:"15px",color:"#1e293b",margin:"0 0 8px"}}>3. Cargar boxscores de un equipo</h3>
                 <div style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:"8px",marginBottom:"8px"}}>
                   <select value={ncaaTeamId} onChange={e=>setNcaaTeamId(e.target.value)} style={{padding:"8px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px"}}>
                     <option value="">Seleccionar equipo...</option>
@@ -4090,6 +4118,20 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
 
   useEffect(()=>{if(openPlayerId){setSelId(openPlayerId);onClearPlayer();}},[openPlayerId]);
 
+  // Lazy load carrera completa cuando se abre una jugadora (la carga inicial solo tiene la última temporada)
+  useEffect(()=>{
+    if(!selId)return;
+    const pl=players.find(p=>p.id_jugadora===selId);
+    if(!pl)return;
+    // Si ya tiene más de 1 temporada cargada, no recargar
+    if((pl.seasons||[]).length>1)return;
+    (async()=>{
+      const {data}=await supabase.from("temporadas").select("id,id_jugadora,id_equipo,id_liga,temporada,orden").eq("id_jugadora",selId).order("temporada",{ascending:false}).limit(50);
+      if(!data||data.length<=1)return; // sin carrera extra
+      setPlayers(prev=>prev.map(p=>p.id_jugadora===selId?{...p,seasons:data}:p));
+    })();
+  },[selId]);
+
   const equipoMap = useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap   = useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
   const selected  = players.find(p=>p.id_jugadora===selId)||null;
@@ -4856,6 +4898,34 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
 
 
   useEffect(()=>{if(openTeamId){setSelId(openTeamId);setSelYear(openTeamYear||null);onClearTeam();}},[openTeamId]);
+
+  // On-demand: cargar todas las temporadas del equipo seleccionado que aún no estén en players
+  useEffect(()=>{
+    if(!selId)return;
+    const temp=selYear||null;
+    (async()=>{
+      // Jugadoras que ya tienen temporada en este equipo/temporada
+      const yaOk=new Set(players.filter(p=>(p.seasons||[]).some(s=>s.id_equipo===selId&&(!temp||s.temporada===temp))).map(p=>p.id_jugadora));
+      // Cargar temporadas del equipo (filtrando por temporada si está seleccionada)
+      let q=supabase.from("temporadas").select("id,id_jugadora,id_equipo,id_liga,temporada,orden").eq("id_equipo",selId).limit(500);
+      if(temp)q=q.eq("temporada",temp);
+      const {data}=await q;
+      if(!data||!data.length)return;
+      const nuevas=data.filter(t=>!yaOk.has(t.id_jugadora));
+      if(!nuevas.length)return;
+      setPlayers(prev=>{
+        const patch=new Map();
+        nuevas.forEach(t=>{if(!patch.has(t.id_jugadora))patch.set(t.id_jugadora,[]);patch.get(t.id_jugadora).push(t);});
+        return prev.map(p=>{
+          const add=patch.get(p.id_jugadora);
+          if(!add)return p;
+          const existing=(p.seasons||[]).filter(s=>!add.some(a=>a.id===s.id));
+          return {...p,seasons:[...existing,...add]};
+        });
+      });
+    })();
+  },[selId,selYear]);
+
 
   const equipoMap = useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap   = useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
@@ -6356,7 +6426,7 @@ export default function App(){
         fetchAll("jugadoras",{order:"id_jugadora",select:"id_jugadora,nombre,posicion,nacionalidad,nacionalidad2,fecha_nac,altura_cm,id_ext,id_espn,fuente,foto"}),
         fetchAll("equipos",{order:"id_equipo"}),
         fetchAll("ligas",{order:"id_liga"}),
-        fetchAll("temporadas",{order:"id",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.neq("id_liga","L020")}),
+        fetchAll("ultima_temporada_jugadora",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden"}),
         fetchAll("palmares",{order:"temporada"}),
         fetchAll("coach",{order:"id_coach"}),
         fetchAll("temporadas_coach",{order:"id"}),
@@ -6366,7 +6436,8 @@ export default function App(){
       ]);
       if(rJ.error)throw rJ.error;if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rT.error)throw rT.error;
       const sbp={};
-      (rT.data||[]).forEach(t=>{if(!sbp[t.id_jugadora])sbp[t.id_jugadora]=[];sbp[t.id_jugadora].push(t);});
+      // Vista ultima_temporada_jugadora: una sola temporada por jugadora (la más reciente)
+      (rT.data||[]).forEach(t=>{sbp[t.id_jugadora]=[t];});
       setPlayers((rJ.data||[]).map(j=>({...j,seasons:sbp[j.id_jugadora]||[]})));
       setEquipos(rE.data||[]);
       setLigas(rL.data||[]);
