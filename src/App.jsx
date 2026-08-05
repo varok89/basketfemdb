@@ -2706,7 +2706,10 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   var [merging,setMerging]=useState(false);
 
   async function doMerge(){
-    if(!mergeTarget||mergeTarget.keepIdx==null)return;
+    if(!mergeTarget||mergeTarget.keepIdx==null){
+      alert("Selecciona primero qué registro conservar");
+      return;
+    }
     setMerging(true);
     try{
       const keep=mergeTarget.items[mergeTarget.keepIdx];
@@ -2734,13 +2737,14 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           const {data:remData}=await supabase.from("jugadoras").select("*").eq("id_jugadora",remId).single();
           if(keepData&&remData){
             const upd={};
-            ["posicion","nacionalidad","fecha_nac","altura_cm","nacionalidad2","id_ext","foto"].forEach(f=>{
+            ["posicion","nacionalidad","fecha_nac","altura_cm","nacionalidad2","id_ext","id_espn","foto"].forEach(f=>{
               if(!keepData[f]&&remData[f])upd[f]=remData[f];
             });
             if(Object.keys(upd).length)await supabase.from("jugadoras").update(upd).eq("id_jugadora",keepId);
           }
           // Borrar la duplicada
-          await supabase.from("jugadoras").delete().eq("id_jugadora",remId);
+          const {error:delErr}=await supabase.from("jugadoras").delete().eq("id_jugadora",remId);
+          if(delErr)throw delErr;
         }else if(mergeTarget.tipo==="equipos"){
           await supabase.from("partidos").update({id_equipo_local:keepId}).eq("id_equipo_local",remId);
           await supabase.from("partidos").update({id_equipo_visitante:keepId}).eq("id_equipo_visitante",remId);
@@ -2761,7 +2765,11 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       setMergeTarget(null);
       onReload();
       checkNameDupes();
-    }catch(e){alert("Error al fusionar: "+e.message);}
+    }catch(e){
+      const msg=e?.message||e?.error_description||JSON.stringify(e)||String(e);
+      alert("Error al fusionar: "+msg);
+      console.error("doMerge error:", e);
+    }
     setMerging(false);
   }
   var nameDupesComputed=nameDupesState[0];var setNameDupesComputed=nameDupesState[1];
