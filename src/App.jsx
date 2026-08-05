@@ -1144,6 +1144,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
           {fibaResultado&&<div style={{background:"#f0fdf4",borderRadius:"10px",padding:"12px",marginBottom:"12px",fontSize:"12px",color:"#166534"}}>
             <div>📅 {fibaResultado.fecha_ini} → {fibaResultado.fecha_fin}</div>
             <div>✅ Partidos creados: <b>{fibaResultado.creados}</b> · Ya existían: <b>{fibaResultado.ya_existian}</b></div>
+            {(fibaResultado.notas_actualizadas>0||fibaResultado.slots_actualizados>0)&&<div>📝 Notas: <b>{(fibaResultado.notas_actualizadas||0)+(fibaResultado.slots_actualizados||0)}</b> actualizadas</div>}
             <div>🔑 Equipos mapeados: <b>{fibaResultado.codigos_generados}</b></div>
             {fibaResultado.sin_mapear?.length>0&&<div style={{color:"#b45309",marginTop:"4px"}}>⚠️ Sin mapear: {fibaResultado.sin_mapear.join(", ")}</div>}
           </div>}
