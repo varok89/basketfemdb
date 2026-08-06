@@ -1719,9 +1719,9 @@ function FaseFinal({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlayer}){
   );
   // Bracket árbol: cada ronda alineada con sus pares de la ronda anterior
   const GAME_H=58,GAME_GAP=10,SLOT=68,GAME_W=152,CONN_W=24;
-  const octS=[...octavos].sort((a,b)=>num(a)-num(b));
-  const qfS=[...cuartos].sort((a,b)=>num(a)-num(b));
-  const sfS=[...semis].sort((a,b)=>num(a)-num(b));
+  const octS=[...octavos];
+  const qfS=[...cuartos];
+  const sfS=[...semis];
   const nBase=Math.max(octS.length,qfS.length*2,sfS.length*4,1);
   const totalH=nBase*SLOT-GAME_GAP;
   const r16C=octS.map((_,i)=>i*SLOT+GAME_H/2);
