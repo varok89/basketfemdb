@@ -4131,11 +4131,11 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     if(!selId)return;
     const pl=players.find(p=>p.id_jugadora===selId);
     if(!pl)return;
-    // Si ya tiene más de 1 temporada cargada, no recargar
-    if((pl.seasons||[]).length>1)return;
+    // Cargar carrera completa si hay más temporadas que las ya cargadas
+    const yaLoaded=(pl.seasons||[]).length;
     (async()=>{
       const {data}=await supabase.from("temporadas").select("id,id_jugadora,id_equipo,id_liga,temporada,orden").eq("id_jugadora",selId).order("temporada",{ascending:false}).limit(50);
-      if(!data||data.length<=1)return; // sin carrera extra
+      if(!data||data.length<=yaLoaded)return; // ya tenemos todo cargado
       setPlayers(prev=>prev.map(p=>p.id_jugadora===selId?{...p,seasons:data}:p));
     })();
   },[selId]);
@@ -6434,7 +6434,7 @@ export default function App(){
         fetchAll("jugadoras",{order:"id_jugadora",select:"id_jugadora,nombre,posicion,nacionalidad,nacionalidad2,fecha_nac,altura_cm,id_ext,id_espn,fuente,foto"}),
         fetchAll("equipos",{order:"id_equipo"}),
         fetchAll("ligas",{order:"id_liga"}),
-        fetchAll("ultima_temporada_jugadora",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden"}),
+        fetchAll("dos_ultimas_temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.neq("id_liga","L020")}),
         fetchAll("palmares",{order:"temporada"}),
         fetchAll("coach",{order:"id_coach"}),
         fetchAll("temporadas_coach",{order:"id"}),
@@ -6444,8 +6444,8 @@ export default function App(){
       ]);
       if(rJ.error)throw rJ.error;if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rT.error)throw rT.error;
       const sbp={};
-      // Vista ultima_temporada_jugadora: una sola temporada por jugadora (la más reciente)
-      (rT.data||[]).forEach(t=>{sbp[t.id_jugadora]=[t];});
+      // Vista dos_ultimas_temporadas: hasta 2 temporadas por jugadora (actual + anterior)
+      (rT.data||[]).forEach(t=>{if(!sbp[t.id_jugadora])sbp[t.id_jugadora]=[];sbp[t.id_jugadora].push(t);});
       setPlayers((rJ.data||[]).map(j=>({...j,seasons:sbp[j.id_jugadora]||[]})));
       setEquipos(rE.data||[]);
       setLigas(rL.data||[]);
