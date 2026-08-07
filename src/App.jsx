@@ -2068,9 +2068,9 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
   // Un Final Four (solo semifinales y final) no los tiene, así que no muestra ni Grupos ni Standing.
   const hayStanding=useMemo(()=>!modoLiga&&psLiga.some(p=>/#(49|5[0-5])\b/.test(p.notas||"")),[psLiga,modoLiga]);
   // Fases de clasificación FIBA (presentes cuando hay notas con esos patrones)
-  const hayCL1316=useMemo(()=>!modoLiga&&psLiga.some(p=>/13.*16.*puesto|1[3-6].*puesto/i.test(p.notas||"")),[psLiga,modoLiga]);
-  const hayCL912 =useMemo(()=>!modoLiga&&psLiga.some(p=>/9.*12.*puesto/i.test(p.notas||"")),[psLiga,modoLiga]);
-  const hayCL58  =useMemo(()=>!modoLiga&&psLiga.some(p=>/5.*8.*puesto/i.test(p.notas||"")),[psLiga,modoLiga]);
+  const hayCL1316=useMemo(()=>!modoLiga&&psLiga.some(p=>/^(13|14|15).*puesto/i.test(p.notas||"")),[psLiga,modoLiga]);
+  const hayCL912 =useMemo(()=>!modoLiga&&psLiga.some(p=>/^(9|10|11).*puesto/i.test(p.notas||"")),[psLiga,modoLiga]);
+  const hayCL58  =useMemo(()=>!modoLiga&&psLiga.some(p=>/^(5|6|7).*puesto/i.test(p.notas||"")),[psLiga,modoLiga]);
   // Zonas de la tabla en modo liga (formato Liga Femenina Endesa): 8 a playoffs, 2 descensos
   // Zonas de clasificación por liga
   const ZONAS_LIGA={
@@ -2130,14 +2130,15 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
       {vista==="final"&&hayBracketIV&&<PlayoffBracket psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido}/>}
       {vista==="final"&&hayKO&&<FaseFinal psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido} mvpPlayer={mvpPlayer} onGoToPlayer={onGoToPlayer}/>}
       {(vista==="cl1316"||vista==="cl912"||vista==="cl58")&&(()=>{
-        // Filtros precisos replicando la estructura de FIBA:
-        // 9-16 primera ronda: aparece en AMBOS tabs 13-16 y 9-12 (alimenta los dos)
-        // Cada tab incluye toda la cadena de partidos que determina esas plazas
+        // Filtros exactos replicando FIBA standings:
+        // Class.13-16: solo partidos 13-16 (SIN los 9-16 de primera ronda)
+        // Class.9-12: incluye 9-16 primera ronda + 9-12 + 9-10 + 11-12
+        // Class.5-8: 5-8 + 5-6 + 7-8
         const filtro=vista==="cl1316"
-          ?p=>/9.*16.*puesto|13.*puesto|14.*puesto|15.*puesto|16.*puesto/i.test(p.notas||"")
+          ?p=>/^(13|14|15).*puesto/i.test(p.notas||"")
           :vista==="cl912"
-          ?p=>/9.*16.*puesto|9.*12.*puesto|10.*puesto|11.*puesto/i.test(p.notas||"")&&!/13.*puesto|14.*puesto|15.*puesto/i.test(p.notas||"")
-          :p=>/5.*8.*puesto|5.*6.*puesto|6.*puesto|7.*puesto/i.test(p.notas||"");
+          ?p=>/^(9|10|11).*puesto/i.test(p.notas||"")
+          :p=>/^(5|6|7).*puesto/i.test(p.notas||"");
         const juegos=psLiga.filter(filtro).sort((a,b)=>{
           const na=a.notas||"",nb=b.notas||"";
           const ma=na.match(/#(\d+)/),mb=nb.match(/#(\d+)/);
