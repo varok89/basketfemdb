@@ -955,7 +955,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
   const [fibaMensaje,setFibaMensaje]=useState("");
   const [fibaResultado,setFibaResultado]=useState(null);
 
-  async function fibaActivar(){
+  async function fibaActivar(modo="crear_evento"){
     if(!fibaModal.ligaId||!fibaModal.temporada){setFibaMensaje("Selecciona liga y temporada");return;}
     if(!fibaSlug.trim()){setFibaMensaje("Introduce el slug de FIBA");return;}
     setFibaGuardando(true);setFibaMensaje("");setFibaResultado(null);
@@ -963,12 +963,12 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
       const r=await fetch(SUPABASE_URL+"/functions/v1/actualizar-resultados-fiba",{
         method:"POST",
         headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},
-        body:JSON.stringify({modo:"crear_evento",id_liga:fibaModal.ligaId,temporada:fibaModal.temporada,slug:fibaSlug.trim()})
+        body:JSON.stringify({modo,id_liga:fibaModal.ligaId,temporada:fibaModal.temporada,slug:fibaSlug.trim()})
       });
       const d=await r.json();
       if(d.ok){
         setFibaResultado(d);
-        setFibaMensaje("✅ Hecho");
+        setFibaMensaje(modo==="desde_standings"?"✅ Standings cargado":"✅ Hecho");
       } else {
         setFibaMensaje("❌ "+(d.error||"Error desconocido"));
       }
@@ -1150,7 +1150,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
           </div>}
           <div style={{display:"flex",gap:"10px"}}>
             <button onClick={()=>{setFibaModal(null);setFibaResultado(null);}} style={{flex:1,padding:"10px",borderRadius:"12px",border:"1.5px solid #e2e8f0",background:"#f8fafc",fontWeight:600,fontSize:"13px",cursor:"pointer"}}>Cerrar</button>
-            {!fibaResultado&&<button onClick={fibaActivar} disabled={fibaGuardando} style={{flex:1,padding:"10px",borderRadius:"12px",border:"none",background:"#059669",color:"#fff",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:fibaGuardando?0.6:1}}>{fibaGuardando?"Cargando...":"Activar"}</button>}
+            {!fibaResultado&&<><button onClick={()=>fibaActivar("crear_evento")} disabled={fibaGuardando} style={{flex:1,padding:"10px",borderRadius:"12px",border:"none",background:"#059669",color:"#fff",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:fibaGuardando?0.6:1}}>{fibaGuardando?"Cargando...":"Activar"}</button><button onClick={()=>fibaActivar("desde_standings")} disabled={fibaGuardando} title="Carga bracket y clasificaciones desde la página standings de FIBA" style={{flex:1,padding:"10px",borderRadius:"12px",border:"none",background:"#7c3aed",color:"#fff",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:fibaGuardando?0.6:1}}>{fibaGuardando?"Cargando...":"📊 Standings"}</button></>}
           </div>
         </div>
       </div>
