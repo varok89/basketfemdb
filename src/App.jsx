@@ -2130,8 +2130,15 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
       {vista==="final"&&hayBracketIV&&<PlayoffBracket psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido}/>}
       {vista==="final"&&hayKO&&<FaseFinal psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido} mvpPlayer={mvpPlayer} onGoToPlayer={onGoToPlayer}/>}
       {(vista==="cl1316"||vista==="cl912"||vista==="cl58")&&(()=>{
-        const filtro=vista==="cl1316"?/13.*16.*puesto|1[3-6].*puesto/i:vista==="cl912"?/9.*12.*puesto/i:/5.*8.*puesto/i;
-        const juegos=psLiga.filter(p=>filtro.test(p.notas||"")).sort((a,b)=>{
+        // Filtros precisos replicando la estructura de FIBA:
+        // 9-16 primera ronda: aparece en AMBOS tabs 13-16 y 9-12 (alimenta los dos)
+        // Cada tab incluye toda la cadena de partidos que determina esas plazas
+        const filtro=vista==="cl1316"
+          ?p=>/9.*16.*puesto|13.*puesto|14.*puesto|15.*puesto|16.*puesto/i.test(p.notas||"")
+          :vista==="cl912"
+          ?p=>/9.*16.*puesto|9.*12.*puesto|10.*puesto|11.*puesto/i.test(p.notas||"")&&!/13.*puesto|14.*puesto|15.*puesto/i.test(p.notas||"")
+          :p=>/5.*8.*puesto|5.*6.*puesto|6.*puesto|7.*puesto/i.test(p.notas||"");
+        const juegos=psLiga.filter(filtro).sort((a,b)=>{
           const na=a.notas||"",nb=b.notas||"";
           const ma=na.match(/#(\d+)/),mb=nb.match(/#(\d+)/);
           if(a.bracket_pos!=null&&b.bracket_pos!=null)return a.bracket_pos-b.bracket_pos;
