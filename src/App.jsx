@@ -2067,6 +2067,10 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
   // Standing (clasificación por puestos) solo en torneos con cruces de clasificación 3º-16º (#49-#55).
   // Un Final Four (solo semifinales y final) no los tiene, así que no muestra ni Grupos ni Standing.
   const hayStanding=useMemo(()=>!modoLiga&&psLiga.some(p=>/#(49|5[0-5])\b/.test(p.notas||"")),[psLiga,modoLiga]);
+  // Fases de clasificación FIBA (presentes cuando hay notas con esos patrones)
+  const hayCL1316=useMemo(()=>!modoLiga&&psLiga.some(p=>/13.*16.*puesto|1[3-6].*puesto/i.test(p.notas||"")),[psLiga,modoLiga]);
+  const hayCL912 =useMemo(()=>!modoLiga&&psLiga.some(p=>/9.*12.*puesto/i.test(p.notas||"")),[psLiga,modoLiga]);
+  const hayCL58  =useMemo(()=>!modoLiga&&psLiga.some(p=>/5.*8.*puesto/i.test(p.notas||"")),[psLiga,modoLiga]);
   // Zonas de la tabla en modo liga (formato Liga Femenina Endesa): 8 a playoffs, 2 descensos
   // Zonas de clasificación por liga
   const ZONAS_LIGA={
@@ -2110,7 +2114,7 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
       {(()=>{
         const tabs=modoLiga
           ?[...(multiGrupo?grupos.map((g,i)=>[`grp${i}`,g.nombre]):[["grupos","Clasificación"]]),...(hayPlayoffs?[["final","Playoffs"]]:[])]
-          :[...(hayPreviaIV?[["previa","Fase previa"]]:[]),...(grupos.length?[["grupos","Grupos"]]:[]),...((hayKO||hayBracketIV)?[["final","Fase final"]]:[]),...(hayStanding?[["standing","🏅 Standing"]]:[])];
+          :[...(hayPreviaIV?[["previa","Fase previa"]]:[]),...(grupos.length?[["grupos","Group Phase"]]:[]),...(hayCL1316?[["cl1316","Class. 13-16"]]:[]),...(hayCL912?[["cl912","Class. 9-12"]]:[]),...(hayCL58?[["cl58","Class. 5-8"]]:[]),...((hayKO||hayBracketIV)?[["final","Bracket"]]:[]),...(hayStanding?[["standing","🏅 Standing"]]:[])];
         if(tabs.length<=1)return null;
         return(
           <div style={{display:"flex",gap:"8px",marginBottom:"16px"}}>
@@ -2125,6 +2129,28 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
       {vista==="previa"&&hayPreviaIV&&<PlayoffBracket psLiga={psLiga} equipoMap={equipoMap} soloPrevia onOpenPartido={onOpenPartido}/>}
       {vista==="final"&&hayBracketIV&&<PlayoffBracket psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido}/>}
       {vista==="final"&&hayKO&&<FaseFinal psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido} mvpPlayer={mvpPlayer} onGoToPlayer={onGoToPlayer}/>}
+      {(vista==="cl1316"||vista==="cl912"||vista==="cl58")&&(()=>{
+        const filtro=vista==="cl1316"?/13.*16.*puesto|1[3-6].*puesto/i:vista==="cl912"?/9.*12.*puesto/i:/5.*8.*puesto/i;
+        const juegos=psLiga.filter(p=>filtro.test(p.notas||"")).sort((a,b)=>{
+          const na=a.notas||"",nb=b.notas||"";
+          const ma=na.match(/#(\d+)/),mb=nb.match(/#(\d+)/);
+          if(a.bracket_pos!=null&&b.bracket_pos!=null)return a.bracket_pos-b.bracket_pos;
+          if(ma&&mb)return parseInt(ma[1])-parseInt(mb[1]);
+          return 0;
+        });
+        return(<div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+          {juegos.map(p=>{const eqL=equipoMap[p.id_equipo_local],eqV=equipoMap[p.id_equipo_visitante];
+            const tieneRes=p.resultado_local!=null;
+            return(<div key={p.id} onClick={()=>onOpenPartido&&onOpenPartido(p)} style={{background:"#fff",borderRadius:"12px",border:"1.5px solid #e2e8f0",padding:"10px 14px",cursor:onOpenPartido?"pointer":"default",display:"flex",alignItems:"center",gap:"8px"}}>
+              <span style={{fontSize:"11px",color:"#94a3b8",minWidth:"110px"}}>{p.notas}</span>
+              <span style={{flex:1,fontWeight:tieneRes&&p.resultado_local>p.resultado_visitante?700:500,fontSize:"13px"}}>{eqL?.nombre||"—"}</span>
+              {tieneRes?<span style={{fontWeight:700,fontSize:"14px",color:"#1e293b",minWidth:"50px",textAlign:"center"}}>{p.resultado_local} - {p.resultado_visitante}</span>:<span style={{fontSize:"12px",color:"#94a3b8",minWidth:"50px",textAlign:"center"}}>vs</span>}
+              <span style={{flex:1,textAlign:"right",fontWeight:tieneRes&&p.resultado_visitante>p.resultado_local?700:500,fontSize:"13px"}}>{eqV?.nombre||"—"}</span>
+            </div>);
+          })}
+          {!juegos.length&&<p style={{color:"#94a3b8",textAlign:"center",paddingTop:"20px"}}>Sin partidos en esta fase todavía.</p>}
+        </div>);
+      })()}
       {vista==="final"&&hayPlayoffs&&<PlayoffBracket psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido} showAscenso={!!zl.ascenso}/>}
       {vista==="standing"&&hayKO&&<StandingFinal psLiga={psLiga} equipoMap={equipoMap} temporada={temporada} onGoToTeam={onGoToTeam} mvpPlayer={mvpPlayer} onGoToPlayer={onGoToPlayer}/>}
       {vista==="grupos"&&!grupos.length&&<p style={{color:"#94a3b8",textAlign:"center",paddingTop:"40px"}}>No hay partidos con resultado para calcular la clasificación.</p>}
