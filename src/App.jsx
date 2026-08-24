@@ -2681,6 +2681,43 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     setFibaApplying(false);
   }
 
+  async function applyPlaceholderToEntries(entries){
+    if(!entries?.length){setFibaApplyRes({error:"No hay entradas."});return;}
+    setFibaApplying(true);setFibaApplyRes(null);setFibaConfirmKey(null);
+    try{
+      const PLACEHOLDER="https://static.flashscore.com/res/image/empty-face-woman-share.gif";
+      const batchId=(window.crypto&&window.crypto.randomUUID)?window.crypto.randomUUID():("b-"+Date.now()+"-"+Math.random().toString(36).slice(2));
+      const backups=entries.map(({p})=>({
+        id_jugadora:p.id_jugadora,
+        foto_anterior:p.foto,
+        foto_nueva:PLACEHOLDER,
+        fiba_person_id_nuevo:null,
+        score:0,
+        batch_id:batchId
+      }));
+      const {error:bkErr}=await supabase.from("fotos_backup").insert(backups);
+      if(bkErr)throw bkErr;
+      let ok=0,err=0;
+      for(const b of backups){
+        const {error}=await supabase.from("jugadoras")
+          .update({foto:b.foto_nueva})
+          .eq("id_jugadora",b.id_jugadora);
+        if(error)err++;else ok++;
+      }
+      setFibaLastBatchId(batchId);
+      setFibaApplyRes({ok,err,batchId,total:backups.length,placeholder:true});
+      const applied=new Set(entries.map(e=>e.p.id_jugadora));
+      setFibaResults(prev=>prev?({
+        ...prev,
+        altos:prev.altos.filter(e=>!applied.has(e.p.id_jugadora)),
+        medios:prev.medios.filter(e=>!applied.has(e.p.id_jugadora)),
+        bajos:prev.bajos.filter(e=>!applied.has(e.p.id_jugadora))
+      }):prev);
+      onReload();
+    }catch(e){setFibaApplyRes({error:e.message});}
+    setFibaApplying(false);
+  }
+
   async function revertFibaBatch(batchId){
     if(!batchId)return;
     try{
@@ -3202,24 +3239,24 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   },[players,coaches]);
 
   var CAL_GROUPS=[
-    {title:"Revisión",items:[
-      {key:"incompletas",label:"Fichas incompletas",count:incompletasTotal},
-      {key:"duplicadas",label:"Temp. duplicadas",count:(duplicadas||[]).length},
-      {key:"duplicados_nombre",label:"Duplicados",count:totalNameDupes},
-    ]},
-    {title:"Media",items:[
-      {key:"escudos_rotos",label:"Escudos rotos",count:brokenInfo.broken.length},
-      {key:"fotos",label:"Fotos placeholder",count:fotosPlaceholder.jug.length+fotosPlaceholder.tec.length},
+    {title:"📇 Fichas",items:[
+      {key:"incompletas",label:"Incompletas",count:incompletasTotal},
+      {key:"duplicados_nombre",label:"Duplicados nombre",count:totalNameDupes},
       {key:"nacionalidades",label:"Nacionalidades",count:nacInfo.sinBandera.length+nacInfo.variantes.length+nacInfo.nacDup.length},
     ]},
-    {title:"Sistema",items:[
-      {key:"huecos",label:"Huecos de IDs",count:huecos?Object.values(huecos).reduce(function(a,v){return a+(v?v.total:0);},0):0},
+    {title:"🎬 Fotos & escudos",items:[
+      {key:"fotos",label:"Placeholders",count:fotosPlaceholder.jug.length+fotosPlaceholder.tec.length},
+      {key:"escudos_rotos",label:"Escudos rotos",count:brokenInfo.broken.length},
+      ...(isAdmin?[{key:"fotos_fiba",label:"Fotos → FIBA",count:fibaResults?.altos?.length||0}]:[]),
     ]},
-    ...(isAdmin?[{title:"Herramientas",items:[
+    {title:"📅 Estructura",items:[
+      {key:"duplicadas",label:"Temp. duplicadas",count:(duplicadas||[]).length},
+      {key:"huecos",label:"Huecos IDs",count:0},
+    ]},
+    ...(isAdmin?[{title:"🛠 Alta masiva",items:[
       {key:"scraper",label:"Scraper FIBA",count:0},
       {key:"ncaa",label:"NCAA ESPN",count:0},
       {key:"lotes",label:"Alta por lotes",count:0},
-      {key:"fotos_fiba",label:"Fotos → FIBA",count:fibaResults?.altos?.length||0},
     ]}]:[]),
   ];
   var CAL_TABS=CAL_GROUPS.flatMap(g=>g.items);
@@ -3503,21 +3540,40 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                     </div>
                   )}
                   {fibaSubTab==="bajos"&&(
-                    <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+                    <div>
                       {fibaResults.bajos.length===0?
                         <div style={{textAlign:"center",padding:"30px 0",color:"#94a3b8"}}>✅ Todas tienen algún match.</div>:
-                        fibaResults.bajos.map(function(e){return(
-                          <div key={e.p.id_jugadora} style={{display:"flex",alignItems:"center",gap:"10px",padding:"10px 12px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0"}}>
-                            <div style={{flex:1}}>
-                              <div style={{fontWeight:700,fontSize:"13px"}}>{e.p.nombre}</div>
-                              <div style={{fontSize:"11px",color:"#94a3b8"}}>{e.p.nacionalidad} · {e.p.fecha_nac}</div>
-                            </div>
-                            <a href={`https://www.fiba.basketball/en/search?text=${encodeURIComponent(e.p.nombre)}`} target="_blank" rel="noopener noreferrer"
-                              style={{background:"#2563eb",color:"#fff",padding:"6px 12px",borderRadius:"8px",textDecoration:"none",fontSize:"12px",fontWeight:700}}>
-                              Buscar en FIBA ↗
-                            </a>
+                        <>
+                          <div style={{display:"flex",gap:"8px",marginBottom:"14px",alignItems:"center",flexWrap:"wrap"}}>
+                            <button onClick={function(){
+                                if(fibaConfirmKey==="bajos_ph"){applyPlaceholderToEntries(fibaResults.bajos);}
+                                else{setFibaConfirmKey("bajos_ph");}
+                              }} disabled={fibaApplying}
+                              style={{background:fibaApplying?"#cbd5e1":(fibaConfirmKey==="bajos_ph"?"#dc2626":"#64748b"),color:"#fff",border:"none",borderRadius:"10px",padding:"10px 16px",fontWeight:700,fontSize:"13px",cursor:fibaApplying?"default":"pointer"}}>
+                              {fibaApplying?"Aplicando…":(fibaConfirmKey==="bajos_ph"?`⚠️ Pulsa otra vez para confirmar (${fibaResults.bajos.length})`:`👤 Poner placeholder a todas (${fibaResults.bajos.length})`)}
+                            </button>
+                            {fibaConfirmKey==="bajos_ph"&&!fibaApplying&&<button onClick={function(){setFibaConfirmKey(null);}} style={{background:"transparent",color:"#94a3b8",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"10px 14px",cursor:"pointer",fontSize:"12px"}}>Cancelar</button>}
+                            <span style={{fontSize:"11px",color:"#94a3b8"}}>Marca todas las jugadoras sin match con el placeholder oficial (empty-face). Reversible desde "↩ Revertir último lote".</span>
                           </div>
-                        );})
+                          <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+                            {fibaResults.bajos.map(function(e){return(
+                              <div key={e.p.id_jugadora} style={{display:"flex",alignItems:"center",gap:"10px",padding:"10px 12px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0"}}>
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{fontWeight:700,fontSize:"13px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{e.p.nombre}</div>
+                                  <div style={{fontSize:"11px",color:"#94a3b8"}}>{e.p.nacionalidad} · {e.p.fecha_nac}</div>
+                                </div>
+                                <button onClick={function(){applyPlaceholderToEntries([e]);}} disabled={fibaApplying}
+                                  style={{background:"#64748b",color:"#fff",border:"none",borderRadius:"8px",padding:"6px 10px",fontSize:"11px",fontWeight:700,cursor:fibaApplying?"default":"pointer"}}>
+                                  👤 Placeholder
+                                </button>
+                                <a href={`https://www.fiba.basketball/en/search?text=${encodeURIComponent(e.p.nombre)}`} target="_blank" rel="noopener noreferrer"
+                                  style={{background:"#2563eb",color:"#fff",padding:"6px 10px",borderRadius:"8px",textDecoration:"none",fontSize:"11px",fontWeight:700}}>
+                                  Buscar ↗
+                                </a>
+                              </div>
+                            );})}
+                          </div>
+                        </>
                       }
                     </div>
                   )}
