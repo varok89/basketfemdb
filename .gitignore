@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.next/
+.vercel/
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+
+# Claude Code / MCP local config
+.claude/
+.mcp.json
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

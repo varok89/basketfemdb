@@ -6310,7 +6310,6 @@ export default function App(){
     try{localStorage.setItem("bfdb_accepted","1");}catch{}
     setShowLanding(false);
   };
-  const ADMIN_EMAILS=["varok89@gmail.com","alvaro@basketfemdb.com","rumore@basketfemdb.com","jesus@basketfemdb.com"];
   const VAPID_PUBLIC="BJA0yYZKko4boy2Gpdoj4SFEE-MII_zEW86PTb1XhYmNtfavkE4ee44shsGAFuluzn5U39eB_L5TTTiAPtG1zns";
   const [pushEnabled,setPushEnabled]=useState(false);
   const [notifCount,setNotifCount]=useState(0);
@@ -6365,15 +6364,16 @@ export default function App(){
     const setupUser=async(session)=>{
       const u=session?.user||null;
       setUser(u);
-      setIsAdmin(u?ADMIN_EMAILS.includes(u.email):false);
       if(u){
+        const {data:isAdm}=await supabase.rpc("is_admin");
+        setIsAdmin(!!isAdm);
         const {data}=await supabase.from("favoritos").select("*").eq("user_id",u.id);
         setFavoritos(data||[]);
         checkPushStatus();
         const {data:notifs}=await supabase.from("notificaciones").select("*").eq("user_id",u.id).order("created_at",{ascending:false}).limit(20);
         setNotificaciones(notifs||[]);
         setNotifCount((notifs||[]).filter(n=>!n.leida).length);
-      }else{setFavoritos([]);setNotificaciones([]);setNotifCount(0);}
+      }else{setIsAdmin(false);setFavoritos([]);setNotificaciones([]);setNotifCount(0);}
     };
     supabase.auth.getSession().then(({data:{session}})=>setupUser(session));
     const {data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>setupUser(session));
