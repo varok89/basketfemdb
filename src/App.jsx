@@ -2563,6 +2563,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   var [fibaLastBatchId,setFibaLastBatchId]=useState(null);
   var [fibaApplying,setFibaApplying]=useState(false);
   var [fibaApplyRes,setFibaApplyRes]=useState(null);
+  var [fibaConfirmKey,setFibaConfirmKey]=useState(null);
 
   function fibaNorm(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z\s]/g," ").replace(/\s+/g," ").trim();}
   function fibaScoreCandidate(pl,cand){
@@ -2645,9 +2646,8 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   }
 
   async function applyFibaBatch(entries){
-    if(!entries?.length)return;
-    if(!window.confirm(`Aplicar ${entries.length} foto(s) FIBA?`))return;
-    setFibaApplying(true);setFibaApplyRes(null);
+    if(!entries?.length){setFibaApplyRes({error:"No hay entradas para aplicar."});return;}
+    setFibaApplying(true);setFibaApplyRes(null);setFibaConfirmKey(null);
     try{
       const batchId=(window.crypto&&window.crypto.randomUUID)?window.crypto.randomUUID():("b-"+Date.now()+"-"+Math.random().toString(36).slice(2));
       const backups=entries.map(({p,cand,score})=>({
@@ -2683,7 +2683,6 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
 
   async function revertFibaBatch(batchId){
     if(!batchId)return;
-    if(!window.confirm("Revertir el último lote? Se restaurarán las fotos anteriores."))return;
     try{
       const {data:rows,error}=await supabase.from("fotos_backup")
         .select("*").eq("batch_id",batchId).eq("revertido",false);
@@ -3473,10 +3472,16 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                       {fibaResults.altos.length===0?
                         <div style={{textAlign:"center",padding:"30px 0",color:"#94a3b8"}}>Sin candidatas de confianza alta.</div>:
                         <>
-                          <button onClick={function(){applyFibaBatch(fibaResults.altos);}} disabled={fibaApplying}
-                            style={{background:fibaApplying?"#cbd5e1":"#16a34a",color:"#fff",border:"none",borderRadius:"10px",padding:"11px 20px",fontWeight:700,fontSize:"14px",cursor:fibaApplying?"default":"pointer",marginBottom:"14px"}}>
-                            {fibaApplying?"Aplicando…":`✅ Aplicar todas (${fibaResults.altos.length})`}
-                          </button>
+                          <div style={{display:"flex",gap:"8px",marginBottom:"14px",alignItems:"center"}}>
+                            <button onClick={function(){
+                                if(fibaConfirmKey==="altos"){applyFibaBatch(fibaResults.altos);}
+                                else{setFibaConfirmKey("altos");}
+                              }} disabled={fibaApplying}
+                              style={{background:fibaApplying?"#cbd5e1":(fibaConfirmKey==="altos"?"#dc2626":"#16a34a"),color:"#fff",border:"none",borderRadius:"10px",padding:"11px 20px",fontWeight:700,fontSize:"14px",cursor:fibaApplying?"default":"pointer"}}>
+                              {fibaApplying?"Aplicando…":(fibaConfirmKey==="altos"?`⚠️ Pulsa otra vez para confirmar (${fibaResults.altos.length})`:`✅ Aplicar todas (${fibaResults.altos.length})`)}
+                            </button>
+                            {fibaConfirmKey==="altos"&&!fibaApplying&&<button onClick={function(){setFibaConfirmKey(null);}} style={{background:"transparent",color:"#94a3b8",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"11px 16px",cursor:"pointer",fontSize:"12px"}}>Cancelar</button>}
+                          </div>
                           <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
                             {fibaResults.altos.slice(0,15).map(function(e){return(
                               <FibaRow key={e.p.id_jugadora} entry={e} onApply={function(){applyFibaBatch([e]);}} showActions={false}/>
