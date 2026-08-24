@@ -2927,6 +2927,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   var scSlugState=useState("");var scSlug=scSlugState[0];var setScSlug=scSlugState[1];
   var scDryState=useState(true);var scDry=scDryState[0];var setScDry=scDryState[1];
   var scCrearState=useState(false);var scCrear=scCrearState[0];var setScCrear=scCrearState[1];
+  var scForceState=useState(false);var scForce=scForceState[0];var setScForce=scForceState[1];
   var scBusyState=useState(false);var scBusy=scBusyState[0];var setScBusy=scBusyState[1];
   var scResState=useState(null);var scRes=scResState[0];var setScRes=scResState[1];
   // Construye el slug FIBA desde la plantilla de la liga (columna slug_fiba) y la temporada.
@@ -2947,17 +2948,18 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     setScBusy(true);setScRes(null);
     // Se procesa por lotes: la Edge Function tiene limite de tiempo, asi que pedimos
     // ventanas de partidos y vamos acumulando hasta que no quede siguiente_offset.
-    var acc={partidos:0,total:0,creados:0,notas_rellenadas:0,hechos:0,saltados:0,filas:0,via_global:0,plantilla_altas:0,sin_mapear:[],sin_mapear_equipos:[],colisiones:[],creados_detalle:[],dry:scDry};
+    var acc={partidos:0,total:0,creados:0,notas_rellenadas:0,parciales_escritos:0,hechos:0,saltados:0,filas:0,via_global:0,plantilla_altas:0,sin_mapear:[],sin_mapear_equipos:[],colisiones:[],creados_detalle:[],dry:scDry};
     try{
       var offset=0,primera=true,guard=0;
       while(guard<80){
         guard++;
-        var inv=await supabase.functions.invoke("cargar-boxscores-fiba",{body:{id_liga:scLiga,temporada:scTemp.trim(),slug:scSlug.trim(),dry:scDry,crear:scCrear&&primera,offset:offset,limit:15}});
+        var inv=await supabase.functions.invoke("cargar-boxscores-fiba",{body:{id_liga:scLiga,temporada:scTemp.trim(),slug:scSlug.trim(),dry:scDry,crear:scCrear&&primera,force:scForce,offset:offset,limit:15}});
         if(inv.error){setScRes(Object.assign({},acc,{error:String((inv.error&&inv.error.message)||inv.error)}));setScBusy(false);return;}
         var d=inv.data||{};
         if(d.error){setScRes(Object.assign({},acc,{error:d.error}));setScBusy(false);return;}
         acc.partidos=d.partidos||acc.partidos;acc.total=d.total||acc.total;
         acc.creados+=d.creados||0;acc.notas_rellenadas+=d.notas_rellenadas||0;
+        acc.parciales_escritos+=d.parciales_escritos||0;
         acc.hechos+=d.hechos||0;acc.saltados+=d.saltados||0;acc.filas+=d.filas||0;
         acc.via_global+=d.via_global||0;acc.plantilla_altas+=d.plantilla_altas||0;
         acc.sin_mapear=Array.from(new Set(acc.sin_mapear.concat(d.sin_mapear||[])));
@@ -3437,7 +3439,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
         <div style={{flex:1,overflowY:"auto",padding:"16px 24px 24px"}}>
           {tab==="scraper"&&(
             <div>
-              <p style={{color:"#64748b",fontSize:"13px",marginBottom:"14px"}}>Reconstruye los boxscores (estadísticas por jugadora) de una competición FIBA a partir del play-by-play. Solo toca partidos que <b>ya tienen resultado</b> y aún no tienen boxscore; las jugadoras deben existir ya en sus temporadas. Si tarda mucho o se corta, vuelve a pulsar: continúa donde lo dejó.</p>
+              <p style={{color:"#64748b",fontSize:"13px",marginBottom:"14px"}}>Carga boxscores (estadísticas por jugadora) y parciales por cuarto de una competición FIBA leyendo directamente los datos oficiales del site. Puede crear también los partidos que falten con su fase y resultado. Solo procesa partidos que <b>ya tienen resultado</b>; las jugadoras deben existir ya en sus temporadas. Si tarda mucho o se corta, vuelve a pulsar: continúa donde lo dejó.</p>
               <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
                 <label style={{fontSize:"12px",fontWeight:700,color:"#475569"}}>Liga
                   <select value={scLiga} onChange={function(e){onScLiga(e.target.value);}} style={{width:"100%",marginTop:"4px",padding:"9px 10px",borderRadius:"10px",border:"1px solid #e2e8f0",fontSize:"13px",background:"#fff"}}>
@@ -3458,13 +3460,16 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                 <label style={{display:"flex",alignItems:"center",gap:"8px",fontSize:"13px",color:"#475569",cursor:"pointer"}}>
                   <input type="checkbox" checked={scCrear} onChange={function(e){setScCrear(e.target.checked);}}/> Crear también los partidos que falten (los baja de la lista del evento y mapea equipos por nombre)
                 </label>
+                <label style={{display:"flex",alignItems:"center",gap:"8px",fontSize:"13px",color:"#475569",cursor:"pointer"}}>
+                  <input type="checkbox" checked={scForce} onChange={function(e){setScForce(e.target.checked);}}/> Force: reescribir boxscores que ya existen (borra y vuelve a cargar las filas del partido)
+                </label>
                 <button onClick={runScraper} disabled={scBusy||!scLiga||!scSlug.trim()} style={{background:scBusy||!scLiga||!scSlug.trim()?"#cbd5e1":(scDry?"#0f172a":"#9333ea"),color:"#fff",border:"none",borderRadius:"10px",padding:"11px 20px",fontWeight:700,fontSize:"13px",cursor:scBusy||!scLiga||!scSlug.trim()?"default":"pointer"}}>{scBusy?"Scrapeando… (puede tardar)":(scDry?"▶ Probar":"⬇️ Scrapear boxscores")}</button>
               </div>
               {scRes&&(
                 <div style={{marginTop:"16px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:"12px",padding:"14px"}}>
                   {scRes.error?<div style={{color:"#ef4444",fontSize:"13px"}}>❌ {scRes.error}</div>:(
                     <div style={{fontSize:"13px",color:"#334155"}}>
-                      <div style={{fontWeight:700,marginBottom:"4px"}}>{scRes.dry?"🔎 Prueba · ":"✅ "}Partidos: {scRes.partidos}{scRes.creados>0?` · Creados: ${scRes.creados}`:""}{scRes.notas_rellenadas>0?` · Notas: ${scRes.notas_rellenadas}`:""} · Hechos: {scRes.hechos} · Saltados: {scRes.saltados} · Filas: {scRes.filas}{scRes.via_global>0?` · Global: ${scRes.via_global}`:""}{scRes.plantilla_altas>0?` · Altas plantilla: ${scRes.plantilla_altas}`:""}</div>
+                      <div style={{fontWeight:700,marginBottom:"4px"}}>{scRes.dry?"🔎 Prueba · ":"✅ "}Partidos: {scRes.partidos}{scRes.creados>0?` · Creados: ${scRes.creados}`:""}{scRes.notas_rellenadas>0?` · Notas: ${scRes.notas_rellenadas}`:""}{scRes.parciales_escritos>0?` · Parciales: ${scRes.parciales_escritos}`:""} · Hechos: {scRes.hechos} · Saltados: {scRes.saltados} · Filas: {scRes.filas}{scRes.via_global>0?` · Global: ${scRes.via_global}`:""}{scRes.plantilla_altas>0?` · Altas plantilla: ${scRes.plantilla_altas}`:""}</div>
                       {scRes.progreso&&<div style={{fontSize:"12px",color:"#64748b",marginBottom:"4px"}}>{scBusy?"⏳ Procesando por lotes… ":"Lotes completados: "}{scRes.progreso}{scRes.dry?" (en Prueba solo se procesa el primer lote)":""}</div>}
                       {scRes.colisiones&&scRes.colisiones.length>0&&<div style={{marginTop:"8px",color:"#dc2626",fontSize:"12px"}}><b>Colisiones ({scRes.colisiones.length})</b> — dos jugadoras del acta apuntan a la misma ficha, ese partido no se guardó: {scRes.colisiones.join("  ·  ")}</div>}
                       {scRes.sin_mapear_equipos&&scRes.sin_mapear_equipos.length>0&&<div style={{marginTop:"8px",color:"#dc2626",fontSize:"12px"}}><b>Equipos sin mapear ({scRes.sin_mapear_equipos.length})</b> — no se creó ese partido; revisa el nombre del equipo: {scRes.sin_mapear_equipos.join("  ·  ")}</div>}
