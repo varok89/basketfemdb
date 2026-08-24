@@ -2,6 +2,6 @@
   "rewrites": [
     { "source": "/jugadoras/:id", "destination": "/api/jugadora/:id" },
     { "source": "/equipos/:id", "destination": "/api/equipo/:id" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
