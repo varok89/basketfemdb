@@ -2591,30 +2591,27 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       for(let i=0;i<jugs.length;i++){
         const p=jugs[i];
         try{
-          const r=await fetch(`/api/fiba-person/${p.fiba_person_id}`);
-          if(!r.ok)throw new Error("HTTP "+r.status);
-          const fiba=await r.json();
+          // Búsqueda hapi de FIBA (CORS ok, sin proxy, sin rate-limit). Da birthdate + country
+          // pero no altura. Filtramos por id exacto para elegir la candidata correcta.
+          const cands=await fibaSearchOne(p);
+          const fiba=cands.find(c=>String(c.id)===String(p.fiba_person_id));
+          if(!fiba)throw new Error("id "+p.fiba_person_id+" no en resultados FIBA");
+          const fibaDob=fiba.birthdate?new Date(fiba.birthdate).toISOString().slice(0,10):null;
           const diffs={};
-          // Altura
-          if(fiba.height_cm&&fiba.height_cm!==p.altura_cm){
-            diffs.altura_cm={de:p.altura_cm,a:fiba.height_cm};
+          if(fibaDob&&fibaDob!==p.fecha_nac){
+            diffs.fecha_nac={de:p.fecha_nac,a:fibaDob};
           }
-          // Fecha nac
-          if(fiba.birthdate&&fiba.birthdate!==p.fecha_nac){
-            diffs.fecha_nac={de:p.fecha_nac,a:fiba.birthdate};
-          }
-          // Nacionalidad (solo aviso, no auto-aplicar por complejidad de mapping ISO3→ES)
           const bdIso2=countryCode(p.nacionalidad);
           const bdIso3=bdIso2?ISO2_TO_ISO3[bdIso2]:null;
-          if(fiba.nationality&&bdIso3&&bdIso3!==fiba.nationality){
-            diffs.nacionalidad={de:p.nacionalidad,a:fiba.nationality,soloAviso:true};
+          if(fiba.country&&bdIso3&&bdIso3!==fiba.country){
+            diffs.nacionalidad={de:p.nacionalidad,a:fiba.country,soloAviso:true};
           }
-          const entry={p,fiba,diffs};
+          const entry={p,fiba:{birthdate:fibaDob,nationality:fiba.country},diffs};
           if(Object.keys(diffs).filter(k=>!diffs[k].soloAviso).length>0)conDiff.push(entry);
           else sinDiff.push(entry);
         }catch(e){errores.push({p,err:String(e.message||e)});}
         setLlenoProgress({done:i+1,total:jugs.length});
-        await new Promise(r=>setTimeout(r,1500));
+        await new Promise(r=>setTimeout(r,250));
       }
       setLlenoResults({conDiff,sinDiff,errores});
     }catch(e){setLlenoResults({error:e.message});}
@@ -3615,7 +3612,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           {tab==="lleno_fiba"&&(
             <div style={{padding:"4px"}}>
               <p style={{color:"#64748b",fontSize:"13px",marginBottom:"14px"}}>
-                Consulta la ficha oficial FIBA de cada jugadora con <code style={{background:"#f1f5f9",padding:"1px 5px",borderRadius:"4px",fontSize:"11px"}}>fiba_person_id</code> guardado y compara <b>altura y fecha de nacimiento</b> con lo que hay en la BD. Los cambios se aplican y quedan revertibles. La nacionalidad se muestra solo como aviso.
+                Consulta la ficha oficial FIBA de cada jugadora con <code style={{background:"#f1f5f9",padding:"1px 5px",borderRadius:"4px",fontSize:"11px"}}>fiba_person_id</code> guardado y compara <b>fecha de nacimiento</b> con la BD. Los cambios se aplican y quedan revertibles. La nacionalidad se muestra solo como aviso.
               </p>
               {!llenoResults&&(
                 <div style={{display:"flex",gap:"10px",flexWrap:"wrap",alignItems:"center"}}>
