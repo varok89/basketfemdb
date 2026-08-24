@@ -2608,7 +2608,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           else sinDiff.push(entry);
         }catch(e){errores.push({p,err:String(e.message||e)});}
         setLlenoProgress({done:i+1,total:jugs.length});
-        await new Promise(r=>setTimeout(r,200));
+        await new Promise(r=>setTimeout(r,1500));
       }
       setLlenoResults({conDiff,sinDiff,errores});
     }catch(e){setLlenoResults({error:e.message});}

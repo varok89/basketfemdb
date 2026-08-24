@@ -15,16 +15,25 @@ module.exports = async (req, res) => {
 
   try {
     const fibaUrl = `https://www.fiba.basketball/en/players/${personId}`;
-    const r = await fetch(fibaUrl, {
-      redirect: "follow",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-      },
-    });
-    if (!r.ok) { res.status(r.status).json({ error: "FIBA HTTP " + r.status, id: personId }); return; }
-    const html = await r.text();
+    const headers = {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.9",
+    };
+    // FIBA/Cloudflare rate-limita agresivamente cuando ven muchos hits desde una IP.
+    // Reintentamos con backoff exponencial si la respuesta no parece útil.
+    let html = "";
+    let lastStatus = 0;
+    const delays = [0, 800, 2000, 4500];
+    for (const wait of delays) {
+      if (wait > 0) await new Promise(rr => setTimeout(rr, wait + Math.floor(Math.random() * 400)));
+      const r = await fetch(fibaUrl, { redirect: "follow", headers });
+      lastStatus = r.status;
+      html = await r.text();
+      // Consideramos "buena respuesta" si trae el JSON-LD o al menos los labels de la ficha.
+      if (r.ok && (html.includes('"@type":"Person"') || /HEIGHT|NATIONALITY|DATE OF BIRTH/i.test(html))) break;
+    }
+    if (!html) { res.status(lastStatus || 502).json({ error: "FIBA HTTP " + lastStatus, id: personId }); return; }
 
     // El HTML del perfil incluye un JSON-LD schema.org Person con los datos oficiales.
     const scriptRe = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/g;
