@@ -15,15 +15,24 @@ module.exports = async (req, res) => {
 
   try {
     const fibaUrl = `https://www.fiba.basketball/en/players/${personId}`;
-    const r = await fetch(fibaUrl, { redirect: "follow", headers: { "User-Agent": "basketfemdb-fiba-proxy" } });
+    const r = await fetch(fibaUrl, {
+      redirect: "follow",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+    });
     if (!r.ok) { res.status(r.status).json({ error: "FIBA HTTP " + r.status, id: personId }); return; }
     const html = await r.text();
 
     // El HTML del perfil incluye un JSON-LD schema.org Person con los datos oficiales.
     const scriptRe = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/g;
     let person = null;
+    let jsonLdCount = 0;
     let m;
     while ((m = scriptRe.exec(html)) !== null) {
+      jsonLdCount++;
       try {
         const parsed = JSON.parse(m[1]);
         const items = Array.isArray(parsed) ? parsed : [parsed];
@@ -33,7 +42,39 @@ module.exports = async (req, res) => {
         if (person) break;
       } catch (_) { /* seguir buscando */ }
     }
-    if (!person) { res.status(404).json({ error: "Person JSON-LD no encontrado", id: personId }); return; }
+    if (!person) {
+      // Fallback: parsear directamente los campos visibles del HTML (SSR de Next.js con el bloque bio).
+      const nameM = html.match(/<title>([^<]+)<\/title>/i);
+      const heightMatch = html.match(/HEIGHT[\s\S]{0,120}?(\d{2,3})\s*cm/i);
+      const dobMatch = html.match(/DATE OF BIRTH[\s\S]{0,200}?([A-Z][a-z]{2,8})\s+(\d{1,2}),?\s+(\d{4})/);
+      const natMatch = html.match(/NATIONALITY[\s\S]{0,120}?\b([A-Z]{3})\b/);
+      if (heightMatch || dobMatch || natMatch) {
+        let birthdate = null;
+        if (dobMatch) {
+          const d = new Date(`${dobMatch[1]} ${dobMatch[2]}, ${dobMatch[3]}`);
+          if (!isNaN(d.getTime())) birthdate = d.toISOString().slice(0, 10);
+        }
+        res.status(200).json({
+          id: personId,
+          name: nameM ? nameM[1].split("(")[0].trim() : null,
+          height_cm: heightMatch ? parseInt(heightMatch[1], 10) : null,
+          birthdate,
+          nationality: natMatch ? natMatch[1] : null,
+          gender: null,
+          url: fibaUrl,
+          fallback: "regex",
+        });
+        return;
+      }
+      res.status(404).json({
+        error: "Person JSON-LD no encontrado",
+        id: personId,
+        htmlLen: html.length,
+        jsonLdCount,
+        htmlHead: html.slice(0, 300),
+      });
+      return;
+    }
 
     // Normalizar height "182 cm" → 182 (int).
     let heightCm = null;
