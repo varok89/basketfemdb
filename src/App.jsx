@@ -2462,7 +2462,7 @@ function checkIdGaps(items,key,prefix,pad){
   var ff=ids.length?(function(){var s=new Set(ids);var i=1;while(s.has(i))i++;return i;})():1;
   var maxN=ids[ids.length-1]||0;var nextAfterMax=prefix+(pad?String(maxN+1).padStart(pad,"0"):maxN+1);return{gaps:gaps.slice(0,15),total:gaps.length,nextFree:prefix+(pad?String(ff).padStart(pad,"0"):ff),max:maxN,nextAfterMax};
 }
-function FibaRow({entry,onApply,showActions}){
+function FibaRow({entry,onApply,onPlaceholder,showActions}){
   const {p,cand,score,cands}=entry;
   const [pick,setPick]=useState(cand);
   const fotoUrl=pick?`https://assets.fiba.basketball/image/upload/w_120,c_fill,g_face/q_auto/f_auto/.headshot--person_${pick.id}`:null;
@@ -2495,6 +2495,12 @@ function FibaRow({entry,onApply,showActions}){
       {showActions&&(
         <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
           <button onClick={onApply} style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:"6px",padding:"5px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>Aplicar</button>
+          {onPlaceholder&&(
+            <button onClick={onPlaceholder} title="Ninguna de las FIBA es esta jugadora — poner placeholder"
+              style={{background:"#64748b",color:"#fff",border:"none",borderRadius:"6px",padding:"5px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>
+              👤 Placeholder
+            </button>
+          )}
           {cands.length>1&&(
             <select value={pick?.id||""} onChange={function(e){const c=cands.find(x=>String(x.id)===e.target.value);if(c)setPick(c);}}
               style={{fontSize:"10px",padding:"3px",borderRadius:"5px",border:"1px solid #e2e8f0",maxWidth:"110px"}}>
@@ -3761,7 +3767,10 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                       {fibaResults.medios.length===0?
                         <div style={{textAlign:"center",padding:"30px 0",color:"#94a3b8"}}>Sin candidatas para revisar.</div>:
                         fibaResults.medios.map(function(e){return(
-                          <FibaRow key={e.p.id_jugadora} entry={e} onApply={function(){applyFibaBatch([e]);}} showActions={true}/>
+                          <FibaRow key={e.p.id_jugadora} entry={e}
+                            onApply={function(){applyFibaBatch([e]);}}
+                            onPlaceholder={function(){applyPlaceholderToEntries([e]);}}
+                            showActions={true}/>
                         );})
                       }
                     </div>
