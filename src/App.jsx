@@ -2564,6 +2564,121 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   var [fibaApplying,setFibaApplying]=useState(false);
   var [fibaApplyRes,setFibaApplyRes]=useState(null);
   var [fibaConfirmKey,setFibaConfirmKey]=useState(null);
+  // ── Rellenar desde FIBA (autocompleta altura/fecha_nac desde ficha oficial usando fiba_person_id) ──
+  var [llenoBusy,setLlenoBusy]=useState(false);
+  var [llenoProgress,setLlenoProgress]=useState({done:0,total:0});
+  var [llenoResults,setLlenoResults]=useState(null);
+  var [llenoApplying,setLlenoApplying]=useState(false);
+  var [llenoApplyRes,setLlenoApplyRes]=useState(null);
+  var [llenoConfirmKey,setLlenoConfirmKey]=useState(null);
+  var [llenoLastBatchId,setLlenoLastBatchId]=useState(null);
+
+  async function runLlenoScan(){
+    setLlenoBusy(true);setLlenoResults(null);setLlenoApplyRes(null);
+    try{
+      const {data:jugs,error}=await supabase.from("jugadoras")
+        .select("id_jugadora,nombre,nacionalidad,fecha_nac,altura_cm,fiba_person_id")
+        .not("fiba_person_id","is",null);
+      if(error)throw error;
+      setLlenoProgress({done:0,total:jugs.length});
+      const conDiff=[],sinDiff=[],errores=[];
+      for(let i=0;i<jugs.length;i++){
+        const p=jugs[i];
+        try{
+          const r=await fetch(`/api/fiba-person/${p.fiba_person_id}`);
+          if(!r.ok)throw new Error("HTTP "+r.status);
+          const fiba=await r.json();
+          const diffs={};
+          // Altura
+          if(fiba.height_cm&&fiba.height_cm!==p.altura_cm){
+            diffs.altura_cm={de:p.altura_cm,a:fiba.height_cm};
+          }
+          // Fecha nac
+          if(fiba.birthdate&&fiba.birthdate!==p.fecha_nac){
+            diffs.fecha_nac={de:p.fecha_nac,a:fiba.birthdate};
+          }
+          // Nacionalidad (solo aviso, no auto-aplicar por complejidad de mapping ISO3→ES)
+          const bdIso2=countryCode(p.nacionalidad);
+          const bdIso3=bdIso2?ISO2_TO_ISO3[bdIso2]:null;
+          if(fiba.nationality&&bdIso3&&bdIso3!==fiba.nationality){
+            diffs.nacionalidad={de:p.nacionalidad,a:fiba.nationality,soloAviso:true};
+          }
+          const entry={p,fiba,diffs};
+          if(Object.keys(diffs).filter(k=>!diffs[k].soloAviso).length>0)conDiff.push(entry);
+          else sinDiff.push(entry);
+        }catch(e){errores.push({p,err:String(e.message||e)});}
+        setLlenoProgress({done:i+1,total:jugs.length});
+        await new Promise(r=>setTimeout(r,200));
+      }
+      setLlenoResults({conDiff,sinDiff,errores});
+    }catch(e){setLlenoResults({error:e.message});}
+    setLlenoBusy(false);
+  }
+
+  async function applyLlenoBatch(entries){
+    if(!entries?.length){setLlenoApplyRes({error:"No hay entradas."});return;}
+    setLlenoApplying(true);setLlenoApplyRes(null);setLlenoConfirmKey(null);
+    try{
+      const batchId=(window.crypto&&window.crypto.randomUUID)?window.crypto.randomUUID():("b-"+Date.now()+"-"+Math.random().toString(36).slice(2));
+      const backups=[];
+      const updates=[];
+      for(const e of entries){
+        const upd={};
+        for(const campo of Object.keys(e.diffs)){
+          if(e.diffs[campo].soloAviso)continue;
+          upd[campo]=e.diffs[campo].a;
+          backups.push({
+            id_jugadora:e.p.id_jugadora,
+            campo:campo,
+            valor_anterior:e.diffs[campo].de==null?null:String(e.diffs[campo].de),
+            valor_nuevo:String(e.diffs[campo].a),
+            batch_id:batchId
+          });
+        }
+        if(Object.keys(upd).length>0)updates.push({id_jugadora:e.p.id_jugadora,upd});
+      }
+      if(backups.length>0){
+        const {error:bkErr}=await supabase.from("datos_backup").insert(backups);
+        if(bkErr)throw bkErr;
+      }
+      let ok=0,err=0;
+      for(const u of updates){
+        const {error}=await supabase.from("jugadoras").update(u.upd).eq("id_jugadora",u.id_jugadora);
+        if(error)err++;else ok++;
+      }
+      setLlenoLastBatchId(batchId);
+      setLlenoApplyRes({ok,err,batchId,total:updates.length,campos:backups.length});
+      const applied=new Set(entries.map(e=>e.p.id_jugadora));
+      setLlenoResults(prev=>prev?({...prev,conDiff:prev.conDiff.filter(e=>!applied.has(e.p.id_jugadora))}):prev);
+      onReload();
+    }catch(e){setLlenoApplyRes({error:e.message});}
+    setLlenoApplying(false);
+  }
+
+  async function revertLlenoBatch(batchId){
+    if(!batchId)return;
+    try{
+      const {data:rows,error}=await supabase.from("datos_backup")
+        .select("*").eq("batch_id",batchId).eq("revertido",false);
+      if(error)throw error;
+      const porJug={};
+      for(const r of rows||[]){
+        if(!porJug[r.id_jugadora])porJug[r.id_jugadora]={};
+        let v=r.valor_anterior;
+        if(r.campo==="altura_cm"&&v!=null)v=parseInt(v,10);
+        porJug[r.id_jugadora][r.campo]=v;
+      }
+      let ok=0;
+      for(const id_jugadora of Object.keys(porJug)){
+        const {error:uErr}=await supabase.from("jugadoras").update(porJug[id_jugadora]).eq("id_jugadora",id_jugadora);
+        if(!uErr)ok++;
+      }
+      await supabase.from("datos_backup").update({revertido:true,revertido_at:new Date().toISOString()}).eq("batch_id",batchId);
+      alert(`Revertidas ${ok} de ${Object.keys(porJug).length} jugadoras.`);
+      setLlenoLastBatchId(null);
+      onReload();
+    }catch(e){alert("Error revirtiendo: "+e.message);}
+  }
 
   function fibaNorm(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z\s]/g," ").replace(/\s+/g," ").trim();}
   function fibaScoreCandidate(pl,cand){
@@ -3263,6 +3378,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       {key:"incompletas",label:"Incompletas",count:incompletasTotal},
       {key:"duplicados_nombre",label:"Duplicados nombre",count:totalNameDupes},
       {key:"nacionalidades",label:"Nacionalidades",count:nacInfo.sinBandera.length+nacInfo.variantes.length+nacInfo.nacDup.length},
+      ...(isAdmin?[{key:"lleno_fiba",label:"Rellenar desde FIBA",count:llenoResults?.conDiff?.length||0}]:[]),
     ]},
     {title:"🎬 Fotos & escudos",items:[
       {key:"fotos",label:"Placeholders",count:fotosPlaceholder.jug.length+fotosPlaceholder.tec.length},
@@ -3488,6 +3604,97 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                   </div>}
                 </>}
               </div>}
+            </div>
+          )}
+          {tab==="lleno_fiba"&&(
+            <div style={{padding:"4px"}}>
+              <p style={{color:"#64748b",fontSize:"13px",marginBottom:"14px"}}>
+                Consulta la ficha oficial FIBA de cada jugadora con <code style={{background:"#f1f5f9",padding:"1px 5px",borderRadius:"4px",fontSize:"11px"}}>fiba_person_id</code> guardado y compara <b>altura y fecha de nacimiento</b> con lo que hay en la BD. Los cambios se aplican y quedan revertibles. La nacionalidad se muestra solo como aviso.
+              </p>
+              {!llenoResults&&(
+                <div style={{display:"flex",gap:"10px",flexWrap:"wrap",alignItems:"center"}}>
+                  <button onClick={runLlenoScan} disabled={llenoBusy}
+                    style={{background:llenoBusy?"#cbd5e1":"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"11px 20px",fontWeight:700,fontSize:"13px",cursor:llenoBusy?"default":"pointer"}}>
+                    {llenoBusy?`🔎 Escaneando… ${llenoProgress.done}/${llenoProgress.total}`:"🔍 Escanear datos FIBA"}
+                  </button>
+                  {llenoLastBatchId&&(
+                    <button onClick={()=>revertLlenoBatch(llenoLastBatchId)}
+                      style={{background:"#f59e0b",color:"#fff",border:"none",borderRadius:"10px",padding:"11px 16px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
+                      ↩ Revertir último lote
+                    </button>
+                  )}
+                </div>
+              )}
+              {llenoResults?.error&&<div style={{marginTop:"12px",color:"#ef4444",fontSize:"13px"}}>❌ {llenoResults.error}</div>}
+              {llenoResults&&!llenoResults.error&&(
+                <div>
+                  <div style={{display:"flex",gap:"8px",marginBottom:"14px",alignItems:"center",flexWrap:"wrap"}}>
+                    <div style={{fontSize:"13px",color:"#334155"}}>
+                      Con diferencias: <b>{llenoResults.conDiff.length}</b> · Sin cambios: <b>{llenoResults.sinDiff.length}</b> · Errores: <b>{llenoResults.errores.length}</b>
+                    </div>
+                    <button onClick={function(){setLlenoResults(null);setLlenoApplyRes(null);}}
+                      style={{marginLeft:"auto",background:"transparent",color:"#94a3b8",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"6px 12px",cursor:"pointer",fontSize:"12px"}}>
+                      Reset
+                    </button>
+                  </div>
+                  {llenoResults.conDiff.length>0&&(
+                    <div style={{display:"flex",gap:"8px",marginBottom:"14px",alignItems:"center",flexWrap:"wrap"}}>
+                      <button onClick={function(){
+                          if(llenoConfirmKey==="all"){applyLlenoBatch(llenoResults.conDiff);}
+                          else{setLlenoConfirmKey("all");}
+                        }} disabled={llenoApplying}
+                        style={{background:llenoApplying?"#cbd5e1":(llenoConfirmKey==="all"?"#dc2626":"#16a34a"),color:"#fff",border:"none",borderRadius:"10px",padding:"11px 20px",fontWeight:700,fontSize:"14px",cursor:llenoApplying?"default":"pointer"}}>
+                        {llenoApplying?"Aplicando…":(llenoConfirmKey==="all"?`⚠️ Pulsa otra vez para confirmar (${llenoResults.conDiff.length})`:`✅ Aplicar todas (${llenoResults.conDiff.length})`)}
+                      </button>
+                      {llenoConfirmKey==="all"&&!llenoApplying&&<button onClick={function(){setLlenoConfirmKey(null);}} style={{background:"transparent",color:"#94a3b8",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"11px 16px",cursor:"pointer",fontSize:"12px"}}>Cancelar</button>}
+                    </div>
+                  )}
+                  <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+                    {llenoResults.conDiff.map(function(e){
+                      const cambios=Object.keys(e.diffs);
+                      return(
+                        <div key={e.p.id_jugadora} style={{padding:"10px 12px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0"}}>
+                          <div style={{display:"flex",gap:"10px",alignItems:"center",marginBottom:"6px"}}>
+                            <div style={{flex:1,fontWeight:700,fontSize:"13px"}}>{e.p.nombre}</div>
+                            <button onClick={function(){applyLlenoBatch([e]);}} disabled={llenoApplying}
+                              style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:"8px",padding:"5px 12px",fontSize:"11px",fontWeight:700,cursor:llenoApplying?"default":"pointer"}}>
+                              Aplicar
+                            </button>
+                          </div>
+                          <div style={{display:"flex",flexWrap:"wrap",gap:"6px"}}>
+                            {cambios.map(function(campo){
+                              const d=e.diffs[campo];
+                              const bg=d.soloAviso?"#fef3c7":"#dbeafe";
+                              const fg=d.soloAviso?"#92400e":"#1e40af";
+                              return(
+                                <div key={campo} style={{background:bg,color:fg,padding:"3px 8px",borderRadius:"6px",fontSize:"11px",fontWeight:700}}>
+                                  {campo}: <span style={{textDecoration:"line-through",opacity:0.7}}>{d.de==null?"—":String(d.de)}</span> → <b>{String(d.a)}</b>{d.soloAviso&&" (aviso)"}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {llenoResults.conDiff.length===0&&(
+                      <div style={{textAlign:"center",padding:"30px 0",color:"#94a3b8"}}>✅ Ninguna jugadora tiene datos distintos de FIBA.</div>
+                    )}
+                  </div>
+                  {llenoApplyRes&&(
+                    <div style={{marginTop:"14px",padding:"12px",background:llenoApplyRes.error?"#fef2f2":"#f0fdf4",borderRadius:"10px",border:"1px solid "+(llenoApplyRes.error?"#fecaca":"#bbf7d0"),fontSize:"13px"}}>
+                      {llenoApplyRes.error?<>❌ {llenoApplyRes.error}</>:<>✅ Aplicadas <b>{llenoApplyRes.ok}</b> jugadoras · <b>{llenoApplyRes.campos}</b> campos actualizados</>}
+                    </div>
+                  )}
+                  {llenoResults.errores.length>0&&(
+                    <details style={{marginTop:"12px"}}>
+                      <summary style={{fontSize:"12px",color:"#94a3b8",cursor:"pointer"}}>⚠️ Errores ({llenoResults.errores.length})</summary>
+                      <div style={{maxHeight:"120px",overflowY:"auto",fontSize:"11px",color:"#64748b",marginTop:"4px"}}>
+                        {llenoResults.errores.map(function(er,i){return <div key={i}>{er.p.nombre}: {er.err}</div>;})}
+                      </div>
+                    </details>
+                  )}
+                </div>
+              )}
             </div>
           )}
           {tab==="fotos_fiba"&&(
