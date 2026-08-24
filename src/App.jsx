@@ -2597,13 +2597,33 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   async function fibaSearchOne(pl){
     const partes=fibaNorm(pl.nombre).split(" ").filter(t=>t.length>=2);
     if(partes.length<1)return [];
-    const nom=partes[0],ape=partes[partes.length-1];
-    const s=`(${nom} + ${ape}) | (${nom} | ${ape}) | (${nom}* | ${ape}*)`;
-    const url=FIBA_SEARCH_URL+"?s="+encodeURIComponent(s)+"&l=en&c=hub&teamsfilter="+encodeURIComponent("organisationstatuscode eq 'ACT'");
-    const r=await fetch(url,{headers:{"Content-Type":"application/json","Ocp-Apim-Subscription-Key":FIBA_APIM_KEY}});
-    if(!r.ok)throw new Error("FIBA HTTP "+r.status);
-    const arr=await r.json();
-    return arr.filter(x=>x.type==="players").map(x=>{try{return JSON.parse(x.data);}catch(_){return null;}}).filter(Boolean).slice(0,10);
+    const nom=partes[0];
+    // Múltiples estrategias de apellido para nombres con 3+ tokens (típico español: doble apellido).
+    // FIBA a veces indexa por el primer apellido, otras por el último — probamos ambos y unimos.
+    const apellidos=[];
+    if(partes.length<=2){
+      apellidos.push(partes[partes.length-1]);
+    }else{
+      apellidos.push(partes[1]);
+      apellidos.push(partes[partes.length-1]);
+      if(partes.length>=4&&apellidos.indexOf(partes[partes.length-2])<0)apellidos.push(partes[partes.length-2]);
+    }
+    const seen=new Set();
+    const all=[];
+    for(const ape of apellidos){
+      if(ape===nom)continue;
+      const s=`(${nom} + ${ape}) | (${nom} | ${ape}) | (${nom}* | ${ape}*)`;
+      const url=FIBA_SEARCH_URL+"?s="+encodeURIComponent(s)+"&l=en&c=hub&teamsfilter="+encodeURIComponent("organisationstatuscode eq 'ACT'");
+      try{
+        const r=await fetch(url,{headers:{"Content-Type":"application/json","Ocp-Apim-Subscription-Key":FIBA_APIM_KEY}});
+        if(!r.ok)continue;
+        const arr=await r.json();
+        const cands=arr.filter(x=>x.type==="players").map(x=>{try{return JSON.parse(x.data);}catch(_){return null;}}).filter(Boolean);
+        for(const c of cands){if(!seen.has(String(c.id))){seen.add(String(c.id));all.push(c);}}
+        if(apellidos.length>1)await new Promise(r=>setTimeout(r,150));
+      }catch(_){}
+    }
+    return all.slice(0,15);
   }
 
   async function runFibaScan(){
