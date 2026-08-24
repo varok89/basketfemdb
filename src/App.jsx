@@ -2462,6 +2462,51 @@ function checkIdGaps(items,key,prefix,pad){
   var ff=ids.length?(function(){var s=new Set(ids);var i=1;while(s.has(i))i++;return i;})():1;
   var maxN=ids[ids.length-1]||0;var nextAfterMax=prefix+(pad?String(maxN+1).padStart(pad,"0"):maxN+1);return{gaps:gaps.slice(0,15),total:gaps.length,nextFree:prefix+(pad?String(ff).padStart(pad,"0"):ff),max:maxN,nextAfterMax};
 }
+function FibaRow({entry,onApply,showActions}){
+  const {p,cand,score,cands}=entry;
+  const [pick,setPick]=useState(cand);
+  const fotoUrl=pick?`https://assets.fiba.basketball/image/upload/w_120,c_fill,g_face/q_auto/f_auto/.headshot--person_${pick.id}`:null;
+  const badge=(ok,label)=>(
+    <span style={{display:"inline-block",padding:"1px 6px",borderRadius:"6px",fontSize:"10px",fontWeight:700,background:ok?"#dcfce7":"#fee2e2",color:ok?"#166534":"#991b1b",marginRight:"4px"}}>{ok?"✓":"✗"} {label}</span>
+  );
+  return(
+    <div style={{display:"flex",gap:"10px",padding:"8px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0",alignItems:"center"}}>
+      <img src={p.foto} alt="" width={40} height={40} style={{borderRadius:"6px",objectFit:"cover",background:"#e2e8f0"}}
+        onError={function(e){e.currentTarget.style.opacity=0.3;}}/>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontWeight:700,fontSize:"13px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>
+        <div style={{fontSize:"11px",color:"#94a3b8"}}>{p.nacionalidad} · {p.fecha_nac}</div>
+        <div style={{marginTop:"3px"}}>
+          {badge(score.nameOk,"nombre")}
+          {score.countryPresent&&badge(score.countryOk,"país")}
+          {score.dobPresent&&badge(score.dobOk,"nac.")}
+        </div>
+      </div>
+      <div style={{fontSize:"11px",textAlign:"right"}}>
+        {pick?(
+          <>
+            <div style={{fontWeight:700}}>{(pick.display_firstname||pick.firstname)+" "+(pick.display_lastname||pick.lastname)}</div>
+            <div style={{color:"#94a3b8"}}>{pick.country} · {(pick.birthdate||"").slice(0,10)}</div>
+            <div style={{color:"#94a3b8",fontSize:"10px"}}>id {pick.id}</div>
+          </>
+        ):<div style={{color:"#94a3b8"}}>sin candidato</div>}
+      </div>
+      {fotoUrl&&<img src={fotoUrl} alt="" width={40} height={40} style={{borderRadius:"6px",objectFit:"cover"}} onError={function(e){e.currentTarget.style.opacity=0.3;}}/>}
+      {showActions&&(
+        <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
+          <button onClick={onApply} style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:"6px",padding:"5px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>Aplicar</button>
+          {cands.length>1&&(
+            <select value={pick?.id||""} onChange={function(e){const c=cands.find(x=>String(x.id)===e.target.value);if(c)setPick(c);}}
+              style={{fontSize:"10px",padding:"3px",borderRadius:"5px",border:"1px solid #e2e8f0",maxWidth:"110px"}}>
+              {cands.map(function(c){return <option key={c.id} value={c.id}>{(c.display_lastname||c.lastname)} ({c.country})</option>;})}
+            </select>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach,onReload,isAdmin,setPlayers,setEquipos,setLigas,setCoaches,setTempCoach}){
   var tabState=useState("incompletas");
   var tab=tabState[0];var setTab=tabState[1];
@@ -2502,6 +2547,159 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     }catch(e){setNcaaRes({error:e.message});}
     setNcaaStep("done");
     onReload();
+  }
+
+  // ── Fotos → FIBA (migración masiva de fotos rotas a FIBA por matching nombre+país+DOB) ──
+  // La subscription key está expuesta públicamente en el bundle JS de fiba.basketball.
+  // Si FIBA la rota, reemplazar esta constante mirando el bundle actual.
+  const FIBA_APIM_KEY="898cd5e7389140028ecb42943c47eb74";
+  const FIBA_SEARCH_URL="https://digital-api.fiba.basketball/hapi//getsearchresult";
+  // Mapping ISO2 → ISO3 (FIBA devuelve códigos ISO3, la app usa ISO2 vía countryCode()).
+  const ISO2_TO_ISO3={ad:"AND",ae:"UAE",af:"AFG",ag:"ATG",al:"ALB",am:"ARM",ao:"ANG",ar:"ARG",at:"AUT",au:"AUS",az:"AZE",ba:"BIH",bb:"BAR",bd:"BAN",be:"BEL",bf:"BUR",bg:"BUL",bh:"BRN",bi:"BDI",bj:"BEN",bn:"BRU",bo:"BOL",br:"BRA",bs:"BAH",bt:"BHU",bw:"BOT",by:"BLR",bz:"BIZ",ca:"CAN",cd:"COD",cf:"CAF",cg:"CGO",ch:"SUI",ci:"CIV",cl:"CHI",cm:"CMR",cn:"CHN",co:"COL",cr:"CRC",cu:"CUB",cv:"CPV",cy:"CYP",cz:"CZE",de:"GER",dj:"DJI",dk:"DEN",dm:"DMA",do:"DOM",dz:"ALG",ec:"ECU",ee:"EST",eg:"EGY",er:"ERI",es:"ESP",et:"ETH",fi:"FIN",fj:"FIJ",fr:"FRA",ga:"GAB",gb:"GBR",gd:"GRN",ge:"GEO",gh:"GHA",gm:"GAM",gn:"GUI",gq:"GEQ",gr:"GRE",gt:"GUA",gw:"GBS",gy:"GUY",hk:"HKG",hn:"HON",hr:"CRO",ht:"HAI",hu:"HUN",id:"INA",ie:"IRL",il:"ISR",in:"IND",iq:"IRQ",ir:"IRI",is:"ISL",it:"ITA",jm:"JAM",jo:"JOR",jp:"JPN",ke:"KEN",kg:"KGZ",kh:"CAM",ki:"KIR",kn:"SKN",kp:"PRK",kr:"KOR",kw:"KUW",kz:"KAZ",la:"LAO",lb:"LBN",lc:"LCA",li:"LIE",lk:"SRI",lr:"LBR",ls:"LES",lt:"LTU",lu:"LUX",lv:"LAT",ly:"LBA",ma:"MAR",mc:"MON",md:"MDA",me:"MNE",mg:"MAD",mh:"MHL",mk:"MKD",ml:"MLI",mm:"MYA",mn:"MGL",mr:"MTN",mt:"MLT",mu:"MRI",mv:"MDV",mw:"MAW",mx:"MEX",my:"MAS",mz:"MOZ",na:"NAM",ne:"NIG",ng:"NGR",ni:"NCA",nl:"NED",no:"NOR",np:"NEP",nr:"NRU",nz:"NZL",om:"OMA",pa:"PAN",pe:"PER",pg:"PNG",ph:"PHI",pk:"PAK",pl:"POL",pt:"POR",pw:"PLW",py:"PAR",qa:"QAT",ro:"ROU",rs:"SRB",ru:"RUS",rw:"RWA",sa:"KSA",sb:"SOL",sc:"SEY",sd:"SUD",se:"SWE",sg:"SGP",si:"SLO",sk:"SVK",sl:"SLE",sm:"SMR",sn:"SEN",so:"SOM",sr:"SUR",ss:"SSD",st:"STP",sv:"ESA",sy:"SYR",sz:"SWZ",td:"CHA",tg:"TOG",th:"THA",tj:"TJK",tl:"TLS",tm:"TKM",tn:"TUN",to:"TGA",tr:"TUR",tt:"TTO",tv:"TUV",tw:"TPE",tz:"TAN",ua:"UKR",ug:"UGA",us:"USA",uy:"URU",uz:"UZB",vc:"VIN",ve:"VEN",vn:"VIE",vu:"VAN",ws:"SAM",ye:"YEM",za:"RSA",zm:"ZAM",zw:"ZIM"};
+  var [fibaBusy,setFibaBusy]=useState(false);
+  var [fibaProgress,setFibaProgress]=useState({done:0,total:0});
+  var [fibaResults,setFibaResults]=useState(null);
+  var [fibaSubTab,setFibaSubTab]=useState("altos");
+  var [fibaLastBatchId,setFibaLastBatchId]=useState(null);
+  var [fibaApplying,setFibaApplying]=useState(false);
+  var [fibaApplyRes,setFibaApplyRes]=useState(null);
+
+  function fibaNorm(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z\s]/g," ").replace(/\s+/g," ").trim();}
+  function fibaScoreCandidate(pl,cand){
+    const bdName=fibaNorm(pl.nombre);
+    const bdTokens=bdName.split(" ").filter(t=>t.length>=2);
+    const fibaName=fibaNorm((cand.display_firstname||cand.firstname||"")+" "+(cand.display_lastname||cand.lastname||""));
+    const fibaLast=fibaNorm(cand.display_lastname||cand.lastname||"");
+    let nameOk=false;
+    if(fibaLast){
+      const lastTokens=fibaLast.split(" ").filter(t=>t.length>=2);
+      const allLastInBD=lastTokens.length>0&&lastTokens.every(t=>bdTokens.includes(t));
+      const anyBDInFiba=bdTokens.some(t=>fibaName.split(" ").includes(t));
+      nameOk=allLastInBD&&anyBDInFiba;
+    }
+    const bdIso2=countryCode(pl.nacionalidad);
+    const bdIso3=bdIso2?ISO2_TO_ISO3[bdIso2]:null;
+    const countryPresent=!!(bdIso3&&cand.country);
+    const countryOk=countryPresent&&bdIso3.toUpperCase()===String(cand.country).toUpperCase();
+    let dobOk=false,dobPresent=false;
+    if(pl.fecha_nac&&cand.birthdate){
+      dobPresent=true;
+      const a=new Date(pl.fecha_nac).getTime();
+      const b=new Date(cand.birthdate).getTime();
+      if(!isNaN(a)&&!isNaN(b))dobOk=Math.abs(a-b)<=3*24*60*60*1000;
+    }
+    const totalPossible=1+(countryPresent?1:0)+(dobPresent?1:0);
+    const scored=(nameOk?1:0)+(countryOk?1:0)+(dobOk?1:0);
+    return {nameOk,countryOk,dobOk,countryPresent,dobPresent,totalPossible,scored};
+  }
+
+  async function fibaSearchOne(pl){
+    const partes=fibaNorm(pl.nombre).split(" ").filter(t=>t.length>=2);
+    if(partes.length<1)return [];
+    const nom=partes[0],ape=partes[partes.length-1];
+    const s=`(${nom} + ${ape}) | (${nom} | ${ape}) | (${nom}* | ${ape}*)`;
+    const url=FIBA_SEARCH_URL+"?s="+encodeURIComponent(s)+"&l=en&c=hub&teamsfilter="+encodeURIComponent("organisationstatuscode eq 'ACT'");
+    const r=await fetch(url,{headers:{"Content-Type":"application/json","Ocp-Apim-Subscription-Key":FIBA_APIM_KEY}});
+    if(!r.ok)throw new Error("FIBA HTTP "+r.status);
+    const arr=await r.json();
+    return arr.filter(x=>x.type==="players").map(x=>{try{return JSON.parse(x.data);}catch(_){return null;}}).filter(Boolean).slice(0,10);
+  }
+
+  async function runFibaScan(){
+    setFibaBusy(true);setFibaResults(null);setFibaApplyRes(null);
+    try{
+      const {data:jugs,error}=await supabase.from("jugadoras")
+        .select("id_jugadora,nombre,nacionalidad,fecha_nac,foto")
+        .ilike("foto","%proballers.com%")
+        .not("fecha_nac","is",null)
+        .not("nacionalidad","is",null)
+        .is("fiba_person_id",null);
+      if(error)throw error;
+      setFibaProgress({done:0,total:jugs.length});
+      const altos=[],medios=[],bajos=[],errores=[];
+      for(let i=0;i<jugs.length;i++){
+        const p=jugs[i];
+        try{
+          const cands=await fibaSearchOne(p);
+          let bestCand=null,bestScore={scored:-1,nameOk:false,countryOk:false,dobOk:false,totalPossible:0};
+          for(const c of cands){
+            const sc=fibaScoreCandidate(p,c);
+            if(sc.scored>bestScore.scored){bestCand=c;bestScore=sc;}
+          }
+          const entry={p,cand:bestCand,score:bestScore,cands};
+          if(bestCand&&bestScore.nameOk&&bestScore.totalPossible>=2&&bestScore.scored===bestScore.totalPossible){
+            altos.push(entry);
+          }else if(bestCand&&bestScore.scored>=1){
+            medios.push(entry);
+          }else{
+            bajos.push(entry);
+          }
+        }catch(e){errores.push({p,err:String(e.message||e)});}
+        setFibaProgress({done:i+1,total:jugs.length});
+        await new Promise(r=>setTimeout(r,250));
+      }
+      setFibaResults({altos,medios,bajos,errores});
+      setFibaSubTab("altos");
+    }catch(e){setFibaResults({error:e.message});}
+    setFibaBusy(false);
+  }
+
+  async function applyFibaBatch(entries){
+    if(!entries?.length)return;
+    if(!window.confirm(`Aplicar ${entries.length} foto(s) FIBA?`))return;
+    setFibaApplying(true);setFibaApplyRes(null);
+    try{
+      const batchId=(window.crypto&&window.crypto.randomUUID)?window.crypto.randomUUID():("b-"+Date.now()+"-"+Math.random().toString(36).slice(2));
+      const backups=entries.map(({p,cand,score})=>({
+        id_jugadora:p.id_jugadora,
+        foto_anterior:p.foto,
+        foto_nueva:`https://assets.fiba.basketball/image/upload/w_400,c_fill,g_face/q_auto/f_auto/.headshot--person_${cand.id}`,
+        fiba_person_id_nuevo:parseInt(cand.id),
+        score:score.scored,
+        batch_id:batchId
+      }));
+      const {error:bkErr}=await supabase.from("fotos_backup").insert(backups);
+      if(bkErr)throw bkErr;
+      let ok=0,err=0;
+      for(const b of backups){
+        const {error}=await supabase.from("jugadoras")
+          .update({foto:b.foto_nueva,fiba_person_id:b.fiba_person_id_nuevo})
+          .eq("id_jugadora",b.id_jugadora);
+        if(error)err++;else ok++;
+      }
+      setFibaLastBatchId(batchId);
+      setFibaApplyRes({ok,err,batchId,total:backups.length});
+      const applied=new Set(entries.map(e=>e.p.id_jugadora));
+      setFibaResults(prev=>prev?({
+        ...prev,
+        altos:prev.altos.filter(e=>!applied.has(e.p.id_jugadora)),
+        medios:prev.medios.filter(e=>!applied.has(e.p.id_jugadora)),
+        bajos:prev.bajos.filter(e=>!applied.has(e.p.id_jugadora))
+      }):prev);
+      onReload();
+    }catch(e){setFibaApplyRes({error:e.message});}
+    setFibaApplying(false);
+  }
+
+  async function revertFibaBatch(batchId){
+    if(!batchId)return;
+    if(!window.confirm("Revertir el último lote? Se restaurarán las fotos anteriores."))return;
+    try{
+      const {data:rows,error}=await supabase.from("fotos_backup")
+        .select("*").eq("batch_id",batchId).eq("revertido",false);
+      if(error)throw error;
+      let ok=0;
+      for(const r of rows||[]){
+        const {error:uErr}=await supabase.from("jugadoras")
+          .update({foto:r.foto_anterior,fiba_person_id:null})
+          .eq("id_jugadora",r.id_jugadora);
+        if(!uErr)ok++;
+      }
+      await supabase.from("fotos_backup").update({revertido:true,revertido_at:new Date().toISOString()}).eq("batch_id",batchId);
+      alert(`Revertidas ${ok} de ${(rows||[]).length} jugadoras.`);
+      setFibaLastBatchId(null);
+      onReload();
+    }catch(e){alert("Error revirtiendo: "+e.message);}
   }
 
   // Alta por lotes
@@ -3022,6 +3220,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       {key:"scraper",label:"Scraper FIBA",count:0},
       {key:"ncaa",label:"NCAA ESPN",count:0},
       {key:"lotes",label:"Alta por lotes",count:0},
+      {key:"fotos_fiba",label:"Fotos → FIBA",count:fibaResults?.altos?.length||0},
     ]}]:[]),
   ];
   var CAL_TABS=CAL_GROUPS.flatMap(g=>g.items);
@@ -3233,6 +3432,105 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                   </div>}
                 </>}
               </div>}
+            </div>
+          )}
+          {tab==="fotos_fiba"&&(
+            <div style={{padding:"4px"}}>
+              <p style={{color:"#64748b",fontSize:"13px",marginBottom:"14px"}}>
+                Busca fotos oficiales en FIBA para las jugadoras cuya foto guardada es de <b>proballers.com</b> (el 100% de esas URLs devuelve 404). Solo se procesan jugadoras con <b>fecha de nacimiento y nacionalidad</b> en la ficha — imprescindibles para el matching seguro.
+              </p>
+              {!fibaResults&&(
+                <div style={{display:"flex",gap:"10px",flexWrap:"wrap",alignItems:"center"}}>
+                  <button onClick={runFibaScan} disabled={fibaBusy}
+                    style={{background:fibaBusy?"#cbd5e1":"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"11px 20px",fontWeight:700,fontSize:"13px",cursor:fibaBusy?"default":"pointer"}}>
+                    {fibaBusy?`🔎 Escaneando… ${fibaProgress.done}/${fibaProgress.total}`:"🔍 Escanear jugadoras con foto rota"}
+                  </button>
+                  {fibaLastBatchId&&(
+                    <button onClick={()=>revertFibaBatch(fibaLastBatchId)}
+                      style={{background:"#f59e0b",color:"#fff",border:"none",borderRadius:"10px",padding:"11px 16px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
+                      ↩ Revertir último lote
+                    </button>
+                  )}
+                </div>
+              )}
+              {fibaResults?.error&&<div style={{marginTop:"12px",color:"#ef4444",fontSize:"13px"}}>❌ {fibaResults.error}</div>}
+              {fibaResults&&!fibaResults.error&&(
+                <div>
+                  <div style={{display:"flex",gap:"6px",marginBottom:"14px",flexWrap:"wrap"}}>
+                    {[["altos",`✅ Confianza alta (${fibaResults.altos.length})`],["medios",`⚠️ Revisar (${fibaResults.medios.length})`],["bajos",`❌ Sin match (${fibaResults.bajos.length})`]].map(function(t){return(
+                      <button key={t[0]} onClick={function(){setFibaSubTab(t[0]);}}
+                        style={{background:fibaSubTab===t[0]?"#9333ea":"#f1f5f9",color:fibaSubTab===t[0]?"#fff":"#475569",border:"none",borderRadius:"10px",padding:"7px 14px",cursor:"pointer",fontSize:"12px",fontWeight:700}}>
+                        {t[1]}
+                      </button>
+                    );})}
+                    <button onClick={function(){setFibaResults(null);setFibaApplyRes(null);}}
+                      style={{marginLeft:"auto",background:"transparent",color:"#94a3b8",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"7px 14px",cursor:"pointer",fontSize:"12px"}}>
+                      Reset
+                    </button>
+                  </div>
+                  {fibaSubTab==="altos"&&(
+                    <div>
+                      {fibaResults.altos.length===0?
+                        <div style={{textAlign:"center",padding:"30px 0",color:"#94a3b8"}}>Sin candidatas de confianza alta.</div>:
+                        <>
+                          <button onClick={function(){applyFibaBatch(fibaResults.altos);}} disabled={fibaApplying}
+                            style={{background:fibaApplying?"#cbd5e1":"#16a34a",color:"#fff",border:"none",borderRadius:"10px",padding:"11px 20px",fontWeight:700,fontSize:"14px",cursor:fibaApplying?"default":"pointer",marginBottom:"14px"}}>
+                            {fibaApplying?"Aplicando…":`✅ Aplicar todas (${fibaResults.altos.length})`}
+                          </button>
+                          <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+                            {fibaResults.altos.slice(0,15).map(function(e){return(
+                              <FibaRow key={e.p.id_jugadora} entry={e} onApply={function(){applyFibaBatch([e]);}} showActions={false}/>
+                            );})}
+                            {fibaResults.altos.length>15&&<div style={{fontSize:"12px",color:"#94a3b8",padding:"6px"}}>… y {fibaResults.altos.length-15} más (todas se aplican con el botón).</div>}
+                          </div>
+                        </>
+                      }
+                    </div>
+                  )}
+                  {fibaSubTab==="medios"&&(
+                    <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+                      {fibaResults.medios.length===0?
+                        <div style={{textAlign:"center",padding:"30px 0",color:"#94a3b8"}}>Sin candidatas para revisar.</div>:
+                        fibaResults.medios.map(function(e){return(
+                          <FibaRow key={e.p.id_jugadora} entry={e} onApply={function(){applyFibaBatch([e]);}} showActions={true}/>
+                        );})
+                      }
+                    </div>
+                  )}
+                  {fibaSubTab==="bajos"&&(
+                    <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+                      {fibaResults.bajos.length===0?
+                        <div style={{textAlign:"center",padding:"30px 0",color:"#94a3b8"}}>✅ Todas tienen algún match.</div>:
+                        fibaResults.bajos.map(function(e){return(
+                          <div key={e.p.id_jugadora} style={{display:"flex",alignItems:"center",gap:"10px",padding:"10px 12px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0"}}>
+                            <div style={{flex:1}}>
+                              <div style={{fontWeight:700,fontSize:"13px"}}>{e.p.nombre}</div>
+                              <div style={{fontSize:"11px",color:"#94a3b8"}}>{e.p.nacionalidad} · {e.p.fecha_nac}</div>
+                            </div>
+                            <a href={`https://www.fiba.basketball/en/search?text=${encodeURIComponent(e.p.nombre)}`} target="_blank" rel="noopener noreferrer"
+                              style={{background:"#2563eb",color:"#fff",padding:"6px 12px",borderRadius:"8px",textDecoration:"none",fontSize:"12px",fontWeight:700}}>
+                              Buscar en FIBA ↗
+                            </a>
+                          </div>
+                        );})
+                      }
+                    </div>
+                  )}
+                  {fibaApplyRes&&(
+                    <div style={{marginTop:"14px",padding:"12px",background:fibaApplyRes.error?"#fef2f2":"#f0fdf4",borderRadius:"10px",border:"1px solid "+(fibaApplyRes.error?"#fecaca":"#bbf7d0"),fontSize:"13px"}}>
+                      {fibaApplyRes.error?<>❌ {fibaApplyRes.error}</>:<>✅ Aplicadas: <b>{fibaApplyRes.ok}</b> · Errores: <b>{fibaApplyRes.err}</b> · Lote: <code style={{fontSize:"10px"}}>{fibaApplyRes.batchId?.slice(0,8)}…</code></>}
+                    </div>
+                  )}
+                  {fibaResults.errores?.length>0&&(
+                    <details style={{marginTop:"12px"}}>
+                      <summary style={{fontSize:"12px",color:"#94a3b8",cursor:"pointer"}}>⚠️ Errores durante el escaneo ({fibaResults.errores.length})</summary>
+                      <div style={{maxHeight:"120px",overflowY:"auto",fontSize:"11px",color:"#64748b",marginTop:"4px"}}>
+                        {fibaResults.errores.map(function(er,i){return <div key={i}>{er.p.nombre}: {er.err}</div>;})}
+                      </div>
+                    </details>
+                  )}
+                </div>
+              )}
             </div>
           )}
                     {tab==="incompletas"&&(
