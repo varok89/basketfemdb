@@ -4758,9 +4758,11 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
 
   useEffect(()=>{if(openPlayerId){setSelId(openPlayerId);onClearPlayer();}},[openPlayerId]);
 
-  // Lazy load carrera completa cuando se abre una jugadora (la carga inicial solo tiene la última temporada)
+  // Lazy load carrera completa cuando se abre una jugadora (la carga inicial solo tiene la última temporada).
+  // Depende de players.length para re-ejecutarse cuando loadAll termine (evita race si el usuario
+  // entra directo por URL /jugadoras/{id} antes de que se haya cargado la base).
   useEffect(()=>{
-    if(!selId)return;
+    if(!selId||players.length===0)return;
     const pl=players.find(p=>p.id_jugadora===selId);
     if(!pl)return;
     // Cargar carrera completa si hay más temporadas que las ya cargadas
@@ -4770,7 +4772,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
       if(!data||data.length<=yaLoaded)return; // ya tenemos todo cargado
       setPlayers(prev=>prev.map(p=>p.id_jugadora===selId?{...p,seasons:data}:p));
     })();
-  },[selId]);
+  },[selId,players.length]);
 
   const equipoMap = useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap   = useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
@@ -5539,9 +5541,11 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
 
   useEffect(()=>{if(openTeamId){setSelId(openTeamId);setSelYear(openTeamYear||null);onClearTeam();}},[openTeamId]);
 
-  // On-demand: cargar todas las temporadas del equipo seleccionado que aún no estén en players
+  // On-demand: cargar todas las temporadas del equipo seleccionado que aún no estén en players.
+  // Depende de players.length para re-ejecutarse cuando loadAll termine (evita race si el usuario
+  // entra directo por URL /equipos/{id} antes de que se haya cargado la base).
   useEffect(()=>{
-    if(!selId)return;
+    if(!selId||players.length===0)return;
     const temp=selYear||null;
     (async()=>{
       // Jugadoras que ya tienen temporada en este equipo/temporada
@@ -5564,7 +5568,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
         });
       });
     })();
-  },[selId,selYear]);
+  },[selId,selYear,players.length]);
 
 
   const equipoMap = useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
