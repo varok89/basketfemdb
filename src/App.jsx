@@ -3397,6 +3397,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     ]},
     ...(isAdmin?[{title:"🛠 Alta masiva",items:[
       {key:"scraper",label:"Scraper FIBA",count:0},
+      {key:"feb-fichas",label:"Fichas FEB",count:febPend||0},
       {key:"ncaa",label:"NCAA ESPN",count:0},
       {key:"lotes",label:"Alta por lotes",count:0},
     ]}]:[]),
@@ -3484,6 +3485,38 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                         return <div style={{marginTop:"8px",color:"#b45309",fontSize:"12px"}}><b>Jugadoras sin mapear ({ks.length})</b> — crea o corrige su ficha y vuelve a lanzar: {ks.map(function(k){return k+(m[k]>1?" ("+m[k]+" partidos)":"");}).join("  ·  ")}</div>;
                       })()}
                       {scRes.detalles&&scRes.detalles.length>0&&<ul style={{margin:"8px 0 0",paddingLeft:"18px",maxHeight:"200px",overflowY:"auto"}}>{scRes.detalles.map(function(d,i){return <li key={i} style={{fontSize:"12px",color:"#64748b",marginBottom:"2px"}}>{d}</li>;})}</ul>}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          {tab==="feb-fichas"&&(
+            <div>
+              <p style={{color:"#64748b",fontSize:"13px",marginBottom:"14px"}}>Rellena <b>fecha_nac, altura, posición y nacionalidad</b> de jugadoras que tienen <code>id_feb</code> pero les faltan datos, scrapeando su ficha oficial en baloncestoenvivo.feb.es. Cada lote agrupa por partido para optimizar créditos de ScraperAPI.</p>
+              <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:"10px",padding:"10px 12px",marginBottom:"12px",fontSize:"12px",color:"#9a3412"}}>
+                📊 <b>{febPend==null?"…":febPend}</b> jugadoras pendientes con <code>id_feb</code> y sin <code>fecha_nac</code>.
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
+                <label style={{fontSize:"12px",fontWeight:700,color:"#475569"}}>Jugadoras por lote
+                  <input type="number" min="1" max="50" value={febLimit} onChange={function(e){setFebLimit(parseInt(e.target.value)||5);}} style={{width:"100%",marginTop:"4px",padding:"9px 10px",borderRadius:"10px",border:"1px solid #e2e8f0",fontSize:"13px",boxSizing:"border-box"}}/>
+                  <span style={{display:"block",fontWeight:400,color:"#94a3b8",fontSize:"11px",marginTop:"3px"}}>Cada lote hace 1 scrape por partido compartido + 1 por ficha (~2 créditos ScraperAPI por jugadora)</span>
+                </label>
+                <label style={{display:"flex",alignItems:"center",gap:"8px",fontSize:"13px",color:"#475569",cursor:"pointer"}}>
+                  <input type="checkbox" checked={febDry} onChange={function(e){setFebDry(e.target.checked);}}/> Prueba (dry-run): no escribe, solo informa
+                </label>
+                <label style={{display:"flex",alignItems:"center",gap:"8px",fontSize:"13px",color:"#475569",cursor:"pointer"}}>
+                  <input type="checkbox" checked={febLoop} onChange={function(e){setFebLoop(e.target.checked);}}/> Loop: repetir hasta procesar todas las pendientes
+                </label>
+                <button onClick={runFebEnriq} disabled={febBusy} style={{background:febBusy?"#cbd5e1":(febDry?"#0f172a":"#9333ea"),color:"#fff",border:"none",borderRadius:"10px",padding:"11px 20px",fontWeight:700,fontSize:"13px",cursor:febBusy?"default":"pointer"}}>{febBusy?"Enriqueciendo…":(febDry?"▶ Probar":"⬇️ Enriquecer fichas")}</button>
+              </div>
+              {febRes&&(
+                <div style={{marginTop:"16px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:"12px",padding:"14px"}}>
+                  {febRes.error?<div style={{color:"#ef4444",fontSize:"13px"}}>❌ {febRes.error}</div>:(
+                    <div style={{fontSize:"13px",color:"#334155"}}>
+                      <div style={{fontWeight:700,marginBottom:"4px"}}>{febDry?"🔎 Prueba · ":"✅ "}Candidatas: {febRes.candidatas} · Partidos scrapeados: {febRes.partidos_scrapeados} · Actualizadas: {febRes.fichas_actualizadas}{febRes.iter>1?` · Lotes: ${febRes.iter}`:""}</div>
+                      {febRes.errores&&febRes.errores.length>0&&<div style={{marginTop:"8px",color:"#dc2626",fontSize:"12px"}}><b>Errores ({febRes.errores.length})</b>: {febRes.errores.join(" · ")}</div>}
+                      {febRes.resultados&&febRes.resultados.length>0&&<ul style={{margin:"8px 0 0",paddingLeft:"18px",maxHeight:"260px",overflowY:"auto",fontSize:"12px"}}>{febRes.resultados.slice(0,120).map(function(r,i){return <li key={i} style={{marginBottom:"3px",color:r.error?"#b45309":"#0f766e"}}>{r.nombre} → {r.fecha_nac||"—"} · {r.altura_cm||"—"}cm · {r.posicion||"—"} · {r.nacionalidad||"—"}{r.error?` (${r.error})`:""}</li>;})}</ul>}
                     </div>
                   )}
                 </div>
