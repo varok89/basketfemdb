@@ -2977,6 +2977,44 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     }catch(e){setScRes(Object.assign({},acc,{error:String(e)}));}
     setScBusy(false);
   }
+  // ── Enriquecer fichas jugadoras vía FEB (fecha_nac, altura, posicion, nacionalidad) ──
+  var febBusyState=useState(false);var febBusy=febBusyState[0];var setFebBusy=febBusyState[1];
+  var febResState=useState(null);var febRes=febResState[0];var setFebRes=febResState[1];
+  var febLimitState=useState(20);var febLimit=febLimitState[0];var setFebLimit=febLimitState[1];
+  var febDryState=useState(false);var febDry=febDryState[0];var setFebDry=febDryState[1];
+  var febLoopState=useState(false);var febLoop=febLoopState[0];var setFebLoop=febLoopState[1];
+  var febPendState=useState(null);var febPend=febPendState[0];var setFebPend=febPendState[1];
+  useEffect(function(){
+    (async function(){
+      try{
+        var q=await supabase.from("jugadoras").select("id_jugadora",{count:"exact",head:true}).is("fecha_nac",null).not("id_feb","is",null);
+        setFebPend(q.count||0);
+      }catch(e){}
+    })();
+  },[febRes]);
+  async function runFebEnriq(){
+    setFebBusy(true);setFebRes(null);
+    var acc={candidatas:0,fichas_actualizadas:0,partidos_scrapeados:0,resultados:[],errores:[]};
+    try{
+      var iter=0;
+      while(iter<20){
+        iter++;
+        var inv=await supabase.functions.invoke("enriquecer-jugadoras-feb",{body:{limit:febLimit,dry:febDry}});
+        if(inv.error){setFebRes(Object.assign({},acc,{error:String((inv.error&&inv.error.message)||inv.error)}));setFebBusy(false);return;}
+        var d=inv.data||{};
+        if(d.error){setFebRes(Object.assign({},acc,{error:d.error}));setFebBusy(false);return;}
+        acc.candidatas+=d.candidatas||0;
+        acc.fichas_actualizadas+=d.fichas_actualizadas||0;
+        acc.partidos_scrapeados+=d.partidos_scrapeados||0;
+        acc.resultados=acc.resultados.concat(d.resultados||[]);
+        acc.errores=acc.errores.concat(d.errores||[]);
+        setFebRes(Object.assign({},acc,{iter}));
+        if(!febLoop||febDry||(d.candidatas||0)===0)break;
+      }
+    }catch(e){setFebRes(Object.assign({},acc,{error:String(e)}));}
+    setFebBusy(false);
+  }
+
   var fixState=useState(null);
   var fixing=fixState[0];var setFixing=fixState[1];
   var ignoredState=useState(new Set());
