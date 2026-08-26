@@ -6957,6 +6957,148 @@ function LoginModal({onLogin,onGoogleLogin,onClose,loading,error,mode,setMode}){
   );
 }
 
+/* ── QuinielaView ────────────────────────────────────────── */
+function QuinielaView({user,equipos}){
+  const [partidos,setPartidos]=useState([]);
+  const [preds,setPreds]=useState({});
+  const [rank,setRank]=useState([]);
+  const [tab,setTab]=useState("pronosticar");
+  const [saving,setSaving]=useState({});
+  const [drafts,setDrafts]=useState({}); // {[pid]: {l, v}} valores en edición
+  const eqMap=useMemo(()=>{const m={};(equipos||[]).forEach(e=>{m[e.id_equipo]=e;});return m;},[equipos]);
+  const now=Date.now();
+
+  useEffect(()=>{(async()=>{
+    const {data:ps}=await supabase.from("partidos")
+      .select("id,fecha_hora,notas,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante")
+      .eq("id_liga","L055").eq("temporada","2026").order("fecha_hora",{ascending:true});
+    setPartidos(ps||[]);
+    const {data:mios}=await supabase.from("quiniela_predicciones")
+      .select("id_partido,pred_local,pred_visitante").eq("user_id",user.id);
+    const m={};(mios||[]).forEach(p=>{m[p.id_partido]={l:p.pred_local,v:p.pred_visitante};});
+    setPreds(m);
+    const {data:r}=await supabase.rpc("quiniela_ranking");
+    setRank(r||[]);
+  })();},[user.id]);
+
+  const puntosDe=(p,pr)=>{
+    if(p.resultado_local==null||!pr)return null;
+    if(pr.l===p.resultado_local&&pr.v===p.resultado_visitante)return 3;
+    if(Math.sign(pr.l-pr.v)===Math.sign(p.resultado_local-p.resultado_visitante))return 1;
+    return 0;
+  };
+  const misPuntos=partidos.reduce((s,p)=>s+(puntosDe(p,preds[p.id])||0),0);
+
+  const guardar=async(pid,l,v)=>{
+    if(l===""||v===""||l==null||v==null)return;
+    setSaving(s=>({...s,[pid]:true}));
+    const {error}=await supabase.from("quiniela_predicciones").upsert({
+      user_id:user.id,id_partido:pid,pred_local:Number(l),pred_visitante:Number(v)
+    },{onConflict:"user_id,id_partido"});
+    if(!error)setPreds(m=>({...m,[pid]:{l:Number(l),v:Number(v)}}));
+    setSaving(s=>({...s,[pid]:false}));
+  };
+
+  const nomEq=id=>eqMap[id]?.nombre||"Por confirmar";
+  const flag=id=>eqMap[id]?.escudo;
+  const btnStyle=a=>({background:a?"#9333ea":"#f8fafc",color:a?"#fff":"#64748b",border:a?"none":"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 18px",fontWeight:700,fontSize:"13px",cursor:"pointer"});
+  const inp={width:"56px",padding:"6px 8px",borderRadius:"8px",border:"1px solid #cbd5e1",fontSize:"14px",fontWeight:700,textAlign:"center",boxSizing:"border-box"};
+
+  return(
+    <div style={{maxWidth:"720px",margin:"0 auto",padding:"12px"}}>
+      <div style={{background:"#fff",borderRadius:"16px",padding:"18px",marginBottom:"14px",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
+        <div>
+          <h2 style={{margin:0,fontSize:"18px",fontWeight:800,color:"#1e293b"}}>🎯 Quiniela · Mundial 2026</h2>
+          <div style={{fontSize:"12px",color:"#64748b",marginTop:"3px"}}>3 pts acierto exacto · 1 pt signo · Cierre al empezar el partido</div>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:"11px",color:"#94a3b8",fontWeight:600}}>Tus puntos</div>
+          <div style={{fontSize:"26px",fontWeight:800,color:"#9333ea",lineHeight:1}}>{misPuntos}</div>
+        </div>
+      </div>
+      <div style={{display:"flex",gap:"6px",marginBottom:"12px"}}>
+        <button onClick={()=>setTab("pronosticar")} style={btnStyle(tab==="pronosticar")}>Mis pronósticos</button>
+        <button onClick={()=>setTab("ranking")} style={btnStyle(tab==="ranking")}>🏆 Ranking</button>
+      </div>
+
+      {tab==="pronosticar"&&(
+        <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+          {partidos.map(p=>{
+            const pr=preds[p.id];const pts=puntosDe(p,pr);
+            const cerrado=p.fecha_hora&&new Date(p.fecha_hora).getTime()<=now;
+            const jugado=p.resultado_local!=null;
+            return(
+              <div key={p.id} style={{background:"#fff",borderRadius:"12px",padding:"12px 14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",opacity:cerrado&&!jugado&&!pr?0.6:1}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"8px",fontSize:"11px",color:"#94a3b8"}}>
+                  <span>{p.notas||""}</span>
+                  <span>{p.fecha_hora?new Date(p.fecha_hora).toLocaleString("es",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"}</span>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",alignItems:"center",gap:"10px"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:"8px",minWidth:0}}>
+                    {flag(p.id_equipo_local)&&<img src={flag(p.id_equipo_local)} alt="" style={{width:24,height:24,objectFit:"contain"}}/>}
+                    <span style={{fontWeight:600,fontSize:"14px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nomEq(p.id_equipo_local)}</span>
+                  </div>
+                  <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
+                    <input type="number" min="0" max="200" value={drafts[p.id]?.l??pr?.l??""} disabled={cerrado} style={inp}
+                      onChange={e=>setDrafts(d=>({...d,[p.id]:{...d[p.id],l:e.target.value,v:d[p.id]?.v??pr?.v??""}}))}
+                      onBlur={()=>{const d=drafts[p.id]||{l:pr?.l,v:pr?.v};guardar(p.id,d.l,d.v);}}/>
+                    <span style={{color:"#cbd5e1",fontWeight:700}}>-</span>
+                    <input type="number" min="0" max="200" value={drafts[p.id]?.v??pr?.v??""} disabled={cerrado} style={inp}
+                      onChange={e=>setDrafts(d=>({...d,[p.id]:{...d[p.id],v:e.target.value,l:d[p.id]?.l??pr?.l??""}}))}
+                      onBlur={()=>{const d=drafts[p.id]||{l:pr?.l,v:pr?.v};guardar(p.id,d.l,d.v);}}/>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:"8px",justifyContent:"flex-end",minWidth:0}}>
+                    <span style={{fontWeight:600,fontSize:"14px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textAlign:"right"}}>{nomEq(p.id_equipo_visitante)}</span>
+                    {flag(p.id_equipo_visitante)&&<img src={flag(p.id_equipo_visitante)} alt="" style={{width:24,height:24,objectFit:"contain"}}/>}
+                  </div>
+                </div>
+                {jugado&&(
+                  <div style={{marginTop:"8px",display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:"12px",color:"#64748b"}}>
+                    <span>Resultado real: <b style={{color:"#1e293b"}}>{p.resultado_local}-{p.resultado_visitante}</b></span>
+                    {pr&&<span style={{background:pts===3?"#dcfce7":pts===1?"#fef3c7":"#fee2e2",color:pts===3?"#166534":pts===1?"#92400e":"#991b1b",padding:"3px 10px",borderRadius:"20px",fontWeight:700}}>{pts} pt{pts!==1?"s":""}</span>}
+                    {!pr&&<span style={{color:"#94a3b8"}}>Sin pronóstico</span>}
+                  </div>
+                )}
+                {saving[p.id]&&<div style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Guardando…</div>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {tab==="ranking"&&(
+        <div style={{background:"#fff",borderRadius:"12px",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:"14px"}}>
+            <thead style={{background:"#f8fafc"}}>
+              <tr>
+                <th style={{padding:"10px 14px",textAlign:"left",fontSize:"11px",color:"#64748b",fontWeight:700}}>#</th>
+                <th style={{padding:"10px 14px",textAlign:"left",fontSize:"11px",color:"#64748b",fontWeight:700}}>Usuario</th>
+                <th style={{padding:"10px 14px",textAlign:"center",fontSize:"11px",color:"#64748b",fontWeight:700}}>Jug.</th>
+                <th style={{padding:"10px 14px",textAlign:"center",fontSize:"11px",color:"#64748b",fontWeight:700}}>✅</th>
+                <th style={{padding:"10px 14px",textAlign:"center",fontSize:"11px",color:"#64748b",fontWeight:700}}>~</th>
+                <th style={{padding:"10px 14px",textAlign:"right",fontSize:"11px",color:"#64748b",fontWeight:700}}>Pts</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rank.length===0&&<tr><td colSpan={6} style={{padding:"24px",textAlign:"center",color:"#94a3b8"}}>Aún no hay pronósticos evaluados.</td></tr>}
+              {rank.map((r,i)=>(
+                <tr key={r.user_id} style={{borderTop:"1px solid #f1f5f9",background:r.user_id===user.id?"#faf5ff":undefined}}>
+                  <td style={{padding:"10px 14px",fontWeight:700,color:i===0?"#eab308":i===1?"#94a3b8":i===2?"#c2410c":"#64748b"}}>{i+1}</td>
+                  <td style={{padding:"10px 14px",fontWeight:600,color:"#1e293b"}}>{r.nombre}{r.user_id===user.id?" (tú)":""}</td>
+                  <td style={{padding:"10px 14px",textAlign:"center",color:"#64748b"}}>{r.jugados}</td>
+                  <td style={{padding:"10px 14px",textAlign:"center",color:"#166534",fontWeight:700}}>{r.exactos}</td>
+                  <td style={{padding:"10px 14px",textAlign:"center",color:"#92400e",fontWeight:700}}>{r.signos}</td>
+                  <td style={{padding:"10px 14px",textAlign:"right",fontWeight:800,color:"#9333ea",fontSize:"16px"}}>{r.puntos}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── App ─────────────────────────────────────────────────── */
 export default function App(){
   const [players,setPlayers] = useState([]);
@@ -7209,7 +7351,7 @@ export default function App(){
     return()=>window.removeEventListener("popstate",onPopState);
   },[]);
 
-  const TABS=[["home","✍️","Mercado"],...(user?[["favoritos","⭐","Favoritos"]]:[]),["jugadoras","👩‍🏀","Jugadoras"],["equipos","🏟️","Equipos"],["ligas","🏆","Ligas"],["cuerpo_tecnico","📋","Cuerpo Técnico"],["partidos","📺","Ver partidos"]];
+  const TABS=[["home","✍️","Mercado"],...(user?[["favoritos","⭐","Favoritos"]]:[]),["jugadoras","👩‍🏀","Jugadoras"],["equipos","🏟️","Equipos"],["ligas","🏆","Ligas"],["cuerpo_tecnico","📋","Cuerpo Técnico"],["partidos","📺","Ver partidos"],...(user?[["quiniela","🎯","Quiniela"]]:[])];
 
   if(showLanding) return <Landing onEnter={handleEnter} players={players} equipos={equipos} ligas={ligas} coaches={coaches} tempCoach={tempCoach} palmares={palmares} regExtra={regExtra}/>;
   if(showCalidad){
@@ -7345,6 +7487,7 @@ export default function App(){
         {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setEquipos={setEquipos} setEquiposNombres={setEquiposNombres} setPlayers={setPlayers} setPalmares={setPalmares} regExtra={regExtra} onGoToPartido={goToPartido} isFavFn={isFav} onToggleFav={toggleFav}/>}
         {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} coaches={coaches} tempCoach={tempCoach} partidos={partidos} onGoToClasificacion={(ligaId,temporada)=>{setOpenClasiKey(`${ligaId}|${temporada||""}`);setTab("partidos");scrollTop();}} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setLigas={setLigas} regExtra={regExtra} isFavFn={isFav} onToggleFav={toggleFav}/>}
         {!showPrivacidad&&tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setCoaches={setCoaches} setTempCoach={setTempCoach} equiposNombres={equiposNombres} regExtra={regExtra}/>}
+        {!showPrivacidad&&tab==="quiniela"&&user&&<QuinielaView user={user} equipos={equipos}/>}
         {!showPrivacidad&&tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} mvps={mvps} equiposNombres={equiposNombres} openClasiKey={openClasiKey} onClearClasi={()=>setOpenClasiKey(null)} partidosSub={partidosSub} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id,year)=>goToTeam(id,year||null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})} onGoToPlayer={(id)=>goToPlayer(id,{tab:"partidos",label:"Ver partidos"})}/>}
       </div>
     </div>
