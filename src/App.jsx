@@ -7950,7 +7950,33 @@ export default function App(){
   const loadAll = async(forzar=false)=>{
     // Caché de sesión: no recargar si ya están en memoria
     if(!forzar && players.length>0 && equipos.length>0){return;}
-    setLoading(isFirstLoad);setError(null);
+    // Hidratación desde localStorage (arranque instantáneo)
+    const CK="basketfemdb:cache:v1";
+    let hidratado=false;
+    if(!forzar){
+      try{
+        const raw=localStorage.getItem(CK);
+        if(raw){
+          const c=JSON.parse(raw);
+          if(c&&Array.isArray(c.players)&&Array.isArray(c.equipos)&&c.players.length&&c.equipos.length){
+            setPlayers(c.players);
+            setEquipos(c.equipos);
+            setLigas(c.ligas||[]);
+            setPalmares(c.palmares||[]);
+            setCoaches(c.coaches||[]);
+            setTempCoach(c.tempCoach||[]);
+            setEquiposNombres(c.equiposNombres||[]);
+            setPartidos(c.partidos||[]);
+            setMvps(c.mvps||[]);
+            setIsFirstLoad(false);
+            setLoading(false);
+            hidratado=true;
+          }
+        }
+      }catch(e){}
+    }
+    if(!hidratado) setLoading(isFirstLoad);
+    setError(null);
     try{
       const [rJ,rE,rL,rT,rP,rC,rTC,rEN,rPar,rMvp]=await Promise.all([
         fetchAll("jugadoras",{order:"id_jugadora",select:"id_jugadora,nombre,posicion,nacionalidad,nacionalidad2,fecha_nac,altura_cm,id_ext,id_espn,fuente,foto"}),
@@ -7966,9 +7992,9 @@ export default function App(){
       ]);
       if(rJ.error)throw rJ.error;if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rT.error)throw rT.error;
       const sbp={};
-      // Vista dos_ultimas_temporadas: hasta 2 temporadas por jugadora (actual + anterior)
       (rT.data||[]).forEach(t=>{if(!sbp[t.id_jugadora])sbp[t.id_jugadora]=[];sbp[t.id_jugadora].push(t);});
-      setPlayers((rJ.data||[]).map(j=>({...j,seasons:sbp[j.id_jugadora]||[]})));
+      const nuevosPlayers=(rJ.data||[]).map(j=>({...j,seasons:sbp[j.id_jugadora]||[]}));
+      setPlayers(nuevosPlayers);
       setEquipos(rE.data||[]);
       setLigas(rL.data||[]);
       setPalmares(rP.data||[]);
@@ -7977,6 +8003,23 @@ export default function App(){
       setEquiposNombres(rEN?.data||[]);
       setPartidos(rPar?.data||[]);
       setMvps(rMvp?.data||[]);
+      // Guardar snapshot para próximo arranque
+      try{
+        localStorage.setItem(CK,JSON.stringify({
+          players:nuevosPlayers,
+          equipos:rE.data||[],
+          ligas:rL.data||[],
+          palmares:rP.data||[],
+          coaches:rC.data||[],
+          tempCoach:rTC.data||[],
+          equiposNombres:rEN?.data||[],
+          partidos:rPar?.data||[],
+          mvps:rMvp?.data||[],
+        }));
+      }catch(e){
+        // quota exceeded → limpiar y seguir; ponytail: no fallback más elaborado
+        try{localStorage.removeItem(CK);}catch(_){}
+      }
       try{
         const [bc,sc]=await Promise.all([
           supabase.from("partido_boxscore").select("*",{count:"exact",head:true}),
@@ -7985,8 +8028,11 @@ export default function App(){
         setBoxCount((bc.count||0)+(sc.count||0));
       }catch(e){}
       setIsFirstLoad(false);
-    }catch(e){setError(e.message||"Error cargando datos");}
-    setLoading(false);
+    }catch(e){
+      if(!hidratado) setError(e.message||"Error cargando datos");
+      else console.warn("Refresh en background falló:",e.message||e);
+    }
+    if(!hidratado) setLoading(false);
   };
 
   useEffect(()=>{loadAll();},[]);
