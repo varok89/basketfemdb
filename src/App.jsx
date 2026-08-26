@@ -7225,9 +7225,11 @@ function BasketnetaView({user,equipos,cierre}){
     return total.filter(e=>!usados.includes(e.id));
   };
 
-  // lookup para mostrar el equipo predicho por slot
-  const eqIdx={};(equiposMundial||[]).forEach(e=>{eqIdx[e.id]=e.nombre;});
+  // lookup nombre + escudo por id (para banderas)
+  const eqIdx={},eqEsc={};
+  (equipos||[]).forEach(e=>{eqIdx[e.id_equipo]=e.nombre;eqEsc[e.id_equipo]=e.escudo;});
   const nomDe=id=>eqIdx[id]||"—";
+  const escDe=id=>eqEsc[id];
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
@@ -7271,15 +7273,25 @@ function BasketnetaView({user,equipos,cierre}){
         <div style={{fontSize:"15px",fontWeight:800,color:"#1e293b",marginBottom:"12px"}}>🎯 Bracket · Elige ganador de cada partido</div>
         {(()=>{
           const teamBtn=(id,activo)=>({
-            display:"block",width:"100%",textAlign:"left",padding:"6px 8px",
+            display:"flex",alignItems:"center",gap:"5px",width:"100%",textAlign:"left",padding:"5px 7px",
             background:activo?"#9333ea":id?"#f8fafc":"#f1f5f9",
             color:activo?"#fff":id?"#1e293b":"#94a3b8",
             border:`1px solid ${activo?"#9333ea":"#e2e8f0"}`,
             borderRadius:"5px",fontSize:"11px",fontWeight:activo?800:600,
             cursor:id&&!cerrado?"pointer":"not-allowed",
-            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
             marginBottom:"3px"
           });
+          const flagImg=id=>{
+            const url=escDe(id);
+            if(!url) return <span style={{width:16,height:12,background:"#e2e8f0",borderRadius:2,flexShrink:0}}/>;
+            return <img src={url} alt="" style={{width:16,height:12,objectFit:"contain",flexShrink:0}}/>;
+          };
+          const teamLabel=id=>(
+            <>
+              {id?flagImg(id):<span style={{width:16,height:12,flexShrink:0}}/>}
+              <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{id?nomDe(id):"—"}</span>
+            </>
+          );
           const MatchCard=({slot,label,puntos})=>{
             const [idA,idB]=bnParticipantes(slot,drafts);
             const pick=drafts[slot];
@@ -7290,9 +7302,9 @@ function BasketnetaView({user,equipos,cierre}){
                   <span>{label}</span><span>{puntos}pt</span>
                 </div>
                 <button style={teamBtn(idA,ok&&pick===idA)} disabled={!idA||cerrado}
-                  onClick={()=>setDrafts(d=>({...d,[slot]:idA}))}>{idA?nomDe(idA):"—"}</button>
+                  onClick={()=>setDrafts(d=>({...d,[slot]:idA}))}>{teamLabel(idA)}</button>
                 <button style={teamBtn(idB,ok&&pick===idB)} disabled={!idB||cerrado}
-                  onClick={()=>setDrafts(d=>({...d,[slot]:idB}))}>{idB?nomDe(idB):"—"}</button>
+                  onClick={()=>setDrafts(d=>({...d,[slot]:idB}))}>{teamLabel(idB)}</button>
               </div>
             );
           };
@@ -7373,40 +7385,13 @@ function BasketnetaView({user,equipos,cierre}){
                     <div style={{position:"absolute",right:"-24px",top:"50%",width:"12px",height:"2px",background:line}}/>
                   </div>
                 </div>
-                {/* col Final */}
-                <div style={{...colCommon,marginLeft:"24px"}}>
+                {/* col Final + 3er puesto debajo */}
+                <div style={{...colCommon,marginLeft:"24px",justifyContent:"center",gap:"18px"}}>
                   <div style={{fontSize:"10px",fontWeight:800,color:"#94a3b8",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>FINAL</div>
                   <MatchCard {...finalM}/>
+                  <div style={{fontSize:"9px",fontWeight:800,color:"#f59e0b",letterSpacing:"1px"}}>🥉 3ER PUESTO</div>
+                  <MatchCard slot="br_35" label="3er puesto" puntos={4}/>
                 </div>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* 3er puesto: fuera del bracket principal */}
-        {(()=>{
-          const b=BN_BRACKET.find(x=>x.slot==="br_35");
-          const [idA,idB]=bnParticipantes("br_35",drafts);
-          const pick=drafts.br_35;
-          const pickValido=pick&&(pick===idA||pick===idB);
-          const teamBtn=(id,activo)=>({
-            padding:"6px 12px",background:activo?"#f59e0b":id?"#fef3c7":"#f1f5f9",
-            color:activo?"#fff":id?"#78350f":"#94a3b8",
-            border:`1px solid ${activo?"#f59e0b":"#fde68a"}`,
-            borderRadius:"6px",fontSize:"12px",fontWeight:activo?800:600,
-            cursor:id&&!cerrado?"pointer":"not-allowed"
-          });
-          return(
-            <div style={{marginTop:"14px",padding:"10px",background:"#fffbeb",border:"1px dashed #fde68a",borderRadius:"8px"}}>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:"10px",color:"#92400e",fontWeight:700,marginBottom:"6px"}}>
-                <span>🥉 {b.label}</span><span>{b.puntos}pt</span>
-              </div>
-              <div style={{display:"flex",gap:"6px",justifyContent:"center",alignItems:"center"}}>
-                <button style={teamBtn(idA,pickValido&&pick===idA)} disabled={!idA||cerrado}
-                  onClick={()=>setDrafts(d=>({...d,br_35:idA}))}>{idA?nomDe(idA):"—"}</button>
-                <span style={{fontSize:"10px",color:"#94a3b8"}}>vs</span>
-                <button style={teamBtn(idB,pickValido&&pick===idB)} disabled={!idB||cerrado}
-                  onClick={()=>setDrafts(d=>({...d,br_35:idB}))}>{idB?nomDe(idB):"—"}</button>
               </div>
             </div>
           );
