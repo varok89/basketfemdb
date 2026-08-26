@@ -7762,6 +7762,8 @@ export default function App(){
   const [menuOpen,setMenuOpen] = useState(false);
   const [showPrivacidad,setShowPrivacidad] = useState(false);
   const [showPerfil,setShowPerfil] = useState(false);
+  const [tab,setTabRaw] = useState("home");
+  const setTab = (v)=>{setShowPerfil(false);setTabRaw(v);};
 
   useEffect(()=>{
     const setupUser=async(session)=>{
@@ -7813,7 +7815,6 @@ export default function App(){
     if(error)setLoginErr(error.message);
   };
   const handleLogout=async()=>{await supabase.auth.signOut();setUser(null);setIsAdmin(false);setFavoritos([]);};
-  const [tab,setTab]         = useState("home");
   const [openPlayerId,setOpenPlayerId] = useState(null);
   const [openTeamId,setOpenTeamId]     = useState(null);
   const [openTeamYear,setOpenTeamYear] = useState(null);
