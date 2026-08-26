@@ -6986,6 +6986,117 @@ function AliasEditor({user}){
   );
 }
 
+/* ── BolaCristalView ─────────────────────────────────────── */
+const BOLA_PREGUNTAS=[
+  {id:"campeon",   label:"¿Quién será campeón?",         tipo:"equipo",   n:1, icon:"🏆"},
+  {id:"mvp",       label:"¿Quién será la MVP?",          tipo:"jugadora", n:1, icon:"⭐"},
+  {id:"top_scorer",label:"Máxima anotadora del torneo",  tipo:"jugadora", n:1, icon:"🎯"},
+  {id:"joven",     label:"Mejor jugadora joven",         tipo:"jugadora", n:1, icon:"🌱"},
+  {id:"quinteto",  label:"Quinteto ideal",               tipo:"jugadora", n:5, icon:"🖐️"},
+  {id:"t3pct",     label:"Mejor % T3",                   tipo:"jugadora", n:1, icon:"🎯"},
+  {id:"robos",     label:"Jugadora con más robos",       tipo:"jugadora", n:1, icon:"🥷"},
+];
+
+function BolaCristalView({user,equipos}){
+  const [cierre,setCierre]=useState(null);
+  const [equiposMundial,setEquiposMundial]=useState([]); // [{id,nombre}]
+  const [jugadorasMundial,setJugadorasMundial]=useState([]); // [{id,nombre,equipoNombre}]
+  const [preds,setPreds]=useState({}); // {[pregunta_id]: [ids]}
+  const [saving,setSaving]=useState({});
+  const [msg,setMsg]=useState({});
+
+  useEffect(()=>{(async()=>{
+    const {data:ps}=await supabase.from("partidos")
+      .select("fecha_hora,id_equipo_local,id_equipo_visitante")
+      .eq("id_liga","L055").eq("temporada","2026");
+    const fechas=(ps||[]).map(p=>p.fecha_hora).filter(Boolean).sort();
+    setCierre(fechas[0]||null);
+    const eqIds=new Set();
+    (ps||[]).forEach(p=>{if(p.id_equipo_local)eqIds.add(p.id_equipo_local);if(p.id_equipo_visitante)eqIds.add(p.id_equipo_visitante);});
+    const eqMap={};(equipos||[]).forEach(e=>{eqMap[e.id_equipo]=e.nombre;});
+    setEquiposMundial([...eqIds].map(id=>({id,nombre:eqMap[id]||id})).sort((a,b)=>a.nombre.localeCompare(b.nombre)));
+    const {data:ts}=await supabase.from("temporadas")
+      .select("id_jugadora,id_equipo,jugadoras(nombre)")
+      .eq("id_liga","L055").eq("temporada","2026");
+    const js=(ts||[]).map(t=>({id:t.id_jugadora,nombre:t.jugadoras?.nombre||t.id_jugadora,equipoNombre:eqMap[t.id_equipo]||t.id_equipo}));
+    js.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+    setJugadorasMundial(js);
+    const {data:mios}=await supabase.from("bola_cristal_predicciones")
+      .select("pregunta_id,respuesta_ids").eq("user_id",user.id).eq("id_liga","L055").eq("temporada","2026");
+    const m={};(mios||[]).forEach(p=>{m[p.pregunta_id]=p.respuesta_ids;});
+    setPreds(m);
+  })();},[user.id,equipos]);
+
+  const cerrado=cierre&&new Date(cierre).getTime()<=Date.now();
+
+  const guardar=async(preguntaId,ids)=>{
+    const clean=(ids||[]).filter(Boolean);
+    setSaving(s=>({...s,[preguntaId]:true}));
+    if(clean.length===0){
+      await supabase.from("bola_cristal_predicciones").delete()
+        .eq("user_id",user.id).eq("id_liga","L055").eq("temporada","2026").eq("pregunta_id",preguntaId);
+      setPreds(p=>{const n={...p};delete n[preguntaId];return n;});
+    } else {
+      const {error}=await supabase.from("bola_cristal_predicciones").upsert({
+        user_id:user.id,id_liga:"L055",temporada:"2026",pregunta_id:preguntaId,respuesta_ids:clean
+      },{onConflict:"user_id,id_liga,temporada,pregunta_id"});
+      if(!error)setPreds(p=>({...p,[preguntaId]:clean}));
+    }
+    setSaving(s=>({...s,[preguntaId]:false}));
+    setMsg(m=>({...m,[preguntaId]:"✓"}));
+    setTimeout(()=>setMsg(m=>{const n={...m};delete n[preguntaId];return n;}),1200);
+  };
+
+  const opciones=q=>q.tipo==="equipo"?equiposMundial:jugadorasMundial;
+  const lblOp=(q,o)=>q.tipo==="equipo"?o.nombre:`${o.nombre} (${o.equipoNombre})`;
+  const sel={width:"100%",padding:"8px 10px",borderRadius:"8px",border:"1px solid #cbd5e1",fontSize:"13px",background:"#fff",cursor:"pointer"};
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
+      <div style={{background:cerrado?"#fef2f2":"#f0fdf4",border:`1px solid ${cerrado?"#fecaca":"#bbf7d0"}`,borderRadius:"12px",padding:"12px 14px",fontSize:"12px",color:cerrado?"#991b1b":"#166534"}}>
+        {cerrado
+          ?<><b>🔒 Cerrado.</b> Se cerró el {cierre?new Date(cierre).toLocaleString("es",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"}. Ya solo puedes ver tus predicciones.</>
+          :<><b>🔮 Abierto.</b> Cierra al empezar el primer partido{cierre?": "+new Date(cierre).toLocaleString("es",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):""}. Rellena antes.</>}
+      </div>
+      {BOLA_PREGUNTAS.map(q=>{
+        const ops=opciones(q);
+        const val=preds[q.id]||[];
+        return(
+          <div key={q.id} style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"10px"}}>
+              <div style={{fontSize:"14px",fontWeight:700,color:"#1e293b"}}>{q.icon} {q.label}</div>
+              {msg[q.id]&&<span style={{fontSize:"12px",color:"#16a34a",fontWeight:700}}>{msg[q.id]}</span>}
+              {saving[q.id]&&<span style={{fontSize:"11px",color:"#94a3b8"}}>Guardando…</span>}
+            </div>
+            {q.n===1?(
+              <select disabled={cerrado||ops.length===0} style={sel}
+                value={val[0]||""}
+                onChange={e=>guardar(q.id,[e.target.value])}>
+                <option value="">— elegir —</option>
+                {ops.map(o=><option key={o.id} value={o.id}>{lblOp(q,o)}</option>)}
+              </select>
+            ):(
+              <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+                {Array.from({length:q.n}).map((_,i)=>(
+                  <select key={i} disabled={cerrado||ops.length===0} style={sel}
+                    value={val[i]||""}
+                    onChange={e=>{const nv=[...val];nv[i]=e.target.value;guardar(q.id,nv);}}>
+                    <option value="">— posición {i+1} —</option>
+                    {ops.filter(o=>!val.includes(o.id)||o.id===val[i]).map(o=>
+                      <option key={o.id} value={o.id}>{lblOp(q,o)}</option>
+                    )}
+                  </select>
+                ))}
+              </div>
+            )}
+            {ops.length===0&&<div style={{fontSize:"11px",color:"#94a3b8",marginTop:"6px"}}>Sin opciones cargadas todavía.</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ── QuinielaView ────────────────────────────────────────── */
 function QuinielaView({user,equipos}){
   const [partidos,setPartidos]=useState([]);
@@ -7045,10 +7156,13 @@ function QuinielaView({user,equipos}){
           <div style={{fontSize:"26px",fontWeight:800,color:"#9333ea",lineHeight:1}}>{misPuntos}</div>
         </div>
       </div>
-      <div style={{display:"flex",gap:"6px",marginBottom:"12px"}}>
+      <div style={{display:"flex",gap:"6px",marginBottom:"12px",flexWrap:"wrap"}}>
         <button onClick={()=>setTab("pronosticar")} style={btnStyle(tab==="pronosticar")}>Mis pronósticos</button>
+        <button onClick={()=>setTab("bola")} style={btnStyle(tab==="bola")}>🔮 Bola de cristal</button>
         <button onClick={()=>setTab("ranking")} style={btnStyle(tab==="ranking")}>🏆 Ranking</button>
       </div>
+
+      {tab==="bola"&&<BolaCristalView user={user} equipos={equipos}/>}
 
       {tab==="pronosticar"&&(
         <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
