@@ -7241,19 +7241,29 @@ function BasketnetaView({user,equipos,cierre}){
 
       {/* FASE DE GRUPOS */}
       <div style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
-        <div style={{fontSize:"15px",fontWeight:800,color:"#1e293b",marginBottom:"12px"}}>🏁 Ordena cada grupo (1 pt × posición correcta)</div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:"12px"}}>
+        <div style={{fontSize:"15px",fontWeight:800,color:"#1e293b",marginBottom:"4px"}}>🏁 Ordena cada grupo (1 pt × posición correcta)</div>
+        <div style={{fontSize:"11px",color:"#64748b",marginBottom:"10px"}}>
+          <span style={{color:"#166534",fontWeight:700}}>■ 1º</span> pasa directo a cuartos ·
+          <span style={{color:"#a16207",fontWeight:700}}> ■ 2º y 3º</span> juegan play-in ·
+          <span style={{color:"#b91c1c",fontWeight:700}}> ■ 4º</span> eliminado
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:"10px"}}>
           {BN_GRUPOS.map(g=>{
             const total=gruposMap[g]||[];
+            // fondos por posición
+            const bgPos={1:"#dcfce7",2:"#fef3c7",3:"#fef3c7",4:"#fee2e2"};
+            const numPos={1:"#166534",2:"#a16207",3:"#a16207",4:"#b91c1c"};
             return(
-              <div key={g} style={{border:"1px solid #e2e8f0",borderRadius:"10px",padding:"10px"}}>
-                <div style={{fontSize:"12px",fontWeight:700,color:"#64748b",marginBottom:"8px"}}>GRUPO {g}</div>
+              <div key={g} style={{border:"1px solid #e2e8f0",borderRadius:"10px",padding:"8px"}}>
+                <div style={{fontSize:"11px",fontWeight:800,color:"#64748b",marginBottom:"6px",textAlign:"center"}}>GRUPO {g}</div>
                 {[1,2,3,4].map(pos=>{
                   const slot=`grupo_${g}_${pos}`;
                   return(
-                    <div key={pos} style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"6px"}}>
-                      <span style={{fontSize:"12px",fontWeight:700,color:"#9333ea",minWidth:"20px"}}>{pos}º</span>
-                      <select disabled={cerrado||total.length===0} style={{...sel,fontSize:"12px",padding:"6px 8px"}} value={drafts[slot]||""}
+                    <div key={pos} style={{display:"flex",alignItems:"center",gap:"5px",marginBottom:"4px",background:bgPos[pos],borderRadius:"6px",padding:"3px"}}>
+                      <span style={{fontSize:"11px",fontWeight:800,color:numPos[pos],minWidth:"16px",textAlign:"center"}}>{pos}º</span>
+                      <select disabled={cerrado||total.length===0}
+                        style={{flex:1,minWidth:0,fontSize:"11px",padding:"4px 6px",borderRadius:"5px",border:"1px solid #cbd5e1",background:"#fff",cursor:"pointer"}}
+                        value={drafts[slot]||""}
                         onChange={e=>setDrafts(d=>({...d,[slot]:e.target.value}))}>
                         <option value="">—</option>
                         {opsGrupo(g,pos).map(o=><option key={o.id} value={o.id}>{o.nombre}</option>)}
@@ -7443,7 +7453,7 @@ function QuinielaView({user,equipos}){
         </div>
       </div>
       <div style={{display:"flex",gap:"6px",marginBottom:"12px",flexWrap:"wrap"}}>
-        <button onClick={()=>setTab("basketneta")} style={btnStyle(tab==="basketneta")}>🏀 La Basketneta</button>
+        <button onClick={()=>setTab("basketneta")} style={btnStyle(tab==="basketneta")}>🏀 Pronóstico</button>
         <button onClick={()=>setTab("bola")}       style={btnStyle(tab==="bola")}>🔮 Bola de cristal</button>
         <button onClick={()=>setTab("ranking")}    style={btnStyle(tab==="ranking")}>🏆 Ranking</button>
       </div>
