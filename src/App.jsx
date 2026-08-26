@@ -7060,7 +7060,6 @@ function PerfilView({user,favoritos,onClose,onLogout}){
     equipos:  (favoritos||[]).filter(f=>f.tipo==="equipo").length,
     ligas:    (favoritos||[]).filter(f=>f.tipo==="liga").length,
   };
-  const avatar=user.user_metadata?.avatar_url;
   const nombreReal=user.user_metadata?.full_name||user.email?.split("@")[0]||"Usuario";
 
   return(
