@@ -6957,26 +6957,76 @@ function LoginModal({onLogin,onGoogleLogin,onClose,loading,error,mode,setMode}){
   );
 }
 
+/* ── Avatar (preset | URL | fallback) ────────────────────── */
+const AVATAR_PRESETS=[
+  {k:"basket", e:"🏀", bg:"linear-gradient(135deg,#f97316,#ea580c)"},
+  {k:"star",   e:"⭐", bg:"linear-gradient(135deg,#eab308,#ca8a04)"},
+  {k:"fire",   e:"🔥", bg:"linear-gradient(135deg,#ef4444,#b91c1c)"},
+  {k:"target", e:"🎯", bg:"linear-gradient(135deg,#0ea5e9,#0369a1)"},
+  {k:"crown",  e:"👑", bg:"linear-gradient(135deg,#a855f7,#7e22ce)"},
+  {k:"gem",    e:"💎", bg:"linear-gradient(135deg,#06b6d4,#0e7490)"},
+  {k:"rocket", e:"🚀", bg:"linear-gradient(135deg,#8b5cf6,#6d28d9)"},
+  {k:"gold",   e:"🥇", bg:"linear-gradient(135deg,#fbbf24,#d97706)"},
+  {k:"lion",   e:"🦁", bg:"linear-gradient(135deg,#f59e0b,#b45309)"},
+  {k:"wolf",   e:"🐺", bg:"linear-gradient(135deg,#64748b,#334155)"},
+  {k:"heart",  e:"❤️", bg:"linear-gradient(135deg,#f43f5e,#be123c)"},
+  {k:"peace",  e:"✌️", bg:"linear-gradient(135deg,#10b981,#047857)"},
+];
+function Avatar({avatar,googleUrl,nombre,size=64}){
+  const preset=avatar?.startsWith("preset:")?AVATAR_PRESETS.find(p=>p.k===avatar.slice(7)):null;
+  const url=avatar&&!avatar.startsWith("preset:")?avatar:(!avatar?googleUrl:null);
+  const style={width:size,height:size,borderRadius:"50%",flexShrink:0};
+  if(preset) return <div style={{...style,background:preset.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.55}}>{preset.e}</div>;
+  if(url) return <img src={url} alt="" style={{...style,objectFit:"cover"}}/>;
+  const inicial=(nombre||"?")[0]?.toUpperCase()||"?";
+  return <div style={{...style,background:"linear-gradient(135deg,#9333ea,#c084fc)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:size*0.4,fontWeight:800}}>{inicial}</div>;
+}
+
 /* ── PerfilView (vista dedicada de perfil) ───────────────── */
 function PerfilView({user,favoritos,onClose,onLogout}){
   const [alias,setAlias]=useState("");
   const [aliasMsg,setAliasMsg]=useState("");
   const [savingAlias,setSavingAlias]=useState(false);
   const [counts,setCounts]=useState({basketneta:0,bola:0});
-  const [confirmStep,setConfirmStep]=useState(0); // 0 idle, 1 primera confirm, 2 texto
+  const [avatar,setAvatar]=useState(null);
+  const [avatarMsg,setAvatarMsg]=useState("");
+  const [uploading,setUploading]=useState(false);
+  const [confirmStep,setConfirmStep]=useState(0);
   const [confirmText,setConfirmText]=useState("");
   const [deleting,setDeleting]=useState(false);
   const [deleteErr,setDeleteErr]=useState("");
 
   useEffect(()=>{(async()=>{
-    const {data:pf}=await supabase.from("perfiles").select("alias").eq("id",user.id).maybeSingle();
+    const {data:pf}=await supabase.from("perfiles").select("alias,avatar").eq("id",user.id).maybeSingle();
     setAlias(pf?.alias||"");
+    setAvatar(pf?.avatar||null);
     const [bn,bo]=await Promise.all([
       supabase.from("basketneta_predicciones").select("*",{count:"exact",head:true}).eq("user_id",user.id),
       supabase.from("bola_cristal_predicciones").select("*",{count:"exact",head:true}).eq("user_id",user.id),
     ]);
     setCounts({basketneta:bn.count||0,bola:bo.count||0});
   })();},[user.id]);
+
+  const saveAvatar=async(val)=>{
+    const {error}=await supabase.from("perfiles").update({avatar:val}).eq("id",user.id);
+    if(error){setAvatarMsg("Error");return;}
+    setAvatar(val);setAvatarMsg("Avatar actualizado ✓");setTimeout(()=>setAvatarMsg(""),1500);
+  };
+
+  const subirFoto=async(e)=>{
+    const f=e.target.files?.[0];e.target.value="";
+    if(!f) return;
+    if(!f.type.startsWith("image/")){setAvatarMsg("No es imagen");return;}
+    if(f.size>2*1024*1024){setAvatarMsg("Máx 2 MB");return;}
+    setUploading(true);
+    const ext=(f.name.split(".").pop()||"png").toLowerCase();
+    const path=`${user.id}/avatar_${Date.now()}.${ext}`;
+    const {error:upErr}=await supabase.storage.from("avatars").upload(path,f,{cacheControl:"3600",upsert:false});
+    if(upErr){setUploading(false);setAvatarMsg("Error subida: "+upErr.message);return;}
+    const {data:{publicUrl}}=supabase.storage.from("avatars").getPublicUrl(path);
+    await saveAvatar(publicUrl);
+    setUploading(false);
+  };
 
   const guardarAlias=async()=>{
     setSavingAlias(true);
@@ -7022,13 +7072,41 @@ function PerfilView({user,favoritos,onClose,onLogout}){
 
       {/* cabecera con avatar */}
       <div style={{background:"#fff",borderRadius:"16px",padding:"18px",boxShadow:"0 2px 12px rgba(0,0,0,0.06)",marginBottom:"14px",display:"flex",gap:"14px",alignItems:"center"}}>
-        {avatar
-          ?<img src={avatar} alt="" style={{width:64,height:64,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>
-          :<div style={{width:64,height:64,borderRadius:"50%",background:"linear-gradient(135deg,#9333ea,#c084fc)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:"26px",fontWeight:800,flexShrink:0}}>{nombreReal[0]?.toUpperCase()||"?"}</div>}
+        <Avatar avatar={avatar} googleUrl={user.user_metadata?.avatar_url} nombre={nombreReal} size={64}/>
         <div style={{minWidth:0,flex:1}}>
           <div style={{fontSize:"16px",fontWeight:800,color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nombreReal}</div>
           <div style={{fontSize:"12px",color:"#64748b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.email}</div>
         </div>
+      </div>
+
+      {/* selector de avatar */}
+      <div style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",marginBottom:"14px"}}>
+        <div style={{fontSize:"12px",fontWeight:700,color:"#64748b",marginBottom:"10px"}}>Tu avatar</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(52px,1fr))",gap:"8px",marginBottom:"12px"}}>
+          {AVATAR_PRESETS.map(p=>{
+            const sel=avatar===`preset:${p.k}`;
+            return(
+              <button key={p.k} onClick={()=>saveAvatar(`preset:${p.k}`)}
+                style={{width:48,height:48,borderRadius:"50%",background:p.bg,border:sel?"3px solid #9333ea":"3px solid transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"22px",cursor:"pointer",padding:0}}>
+                {p.e}
+              </button>
+            );
+          })}
+        </div>
+        <div style={{display:"flex",gap:"8px",flexWrap:"wrap"}}>
+          <label style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:uploading?"wait":"pointer",opacity:uploading?0.6:1}}>
+            {uploading?"Subiendo…":"📷 Subir foto"}
+            <input type="file" accept="image/*" onChange={subirFoto} disabled={uploading} style={{display:"none"}}/>
+          </label>
+          {(avatar||user.user_metadata?.avatar_url)&&(
+            <button onClick={()=>saveAvatar(null)}
+              style={{background:"#fff",color:"#64748b",border:"1px solid #e2e8f0",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
+              Usar el de Google
+            </button>
+          )}
+        </div>
+        {avatarMsg&&<div style={{fontSize:"11px",color:avatarMsg.startsWith("Error")||avatarMsg.startsWith("No")||avatarMsg.startsWith("Máx")?"#dc2626":"#16a34a",marginTop:"8px",fontWeight:700}}>{avatarMsg}</div>}
+        <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"6px"}}>Elige un preset, sube tu foto (máx 2 MB) o vuelve al avatar de Google.</div>
       </div>
 
       {/* alias */}
