@@ -5872,11 +5872,145 @@ function BasketnetaView({user,equipos,cierre}){
   );
 }
 
+/* ── VerPrediccionesModal (lectura de picks de otro user) ── */
+function VerPrediccionesModal({target,equipos,onClose}){
+  const [data,setData]=useState(null);
+  const [err,setErr]=useState("");
+  const [jugMap,setJugMap]=useState({}); // id_jugadora -> {nombre, id_equipo}
+
+  useEffect(()=>{(async()=>{
+    const {data:d,error}=await supabase.rpc("ver_predicciones_mundial",{target_user:target.user_id});
+    if(error){setErr(error.message);return;}
+    setData(d);
+    if(d?.cerrado&&Array.isArray(d.bola)){
+      const ids=Array.from(new Set(d.bola.flatMap(b=>b.respuesta_ids||[])));
+      if(ids.length){
+        const {data:js}=await supabase.from("jugadoras").select("id_jugadora,nombre").in("id_jugadora",ids);
+        // segunda query para el equipo (via temporadas 2026)
+        const {data:ts}=await supabase.from("temporadas").select("id_jugadora,id_equipo").eq("id_liga","L055").eq("temporada","2026").in("id_jugadora",ids);
+        const eqOf={};(ts||[]).forEach(t=>{eqOf[t.id_jugadora]=t.id_equipo;});
+        const m={};(js||[]).forEach(j=>{m[j.id_jugadora]={nombre:j.nombre,id_equipo:eqOf[j.id_jugadora]};});
+        setJugMap(m);
+      }
+    }
+  })();},[target.user_id]);
+
+  const eqIdx={},eqEsc={};
+  (equipos||[]).forEach(e=>{eqIdx[e.id_equipo]=e.nombre;eqEsc[e.id_equipo]=e.escudo;});
+  const escDe=id=>eqEsc[id];
+
+  const flag=url=>url
+    ?<img src={url} alt="" style={{width:16,height:12,objectFit:"contain",flexShrink:0}}/>
+    :<span style={{width:16,height:12,background:"#e2e8f0",borderRadius:2,flexShrink:0,display:"inline-block"}}/>;
+
+  const teamPill=id=>id?(
+    <span style={{display:"inline-flex",alignItems:"center",gap:"5px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:"6px",padding:"3px 7px",fontSize:"12px",fontWeight:600}}>
+      {flag(escDe(id))}<span>{eqIdx[id]||id}</span>
+    </span>
+  ):<span style={{fontSize:"12px",color:"#94a3b8"}}>—</span>;
+
+  const jugPill=id=>{
+    const j=jugMap[id];
+    if(!j) return <span style={{fontSize:"12px",color:"#94a3b8"}}>{id}</span>;
+    return(
+      <span style={{display:"inline-flex",alignItems:"center",gap:"5px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:"6px",padding:"3px 7px",fontSize:"12px",fontWeight:600}}>
+        {flag(escDe(j.id_equipo))}<span>{j.nombre}</span>
+      </span>
+    );
+  };
+
+  const bnBySlot={};(data?.basketneta||[]).forEach(b=>{bnBySlot[b.slot]=b;});
+  const boByPreg={};(data?.bola||[]).forEach(b=>{boByPreg[b.pregunta_id]=b.respuesta_ids||[];});
+
+  const preguntaLabel={campeon:"🏆 Campeón",mvp:"⭐ MVP",top_scorer:"🎯 Máxima anotadora",joven:"🌱 Mejor joven",quinteto:"🖐️ Quinteto ideal",t3pct:"🏹 Mejor % T3",robos:"🥷 Más robos"};
+
+  return(
+    <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.7)",zIndex:200,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"20px",overflowY:"auto"}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:"14px",maxWidth:"760px",width:"100%",padding:"18px",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+            <UserAvatar avatar={target.avatar} googleUrl={target.google} nombre={target.nombre} size={40}/>
+            <div>
+              <div style={{fontSize:"16px",fontWeight:800,color:"#1e293b"}}>{target.nombre}</div>
+              <div style={{fontSize:"11px",color:"#94a3b8"}}>Predicciones · Mundial 2026</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:"22px",cursor:"pointer",color:"#64748b"}}>✕</button>
+        </div>
+
+        {err&&<div style={{background:"#fef2f2",color:"#991b1b",padding:"10px",borderRadius:"8px",fontSize:"12px"}}>{err}</div>}
+        {!data&&!err&&<div style={{padding:"30px",textAlign:"center",color:"#94a3b8"}}>Cargando…</div>}
+        {data&&!data.cerrado&&<div style={{background:"#fef3c7",color:"#92400e",padding:"12px",borderRadius:"8px",fontSize:"12px"}}>La quiniela aún no está cerrada — solo podrás ver las predicciones de otros cuando empiece el primer partido.</div>}
+
+        {data?.cerrado&&(<>
+          {/* BASKETNETA */}
+          <div style={{marginTop:"6px"}}>
+            <div style={{fontSize:"13px",fontWeight:800,color:"#1e293b",marginBottom:"8px"}}>🏀 Pronóstico (Basketneta)</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:"8px",marginBottom:"12px"}}>
+              {["A","B","C","D"].map(g=>(
+                <div key={g} style={{border:"1px solid #e2e8f0",borderRadius:"8px",padding:"8px"}}>
+                  <div style={{fontSize:"11px",fontWeight:800,color:"#64748b",marginBottom:"6px",textAlign:"center"}}>GRUPO {g}</div>
+                  {[1,2,3,4].map(pos=>{
+                    const s=bnBySlot[`grupo_${g}_${pos}`];
+                    const bgPos={1:"#dcfce7",2:"#fef3c7",3:"#fef3c7",4:"#fee2e2"}[pos];
+                    return(
+                      <div key={pos} style={{display:"flex",alignItems:"center",gap:"6px",padding:"3px 6px",background:bgPos,borderRadius:"6px",marginBottom:"3px",fontSize:"12px"}}>
+                        <b style={{width:"16px",color:"#334155"}}>{pos}º</b>
+                        {s?<div style={{display:"flex",alignItems:"center",gap:"5px",overflow:"hidden"}}>{flag(escDe(s.id_equipo))}<span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.nombre||s.id_equipo}</span></div>:<span style={{color:"#94a3b8"}}>—</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+            <div style={{border:"1px solid #e2e8f0",borderRadius:"8px",padding:"10px"}}>
+              <div style={{fontSize:"11px",fontWeight:800,color:"#64748b",marginBottom:"8px"}}>BRACKET</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px",fontSize:"12px"}}>
+                {[["playin_25","Play-in #25"],["playin_26","Play-in #26"],["playin_27","Play-in #27"],["playin_28","Play-in #28"],
+                  ["qf_29","Cuartos #29"],["qf_30","Cuartos #30"],["qf_31","Cuartos #31"],["qf_32","Cuartos #32"],
+                  ["sf_33","Semi #33"],["sf_34","Semi #34"],["br_35","3er puesto"],["final_36","🏆 Final"]].map(([slot,lab])=>{
+                    const s=bnBySlot[slot];
+                    return(
+                      <div key={slot} style={{display:"flex",alignItems:"center",gap:"6px",padding:"4px 6px",background:slot==="final_36"?"#fef3c7":"#f8fafc",borderRadius:"6px"}}>
+                        <span style={{fontSize:"10px",color:"#64748b",fontWeight:700,minWidth:"78px"}}>{lab}</span>
+                        {s?teamPill(s.id_equipo):<span style={{color:"#94a3b8",fontSize:"11px"}}>—</span>}
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+
+          {/* BOLA */}
+          <div style={{marginTop:"14px"}}>
+            <div style={{fontSize:"13px",fontWeight:800,color:"#1e293b",marginBottom:"8px"}}>🔮 Bola de cristal</div>
+            <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+              {["campeon","mvp","top_scorer","joven","quinteto","t3pct","robos"].map(pid=>{
+                const ids=boByPreg[pid]||[];
+                return(
+                  <div key={pid} style={{border:"1px solid #e2e8f0",borderRadius:"8px",padding:"8px 10px"}}>
+                    <div style={{fontSize:"11px",fontWeight:700,color:"#64748b",marginBottom:"5px"}}>{preguntaLabel[pid]}</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>
+                      {ids.length===0&&<span style={{fontSize:"12px",color:"#94a3b8"}}>—</span>}
+                      {pid==="campeon"?ids.map(id=><span key={id}>{teamPill(id)}</span>):ids.map(id=><span key={id}>{jugPill(id)}</span>)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </>)}
+      </div>
+    </div>
+  );
+}
+
 /* ── QuinielaView ────────────────────────────────────────── */
 function QuinielaView({user,equipos}){
   const [cierre,setCierre]=useState(null);
   const [rank,setRank]=useState([]);
   const [tab,setTab]=useState("basketneta");
+  const [verUser,setVerUser]=useState(null); // {user_id, nombre, avatar} para modal
 
   useEffect(()=>{(async()=>{
     const {data:ps}=await supabase.from("partidos")
@@ -5906,6 +6040,8 @@ function QuinielaView({user,equipos}){
       {tab==="basketneta"&&<BasketnetaView user={user} equipos={equipos} cierre={cierre}/>}
       {tab==="bola"&&<BolaCristalView user={user} equipos={equipos} cierre={cierre}/>}
 
+      {verUser&&<VerPrediccionesModal target={verUser} equipos={equipos} onClose={()=>setVerUser(null)}/>}
+
       {tab==="ranking"&&(
         <div style={{background:"#fff",borderRadius:"12px",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
           <div style={{padding:"12px 14px",background:"#faf5ff",fontSize:"12px",color:"#6b21a8",borderBottom:"1px solid #e9d5ff"}}>
@@ -5925,13 +6061,21 @@ function QuinielaView({user,equipos}){
               {rank.length===0&&<tr><td colSpan={5} style={{padding:"24px",textAlign:"center",color:"#94a3b8"}}>Todavía nadie ha guardado predicciones.</td></tr>}
               {rank.map((r,i)=>{
                 const google=r.user_id===user.id?user.user_metadata?.avatar_url:null;
+                const cerrado=cierre&&new Date(cierre).getTime()<=Date.now();
+                const onClick=cerrado?(()=>setVerUser({user_id:r.user_id,nombre:r.nombre,avatar:r.avatar,google})):undefined;
                 return(
-                <tr key={r.user_id} style={{borderTop:"1px solid #f1f5f9",background:r.user_id===user.id?"#faf5ff":undefined}}>
+                <tr key={r.user_id}
+                  onClick={onClick}
+                  style={{borderTop:"1px solid #f1f5f9",background:r.user_id===user.id?"#faf5ff":undefined,cursor:cerrado?"pointer":"default"}}
+                  onMouseEnter={e=>{if(cerrado)e.currentTarget.style.background="#f5f3ff";}}
+                  onMouseLeave={e=>{e.currentTarget.style.background=r.user_id===user.id?"#faf5ff":"";}}
+                  title={cerrado?"Ver sus predicciones":undefined}>
                   <td style={{padding:"10px 14px",fontWeight:700,color:i===0?"#eab308":i===1?"#94a3b8":i===2?"#c2410c":"#64748b"}}>{i+1}</td>
                   <td style={{padding:"8px 14px",fontWeight:600,color:"#1e293b"}}>
                     <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                       <UserAvatar avatar={r.avatar} googleUrl={google} nombre={r.nombre} size={28}/>
                       <span>{r.nombre}{r.user_id===user.id?" (tú)":""}</span>
+                      {cerrado&&<span style={{fontSize:"11px",color:"#9333ea",marginLeft:"4px"}}>👁</span>}
                     </div>
                   </td>
                   <td style={{padding:"10px 14px",textAlign:"center",color:"#64748b"}}>{r.basketneta_slots}/28</td>
