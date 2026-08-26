@@ -6986,40 +6986,53 @@ function AliasEditor({user}){
   );
 }
 
-/* ── FlagSelect (combobox con bandera) ───────────────────── */
+/* ── FlagSelect (combobox con bandera + búsqueda) ────────── */
 function FlagSelect({value,options,onChange,disabled,placeholder,size}){
   const [open,setOpen]=useState(false);
+  const [q,setQ]=useState("");
   const current=options.find(o=>o.id===value);
   const isSm=size==="sm";
   const fh=isSm?10:12,fw=isSm?14:16;
+  const norm=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+  const nq=norm(q);
+  const filtered=nq?options.filter(o=>norm(o.label).includes(nq)):options;
   const flag=url=>url
     ?<img src={url} alt="" style={{width:fw,height:fh,objectFit:"contain",flexShrink:0}}/>
     :<span style={{width:fw,height:fh,background:"#e2e8f0",borderRadius:2,flexShrink:0}}/>;
+  const toggle=()=>{if(disabled)return;setOpen(o=>{const nv=!o;if(nv)setQ("");return nv;});};
   return(
     <div style={{position:"relative",flex:1,minWidth:0}}>
-      <button type="button" onClick={()=>!disabled&&setOpen(o=>!o)} disabled={disabled}
+      <button type="button" onClick={toggle} disabled={disabled}
         style={{display:"flex",alignItems:"center",gap:"5px",width:"100%",textAlign:"left",
           padding:isSm?"4px 6px":"6px 8px",fontSize:isSm?"11px":"12px",
           border:"1px solid #cbd5e1",borderRadius:"6px",background:disabled?"#f1f5f9":"#fff",
           cursor:disabled?"not-allowed":"pointer"}}>
         {current?<>{flag(current.flagUrl)}<span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{current.label}</span></>
-          :<span style={{color:"#94a3b8"}}>{placeholder||"—"}</span>}
+          :<span style={{color:"#94a3b8",flex:1}}>{placeholder||"—"}</span>}
         <span style={{fontSize:"9px",color:"#94a3b8"}}>▾</span>
       </button>
       {open&&(<>
         <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:30}}/>
-        <div style={{position:"absolute",top:"calc(100% + 2px)",left:0,right:0,minWidth:"180px",maxHeight:"260px",overflowY:"auto",background:"#fff",border:"1px solid #cbd5e1",borderRadius:"6px",zIndex:31,boxShadow:"0 6px 20px rgba(0,0,0,0.15)"}}>
-          <div onClick={()=>{onChange("");setOpen(false);}}
-            style={{padding:"6px 8px",fontSize:"11px",color:"#94a3b8",cursor:"pointer",borderBottom:"1px solid #f1f5f9"}}>— sin elegir —</div>
-          {options.map(o=>(
-            <div key={o.id} onClick={()=>{onChange(o.id);setOpen(false);}}
-              style={{display:"flex",alignItems:"center",gap:"6px",padding:"6px 8px",fontSize:"12px",cursor:"pointer",borderBottom:"1px solid #f8fafc"}}
-              onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
-              onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
-              {flag(o.flagUrl)}
-              <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{o.label}</span>
-            </div>
-          ))}
+        <div style={{position:"absolute",top:"calc(100% + 2px)",left:0,right:0,minWidth:"200px",background:"#fff",border:"1px solid #cbd5e1",borderRadius:"6px",zIndex:31,boxShadow:"0 6px 20px rgba(0,0,0,0.15)"}}>
+          {options.length>=8&&(
+            <input type="text" autoFocus value={q} onChange={e=>setQ(e.target.value)}
+              placeholder="Buscar…"
+              style={{width:"100%",boxSizing:"border-box",padding:"6px 8px",fontSize:"12px",border:"none",borderBottom:"1px solid #e2e8f0",outline:"none"}}/>
+          )}
+          <div style={{maxHeight:"240px",overflowY:"auto"}}>
+            <div onClick={()=>{onChange("");setOpen(false);}}
+              style={{padding:"6px 8px",fontSize:"11px",color:"#94a3b8",cursor:"pointer",borderBottom:"1px solid #f1f5f9"}}>— sin elegir —</div>
+            {filtered.map(o=>(
+              <div key={o.id} onClick={()=>{onChange(o.id);setOpen(false);}}
+                style={{display:"flex",alignItems:"center",gap:"6px",padding:"6px 8px",fontSize:"12px",cursor:"pointer",borderBottom:"1px solid #f8fafc"}}
+                onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
+                onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
+                {flag(o.flagUrl)}
+                <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{o.label}</span>
+              </div>
+            ))}
+            {filtered.length===0&&<div style={{padding:"10px",fontSize:"11px",color:"#94a3b8",textAlign:"center"}}>Sin resultados</div>}
+          </div>
         </div>
       </>)}
     </div>
