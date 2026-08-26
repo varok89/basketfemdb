@@ -6957,6 +6957,35 @@ function LoginModal({onLogin,onGoogleLogin,onClose,loading,error,mode,setMode}){
   );
 }
 
+/* ── AliasEditor (menú usuario) ──────────────────────────── */
+function AliasEditor({user}){
+  const [alias,setAlias]=useState("");
+  const [msg,setMsg]=useState("");
+  const [loaded,setLoaded]=useState(false);
+  useEffect(()=>{(async()=>{
+    const {data}=await supabase.from("perfiles").select("alias").eq("id",user.id).maybeSingle();
+    setAlias(data?.alias||"");setLoaded(true);
+  })();},[user.id]);
+  const guardar=async()=>{
+    const v=(alias||"").trim().slice(0,24);
+    const {error}=await supabase.from("perfiles").update({alias:v||null}).eq("id",user.id);
+    setMsg(error?"Error":"Guardado ✓");setTimeout(()=>setMsg(""),1500);
+  };
+  return(
+    <div style={{marginBottom:"8px"}}>
+      <div style={{fontSize:"10px",color:"#94a3b8",fontWeight:700,marginBottom:"4px"}}>ALIAS EN LA QUINIELA</div>
+      <div style={{display:"flex",gap:"4px"}}>
+        <input type="text" maxLength={24} value={alias} onChange={e=>setAlias(e.target.value)} disabled={!loaded}
+          placeholder="(tu nombre)"
+          style={{flex:1,minWidth:0,padding:"6px 8px",borderRadius:"6px",border:"1px solid #334155",background:"#0f172a",color:"#f1f5f9",fontSize:"12px"}}/>
+        <button onClick={guardar} disabled={!loaded}
+          style={{background:"rgba(147,51,234,0.2)",color:"#a78bfa",border:"1px solid rgba(147,51,234,0.4)",borderRadius:"6px",padding:"4px 10px",fontWeight:700,fontSize:"11px",cursor:"pointer"}}>OK</button>
+      </div>
+      {msg&&<div style={{fontSize:"10px",color:"#4ade80",marginTop:"4px"}}>{msg}</div>}
+    </div>
+  );
+}
+
 /* ── QuinielaView ────────────────────────────────────────── */
 function QuinielaView({user,equipos}){
   const [partidos,setPartidos]=useState([]);
@@ -7471,6 +7500,7 @@ export default function App(){
                   <div style={{fontSize:"11px",color:"#94a3b8",marginBottom:"4px"}}>{user.email}</div>
                   {isAdmin&&<div style={{fontSize:"10px",color:"#c084fc",fontWeight:700,marginBottom:"8px"}}>Administrador</div>}
                   <div style={{height:"1px",background:"#334155",margin:"8px 0"}}/>
+                  <AliasEditor user={user}/>
                   <button onClick={togglePush} style={{width:"100%",background:pushEnabled?"rgba(34,197,94,0.15)":"rgba(147,51,234,0.15)",color:pushEnabled?"#4ade80":"#a78bfa",border:`1px solid ${pushEnabled?"rgba(34,197,94,0.3)":"rgba(147,51,234,0.3)"}`,borderRadius:"8px",padding:"8px",fontWeight:700,fontSize:"12px",cursor:"pointer",marginBottom:"8px"}}>{pushEnabled?"🔔 Notificaciones activadas":"🔕 Activar notificaciones"}</button>
                   <button onClick={()=>{handleLogout();setShowUserMenu(false);}} style={{width:"100%",background:"#ef4444",color:"#fff",border:"none",borderRadius:"8px",padding:"8px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>Cerrar sesión</button>
                 </div>
