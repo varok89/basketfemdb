@@ -7266,52 +7266,122 @@ function BasketnetaView({user,equipos,cierre}){
         </div>
       </div>
 
-      {/* BRACKET VISUAL */}
+      {/* BRACKET VISUAL con líneas */}
       <div style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
         <div style={{fontSize:"15px",fontWeight:800,color:"#1e293b",marginBottom:"12px"}}>🎯 Bracket · Elige ganador de cada partido</div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4, minmax(150px, 1fr))",gap:"8px",overflowX:"auto"}}>
-          {["playin","qf","sf","final"].map(ronda=>{
-            const partidos=BN_BRACKET.filter(b=>b.ronda===ronda);
-            const titulo={playin:"Play-in",qf:"Cuartos",sf:"Semis",final:"Final"}[ronda];
+        {(()=>{
+          const teamBtn=(id,activo)=>({
+            display:"block",width:"100%",textAlign:"left",padding:"6px 8px",
+            background:activo?"#9333ea":id?"#f8fafc":"#f1f5f9",
+            color:activo?"#fff":id?"#1e293b":"#94a3b8",
+            border:`1px solid ${activo?"#9333ea":"#e2e8f0"}`,
+            borderRadius:"5px",fontSize:"11px",fontWeight:activo?800:600,
+            cursor:id&&!cerrado?"pointer":"not-allowed",
+            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
+            marginBottom:"3px"
+          });
+          const MatchCard=({slot,label,puntos})=>{
+            const [idA,idB]=bnParticipantes(slot,drafts);
+            const pick=drafts[slot];
+            const ok=pick&&(pick===idA||pick===idB);
             return(
-              <div key={ronda} style={{display:"flex",flexDirection:"column",gap:"8px",justifyContent:"space-around"}}>
-                <div style={{fontSize:"10px",fontWeight:800,color:"#94a3b8",letterSpacing:"1px",textAlign:"center"}}>{titulo.toUpperCase()}</div>
-                {partidos.map(b=>{
-                  const [idA,idB]=bnParticipantes(b.slot,drafts);
-                  const pick=drafts[b.slot];
-                  const pickValido=pick&&(pick===idA||pick===idB);
-                  const teamBtn=(id,activo)=>({
-                    display:"block",width:"100%",textAlign:"left",padding:"7px 9px",
-                    background:activo?"#9333ea":id?"#f8fafc":"#f1f5f9",
-                    color:activo?"#fff":id?"#1e293b":"#94a3b8",
-                    border:`1px solid ${activo?"#9333ea":"#e2e8f0"}`,
-                    borderRadius:"6px",fontSize:"11px",fontWeight:activo?800:600,
-                    cursor:id&&!cerrado?"pointer":"not-allowed",
-                    overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"
-                  });
-                  return(
-                    <div key={b.slot} style={{border:"1px solid #e2e8f0",borderRadius:"8px",padding:"6px",background:"#fff"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",fontSize:"9px",color:"#94a3b8",fontWeight:700,marginBottom:"4px"}}>
-                        <span>{b.label}</span><span>{b.puntos}pt</span>
-                      </div>
-                      <button style={teamBtn(idA,pickValido&&pick===idA)}
-                        disabled={!idA||cerrado}
-                        onClick={()=>setDrafts(d=>({...d,[b.slot]:idA}))}>
-                        {idA?nomDe(idA):"—"}
-                      </button>
-                      <div style={{textAlign:"center",fontSize:"9px",color:"#cbd5e1",padding:"2px 0"}}>vs</div>
-                      <button style={teamBtn(idB,pickValido&&pick===idB)}
-                        disabled={!idB||cerrado}
-                        onClick={()=>setDrafts(d=>({...d,[b.slot]:idB}))}>
-                        {idB?nomDe(idB):"—"}
-                      </button>
-                    </div>
-                  );
-                })}
+              <div style={{border:"1px solid #e2e8f0",borderRadius:"7px",padding:"5px 6px",background:"#fff",width:"150px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:"9px",color:"#94a3b8",fontWeight:700,marginBottom:"3px"}}>
+                  <span>{label}</span><span>{puntos}pt</span>
+                </div>
+                <button style={teamBtn(idA,ok&&pick===idA)} disabled={!idA||cerrado}
+                  onClick={()=>setDrafts(d=>({...d,[slot]:idA}))}>{idA?nomDe(idA):"—"}</button>
+                <button style={teamBtn(idB,ok&&pick===idB)} disabled={!idB||cerrado}
+                  onClick={()=>setDrafts(d=>({...d,[slot]:idB}))}>{idB?nomDe(idB):"—"}</button>
               </div>
             );
-          })}
-        </div>
+          };
+          const line="#cbd5e1";
+          // Play-in ordenados para alinearse con su QF de destino
+          const playins=[
+            {slot:"playin_26",label:"Play-in #26",puntos:2}, // → QF#29
+            {slot:"playin_25",label:"Play-in #25",puntos:2}, // → QF#30
+            {slot:"playin_28",label:"Play-in #28",puntos:2}, // → QF#31
+            {slot:"playin_27",label:"Play-in #27",puntos:2}, // → QF#32
+          ];
+          const qfs=[
+            {slot:"qf_29",label:"Cuartos #29",puntos:3},
+            {slot:"qf_30",label:"Cuartos #30",puntos:3},
+            {slot:"qf_31",label:"Cuartos #31",puntos:3},
+            {slot:"qf_32",label:"Cuartos #32",puntos:3},
+          ];
+          const sfs=[
+            {slot:"sf_33",label:"Semifinal #33",puntos:5},
+            {slot:"sf_34",label:"Semifinal #34",puntos:5},
+          ];
+          const finalM={slot:"final_36",label:"Final",puntos:10};
+          // Alturas y separaciones (px). Cada "unidad" = altura de un match + gap.
+          const MATCH_H=64;   // aprox altura del card
+          const GAP_UNIT=20;  // gap entre matches en playin/QF
+          // Total altura bracket ≈ 4 matches + 3 gaps = 4*64 + 3*20 = 316
+          const bracketH=4*MATCH_H+3*GAP_UNIT;
+          const colCommon={display:"flex",flexDirection:"column",justifyContent:"space-around",alignItems:"center",height:bracketH+"px"};
+          return(
+            <div style={{overflowX:"auto",paddingBottom:"6px"}}>
+              <div style={{display:"flex",alignItems:"stretch",minWidth:"780px"}}>
+                {/* col Play-in */}
+                <div style={colCommon}>
+                  <div style={{fontSize:"10px",fontWeight:800,color:"#94a3b8",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>PLAY-IN</div>
+                  {playins.map(p=>(
+                    <div key={p.slot} style={{position:"relative"}}>
+                      <MatchCard {...p}/>
+                      {/* línea horizontal saliendo a la derecha */}
+                      <div style={{position:"absolute",right:"-20px",top:"50%",width:"20px",height:"2px",background:line}}/>
+                    </div>
+                  ))}
+                </div>
+                {/* col Cuartos con pair-wrapper para líneas verticales hacia SF */}
+                <div style={{...colCommon,marginLeft:"20px"}}>
+                  <div style={{fontSize:"10px",fontWeight:800,color:"#94a3b8",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>CUARTOS</div>
+                  {[0,1].map(pairIdx=>(
+                    <div key={pairIdx} style={{display:"flex",flexDirection:"column",justifyContent:"space-around",alignItems:"center",height:(bracketH/2-GAP_UNIT/2)+"px",position:"relative"}}>
+                      <div style={{position:"relative"}}>
+                        <MatchCard {...qfs[pairIdx*2]}/>
+                      </div>
+                      <div style={{position:"relative"}}>
+                        <MatchCard {...qfs[pairIdx*2+1]}/>
+                      </div>
+                      {/* línea vertical uniendo los dos QFs a la derecha */}
+                      <div style={{position:"absolute",right:"-12px",top:"calc(50% - "+(MATCH_H/2)+"px)",bottom:"calc(50% - "+(MATCH_H/2)+"px)",width:"2px",background:line}}/>
+                      {/* horizontal desde cada QF hacia la línea vertical */}
+                      <div style={{position:"absolute",right:"-12px",top:"calc("+(MATCH_H/2)+"px + "+(pairIdx===999?0:0)+"px)",width:"12px",height:"2px",background:line}}/>
+                      <div style={{position:"absolute",right:"-12px",bottom:"calc("+(MATCH_H/2)+"px)",width:"12px",height:"2px",background:line}}/>
+                      {/* línea horizontal saliendo del centro hacia el siguiente SF */}
+                      <div style={{position:"absolute",right:"-24px",top:"50%",width:"12px",height:"2px",background:line}}/>
+                    </div>
+                  ))}
+                </div>
+                {/* col Semis */}
+                <div style={{...colCommon,marginLeft:"24px"}}>
+                  <div style={{fontSize:"10px",fontWeight:800,color:"#94a3b8",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>SEMIS</div>
+                  <div style={{display:"flex",flexDirection:"column",justifyContent:"space-around",alignItems:"center",height:bracketH+"px",position:"relative"}}>
+                    {sfs.map((s,i)=>(
+                      <div key={s.slot} style={{position:"relative"}}>
+                        <MatchCard {...s}/>
+                        {/* línea horizontal saliendo a la derecha */}
+                        <div style={{position:"absolute",right:"-12px",top:"50%",width:"12px",height:"2px",background:line}}/>
+                      </div>
+                    ))}
+                    {/* línea vertical uniendo SF33 y SF34 a la derecha */}
+                    <div style={{position:"absolute",right:"-12px",top:"25%",bottom:"25%",width:"2px",background:line}}/>
+                    {/* horizontal desde el centro hacia la Final */}
+                    <div style={{position:"absolute",right:"-24px",top:"50%",width:"12px",height:"2px",background:line}}/>
+                  </div>
+                </div>
+                {/* col Final */}
+                <div style={{...colCommon,marginLeft:"24px"}}>
+                  <div style={{fontSize:"10px",fontWeight:800,color:"#94a3b8",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>FINAL</div>
+                  <MatchCard {...finalM}/>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* 3er puesto: fuera del bracket principal */}
         {(()=>{
