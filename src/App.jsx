@@ -6988,66 +6988,70 @@ function AliasEditor({user}){
 
 /* ── BolaCristalView ─────────────────────────────────────── */
 const BOLA_PREGUNTAS=[
-  {id:"campeon",   label:"¿Quién será campeón?",         tipo:"equipo",   n:1, icon:"🏆"},
-  {id:"mvp",       label:"¿Quién será la MVP?",          tipo:"jugadora", n:1, icon:"⭐"},
-  {id:"top_scorer",label:"Máxima anotadora del torneo",  tipo:"jugadora", n:1, icon:"🎯"},
-  {id:"joven",     label:"Mejor jugadora joven",         tipo:"jugadora", n:1, icon:"🌱"},
-  {id:"quinteto",  label:"Quinteto ideal",               tipo:"jugadora", n:5, icon:"🖐️"},
-  {id:"t3pct",     label:"Mejor % T3",                   tipo:"jugadora", n:1, icon:"🎯"},
-  {id:"robos",     label:"Jugadora con más robos",       tipo:"jugadora", n:1, icon:"🥷"},
+  {id:"campeon",   label:"¿Quién será campeón?",         tipo:"equipo",   n:1, icon:"🏆", puntos:10},
+  {id:"mvp",       label:"¿Quién será la MVP?",          tipo:"jugadora", n:1, icon:"⭐", puntos:10},
+  {id:"top_scorer",label:"Máxima anotadora del torneo",  tipo:"jugadora", n:1, icon:"🎯", puntos:8},
+  {id:"joven",     label:"Mejor jugadora joven",         tipo:"joven",    n:1, icon:"🌱", puntos:6},
+  {id:"quinteto",  label:"Quinteto ideal",               tipo:"jugadora", n:5, icon:"🖐️", puntos:"3×"},
+  {id:"t3pct",     label:"Mejor % T3",                   tipo:"jugadora", n:1, icon:"🏹", puntos:6},
+  {id:"robos",     label:"Jugadora con más robos",       tipo:"jugadora", n:1, icon:"🥷", puntos:6},
 ];
 
-function BolaCristalView({user,equipos}){
-  const [cierre,setCierre]=useState(null);
-  const [equiposMundial,setEquiposMundial]=useState([]); // [{id,nombre}]
-  const [jugadorasMundial,setJugadorasMundial]=useState([]); // [{id,nombre,equipoNombre}]
-  const [preds,setPreds]=useState({}); // {[pregunta_id]: [ids]}
-  const [saving,setSaving]=useState({});
-  const [msg,setMsg]=useState({});
+// U22 al Mundial 2026: nacidas 2004-01-01 o después
+const CORTE_JOVEN="2004-01-01";
+
+function BolaCristalView({user,equipos,cierre}){
+  const [equiposMundial,setEquiposMundial]=useState([]);
+  const [jugadorasMundial,setJugadorasMundial]=useState([]);
+  const [jovenesMundial,setJovenesMundial]=useState([]);
+  const [drafts,setDrafts]=useState({});
+  const [msg,setMsg]=useState("");
+  const [saving,setSaving]=useState(false);
 
   useEffect(()=>{(async()=>{
     const {data:ps}=await supabase.from("partidos")
-      .select("fecha_hora,id_equipo_local,id_equipo_visitante")
+      .select("id_equipo_local,id_equipo_visitante")
       .eq("id_liga","L055").eq("temporada","2026");
-    const fechas=(ps||[]).map(p=>p.fecha_hora).filter(Boolean).sort();
-    setCierre(fechas[0]||null);
     const eqIds=new Set();
     (ps||[]).forEach(p=>{if(p.id_equipo_local)eqIds.add(p.id_equipo_local);if(p.id_equipo_visitante)eqIds.add(p.id_equipo_visitante);});
     const eqMap={};(equipos||[]).forEach(e=>{eqMap[e.id_equipo]=e.nombre;});
     setEquiposMundial([...eqIds].map(id=>({id,nombre:eqMap[id]||id})).sort((a,b)=>a.nombre.localeCompare(b.nombre)));
     const {data:ts}=await supabase.from("temporadas")
-      .select("id_jugadora,id_equipo,jugadoras(nombre)")
+      .select("id_jugadora,id_equipo,jugadoras(nombre,fecha_nac)")
       .eq("id_liga","L055").eq("temporada","2026");
-    const js=(ts||[]).map(t=>({id:t.id_jugadora,nombre:t.jugadoras?.nombre||t.id_jugadora,equipoNombre:eqMap[t.id_equipo]||t.id_equipo}));
+    const js=(ts||[]).map(t=>({id:t.id_jugadora,nombre:t.jugadoras?.nombre||t.id_jugadora,fecha_nac:t.jugadoras?.fecha_nac,equipoNombre:eqMap[t.id_equipo]||t.id_equipo}));
     js.sort((a,b)=>a.nombre.localeCompare(b.nombre));
     setJugadorasMundial(js);
+    setJovenesMundial(js.filter(j=>j.fecha_nac&&j.fecha_nac>=CORTE_JOVEN));
     const {data:mios}=await supabase.from("bola_cristal_predicciones")
       .select("pregunta_id,respuesta_ids").eq("user_id",user.id).eq("id_liga","L055").eq("temporada","2026");
     const m={};(mios||[]).forEach(p=>{m[p.pregunta_id]=p.respuesta_ids;});
-    setPreds(m);
+    setDrafts(m);
   })();},[user.id,equipos]);
 
   const cerrado=cierre&&new Date(cierre).getTime()<=Date.now();
 
-  const guardar=async(preguntaId,ids)=>{
-    const clean=(ids||[]).filter(Boolean);
-    setSaving(s=>({...s,[preguntaId]:true}));
-    if(clean.length===0){
-      await supabase.from("bola_cristal_predicciones").delete()
-        .eq("user_id",user.id).eq("id_liga","L055").eq("temporada","2026").eq("pregunta_id",preguntaId);
-      setPreds(p=>{const n={...p};delete n[preguntaId];return n;});
-    } else {
-      const {error}=await supabase.from("bola_cristal_predicciones").upsert({
-        user_id:user.id,id_liga:"L055",temporada:"2026",pregunta_id:preguntaId,respuesta_ids:clean
-      },{onConflict:"user_id,id_liga,temporada,pregunta_id"});
-      if(!error)setPreds(p=>({...p,[preguntaId]:clean}));
+  const guardarTodo=async()=>{
+    setSaving(true);
+    const filas=[];
+    const borrar=[];
+    for(const q of BOLA_PREGUNTAS){
+      const clean=(drafts[q.id]||[]).filter(Boolean);
+      if(clean.length>0) filas.push({user_id:user.id,id_liga:"L055",temporada:"2026",pregunta_id:q.id,respuesta_ids:clean});
+      else borrar.push(q.id);
     }
-    setSaving(s=>({...s,[preguntaId]:false}));
-    setMsg(m=>({...m,[preguntaId]:"✓"}));
-    setTimeout(()=>setMsg(m=>{const n={...m};delete n[preguntaId];return n;}),1200);
+    if(filas.length>0){
+      await supabase.from("bola_cristal_predicciones").upsert(filas,{onConflict:"user_id,id_liga,temporada,pregunta_id"});
+    }
+    if(borrar.length>0){
+      await supabase.from("bola_cristal_predicciones").delete()
+        .eq("user_id",user.id).eq("id_liga","L055").eq("temporada","2026").in("pregunta_id",borrar);
+    }
+    setSaving(false);
+    setMsg("✓ Guardado");setTimeout(()=>setMsg(""),1800);
   };
 
-  const opciones=q=>q.tipo==="equipo"?equiposMundial:jugadorasMundial;
+  const opciones=q=>q.tipo==="equipo"?equiposMundial:q.tipo==="joven"?jovenesMundial:jugadorasMundial;
   const lblOp=(q,o)=>q.tipo==="equipo"?o.nombre:`${o.nombre} (${o.equipoNombre})`;
   const sel={width:"100%",padding:"8px 10px",borderRadius:"8px",border:"1px solid #cbd5e1",fontSize:"13px",background:"#fff",cursor:"pointer"};
 
@@ -7055,32 +7059,29 @@ function BolaCristalView({user,equipos}){
     <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
       <div style={{background:cerrado?"#fef2f2":"#f0fdf4",border:`1px solid ${cerrado?"#fecaca":"#bbf7d0"}`,borderRadius:"12px",padding:"12px 14px",fontSize:"12px",color:cerrado?"#991b1b":"#166534"}}>
         {cerrado
-          ?<><b>🔒 Cerrado.</b> Se cerró el {cierre?new Date(cierre).toLocaleString("es",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"}. Ya solo puedes ver tus predicciones.</>
-          :<><b>🔮 Abierto.</b> Cierra al empezar el primer partido{cierre?": "+new Date(cierre).toLocaleString("es",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):""}. Rellena antes.</>}
+          ?<><b>🔒 Cerrado.</b> Cierre el {cierre?new Date(cierre).toLocaleString("es",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"}. Solo lectura.</>
+          :<><b>🔮 Abierto.</b> Cierra al empezar el primer partido{cierre?": "+new Date(cierre).toLocaleString("es",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):""}. Máx 61 pts.</>}
       </div>
       {BOLA_PREGUNTAS.map(q=>{
         const ops=opciones(q);
-        const val=preds[q.id]||[];
+        const val=drafts[q.id]||[];
         return(
           <div key={q.id} style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"10px"}}>
               <div style={{fontSize:"14px",fontWeight:700,color:"#1e293b"}}>{q.icon} {q.label}</div>
-              {msg[q.id]&&<span style={{fontSize:"12px",color:"#16a34a",fontWeight:700}}>{msg[q.id]}</span>}
-              {saving[q.id]&&<span style={{fontSize:"11px",color:"#94a3b8"}}>Guardando…</span>}
+              <span style={{fontSize:"10px",color:"#94a3b8",fontWeight:700}}>{q.puntos} pt{q.puntos==="3×"?"":"s"}</span>
             </div>
             {q.n===1?(
-              <select disabled={cerrado||ops.length===0} style={sel}
-                value={val[0]||""}
-                onChange={e=>guardar(q.id,[e.target.value])}>
+              <select disabled={cerrado||ops.length===0} style={sel} value={val[0]||""}
+                onChange={e=>setDrafts(d=>({...d,[q.id]:[e.target.value]}))}>
                 <option value="">— elegir —</option>
                 {ops.map(o=><option key={o.id} value={o.id}>{lblOp(q,o)}</option>)}
               </select>
             ):(
               <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
                 {Array.from({length:q.n}).map((_,i)=>(
-                  <select key={i} disabled={cerrado||ops.length===0} style={sel}
-                    value={val[i]||""}
-                    onChange={e=>{const nv=[...val];nv[i]=e.target.value;guardar(q.id,nv);}}>
+                  <select key={i} disabled={cerrado||ops.length===0} style={sel} value={val[i]||""}
+                    onChange={e=>{const nv=[...val];nv[i]=e.target.value;setDrafts(d=>({...d,[q.id]:nv}));}}>
                     <option value="">— posición {i+1} —</option>
                     {ops.filter(o=>!val.includes(o.id)||o.id===val[i]).map(o=>
                       <option key={o.id} value={o.id}>{lblOp(q,o)}</option>
@@ -7093,144 +7094,243 @@ function BolaCristalView({user,equipos}){
           </div>
         );
       })}
+      {!cerrado&&(
+        <div style={{position:"sticky",bottom:"8px",display:"flex",gap:"10px",alignItems:"center",background:"#fff",borderRadius:"12px",padding:"12px 14px",boxShadow:"0 4px 14px rgba(0,0,0,0.08)"}}>
+          <button onClick={guardarTodo} disabled={saving}
+            style={{flex:1,background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"12px",fontWeight:800,fontSize:"14px",cursor:"pointer",opacity:saving?0.6:1}}>
+            {saving?"Guardando…":"💾 Guardar bola de cristal"}
+          </button>
+          {msg&&<span style={{fontSize:"13px",color:"#16a34a",fontWeight:700}}>{msg}</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── BasketnetaView ──────────────────────────────────────── */
+// slots del Mundial 2026: 16 posiciones de grupo + 4 play-in + 4 QF + 2 SF + 3º + Final
+const BN_GRUPOS=["A","B","C","D"];
+const BN_BRACKET=[
+  {slot:"playin_25",label:"Play-in #25",puntos:2},
+  {slot:"playin_26",label:"Play-in #26",puntos:2},
+  {slot:"playin_27",label:"Play-in #27",puntos:2},
+  {slot:"playin_28",label:"Play-in #28",puntos:2},
+  {slot:"qf_29",    label:"Cuartos #29",puntos:3},
+  {slot:"qf_30",    label:"Cuartos #30",puntos:3},
+  {slot:"qf_31",    label:"Cuartos #31",puntos:3},
+  {slot:"qf_32",    label:"Cuartos #32",puntos:3},
+  {slot:"sf_33",    label:"Semifinal #33",puntos:5},
+  {slot:"sf_34",    label:"Semifinal #34",puntos:5},
+  {slot:"br_35",    label:"3er puesto #35",puntos:4},
+  {slot:"final_36", label:"Final (campeona)",puntos:10},
+];
+
+function BasketnetaView({user,equipos,cierre}){
+  const [equiposMundial,setEquiposMundial]=useState([]);
+  const [gruposMap,setGruposMap]=useState({}); // {A:[{id,nombre}], B:..}
+  const [drafts,setDrafts]=useState({}); // {[slot]: id_equipo}
+  const [msg,setMsg]=useState("");
+  const [saving,setSaving]=useState(false);
+
+  useEffect(()=>{(async()=>{
+    const {data:ps}=await supabase.from("partidos")
+      .select("notas,id_equipo_local,id_equipo_visitante")
+      .eq("id_liga","L055").eq("temporada","2026");
+    const eqMap={};(equipos||[]).forEach(e=>{eqMap[e.id_equipo]=e.nombre;});
+    // grupos
+    const gr={A:new Set(),B:new Set(),C:new Set(),D:new Set()};
+    (ps||[]).forEach(p=>{
+      const m=(p.notas||"").match(/Grupo ([ABCD])/);
+      if(!m)return;
+      if(p.id_equipo_local)gr[m[1]].add(p.id_equipo_local);
+      if(p.id_equipo_visitante)gr[m[1]].add(p.id_equipo_visitante);
+    });
+    const g={};BN_GRUPOS.forEach(k=>{
+      g[k]=[...gr[k]].map(id=>({id,nombre:eqMap[id]||id})).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+    });
+    setGruposMap(g);
+    const todos=new Set();(ps||[]).forEach(p=>{if(p.id_equipo_local)todos.add(p.id_equipo_local);if(p.id_equipo_visitante)todos.add(p.id_equipo_visitante);});
+    setEquiposMundial([...todos].map(id=>({id,nombre:eqMap[id]||id})).sort((a,b)=>a.nombre.localeCompare(b.nombre)));
+    const {data:mios}=await supabase.from("basketneta_predicciones")
+      .select("slot,id_equipo").eq("user_id",user.id).eq("id_liga","L055").eq("temporada","2026");
+    const d={};(mios||[]).forEach(r=>{d[r.slot]=r.id_equipo;});
+    setDrafts(d);
+  })();},[user.id,equipos]);
+
+  const cerrado=cierre&&new Date(cierre).getTime()<=Date.now();
+
+  const guardarTodo=async()=>{
+    setSaving(true);
+    const filas=[],borrar=[];
+    // grupos
+    BN_GRUPOS.forEach(g=>{
+      for(let pos=1;pos<=4;pos++){
+        const slot=`grupo_${g}_${pos}`;
+        const v=drafts[slot];
+        if(v) filas.push({user_id:user.id,id_liga:"L055",temporada:"2026",slot,id_equipo:v});
+        else borrar.push(slot);
+      }
+    });
+    // bracket
+    BN_BRACKET.forEach(b=>{
+      const v=drafts[b.slot];
+      if(v) filas.push({user_id:user.id,id_liga:"L055",temporada:"2026",slot:b.slot,id_equipo:v});
+      else borrar.push(b.slot);
+    });
+    if(filas.length>0){
+      await supabase.from("basketneta_predicciones").upsert(filas,{onConflict:"user_id,id_liga,temporada,slot"});
+    }
+    if(borrar.length>0){
+      await supabase.from("basketneta_predicciones").delete()
+        .eq("user_id",user.id).eq("id_liga","L055").eq("temporada","2026").in("slot",borrar);
+    }
+    setSaving(false);
+    setMsg("✓ Guardado");setTimeout(()=>setMsg(""),1800);
+  };
+
+  const sel={width:"100%",padding:"8px 10px",borderRadius:"8px",border:"1px solid #cbd5e1",fontSize:"13px",background:"#fff",cursor:"pointer"};
+
+  // en grupos: solo puede elegir equipos de ese grupo, sin repetir posición
+  const opsGrupo=(g,pos)=>{
+    const total=gruposMap[g]||[];
+    const usados=[1,2,3,4].filter(p=>p!==pos).map(p=>drafts[`grupo_${g}_${p}`]).filter(Boolean);
+    return total.filter(e=>!usados.includes(e.id));
+  };
+
+  // lookup para mostrar el equipo predicho por slot
+  const eqIdx={};(equiposMundial||[]).forEach(e=>{eqIdx[e.id]=e.nombre;});
+  const nomDe=id=>eqIdx[id]||"—";
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
+      <div style={{background:cerrado?"#fef2f2":"#f0fdf4",border:`1px solid ${cerrado?"#fecaca":"#bbf7d0"}`,borderRadius:"12px",padding:"12px 14px",fontSize:"12px",color:cerrado?"#991b1b":"#166534"}}>
+        {cerrado
+          ?<><b>🔒 Cerrado.</b> Cierre el {cierre?new Date(cierre).toLocaleString("es",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"}. Solo lectura.</>
+          :<><b>🏀 Abierto.</b> Cierra al empezar el primer partido. Máx 60 pts.</>}
+      </div>
+
+      {/* FASE DE GRUPOS */}
+      <div style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+        <div style={{fontSize:"15px",fontWeight:800,color:"#1e293b",marginBottom:"12px"}}>🏁 Ordena cada grupo (1 pt × posición correcta)</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:"12px"}}>
+          {BN_GRUPOS.map(g=>{
+            const total=gruposMap[g]||[];
+            return(
+              <div key={g} style={{border:"1px solid #e2e8f0",borderRadius:"10px",padding:"10px"}}>
+                <div style={{fontSize:"12px",fontWeight:700,color:"#64748b",marginBottom:"8px"}}>GRUPO {g}</div>
+                {[1,2,3,4].map(pos=>{
+                  const slot=`grupo_${g}_${pos}`;
+                  return(
+                    <div key={pos} style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"6px"}}>
+                      <span style={{fontSize:"12px",fontWeight:700,color:"#9333ea",minWidth:"20px"}}>{pos}º</span>
+                      <select disabled={cerrado||total.length===0} style={{...sel,fontSize:"12px",padding:"6px 8px"}} value={drafts[slot]||""}
+                        onChange={e=>setDrafts(d=>({...d,[slot]:e.target.value}))}>
+                        <option value="">—</option>
+                        {opsGrupo(g,pos).map(o=><option key={o.id} value={o.id}>{o.nombre}</option>)}
+                      </select>
+                    </div>
+                  );
+                })}
+                {total.length===0&&<div style={{fontSize:"11px",color:"#94a3b8"}}>Sin equipos aún.</div>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* BRACKET */}
+      <div style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+        <div style={{fontSize:"15px",fontWeight:800,color:"#1e293b",marginBottom:"12px"}}>🎯 Bracket · Elige ganador de cada partido</div>
+        <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+          {BN_BRACKET.map(b=>(
+            <div key={b.slot} style={{display:"flex",alignItems:"center",gap:"10px"}}>
+              <div style={{flex:"0 0 140px",fontSize:"12px",fontWeight:700,color:"#1e293b"}}>{b.label}</div>
+              <select disabled={cerrado||equiposMundial.length===0} style={{...sel,flex:1}} value={drafts[b.slot]||""}
+                onChange={e=>setDrafts(d=>({...d,[b.slot]:e.target.value}))}>
+                <option value="">— ganador —</option>
+                {equiposMundial.map(o=><option key={o.id} value={o.id}>{o.nombre}</option>)}
+              </select>
+              <span style={{fontSize:"11px",color:"#94a3b8",fontWeight:700,minWidth:"36px",textAlign:"right"}}>{b.puntos} pt{b.puntos>1?"s":""}</span>
+            </div>
+          ))}
+        </div>
+        {drafts.final_36&&(
+          <div style={{marginTop:"12px",padding:"10px 12px",background:"linear-gradient(90deg,#fef3c7,#fde68a)",borderRadius:"10px",fontSize:"13px",color:"#78350f",fontWeight:700,textAlign:"center"}}>
+            🏆 Tu campeona: {nomDe(drafts.final_36)}
+          </div>
+        )}
+      </div>
+
+      {!cerrado&&(
+        <div style={{position:"sticky",bottom:"8px",display:"flex",gap:"10px",alignItems:"center",background:"#fff",borderRadius:"12px",padding:"12px 14px",boxShadow:"0 4px 14px rgba(0,0,0,0.08)"}}>
+          <button onClick={guardarTodo} disabled={saving}
+            style={{flex:1,background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"12px",fontWeight:800,fontSize:"14px",cursor:"pointer",opacity:saving?0.6:1}}>
+            {saving?"Guardando…":"💾 Guardar Basketneta"}
+          </button>
+          {msg&&<span style={{fontSize:"13px",color:"#16a34a",fontWeight:700}}>{msg}</span>}
+        </div>
+      )}
     </div>
   );
 }
 
 /* ── QuinielaView ────────────────────────────────────────── */
 function QuinielaView({user,equipos}){
-  const [partidos,setPartidos]=useState([]);
-  const [preds,setPreds]=useState({});
+  const [cierre,setCierre]=useState(null);
   const [rank,setRank]=useState([]);
-  const [tab,setTab]=useState("pronosticar");
-  const [saving,setSaving]=useState({});
-  const [drafts,setDrafts]=useState({}); // {[pid]: {l, v}} valores en edición
-  const eqMap=useMemo(()=>{const m={};(equipos||[]).forEach(e=>{m[e.id_equipo]=e;});return m;},[equipos]);
-  const now=Date.now();
+  const [tab,setTab]=useState("basketneta");
 
   useEffect(()=>{(async()=>{
     const {data:ps}=await supabase.from("partidos")
-      .select("id,fecha_hora,notas,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante")
-      .eq("id_liga","L055").eq("temporada","2026").order("fecha_hora",{ascending:true});
-    setPartidos(ps||[]);
-    const {data:mios}=await supabase.from("quiniela_predicciones")
-      .select("id_partido,pred_local,pred_visitante").eq("user_id",user.id);
-    const m={};(mios||[]).forEach(p=>{m[p.id_partido]={l:p.pred_local,v:p.pred_visitante};});
-    setPreds(m);
-    const {data:r}=await supabase.rpc("quiniela_ranking");
+      .select("fecha_hora").eq("id_liga","L055").eq("temporada","2026");
+    const fechas=(ps||[]).map(p=>p.fecha_hora).filter(Boolean).sort();
+    setCierre(fechas[0]||null);
+    const {data:r}=await supabase.rpc("quiniela_ranking_mundial");
     setRank(r||[]);
-  })();},[user.id]);
+  })();},[user.id,tab]);
 
-  const puntosDe=(p,pr)=>{
-    if(p.resultado_local==null||!pr)return null;
-    if(pr.l===p.resultado_local&&pr.v===p.resultado_visitante)return 3;
-    if(Math.sign(pr.l-pr.v)===Math.sign(p.resultado_local-p.resultado_visitante))return 1;
-    return 0;
-  };
-  const misPuntos=partidos.reduce((s,p)=>s+(puntosDe(p,preds[p.id])||0),0);
-
-  const guardar=async(pid,l,v)=>{
-    if(l===""||v===""||l==null||v==null)return;
-    setSaving(s=>({...s,[pid]:true}));
-    const {error}=await supabase.from("quiniela_predicciones").upsert({
-      user_id:user.id,id_partido:pid,pred_local:Number(l),pred_visitante:Number(v)
-    },{onConflict:"user_id,id_partido"});
-    if(!error)setPreds(m=>({...m,[pid]:{l:Number(l),v:Number(v)}}));
-    setSaving(s=>({...s,[pid]:false}));
-  };
-
-  const nomEq=id=>eqMap[id]?.nombre||"Por confirmar";
-  const flag=id=>eqMap[id]?.escudo;
-  const btnStyle=a=>({background:a?"#9333ea":"#f8fafc",color:a?"#fff":"#64748b",border:a?"none":"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 18px",fontWeight:700,fontSize:"13px",cursor:"pointer"});
-  const inp={width:"56px",padding:"6px 8px",borderRadius:"8px",border:"1px solid #cbd5e1",fontSize:"14px",fontWeight:700,textAlign:"center",boxSizing:"border-box"};
+  const btnStyle=a=>({background:a?"#9333ea":"#f8fafc",color:a?"#fff":"#64748b",border:a?"none":"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"});
 
   return(
-    <div style={{maxWidth:"720px",margin:"0 auto",padding:"12px"}}>
-      <div style={{background:"#fff",borderRadius:"16px",padding:"18px",marginBottom:"14px",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
-        <div>
-          <h2 style={{margin:0,fontSize:"18px",fontWeight:800,color:"#1e293b"}}>🎯 Quiniela · Mundial 2026</h2>
-          <div style={{fontSize:"12px",color:"#64748b",marginTop:"3px"}}>3 pts acierto exacto · 1 pt signo · Cierre al empezar el partido</div>
-        </div>
-        <div style={{textAlign:"right"}}>
-          <div style={{fontSize:"11px",color:"#94a3b8",fontWeight:600}}>Tus puntos</div>
-          <div style={{fontSize:"26px",fontWeight:800,color:"#9333ea",lineHeight:1}}>{misPuntos}</div>
+    <div style={{maxWidth:"820px",margin:"0 auto",padding:"12px"}}>
+      <div style={{background:"#fff",borderRadius:"16px",padding:"16px 18px",marginBottom:"14px",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
+        <h2 style={{margin:0,fontSize:"18px",fontWeight:800,color:"#1e293b"}}>🎯 Quiniela · Mundial 2026</h2>
+        <div style={{fontSize:"12px",color:"#64748b",marginTop:"3px"}}>
+          Basketneta (60 pts) + Bola de cristal (61 pts) · Máx 121 pts · Cierre al empezar el 1er partido
         </div>
       </div>
       <div style={{display:"flex",gap:"6px",marginBottom:"12px",flexWrap:"wrap"}}>
-        <button onClick={()=>setTab("pronosticar")} style={btnStyle(tab==="pronosticar")}>Mis pronósticos</button>
-        <button onClick={()=>setTab("bola")} style={btnStyle(tab==="bola")}>🔮 Bola de cristal</button>
-        <button onClick={()=>setTab("ranking")} style={btnStyle(tab==="ranking")}>🏆 Ranking</button>
+        <button onClick={()=>setTab("basketneta")} style={btnStyle(tab==="basketneta")}>🏀 La Basketneta</button>
+        <button onClick={()=>setTab("bola")}       style={btnStyle(tab==="bola")}>🔮 Bola de cristal</button>
+        <button onClick={()=>setTab("ranking")}    style={btnStyle(tab==="ranking")}>🏆 Ranking</button>
       </div>
 
-      {tab==="bola"&&<BolaCristalView user={user} equipos={equipos}/>}
-
-      {tab==="pronosticar"&&(
-        <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
-          {partidos.map(p=>{
-            const pr=preds[p.id];const pts=puntosDe(p,pr);
-            const cerrado=p.fecha_hora&&new Date(p.fecha_hora).getTime()<=now;
-            const jugado=p.resultado_local!=null;
-            return(
-              <div key={p.id} style={{background:"#fff",borderRadius:"12px",padding:"12px 14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",opacity:cerrado&&!jugado&&!pr?0.6:1}}>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"8px",fontSize:"11px",color:"#94a3b8"}}>
-                  <span>{p.notas||""}</span>
-                  <span>{p.fecha_hora?new Date(p.fecha_hora).toLocaleString("es",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"}</span>
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",alignItems:"center",gap:"10px"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:"8px",minWidth:0}}>
-                    {flag(p.id_equipo_local)&&<img src={flag(p.id_equipo_local)} alt="" style={{width:24,height:24,objectFit:"contain"}}/>}
-                    <span style={{fontWeight:600,fontSize:"14px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nomEq(p.id_equipo_local)}</span>
-                  </div>
-                  <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
-                    <input type="number" min="0" max="200" value={drafts[p.id]?.l??pr?.l??""} disabled={cerrado} style={inp}
-                      onChange={e=>setDrafts(d=>({...d,[p.id]:{...d[p.id],l:e.target.value,v:d[p.id]?.v??pr?.v??""}}))}
-                      onBlur={()=>{const d=drafts[p.id]||{l:pr?.l,v:pr?.v};guardar(p.id,d.l,d.v);}}/>
-                    <span style={{color:"#cbd5e1",fontWeight:700}}>-</span>
-                    <input type="number" min="0" max="200" value={drafts[p.id]?.v??pr?.v??""} disabled={cerrado} style={inp}
-                      onChange={e=>setDrafts(d=>({...d,[p.id]:{...d[p.id],v:e.target.value,l:d[p.id]?.l??pr?.l??""}}))}
-                      onBlur={()=>{const d=drafts[p.id]||{l:pr?.l,v:pr?.v};guardar(p.id,d.l,d.v);}}/>
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",gap:"8px",justifyContent:"flex-end",minWidth:0}}>
-                    <span style={{fontWeight:600,fontSize:"14px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textAlign:"right"}}>{nomEq(p.id_equipo_visitante)}</span>
-                    {flag(p.id_equipo_visitante)&&<img src={flag(p.id_equipo_visitante)} alt="" style={{width:24,height:24,objectFit:"contain"}}/>}
-                  </div>
-                </div>
-                {jugado&&(
-                  <div style={{marginTop:"8px",display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:"12px",color:"#64748b"}}>
-                    <span>Resultado real: <b style={{color:"#1e293b"}}>{p.resultado_local}-{p.resultado_visitante}</b></span>
-                    {pr&&<span style={{background:pts===3?"#dcfce7":pts===1?"#fef3c7":"#fee2e2",color:pts===3?"#166534":pts===1?"#92400e":"#991b1b",padding:"3px 10px",borderRadius:"20px",fontWeight:700}}>{pts} pt{pts!==1?"s":""}</span>}
-                    {!pr&&<span style={{color:"#94a3b8"}}>Sin pronóstico</span>}
-                  </div>
-                )}
-                {saving[p.id]&&<div style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Guardando…</div>}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {tab==="basketneta"&&<BasketnetaView user={user} equipos={equipos} cierre={cierre}/>}
+      {tab==="bola"&&<BolaCristalView user={user} equipos={equipos} cierre={cierre}/>}
 
       {tab==="ranking"&&(
         <div style={{background:"#fff",borderRadius:"12px",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+          <div style={{padding:"12px 14px",background:"#faf5ff",fontSize:"12px",color:"#6b21a8",borderBottom:"1px solid #e9d5ff"}}>
+            🕒 El ranking mostrará puntos cuando termine el Mundial. Ahora muestra cuántas predicciones ha guardado cada usuario.
+          </div>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:"14px"}}>
             <thead style={{background:"#f8fafc"}}>
               <tr>
                 <th style={{padding:"10px 14px",textAlign:"left",fontSize:"11px",color:"#64748b",fontWeight:700}}>#</th>
                 <th style={{padding:"10px 14px",textAlign:"left",fontSize:"11px",color:"#64748b",fontWeight:700}}>Usuario</th>
-                <th style={{padding:"10px 14px",textAlign:"center",fontSize:"11px",color:"#64748b",fontWeight:700}}>Jug.</th>
-                <th style={{padding:"10px 14px",textAlign:"center",fontSize:"11px",color:"#64748b",fontWeight:700}}>✅</th>
-                <th style={{padding:"10px 14px",textAlign:"center",fontSize:"11px",color:"#64748b",fontWeight:700}}>~</th>
+                <th style={{padding:"10px 14px",textAlign:"center",fontSize:"11px",color:"#64748b",fontWeight:700}}>🏀 BN</th>
+                <th style={{padding:"10px 14px",textAlign:"center",fontSize:"11px",color:"#64748b",fontWeight:700}}>🔮 Bola</th>
                 <th style={{padding:"10px 14px",textAlign:"right",fontSize:"11px",color:"#64748b",fontWeight:700}}>Pts</th>
               </tr>
             </thead>
             <tbody>
-              {rank.length===0&&<tr><td colSpan={6} style={{padding:"24px",textAlign:"center",color:"#94a3b8"}}>Aún no hay pronósticos evaluados.</td></tr>}
+              {rank.length===0&&<tr><td colSpan={5} style={{padding:"24px",textAlign:"center",color:"#94a3b8"}}>Todavía nadie ha guardado predicciones.</td></tr>}
               {rank.map((r,i)=>(
                 <tr key={r.user_id} style={{borderTop:"1px solid #f1f5f9",background:r.user_id===user.id?"#faf5ff":undefined}}>
                   <td style={{padding:"10px 14px",fontWeight:700,color:i===0?"#eab308":i===1?"#94a3b8":i===2?"#c2410c":"#64748b"}}>{i+1}</td>
                   <td style={{padding:"10px 14px",fontWeight:600,color:"#1e293b"}}>{r.nombre}{r.user_id===user.id?" (tú)":""}</td>
-                  <td style={{padding:"10px 14px",textAlign:"center",color:"#64748b"}}>{r.jugados}</td>
-                  <td style={{padding:"10px 14px",textAlign:"center",color:"#166534",fontWeight:700}}>{r.exactos}</td>
-                  <td style={{padding:"10px 14px",textAlign:"center",color:"#92400e",fontWeight:700}}>{r.signos}</td>
+                  <td style={{padding:"10px 14px",textAlign:"center",color:"#64748b"}}>{r.basketneta_slots}/28</td>
+                  <td style={{padding:"10px 14px",textAlign:"center",color:"#64748b"}}>{r.bola_slots}/7</td>
                   <td style={{padding:"10px 14px",textAlign:"right",fontWeight:800,color:"#9333ea",fontSize:"16px"}}>{r.puntos}</td>
                 </tr>
               ))}
