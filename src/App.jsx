@@ -7747,15 +7747,22 @@ function QuinielaView({user,equipos}){
             </thead>
             <tbody>
               {rank.length===0&&<tr><td colSpan={5} style={{padding:"24px",textAlign:"center",color:"#94a3b8"}}>Todavía nadie ha guardado predicciones.</td></tr>}
-              {rank.map((r,i)=>(
+              {rank.map((r,i)=>{
+                const google=r.user_id===user.id?user.user_metadata?.avatar_url:null;
+                return(
                 <tr key={r.user_id} style={{borderTop:"1px solid #f1f5f9",background:r.user_id===user.id?"#faf5ff":undefined}}>
                   <td style={{padding:"10px 14px",fontWeight:700,color:i===0?"#eab308":i===1?"#94a3b8":i===2?"#c2410c":"#64748b"}}>{i+1}</td>
-                  <td style={{padding:"10px 14px",fontWeight:600,color:"#1e293b"}}>{r.nombre}{r.user_id===user.id?" (tú)":""}</td>
+                  <td style={{padding:"8px 14px",fontWeight:600,color:"#1e293b"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                      <Avatar avatar={r.avatar} googleUrl={google} nombre={r.nombre} size={28}/>
+                      <span>{r.nombre}{r.user_id===user.id?" (tú)":""}</span>
+                    </div>
+                  </td>
                   <td style={{padding:"10px 14px",textAlign:"center",color:"#64748b"}}>{r.basketneta_slots}/28</td>
                   <td style={{padding:"10px 14px",textAlign:"center",color:"#64748b"}}>{r.bola_slots}/7</td>
                   <td style={{padding:"10px 14px",textAlign:"right",fontWeight:800,color:"#9333ea",fontSize:"16px"}}>{r.puntos}</td>
                 </tr>
-              ))}
+              );})}
             </tbody>
           </table>
         </div>
