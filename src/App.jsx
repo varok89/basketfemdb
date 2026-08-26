@@ -7108,22 +7108,48 @@ function BolaCristalView({user,equipos,cierre}){
 }
 
 /* ── BasketnetaView ──────────────────────────────────────── */
-// slots del Mundial 2026: 16 posiciones de grupo + 4 play-in + 4 QF + 2 SF + 3º + Final
 const BN_GRUPOS=["A","B","C","D"];
 const BN_BRACKET=[
-  {slot:"playin_25",label:"Play-in #25",puntos:2},
-  {slot:"playin_26",label:"Play-in #26",puntos:2},
-  {slot:"playin_27",label:"Play-in #27",puntos:2},
-  {slot:"playin_28",label:"Play-in #28",puntos:2},
-  {slot:"qf_29",    label:"Cuartos #29",puntos:3},
-  {slot:"qf_30",    label:"Cuartos #30",puntos:3},
-  {slot:"qf_31",    label:"Cuartos #31",puntos:3},
-  {slot:"qf_32",    label:"Cuartos #32",puntos:3},
-  {slot:"sf_33",    label:"Semifinal #33",puntos:5},
-  {slot:"sf_34",    label:"Semifinal #34",puntos:5},
-  {slot:"br_35",    label:"3er puesto #35",puntos:4},
-  {slot:"final_36", label:"Final (campeona)",puntos:10},
+  {slot:"playin_25",label:"Play-in #25",puntos:2,ronda:"playin"},
+  {slot:"playin_26",label:"Play-in #26",puntos:2,ronda:"playin"},
+  {slot:"playin_27",label:"Play-in #27",puntos:2,ronda:"playin"},
+  {slot:"playin_28",label:"Play-in #28",puntos:2,ronda:"playin"},
+  {slot:"qf_29",    label:"Cuartos #29",puntos:3,ronda:"qf"},
+  {slot:"qf_30",    label:"Cuartos #30",puntos:3,ronda:"qf"},
+  {slot:"qf_31",    label:"Cuartos #31",puntos:3,ronda:"qf"},
+  {slot:"qf_32",    label:"Cuartos #32",puntos:3,ronda:"qf"},
+  {slot:"sf_33",    label:"Semifinal #33",puntos:5,ronda:"sf"},
+  {slot:"sf_34",    label:"Semifinal #34",puntos:5,ronda:"sf"},
+  {slot:"final_36", label:"Final",puntos:10,ronda:"final"},
+  {slot:"br_35",    label:"3er puesto",puntos:4,ronda:"br"},
 ];
+
+// Devuelve [idA, idB] según lo que el user tenga en drafts; undefined si aún no
+function bnParticipantes(slot, d){
+  const g=(gr,pos)=>d[`grupo_${gr}_${pos}`];
+  const w=(s)=>d[s];
+  const part=(s)=>bnParticipantes(s,d);
+  const loser=(s)=>{
+    const p=part(s);const win=w(s);
+    if(!p[0]||!p[1]||!win)return undefined;
+    return p[0]===win?p[1]:p[0];
+  };
+  switch(slot){
+    case "playin_25":return [g("A",2),g("B",3)];
+    case "playin_26":return [g("B",2),g("A",3)];
+    case "playin_27":return [g("C",2),g("D",3)];
+    case "playin_28":return [g("D",2),g("C",3)];
+    case "qf_29":return [g("A",1),w("playin_26")];
+    case "qf_30":return [g("B",1),w("playin_25")];
+    case "qf_31":return [g("C",1),w("playin_28")];
+    case "qf_32":return [g("D",1),w("playin_27")];
+    case "sf_33":return [w("qf_29"),w("qf_30")];
+    case "sf_34":return [w("qf_31"),w("qf_32")];
+    case "final_36":return [w("sf_33"),w("sf_34")];
+    case "br_35":return [loser("sf_33"),loser("sf_34")];
+    default:return [];
+  }
+}
 
 function BasketnetaView({user,equipos,cierre}){
   const [equiposMundial,setEquiposMundial]=useState([]);
@@ -7171,10 +7197,12 @@ function BasketnetaView({user,equipos,cierre}){
         else borrar.push(slot);
       }
     });
-    // bracket
+    // bracket: solo guarda si el pick sigue siendo un participante válido
     BN_BRACKET.forEach(b=>{
       const v=drafts[b.slot];
-      if(v) filas.push({user_id:user.id,id_liga:"L055",temporada:"2026",slot:b.slot,id_equipo:v});
+      const [a,c]=bnParticipantes(b.slot,drafts);
+      const valido=v&&(v===a||v===c);
+      if(valido) filas.push({user_id:user.id,id_liga:"L055",temporada:"2026",slot:b.slot,id_equipo:v});
       else borrar.push(b.slot);
     });
     if(filas.length>0){
@@ -7238,24 +7266,84 @@ function BasketnetaView({user,equipos,cierre}){
         </div>
       </div>
 
-      {/* BRACKET */}
+      {/* BRACKET VISUAL */}
       <div style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
         <div style={{fontSize:"15px",fontWeight:800,color:"#1e293b",marginBottom:"12px"}}>🎯 Bracket · Elige ganador de cada partido</div>
-        <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
-          {BN_BRACKET.map(b=>(
-            <div key={b.slot} style={{display:"flex",alignItems:"center",gap:"10px"}}>
-              <div style={{flex:"0 0 140px",fontSize:"12px",fontWeight:700,color:"#1e293b"}}>{b.label}</div>
-              <select disabled={cerrado||equiposMundial.length===0} style={{...sel,flex:1}} value={drafts[b.slot]||""}
-                onChange={e=>setDrafts(d=>({...d,[b.slot]:e.target.value}))}>
-                <option value="">— ganador —</option>
-                {equiposMundial.map(o=><option key={o.id} value={o.id}>{o.nombre}</option>)}
-              </select>
-              <span style={{fontSize:"11px",color:"#94a3b8",fontWeight:700,minWidth:"36px",textAlign:"right"}}>{b.puntos} pt{b.puntos>1?"s":""}</span>
-            </div>
-          ))}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4, minmax(150px, 1fr))",gap:"8px",overflowX:"auto"}}>
+          {["playin","qf","sf","final"].map(ronda=>{
+            const partidos=BN_BRACKET.filter(b=>b.ronda===ronda);
+            const titulo={playin:"Play-in",qf:"Cuartos",sf:"Semis",final:"Final"}[ronda];
+            return(
+              <div key={ronda} style={{display:"flex",flexDirection:"column",gap:"8px",justifyContent:"space-around"}}>
+                <div style={{fontSize:"10px",fontWeight:800,color:"#94a3b8",letterSpacing:"1px",textAlign:"center"}}>{titulo.toUpperCase()}</div>
+                {partidos.map(b=>{
+                  const [idA,idB]=bnParticipantes(b.slot,drafts);
+                  const pick=drafts[b.slot];
+                  const pickValido=pick&&(pick===idA||pick===idB);
+                  const teamBtn=(id,activo)=>({
+                    display:"block",width:"100%",textAlign:"left",padding:"7px 9px",
+                    background:activo?"#9333ea":id?"#f8fafc":"#f1f5f9",
+                    color:activo?"#fff":id?"#1e293b":"#94a3b8",
+                    border:`1px solid ${activo?"#9333ea":"#e2e8f0"}`,
+                    borderRadius:"6px",fontSize:"11px",fontWeight:activo?800:600,
+                    cursor:id&&!cerrado?"pointer":"not-allowed",
+                    overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"
+                  });
+                  return(
+                    <div key={b.slot} style={{border:"1px solid #e2e8f0",borderRadius:"8px",padding:"6px",background:"#fff"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",fontSize:"9px",color:"#94a3b8",fontWeight:700,marginBottom:"4px"}}>
+                        <span>{b.label}</span><span>{b.puntos}pt</span>
+                      </div>
+                      <button style={teamBtn(idA,pickValido&&pick===idA)}
+                        disabled={!idA||cerrado}
+                        onClick={()=>setDrafts(d=>({...d,[b.slot]:idA}))}>
+                        {idA?nomDe(idA):"—"}
+                      </button>
+                      <div style={{textAlign:"center",fontSize:"9px",color:"#cbd5e1",padding:"2px 0"}}>vs</div>
+                      <button style={teamBtn(idB,pickValido&&pick===idB)}
+                        disabled={!idB||cerrado}
+                        onClick={()=>setDrafts(d=>({...d,[b.slot]:idB}))}>
+                        {idB?nomDe(idB):"—"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
+
+        {/* 3er puesto: fuera del bracket principal */}
+        {(()=>{
+          const b=BN_BRACKET.find(x=>x.slot==="br_35");
+          const [idA,idB]=bnParticipantes("br_35",drafts);
+          const pick=drafts.br_35;
+          const pickValido=pick&&(pick===idA||pick===idB);
+          const teamBtn=(id,activo)=>({
+            padding:"6px 12px",background:activo?"#f59e0b":id?"#fef3c7":"#f1f5f9",
+            color:activo?"#fff":id?"#78350f":"#94a3b8",
+            border:`1px solid ${activo?"#f59e0b":"#fde68a"}`,
+            borderRadius:"6px",fontSize:"12px",fontWeight:activo?800:600,
+            cursor:id&&!cerrado?"pointer":"not-allowed"
+          });
+          return(
+            <div style={{marginTop:"14px",padding:"10px",background:"#fffbeb",border:"1px dashed #fde68a",borderRadius:"8px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:"10px",color:"#92400e",fontWeight:700,marginBottom:"6px"}}>
+                <span>🥉 {b.label}</span><span>{b.puntos}pt</span>
+              </div>
+              <div style={{display:"flex",gap:"6px",justifyContent:"center",alignItems:"center"}}>
+                <button style={teamBtn(idA,pickValido&&pick===idA)} disabled={!idA||cerrado}
+                  onClick={()=>setDrafts(d=>({...d,br_35:idA}))}>{idA?nomDe(idA):"—"}</button>
+                <span style={{fontSize:"10px",color:"#94a3b8"}}>vs</span>
+                <button style={teamBtn(idB,pickValido&&pick===idB)} disabled={!idB||cerrado}
+                  onClick={()=>setDrafts(d=>({...d,br_35:idB}))}>{idB?nomDe(idB):"—"}</button>
+              </div>
+            </div>
+          );
+        })()}
+
         {drafts.final_36&&(
-          <div style={{marginTop:"12px",padding:"10px 12px",background:"linear-gradient(90deg,#fef3c7,#fde68a)",borderRadius:"10px",fontSize:"13px",color:"#78350f",fontWeight:700,textAlign:"center"}}>
+          <div style={{marginTop:"12px",padding:"12px",background:"linear-gradient(90deg,#fef3c7,#fde68a)",borderRadius:"10px",fontSize:"14px",color:"#78350f",fontWeight:800,textAlign:"center"}}>
             🏆 Tu campeona: {nomDe(drafts.final_36)}
           </div>
         )}
