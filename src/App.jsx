@@ -6986,6 +6986,46 @@ function AliasEditor({user}){
   );
 }
 
+/* ── FlagSelect (combobox con bandera) ───────────────────── */
+function FlagSelect({value,options,onChange,disabled,placeholder,size}){
+  const [open,setOpen]=useState(false);
+  const current=options.find(o=>o.id===value);
+  const isSm=size==="sm";
+  const fh=isSm?10:12,fw=isSm?14:16;
+  const flag=url=>url
+    ?<img src={url} alt="" style={{width:fw,height:fh,objectFit:"contain",flexShrink:0}}/>
+    :<span style={{width:fw,height:fh,background:"#e2e8f0",borderRadius:2,flexShrink:0}}/>;
+  return(
+    <div style={{position:"relative",flex:1,minWidth:0}}>
+      <button type="button" onClick={()=>!disabled&&setOpen(o=>!o)} disabled={disabled}
+        style={{display:"flex",alignItems:"center",gap:"5px",width:"100%",textAlign:"left",
+          padding:isSm?"4px 6px":"6px 8px",fontSize:isSm?"11px":"12px",
+          border:"1px solid #cbd5e1",borderRadius:"6px",background:disabled?"#f1f5f9":"#fff",
+          cursor:disabled?"not-allowed":"pointer"}}>
+        {current?<>{flag(current.flagUrl)}<span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{current.label}</span></>
+          :<span style={{color:"#94a3b8"}}>{placeholder||"—"}</span>}
+        <span style={{fontSize:"9px",color:"#94a3b8"}}>▾</span>
+      </button>
+      {open&&(<>
+        <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:30}}/>
+        <div style={{position:"absolute",top:"calc(100% + 2px)",left:0,right:0,minWidth:"180px",maxHeight:"260px",overflowY:"auto",background:"#fff",border:"1px solid #cbd5e1",borderRadius:"6px",zIndex:31,boxShadow:"0 6px 20px rgba(0,0,0,0.15)"}}>
+          <div onClick={()=>{onChange("");setOpen(false);}}
+            style={{padding:"6px 8px",fontSize:"11px",color:"#94a3b8",cursor:"pointer",borderBottom:"1px solid #f1f5f9"}}>— sin elegir —</div>
+          {options.map(o=>(
+            <div key={o.id} onClick={()=>{onChange(o.id);setOpen(false);}}
+              style={{display:"flex",alignItems:"center",gap:"6px",padding:"6px 8px",fontSize:"12px",cursor:"pointer",borderBottom:"1px solid #f8fafc"}}
+              onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
+              onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
+              {flag(o.flagUrl)}
+              <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{o.label}</span>
+            </div>
+          ))}
+        </div>
+      </>)}
+    </div>
+  );
+}
+
 /* ── BolaCristalView ─────────────────────────────────────── */
 const BOLA_PREGUNTAS=[
   {id:"campeon",   label:"¿Quién será campeón?",         tipo:"equipo",   n:1, icon:"🏆", puntos:10},
@@ -7014,12 +7054,12 @@ function BolaCristalView({user,equipos,cierre}){
       .eq("id_liga","L055").eq("temporada","2026");
     const eqIds=new Set();
     (ps||[]).forEach(p=>{if(p.id_equipo_local)eqIds.add(p.id_equipo_local);if(p.id_equipo_visitante)eqIds.add(p.id_equipo_visitante);});
-    const eqMap={};(equipos||[]).forEach(e=>{eqMap[e.id_equipo]=e.nombre;});
-    setEquiposMundial([...eqIds].map(id=>({id,nombre:eqMap[id]||id})).sort((a,b)=>a.nombre.localeCompare(b.nombre)));
+    const eqMap={},escMap={};(equipos||[]).forEach(e=>{eqMap[e.id_equipo]=e.nombre;escMap[e.id_equipo]=e.escudo;});
+    setEquiposMundial([...eqIds].map(id=>({id,nombre:eqMap[id]||id,escudo:escMap[id]})).sort((a,b)=>a.nombre.localeCompare(b.nombre)));
     const {data:ts}=await supabase.from("temporadas")
       .select("id_jugadora,id_equipo,jugadoras(nombre,fecha_nac)")
       .eq("id_liga","L055").eq("temporada","2026");
-    const js=(ts||[]).map(t=>({id:t.id_jugadora,nombre:t.jugadoras?.nombre||t.id_jugadora,fecha_nac:t.jugadoras?.fecha_nac,equipoNombre:eqMap[t.id_equipo]||t.id_equipo}));
+    const js=(ts||[]).map(t=>({id:t.id_jugadora,nombre:t.jugadoras?.nombre||t.id_jugadora,fecha_nac:t.jugadoras?.fecha_nac,equipoNombre:eqMap[t.id_equipo]||t.id_equipo,equipoEscudo:escMap[t.id_equipo]}));
     js.sort((a,b)=>a.nombre.localeCompare(b.nombre));
     setJugadorasMundial(js);
     setJovenesMundial(js.filter(j=>j.fecha_nac&&j.fecha_nac>=CORTE_JOVEN));
@@ -7052,8 +7092,9 @@ function BolaCristalView({user,equipos,cierre}){
   };
 
   const opciones=q=>q.tipo==="equipo"?equiposMundial:q.tipo==="joven"?jovenesMundial:jugadorasMundial;
-  const lblOp=(q,o)=>q.tipo==="equipo"?o.nombre:`${o.nombre} (${o.equipoNombre})`;
-  const sel={width:"100%",padding:"8px 10px",borderRadius:"8px",border:"1px solid #cbd5e1",fontSize:"13px",background:"#fff",cursor:"pointer"};
+  const toOpt=(q,o)=>q.tipo==="equipo"
+    ?{id:o.id,label:o.nombre,flagUrl:o.escudo}
+    :{id:o.id,label:`${o.nombre} (${o.equipoNombre})`,flagUrl:o.equipoEscudo};
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
@@ -7072,21 +7113,17 @@ function BolaCristalView({user,equipos,cierre}){
               <span style={{fontSize:"10px",color:"#94a3b8",fontWeight:700}}>{q.puntos} pt{q.puntos==="3×"?"":"s"}</span>
             </div>
             {q.n===1?(
-              <select disabled={cerrado||ops.length===0} style={sel} value={val[0]||""}
-                onChange={e=>setDrafts(d=>({...d,[q.id]:[e.target.value]}))}>
-                <option value="">— elegir —</option>
-                {ops.map(o=><option key={o.id} value={o.id}>{lblOp(q,o)}</option>)}
-              </select>
+              <FlagSelect value={val[0]||""} disabled={cerrado||ops.length===0}
+                placeholder="— elegir —"
+                options={ops.map(o=>toOpt(q,o))}
+                onChange={v=>setDrafts(d=>({...d,[q.id]:v?[v]:[]}))}/>
             ):(
               <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
                 {Array.from({length:q.n}).map((_,i)=>(
-                  <select key={i} disabled={cerrado||ops.length===0} style={sel} value={val[i]||""}
-                    onChange={e=>{const nv=[...val];nv[i]=e.target.value;setDrafts(d=>({...d,[q.id]:nv}));}}>
-                    <option value="">— posición {i+1} —</option>
-                    {ops.filter(o=>!val.includes(o.id)||o.id===val[i]).map(o=>
-                      <option key={o.id} value={o.id}>{lblOp(q,o)}</option>
-                    )}
-                  </select>
+                  <FlagSelect key={i} value={val[i]||""} disabled={cerrado||ops.length===0}
+                    placeholder={`— posición ${i+1} —`}
+                    options={ops.filter(o=>!val.includes(o.id)||o.id===val[i]).map(o=>toOpt(q,o))}
+                    onChange={v=>{const nv=[...val];nv[i]=v;setDrafts(d=>({...d,[q.id]:nv}));}}/>
                 ))}
               </div>
             )}
@@ -7162,7 +7199,7 @@ function BasketnetaView({user,equipos,cierre}){
     const {data:ps}=await supabase.from("partidos")
       .select("notas,id_equipo_local,id_equipo_visitante")
       .eq("id_liga","L055").eq("temporada","2026");
-    const eqMap={};(equipos||[]).forEach(e=>{eqMap[e.id_equipo]=e.nombre;});
+    const eqMap={},escMap={};(equipos||[]).forEach(e=>{eqMap[e.id_equipo]=e.nombre;escMap[e.id_equipo]=e.escudo;});
     // grupos
     const gr={A:new Set(),B:new Set(),C:new Set(),D:new Set()};
     (ps||[]).forEach(p=>{
@@ -7172,11 +7209,11 @@ function BasketnetaView({user,equipos,cierre}){
       if(p.id_equipo_visitante)gr[m[1]].add(p.id_equipo_visitante);
     });
     const g={};BN_GRUPOS.forEach(k=>{
-      g[k]=[...gr[k]].map(id=>({id,nombre:eqMap[id]||id})).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+      g[k]=[...gr[k]].map(id=>({id,nombre:eqMap[id]||id,escudo:escMap[id]})).sort((a,b)=>a.nombre.localeCompare(b.nombre));
     });
     setGruposMap(g);
     const todos=new Set();(ps||[]).forEach(p=>{if(p.id_equipo_local)todos.add(p.id_equipo_local);if(p.id_equipo_visitante)todos.add(p.id_equipo_visitante);});
-    setEquiposMundial([...todos].map(id=>({id,nombre:eqMap[id]||id})).sort((a,b)=>a.nombre.localeCompare(b.nombre)));
+    setEquiposMundial([...todos].map(id=>({id,nombre:eqMap[id]||id,escudo:escMap[id]})).sort((a,b)=>a.nombre.localeCompare(b.nombre)));
     const {data:mios}=await supabase.from("basketneta_predicciones")
       .select("slot,id_equipo").eq("user_id",user.id).eq("id_liga","L055").eq("temporada","2026");
     const d={};(mios||[]).forEach(r=>{d[r.slot]=r.id_equipo;});
@@ -7261,13 +7298,11 @@ function BasketnetaView({user,equipos,cierre}){
                   return(
                     <div key={pos} style={{display:"flex",alignItems:"center",gap:"5px",marginBottom:"4px",background:bgPos[pos],borderRadius:"6px",padding:"3px"}}>
                       <span style={{fontSize:"11px",fontWeight:800,color:numPos[pos],minWidth:"16px",textAlign:"center"}}>{pos}º</span>
-                      <select disabled={cerrado||total.length===0}
-                        style={{flex:1,minWidth:0,fontSize:"11px",padding:"4px 6px",borderRadius:"5px",border:"1px solid #cbd5e1",background:"#fff",cursor:"pointer"}}
+                      <FlagSelect size="sm" disabled={cerrado||total.length===0}
                         value={drafts[slot]||""}
-                        onChange={e=>setDrafts(d=>({...d,[slot]:e.target.value}))}>
-                        <option value="">—</option>
-                        {opsGrupo(g,pos).map(o=><option key={o.id} value={o.id}>{o.nombre}</option>)}
-                      </select>
+                        placeholder="—"
+                        options={opsGrupo(g,pos).map(o=>({id:o.id,label:o.nombre,flagUrl:o.escudo}))}
+                        onChange={v=>setDrafts(d=>({...d,[slot]:v}))}/>
                     </div>
                   );
                 })}
