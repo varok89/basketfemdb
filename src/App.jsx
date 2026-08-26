@@ -6957,31 +6957,174 @@ function LoginModal({onLogin,onGoogleLogin,onClose,loading,error,mode,setMode}){
   );
 }
 
-/* ── AliasEditor (menú usuario) ──────────────────────────── */
-function AliasEditor({user}){
+/* ── PerfilView (vista dedicada de perfil) ───────────────── */
+function PerfilView({user,favoritos,onClose,onLogout}){
   const [alias,setAlias]=useState("");
-  const [msg,setMsg]=useState("");
-  const [loaded,setLoaded]=useState(false);
+  const [aliasMsg,setAliasMsg]=useState("");
+  const [savingAlias,setSavingAlias]=useState(false);
+  const [counts,setCounts]=useState({basketneta:0,bola:0});
+  const [confirmStep,setConfirmStep]=useState(0); // 0 idle, 1 primera confirm, 2 texto
+  const [confirmText,setConfirmText]=useState("");
+  const [deleting,setDeleting]=useState(false);
+  const [deleteErr,setDeleteErr]=useState("");
+
   useEffect(()=>{(async()=>{
-    const {data}=await supabase.from("perfiles").select("alias").eq("id",user.id).maybeSingle();
-    setAlias(data?.alias||"");setLoaded(true);
+    const {data:pf}=await supabase.from("perfiles").select("alias").eq("id",user.id).maybeSingle();
+    setAlias(pf?.alias||"");
+    const [bn,bo]=await Promise.all([
+      supabase.from("basketneta_predicciones").select("*",{count:"exact",head:true}).eq("user_id",user.id),
+      supabase.from("bola_cristal_predicciones").select("*",{count:"exact",head:true}).eq("user_id",user.id),
+    ]);
+    setCounts({basketneta:bn.count||0,bola:bo.count||0});
   })();},[user.id]);
-  const guardar=async()=>{
+
+  const guardarAlias=async()=>{
+    setSavingAlias(true);
     const v=(alias||"").trim().slice(0,24);
     const {error}=await supabase.from("perfiles").update({alias:v||null}).eq("id",user.id);
-    setMsg(error?"Error":"Guardado ✓");setTimeout(()=>setMsg(""),1500);
+    setSavingAlias(false);
+    setAliasMsg(error?"Error":"Guardado ✓");setTimeout(()=>setAliasMsg(""),1500);
   };
+
+  const eliminarCuenta=async()=>{
+    setDeleting(true);setDeleteErr("");
+    try{
+      const {data:{session}}=await supabase.auth.getSession();
+      const jwt=session?.access_token;
+      const supaUrl=supabase.supabaseUrl||supabase.rest.url.replace(/\/rest\/v1$/,"");
+      const res=await fetch(`${supaUrl}/functions/v1/eliminar-mi-cuenta`,{
+        method:"POST",
+        headers:{Authorization:`Bearer ${jwt}`,"content-type":"application/json"},
+      });
+      const j=await res.json();
+      if(!res.ok||!j.ok){setDeleteErr(j.error||"Error al eliminar");setDeleting(false);return;}
+      await supabase.auth.signOut();
+      window.location.reload();
+    }catch(e){
+      setDeleteErr(String(e));setDeleting(false);
+    }
+  };
+
+  const favCount={
+    jugadoras:(favoritos||[]).filter(f=>f.tipo==="jugadora").length,
+    equipos:  (favoritos||[]).filter(f=>f.tipo==="equipo").length,
+    ligas:    (favoritos||[]).filter(f=>f.tipo==="liga").length,
+  };
+  const avatar=user.user_metadata?.avatar_url;
+  const nombreReal=user.user_metadata?.full_name||user.email?.split("@")[0]||"Usuario";
+
   return(
-    <div style={{marginBottom:"8px"}}>
-      <div style={{fontSize:"10px",color:"#94a3b8",fontWeight:700,marginBottom:"4px"}}>ALIAS EN LA QUINIELA</div>
-      <div style={{display:"flex",gap:"4px"}}>
-        <input type="text" maxLength={24} value={alias} onChange={e=>setAlias(e.target.value)} disabled={!loaded}
-          placeholder="(tu nombre)"
-          style={{flex:1,minWidth:0,padding:"6px 8px",borderRadius:"6px",border:"1px solid #334155",background:"#0f172a",color:"#f1f5f9",fontSize:"12px"}}/>
-        <button onClick={guardar} disabled={!loaded}
-          style={{background:"rgba(147,51,234,0.2)",color:"#a78bfa",border:"1px solid rgba(147,51,234,0.4)",borderRadius:"6px",padding:"4px 10px",fontWeight:700,fontSize:"11px",cursor:"pointer"}}>OK</button>
+    <div style={{maxWidth:"640px",margin:"0 auto",padding:"12px"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
+        <h2 style={{margin:0,fontSize:"20px",fontWeight:800,color:"#1e293b"}}>👤 Mi perfil</h2>
+        <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:"20px",cursor:"pointer",color:"#64748b"}}>✕</button>
       </div>
-      {msg&&<div style={{fontSize:"10px",color:"#4ade80",marginTop:"4px"}}>{msg}</div>}
+
+      {/* cabecera con avatar */}
+      <div style={{background:"#fff",borderRadius:"16px",padding:"18px",boxShadow:"0 2px 12px rgba(0,0,0,0.06)",marginBottom:"14px",display:"flex",gap:"14px",alignItems:"center"}}>
+        {avatar
+          ?<img src={avatar} alt="" style={{width:64,height:64,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>
+          :<div style={{width:64,height:64,borderRadius:"50%",background:"linear-gradient(135deg,#9333ea,#c084fc)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:"26px",fontWeight:800,flexShrink:0}}>{nombreReal[0]?.toUpperCase()||"?"}</div>}
+        <div style={{minWidth:0,flex:1}}>
+          <div style={{fontSize:"16px",fontWeight:800,color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nombreReal}</div>
+          <div style={{fontSize:"12px",color:"#64748b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.email}</div>
+        </div>
+      </div>
+
+      {/* alias */}
+      <div style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",marginBottom:"14px"}}>
+        <div style={{fontSize:"12px",fontWeight:700,color:"#64748b",marginBottom:"6px"}}>Alias en el ranking de la quiniela</div>
+        <div style={{display:"flex",gap:"8px"}}>
+          <input type="text" maxLength={24} value={alias} onChange={e=>setAlias(e.target.value)}
+            placeholder={nombreReal}
+            style={{flex:1,padding:"8px 10px",borderRadius:"8px",border:"1px solid #cbd5e1",fontSize:"13px"}}/>
+          <button onClick={guardarAlias} disabled={savingAlias}
+            style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"8px",padding:"8px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:savingAlias?0.6:1}}>
+            Guardar
+          </button>
+        </div>
+        {aliasMsg&&<div style={{fontSize:"11px",color:"#16a34a",marginTop:"6px",fontWeight:700}}>{aliasMsg}</div>}
+        <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"6px"}}>Déjalo vacío para usar tu nombre.</div>
+      </div>
+
+      {/* stats */}
+      <div style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",marginBottom:"14px"}}>
+        <div style={{fontSize:"12px",fontWeight:700,color:"#64748b",marginBottom:"10px"}}>Tu actividad</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:"10px"}}>
+          {[
+            {n:favCount.jugadoras,l:"⭐ Jugadoras",c:"#9333ea"},
+            {n:favCount.equipos,l:"🏀 Equipos",c:"#9333ea"},
+            {n:favCount.ligas,l:"🏆 Ligas",c:"#9333ea"},
+            {n:counts.basketneta,l:"🏀 Pronóstico",c:"#0891b2"},
+            {n:counts.bola,l:"🔮 Bola",c:"#0891b2"},
+          ].map(s=>(
+            <div key={s.l} style={{background:"#f8fafc",borderRadius:"10px",padding:"10px",textAlign:"center"}}>
+              <div style={{fontSize:"22px",fontWeight:800,color:s.c,lineHeight:1}}>{s.n}</div>
+              <div style={{fontSize:"11px",color:"#64748b",marginTop:"4px",fontWeight:600}}>{s.l}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* logout */}
+      <div style={{marginBottom:"14px"}}>
+        <button onClick={onLogout}
+          style={{width:"100%",background:"#fff",color:"#1e293b",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"12px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>
+          Cerrar sesión
+        </button>
+      </div>
+
+      {/* zona peligrosa */}
+      <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:"12px",padding:"14px"}}>
+        <div style={{fontSize:"12px",fontWeight:800,color:"#991b1b",marginBottom:"6px"}}>⚠ Zona peligrosa</div>
+        <div style={{fontSize:"12px",color:"#7f1d1d",marginBottom:"10px"}}>
+          Borra permanentemente tu cuenta, alias, favoritos y predicciones. No se puede deshacer.
+        </div>
+        {confirmStep===0&&(
+          <button onClick={()=>setConfirmStep(1)}
+            style={{background:"#fff",color:"#991b1b",border:"1px solid #fca5a5",borderRadius:"8px",padding:"8px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
+            🗑 Eliminar mi cuenta
+          </button>
+        )}
+        {confirmStep===1&&(
+          <div>
+            <div style={{fontSize:"12px",color:"#7f1d1d",fontWeight:700,marginBottom:"8px"}}>¿Seguro? Vamos al paso 2 de 2.</div>
+            <div style={{display:"flex",gap:"8px"}}>
+              <button onClick={()=>{setConfirmStep(2);setConfirmText("");}}
+                style={{background:"#dc2626",color:"#fff",border:"none",borderRadius:"8px",padding:"8px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
+                Continuar
+              </button>
+              <button onClick={()=>setConfirmStep(0)}
+                style={{background:"#fff",color:"#64748b",border:"1px solid #e2e8f0",borderRadius:"8px",padding:"8px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+        {confirmStep===2&&(
+          <div>
+            <div style={{fontSize:"12px",color:"#7f1d1d",fontWeight:700,marginBottom:"6px"}}>
+              Escribe <code style={{background:"#fee2e2",padding:"1px 6px",borderRadius:"4px"}}>ELIMINAR</code> para confirmar.
+            </div>
+            <input type="text" value={confirmText} onChange={e=>setConfirmText(e.target.value)}
+              placeholder="ELIMINAR"
+              style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",borderRadius:"8px",border:"1px solid #fca5a5",fontSize:"13px",marginBottom:"8px"}}/>
+            <div style={{display:"flex",gap:"8px"}}>
+              <button onClick={eliminarCuenta}
+                disabled={confirmText!=="ELIMINAR"||deleting}
+                style={{background:confirmText==="ELIMINAR"?"#dc2626":"#fca5a5",color:"#fff",border:"none",borderRadius:"8px",padding:"8px 14px",fontWeight:800,fontSize:"12px",cursor:confirmText==="ELIMINAR"?"pointer":"not-allowed",opacity:deleting?0.6:1}}>
+                {deleting?"Eliminando…":"🗑 Eliminar definitivamente"}
+              </button>
+              <button onClick={()=>{setConfirmStep(0);setConfirmText("");}}
+                disabled={deleting}
+                style={{background:"#fff",color:"#64748b",border:"1px solid #e2e8f0",borderRadius:"8px",padding:"8px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
+                Cancelar
+              </button>
+            </div>
+            {deleteErr&&<div style={{fontSize:"11px",color:"#991b1b",marginTop:"6px",fontWeight:700}}>{deleteErr}</div>}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -7618,6 +7761,7 @@ export default function App(){
   const [showUserMenu,setShowUserMenu] = useState(false);
   const [menuOpen,setMenuOpen] = useState(false);
   const [showPrivacidad,setShowPrivacidad] = useState(false);
+  const [showPerfil,setShowPerfil] = useState(false);
 
   useEffect(()=>{
     const setupUser=async(session)=>{
@@ -7915,7 +8059,10 @@ export default function App(){
                   <div style={{fontSize:"11px",color:"#94a3b8",marginBottom:"4px"}}>{user.email}</div>
                   {isAdmin&&<div style={{fontSize:"10px",color:"#c084fc",fontWeight:700,marginBottom:"8px"}}>Administrador</div>}
                   <div style={{height:"1px",background:"#334155",margin:"8px 0"}}/>
-                  <AliasEditor user={user}/>
+                  <button onClick={()=>{setShowPerfil(true);setShowUserMenu(false);}}
+                    style={{width:"100%",background:"rgba(147,51,234,0.2)",color:"#a78bfa",border:"1px solid rgba(147,51,234,0.4)",borderRadius:"8px",padding:"8px",fontWeight:700,fontSize:"12px",cursor:"pointer",marginBottom:"8px"}}>
+                    👤 Mi perfil
+                  </button>
                   <button onClick={togglePush} style={{width:"100%",background:pushEnabled?"rgba(34,197,94,0.15)":"rgba(147,51,234,0.15)",color:pushEnabled?"#4ade80":"#a78bfa",border:`1px solid ${pushEnabled?"rgba(34,197,94,0.3)":"rgba(147,51,234,0.3)"}`,borderRadius:"8px",padding:"8px",fontWeight:700,fontSize:"12px",cursor:"pointer",marginBottom:"8px"}}>{pushEnabled?"🔔 Notificaciones activadas":"🔕 Activar notificaciones"}</button>
                   <button onClick={()=>{handleLogout();setShowUserMenu(false);}} style={{width:"100%",background:"#ef4444",color:"#fff",border:"none",borderRadius:"8px",padding:"8px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>Cerrar sesión</button>
                 </div>
@@ -7925,15 +8072,16 @@ export default function App(){
           }
         </div>      </div>
       <div style={{paddingTop:"8px"}}>
+        {showPerfil&&user&&<PerfilView user={user} favoritos={favoritos} onClose={()=>setShowPerfil(false)} onLogout={()=>{handleLogout();setShowPerfil(false);}}/>}
         {showPrivacidad&&<PrivacidadView onBack={()=>{setShowPrivacidad(false);window.history.back();}}/>}
-        {!showPrivacidad&&tab==="favoritos"&&user&&<FavoritosView players={players} equipos={equipos} ligas={ligas} partidos={partidos} favoritos={favoritos} user={user} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToPartido={goToPartido} isFavFn={isFav} onToggleFav={toggleFav}/>}
-        {!showPrivacidad&&tab==="home"&&<HomeView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToTab={t=>setTab(t)} equiposNombres={equiposNombres}/>}
-        {!showPrivacidad&&tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setPlayers={setPlayers} setTempCoach={setTempCoach} onGoToPartido={goToPartido} regExtra={regExtra} isFavFn={isFav} onToggleFav={toggleFav}/>}
-        {tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setEquipos={setEquipos} setEquiposNombres={setEquiposNombres} setPlayers={setPlayers} setPalmares={setPalmares} regExtra={regExtra} onGoToPartido={goToPartido} isFavFn={isFav} onToggleFav={toggleFav}/>}
-        {tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} coaches={coaches} tempCoach={tempCoach} partidos={partidos} onGoToClasificacion={(ligaId,temporada)=>{setOpenClasiKey(`${ligaId}|${temporada||""}`);setTab("partidos");scrollTop();}} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setLigas={setLigas} regExtra={regExtra} isFavFn={isFav} onToggleFav={toggleFav}/>}
-        {!showPrivacidad&&tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setCoaches={setCoaches} setTempCoach={setTempCoach} equiposNombres={equiposNombres} regExtra={regExtra}/>}
-        {!showPrivacidad&&tab==="quiniela"&&user&&<QuinielaView user={user} equipos={equipos}/>}
-        {!showPrivacidad&&tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} mvps={mvps} equiposNombres={equiposNombres} openClasiKey={openClasiKey} onClearClasi={()=>setOpenClasiKey(null)} partidosSub={partidosSub} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id,year)=>goToTeam(id,year||null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})} onGoToPlayer={(id)=>goToPlayer(id,{tab:"partidos",label:"Ver partidos"})}/>}
+        {!showPrivacidad&&!showPerfil&&tab==="favoritos"&&user&&<FavoritosView players={players} equipos={equipos} ligas={ligas} partidos={partidos} favoritos={favoritos} user={user} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToPartido={goToPartido} isFavFn={isFav} onToggleFav={toggleFav}/>}
+        {!showPrivacidad&&!showPerfil&&tab==="home"&&<HomeView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToTab={t=>setTab(t)} equiposNombres={equiposNombres}/>}
+        {!showPrivacidad&&!showPerfil&&tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setPlayers={setPlayers} setTempCoach={setTempCoach} onGoToPartido={goToPartido} regExtra={regExtra} isFavFn={isFav} onToggleFav={toggleFav}/>}
+        {!showPerfil&&tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setEquipos={setEquipos} setEquiposNombres={setEquiposNombres} setPlayers={setPlayers} setPalmares={setPalmares} regExtra={regExtra} onGoToPartido={goToPartido} isFavFn={isFav} onToggleFav={toggleFav}/>}
+        {!showPerfil&&tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} coaches={coaches} tempCoach={tempCoach} partidos={partidos} onGoToClasificacion={(ligaId,temporada)=>{setOpenClasiKey(`${ligaId}|${temporada||""}`);setTab("partidos");scrollTop();}} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setLigas={setLigas} regExtra={regExtra} isFavFn={isFav} onToggleFav={toggleFav}/>}
+        {!showPrivacidad&&!showPerfil&&tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setCoaches={setCoaches} setTempCoach={setTempCoach} equiposNombres={equiposNombres} regExtra={regExtra}/>}
+        {!showPrivacidad&&!showPerfil&&tab==="quiniela"&&user&&<QuinielaView user={user} equipos={equipos}/>}
+        {!showPrivacidad&&!showPerfil&&tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} mvps={mvps} equiposNombres={equiposNombres} openClasiKey={openClasiKey} onClearClasi={()=>setOpenClasiKey(null)} partidosSub={partidosSub} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id,year)=>goToTeam(id,year||null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})} onGoToPlayer={(id)=>goToPlayer(id,{tab:"partidos",label:"Ver partidos"})}/>}
       </div>
     </div>
     </>);
