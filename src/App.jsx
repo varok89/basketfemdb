@@ -6972,7 +6972,7 @@ const AVATAR_PRESETS=[
   {k:"heart",  e:"❤️", bg:"linear-gradient(135deg,#f43f5e,#be123c)"},
   {k:"peace",  e:"✌️", bg:"linear-gradient(135deg,#10b981,#047857)"},
 ];
-function Avatar({avatar,googleUrl,nombre,size=64}){
+function UserAvatar({avatar,googleUrl,nombre,size=64}){
   const preset=avatar?.startsWith("preset:")?AVATAR_PRESETS.find(p=>p.k===avatar.slice(7)):null;
   const url=avatar&&!avatar.startsWith("preset:")?avatar:(!avatar?googleUrl:null);
   const style={width:size,height:size,borderRadius:"50%",flexShrink:0};
@@ -7072,7 +7072,7 @@ function PerfilView({user,favoritos,onClose,onLogout}){
 
       {/* cabecera con avatar */}
       <div style={{background:"#fff",borderRadius:"16px",padding:"18px",boxShadow:"0 2px 12px rgba(0,0,0,0.06)",marginBottom:"14px",display:"flex",gap:"14px",alignItems:"center"}}>
-        <Avatar avatar={avatar} googleUrl={user.user_metadata?.avatar_url} nombre={nombreReal} size={64}/>
+        <UserAvatar avatar={avatar} googleUrl={user.user_metadata?.avatar_url} nombre={nombreReal} size={64}/>
         <div style={{minWidth:0,flex:1}}>
           <div style={{fontSize:"16px",fontWeight:800,color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nombreReal}</div>
           <div style={{fontSize:"12px",color:"#64748b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.email}</div>
@@ -7754,7 +7754,7 @@ function QuinielaView({user,equipos}){
                   <td style={{padding:"10px 14px",fontWeight:700,color:i===0?"#eab308":i===1?"#94a3b8":i===2?"#c2410c":"#64748b"}}>{i+1}</td>
                   <td style={{padding:"8px 14px",fontWeight:600,color:"#1e293b"}}>
                     <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                      <Avatar avatar={r.avatar} googleUrl={google} nombre={r.nombre} size={28}/>
+                      <UserAvatar avatar={r.avatar} googleUrl={google} nombre={r.nombre} size={28}/>
                       <span>{r.nombre}{r.user_id===user.id?" (tú)":""}</span>
                     </div>
                   </td>
