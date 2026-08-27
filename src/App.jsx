@@ -2232,7 +2232,7 @@ function EmptyState({icon,text,sub}){return(
 
 /* ── Formularios ─────────────────────────────────────────── */
 function PlayerForm({initial,onSave,onCancel,saving}){
-  const [f,setF]=useState({nombre:"",posicion:"Base",posicion2:"",nacionalidad:"",nacionalidad2:"",fecha_nac:"",fecha_fallecimiento:"",altura_cm:"",foto:null,...initial});
+  const [f,setF]=useState({nombre:"",posicion:"Base",posicion2:"",nacionalidad:"",nacionalidad2:"",fecha_nac:"",fecha_fallecimiento:"",altura_cm:"",foto:null,id_espn:"",fiba_person_id:"",id_feb:"",...initial});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
   return(<div>
     <PhotoPicker value={f.foto} onChange={v=>setF(p=>({...p,foto:v}))}/>
@@ -2249,6 +2249,12 @@ function PlayerForm({initial,onSave,onCancel,saving}){
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
       <Fld label="Fecha nac."><input style={inp} type="date" value={f.fecha_nac||""} onChange={set("fecha_nac")}/></Fld>
       <Fld label="Fecha fallecimiento (opcional)"><input style={inp} type="date" value={f.fecha_fallecimiento||""} onChange={set("fecha_fallecimiento")}/></Fld>
+    </div>
+    <div style={{marginTop:"6px",fontSize:"12px",fontWeight:700,color:"#64748b",letterSpacing:"0.4px",textTransform:"uppercase"}}>IDs externos</div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"12px"}}>
+      <Fld label="ESPN"><input style={inp} value={f.id_espn||""} onChange={set("id_espn")} placeholder="4433402"/></Fld>
+      <Fld label="FIBA"><input style={inp} value={f.fiba_person_id||""} onChange={set("fiba_person_id")} placeholder="123456"/></Fld>
+      <Fld label="FEB"><input style={inp} value={f.id_feb||""} onChange={set("id_feb")} placeholder="98765"/></Fld>
     </div>
     <div style={{display:"flex",gap:"10px",marginTop:"8px"}}>
       <button onClick={onCancel} style={{flex:1,border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"11px",color:"#64748b",background:"#fff",cursor:"pointer",fontWeight:600}}>Cancelar</button>
@@ -3090,7 +3096,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     try{
       const allJIds=players.map(p=>parseInt((p.id_jugadora||"J0").slice(1))).filter(n=>!isNaN(n));
       const newId=firstFreeId(allJIds,"J",0);
-      const newPlayer={id_jugadora:newId,nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,fecha_fallecimiento:f.fecha_fallecimiento||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null};
+      const newPlayer={id_jugadora:newId,nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,fecha_fallecimiento:f.fecha_fallecimiento||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null,id_espn:f.id_espn?.trim()||null,fiba_person_id:f.fiba_person_id?.trim()||null,id_feb:f.id_feb?.trim()||null};
       const{error}=await supabase.from("jugadoras").insert(newPlayer);
       if(error)throw error;
       setPlayers(prev=>[...prev,{...newPlayer,seasons:[]}].sort((a,b)=>(a.id_jugadora||"").localeCompare(b.id_jugadora||"")));
@@ -3100,7 +3106,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   };
   const updPlayer=async f=>{
     setSaving(true);
-    const payload={nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,fecha_fallecimiento:f.fecha_fallecimiento||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null};
+    const payload={nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,fecha_fallecimiento:f.fecha_fallecimiento||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null,id_espn:f.id_espn?.trim()||null,fiba_person_id:f.fiba_person_id?.trim()||null,id_feb:f.id_feb?.trim()||null};
     try{const{error}=await supabase.from("jugadoras").update(payload).eq("id_jugadora",selId);
       if(error)throw error;
       setPlayers(prev=>prev.map(p=>p.id_jugadora!==selId?p:{...p,...payload}));
@@ -6288,7 +6294,7 @@ export default function App(){
     // Caché de sesión: no recargar si ya están en memoria
     if(!forzar && players.length>0 && equipos.length>0){return;}
     // Hidratación desde localStorage (arranque instantáneo)
-    const CK="basketfemdb:cache:v4";
+    const CK="basketfemdb:cache:v5";
     let hidratado=false;
     if(!forzar){
       try{
@@ -6319,7 +6325,7 @@ export default function App(){
     try{
       // Fase 1: críticas para Home (players/equipos/ligas/temporadas/partidos)
       const [rJ,rE,rL,rT,rPar]=await Promise.all([
-        fetchAll("jugadoras",{order:"id_jugadora",select:"id_jugadora,nombre,posicion,nacionalidad,nacionalidad2,fecha_nac,altura_cm,id_ext,id_espn,fuente,foto"}),
+        fetchAll("jugadoras",{order:"id_jugadora",select:"id_jugadora,nombre,posicion,posicion2,nacionalidad,nacionalidad2,fecha_nac,fecha_fallecimiento,altura_cm,id_ext,id_espn,fiba_person_id,id_feb,fuente,foto"}),
         fetchAll("equipos",{order:"id_equipo"}),
         fetchAll("ligas",{order:"id_liga"}),
         fetchAll("dos_ultimas_temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.neq("id_liga","L020")}),
@@ -6405,7 +6411,7 @@ export default function App(){
         });
         setSeasonsFull(true);
         try{
-          const CK="basketfemdb:cache:v4";
+          const CK="basketfemdb:cache:v5";
           const raw=localStorage.getItem(CK);
           if(raw){
             const c=JSON.parse(raw);
@@ -6436,7 +6442,7 @@ export default function App(){
         });
         setPartidosFull(true);
         try{
-          const CK="basketfemdb:cache:v4";
+          const CK="basketfemdb:cache:v5";
           const raw=localStorage.getItem(CK);
           if(raw){
             const c=JSON.parse(raw);
