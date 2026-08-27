@@ -4322,6 +4322,17 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
   const ligaMap   = useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
   const selected  = ligas.find(l=>l.id_liga===selId)||null;
 
+  // Ligas grandes (p.ej. NCAA L020) están excluidas del preload global.
+  // Al abrir la ficha, cargamos sus temporadas bajo demanda.
+  const [extraTemp,setExtraTemp] = useState({});
+  useEffect(()=>{
+    if(!selected||extraTemp[selected.id_liga]) return;
+    (async()=>{
+      const {data}=await supabase.from("temporadas").select("id_jugadora,id_equipo,temporada").eq("id_liga",selected.id_liga).limit(20000);
+      setExtraTemp(m=>({...m,[selected.id_liga]:data||[]}));
+    })();
+  },[selected]);
+
   const {years,teamsByYear} = useMemo(()=>{
     if(!selected) return {years:[],teamsByYear:{}};
     const yMap={};
@@ -4330,6 +4341,10 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
       if(!yMap[s.temporada]) yMap[s.temporada]=new Set();
       yMap[s.temporada].add(s.id_equipo);
     }));
+    (extraTemp[selected.id_liga]||[]).forEach(t=>{
+      if(!yMap[t.temporada]) yMap[t.temporada]=new Set();
+      if(t.id_equipo) yMap[t.temporada].add(t.id_equipo);
+    });
     // Temporadas que solo tienen partidos (sin rosters aún) también cuentan,
     // para poder llegar a su clasificación desde la ficha de la liga.
     (partidos||[]).forEach(p=>{
@@ -4339,7 +4354,7 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
       if(p.id_equipo_visitante) yMap[p.temporada].add(p.id_equipo_visitante);
     });
     return {years:Object.keys(yMap).sort((a,b)=>b.localeCompare(a)),teamsByYear:yMap};
-  },[selected,players,partidos]);
+  },[selected,players,partidos,extraTemp]);
 
   const latestYear    = years[0]||null;
   const effectiveYear = selYear||latestYear;
