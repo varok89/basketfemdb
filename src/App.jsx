@@ -3049,23 +3049,23 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   const allNacs = useMemo(()=>[...new Set(players.flatMap(p=>[p.nacionalidad,p.nacionalidad2]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es")),[players]);
   const allLigasPlayer = useMemo(()=>{
     const ligsSet=new Set();
-    players.forEach(p=>{
-      const lastS=[...(p.seasons||[])].sort((a,b)=>b.temporada.localeCompare(a.temporada))[0];
-      if(lastS){const l=ligaMap[lastS.id_liga];if(l?.nombre)ligsSet.add(l.nombre);}
-    });
+    players.forEach(p=>(p.seasons||[]).forEach(s=>{const l=ligaMap[s.id_liga];if(l?.nombre)ligsSet.add(l.nombre);}));
     return [...ligsSet].sort((a,b)=>a.localeCompare(b,"es"));
   },[players,ligaMap]);
   const allTemps = useMemo(()=>[...new Set(players.flatMap(p=>(p.seasons||[]).map(s=>s.temporada)).filter(Boolean))].sort((a,b)=>b.localeCompare(a)),[players]);
   const filtered = useMemo(()=>{
     const q=search.toLowerCase();
     return players.filter(p=>{
-      const lastS=[...(p.seasons||[])].sort((a,b)=>b.temporada.localeCompare(a.temporada))[0];
-      const lastLigNombre=lastS?ligaMap[lastS.id_liga]?.nombre:null;
-      return(!q||p.nombre?.toLowerCase().includes(q)||p.id_jugadora?.toLowerCase().includes(q)||p.nacionalidad?.toLowerCase().includes(q)||p.seasons?.some(s=>equipoMap[s.id_equipo]?.nombre?.toLowerCase().includes(q)))
+      const seasons=p.seasons||[];
+      // liga+temp: alguna temporada cumple ambos; solo una: any temp con ella
+      const matchLigaTemp = (!filterLiga && !filterTemp) || seasons.some(s=>{
+        const lig=ligaMap[s.id_liga]?.nombre;
+        return (!filterLiga||lig===filterLiga)&&(!filterTemp||s.temporada===filterTemp);
+      });
+      return(!q||p.nombre?.toLowerCase().includes(q)||p.id_jugadora?.toLowerCase().includes(q)||p.nacionalidad?.toLowerCase().includes(q)||seasons.some(s=>equipoMap[s.id_equipo]?.nombre?.toLowerCase().includes(q)))
         &&(!filterPos||p.posicion===filterPos||p.posicion2===filterPos)
         &&(filterNacs.size===0||filterNacs.has(p.nacionalidad)||filterNacs.has(p.nacionalidad2))
-        &&(!filterLiga||lastLigNombre===filterLiga)
-        &&(!filterTemp||(p.seasons||[]).some(s=>s.temporada===filterTemp))
+        &&matchLigaTemp
         &&(!filterStatus||playerStatus(p.nacionalidad,p.nacionalidad2)===filterStatus);
     }).sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"));
   },[players,search,filterPos,filterNacs,filterLiga,filterTemp,filterStatus,ligaMap,equipoMap]);
