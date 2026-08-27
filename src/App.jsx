@@ -3013,11 +3013,10 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     if(!selId||players.length===0)return;
     const pl=players.find(p=>p.id_jugadora===selId);
     if(!pl)return;
-    // Cargar carrera completa si hay más temporadas que las ya cargadas
-    const yaLoaded=(pl.seasons||[]).length;
+    // Siempre refrescar carrera completa al abrir ficha (el cache/RLS puede tener menos filas de las reales)
     (async()=>{
-      const {data}=await supabase.from("temporadas").select("id,id_jugadora,id_equipo,id_liga,temporada,orden").eq("id_jugadora",selId).order("temporada",{ascending:false}).limit(50);
-      if(!data||data.length<=yaLoaded)return; // ya tenemos todo cargado
+      const {data}=await supabase.from("temporadas").select("id,id_jugadora,id_equipo,id_liga,temporada,orden").eq("id_jugadora",selId).order("temporada",{ascending:false}).limit(200);
+      if(!data)return;
       setPlayers(prev=>prev.map(p=>p.id_jugadora===selId?{...p,seasons:data}:p));
     })();
   },[selId,players.length]);
