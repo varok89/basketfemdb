@@ -14,6 +14,62 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   var [ncaaTemp,setNcaaTemp]=useState("2025-26");
   var [ncaaRes,setNcaaRes]=useState(null);
   var [ncaaEquipos,setNcaaEquipos]=useState([]);
+  // Carreras ESPN por equipo (NCAA + WNBA)
+  var [carrLiga,setCarrLiga]=useState("L020");
+  var [carrTemp,setCarrTemp]=useState("2025-26");
+  var [carrEquipoId,setCarrEquipoId]=useState("");
+  var [carrInfo,setCarrInfo]=useState(null);
+  var [carrBusy,setCarrBusy]=useState("");
+  var [carrLog,setCarrLog]=useState([]);
+  useEffect(()=>{setCarrTemp(carrLiga==="L020"?"2025-26":"2026");setCarrEquipoId("");setCarrInfo(null);setCarrLog([]);},[carrLiga]);
+  var [carrEquiposLiga,setCarrEquiposLiga]=useState([]);
+  useEffect(()=>{
+    if(tab!=="carreras"||!carrLiga||!carrTemp)return;
+    (async()=>{
+      const {data}=await supabase.from("temporadas").select("id_equipo,equipos(id_equipo,nombre,id_espn)").eq("id_liga",carrLiga).eq("temporada",carrTemp).limit(2000);
+      const seen=new Set();const arr=[];
+      (data||[]).forEach(t=>{const e=t.equipos;if(!e||!e.id_espn||seen.has(e.id_equipo))return;seen.add(e.id_equipo);arr.push(e);});
+      arr.sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||""));
+      setCarrEquiposLiga(arr);
+    })();
+  },[tab,carrLiga,carrTemp]);
+
+  async function carrAnalizar(){
+    if(!carrEquipoId){alert("Selecciona un equipo");return;}
+    setCarrBusy("info");setCarrInfo(null);setCarrLog([]);
+    try{
+      var r=await fetch(SUPABASE_URL+"/functions/v1/mapear-roster-espn",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:JSON.stringify({id_equipo:carrEquipoId,id_liga:carrLiga,temporada:carrTemp,dry:true})});
+      setCarrInfo(await r.json());
+    }catch(e){setCarrInfo({error:e.message});}
+    setCarrBusy("");
+  }
+  async function carrMapear(){
+    setCarrBusy("mapear");
+    try{
+      var r=await fetch(SUPABASE_URL+"/functions/v1/mapear-roster-espn",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:JSON.stringify({id_equipo:carrEquipoId,id_liga:carrLiga,temporada:carrTemp,dry:false})});
+      setCarrInfo(await r.json());
+    }catch(e){setCarrInfo({error:e.message});}
+    setCarrBusy("");
+  }
+  async function carrCargar(dry){
+    if(!carrInfo?.roster)return;
+    var conEspn=carrInfo.roster.filter(function(r){return r.id_espn||r.espn_match;});
+    if(!conEspn.length){alert("Ninguna jugadora con id_espn");return;}
+    setCarrBusy(dry?"dry":"cargar");setCarrLog([]);
+    var log=[];
+    for(var i=0;i<conEspn.length;i++){
+      var r=conEspn[i];
+      log.push({jugadora:r.nombre,estado:"⏳ procesando..."});
+      setCarrLog([].concat(log));
+      try{
+        var resp=await fetch(SUPABASE_URL+"/functions/v1/cargar-carrera-espn-jugadora",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:JSON.stringify({id_jugadora:r.id_jugadora,discover:true,dry:dry})});
+        var j=await resp.json();
+        log[i]={jugadora:r.nombre,estado:j.error?"❌ "+j.error:"✅ box:"+(j.total_boxscores||0)+" temps+:"+(j.total_temporadas_creadas||0)+" partidos+:"+(j.total_partidos_creados||0)};
+      }catch(e){log[i]={jugadora:r.nombre,estado:"❌ "+e.message};}
+      setCarrLog([].concat(log));
+    }
+    setCarrBusy("");
+  }
 
   useEffect(()=>{
     if(tab==="ncaa"&&!ncaaEquipos.length){
@@ -925,6 +981,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       {key:"scraper",label:"Scraper FIBA",count:0},
       {key:"feb-fichas",label:"Fichas FEB",count:febPend||0},
       {key:"ncaa",label:"NCAA ESPN",count:0},
+      {key:"carreras",label:"🎓 Carreras ESPN",count:0},
       {key:"lotes",label:"Alta por lotes",count:0},
     ]}]:[]),
   ];
@@ -1123,6 +1180,45 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                     {ncaaRes.sin_mapear_jugadoras?.length>0&&<details style={{marginTop:"8px"}}><summary style={{fontSize:"11px",cursor:"pointer",color:"#64748b"}}>Ver jugadoras sin mapear</summary><div style={{maxHeight:"150px",overflowY:"auto",fontSize:"11px",color:"#475569",marginTop:"4px"}}>{ncaaRes.sin_mapear_jugadoras.map((s,i)=><div key={i}>{s}</div>)}</div></details>}
                   </>}
                 </>}
+              </div>}
+            </div>
+          )}
+          {tab==="carreras"&&(
+            <div style={{padding:"16px"}}>
+              <h3 style={{fontWeight:800,fontSize:"15px",color:"#1e293b",margin:"0 0 4px"}}>🎓 Carreras ESPN por roster</h3>
+              <p style={{fontSize:"12px",color:"#64748b",margin:"0 0 12px"}}>Selecciona un equipo NCAA o WNBA. Analiza su roster, auto-mapea id_espn faltantes y carga las carreras completas de todas sus jugadoras.</p>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 100px",gap:"8px",marginBottom:"12px"}}>
+                <select value={carrLiga} onChange={e=>setCarrLiga(e.target.value)} style={{padding:"8px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px"}}>
+                  <option value="L020">NCAA (L020)</option>
+                  <option value="L006">WNBA (L006)</option>
+                </select>
+                <select value={carrEquipoId} onChange={e=>setCarrEquipoId(e.target.value)} style={{padding:"8px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px"}}>
+                  <option value="">Equipo...</option>
+                  {carrEquiposLiga.map(function(e){return <option key={e.id_equipo} value={e.id_equipo}>{e.nombre}</option>;})}
+                </select>
+                <input value={carrTemp} onChange={e=>setCarrTemp(e.target.value)} placeholder="2025-26" style={{padding:"8px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px"}}/>
+              </div>
+              <div style={{display:"flex",gap:"8px",marginBottom:"12px",flexWrap:"wrap"}}>
+                <button onClick={carrAnalizar} disabled={!!carrBusy||!carrEquipoId} style={{background:"#2563eb",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy||!carrEquipoId?0.5:1}}>{carrBusy==="info"?"Analizando...":"🔍 Analizar roster"}</button>
+                {carrInfo&&!carrInfo.error&&carrInfo.mapeados>0&&<button onClick={carrMapear} disabled={!!carrBusy} style={{background:"#f59e0b",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="mapear"?"Mapeando...":"🔗 Auto-mapear "+carrInfo.mapeados+" faltante(s)"}</button>}
+                {carrInfo&&!carrInfo.error&&<button onClick={()=>carrCargar(true)} disabled={!!carrBusy} style={{background:"#64748b",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="dry"?"Dry run...":"🧪 Dry run"}</button>}
+                {carrInfo&&!carrInfo.error&&<button onClick={()=>carrCargar(false)} disabled={!!carrBusy} style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="cargar"?"Cargando...":"🚀 Cargar carreras"}</button>}
+              </div>
+              {carrInfo&&(carrInfo.error?<div style={{background:"#fef2f2",border:"1px solid #fecaca",color:"#dc2626",padding:"10px",borderRadius:"10px",fontSize:"13px"}}>❌ {carrInfo.error}</div>:
+                <div style={{background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"12px",marginBottom:"12px"}}>
+                  <div style={{fontSize:"13px",marginBottom:"8px"}}><b>{carrInfo.equipo}</b> · BD: {carrInfo.bd_total} · ESPN: {carrInfo.espn_total} · Ya con id_espn: {carrInfo.ya_con_espn} · A mapear: {carrInfo.mapeados}</div>
+                  {carrInfo.roster&&carrInfo.roster.length>0&&<div style={{maxHeight:"180px",overflowY:"auto",fontSize:"12px"}}>
+                    {carrInfo.roster.map(function(r,i){return <div key={i} style={{padding:"3px 0",borderBottom:"1px solid #f1f5f9",display:"flex",justifyContent:"space-between",gap:"8px"}}><span>{r.id_espn?"🟢":(r.espn_match?"🟡":"⚪")} {r.nombre}</span><span style={{color:"#94a3b8",fontFamily:"monospace",fontSize:"11px"}}>{r.id_espn||r.espn_match?.id||"—"}</span></div>;})}
+                  </div>}
+                  {carrInfo.sin_match_bd?.length>0&&<div style={{marginTop:"8px",fontSize:"12px",color:"#dc2626"}}>⚠️ Sin match en ESPN ({carrInfo.sin_match_bd.length}): {carrInfo.sin_match_bd.join(", ")}</div>}
+                  {carrInfo.solo_en_espn?.length>0&&<details style={{marginTop:"8px"}}><summary style={{fontSize:"12px",color:"#64748b",cursor:"pointer"}}>ESPN tiene {carrInfo.solo_en_espn.length} no en BD</summary><div style={{fontSize:"11px",color:"#475569",maxHeight:"120px",overflowY:"auto"}}>{carrInfo.solo_en_espn.map(function(s,i){return <div key={i}>{s}</div>;})}</div></details>}
+                </div>
+              )}
+              {carrLog.length>0&&<div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"12px"}}>
+                <div style={{fontSize:"12px",fontWeight:700,color:"#64748b",marginBottom:"8px"}}>Progreso ({carrLog.length}/{carrInfo?.roster?.filter(function(r){return r.id_espn||r.espn_match;}).length||0})</div>
+                <div style={{maxHeight:"260px",overflowY:"auto",fontSize:"12px"}}>
+                  {carrLog.map(function(l,i){return <div key={i} style={{padding:"3px 0",display:"flex",justifyContent:"space-between",gap:"8px"}}><span>{l.jugadora}</span><span style={{color:"#475569",fontSize:"11px"}}>{l.estado}</span></div>;})}
+                </div>
               </div>}
             </div>
           )}
