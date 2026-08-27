@@ -6288,7 +6288,7 @@ export default function App(){
     // Caché de sesión: no recargar si ya están en memoria
     if(!forzar && players.length>0 && equipos.length>0){return;}
     // Hidratación desde localStorage (arranque instantáneo)
-    const CK="basketfemdb:cache:v3";
+    const CK="basketfemdb:cache:v4";
     let hidratado=false;
     if(!forzar){
       try{
@@ -6421,7 +6421,7 @@ export default function App(){
         });
         setPartidosFull(true);
         try{
-          const CK="basketfemdb:cache:v3";
+          const CK="basketfemdb:cache:v4";
           const raw=localStorage.getItem(CK);
           if(raw){
             const c=JSON.parse(raw);
