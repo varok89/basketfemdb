@@ -6275,7 +6275,7 @@ export default function App(){
     // Caché de sesión: no recargar si ya están en memoria
     if(!forzar && players.length>0 && equipos.length>0){return;}
     // Hidratación desde localStorage (arranque instantáneo)
-    const CK="basketfemdb:cache:v2";
+    const CK="basketfemdb:cache:v3";
     let hidratado=false;
     if(!forzar){
       try{
@@ -6309,7 +6309,7 @@ export default function App(){
         fetchAll("equipos",{order:"id_equipo"}),
         fetchAll("ligas",{order:"id_liga"}),
         fetchAll("dos_ultimas_temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.neq("id_liga","L020")}),
-        fetchAll("partidos",{order:"fecha_hora",select:"id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas,es_live,periodo,id_ext,fuente,bracket_pos",filter:q=>q.neq("id_liga","L020").gte("temporada",String(new Date().getFullYear()-1))}),
+        fetchAll("partidos",{order:"fecha_hora",select:"id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas,es_live,periodo,id_ext,fuente,bracket_pos",filter:q=>q.neq("id_liga","L020").gte("temporada",String(new Date().getFullYear()-2))}),
       ]);
       if(rJ.error)throw rJ.error;if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rT.error)throw rT.error;
       const sbp={};
@@ -6384,7 +6384,7 @@ export default function App(){
         const {data}=await fetchAll("partidos",{
           order:"fecha_hora",
           select:"id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas,es_live,periodo,id_ext,fuente,bracket_pos",
-          filter:q=>q.neq("id_liga","L020").lt("temporada",String(new Date().getFullYear()-1))
+          filter:q=>q.neq("id_liga","L020").lt("temporada",String(new Date().getFullYear()-2))
         });
         let merged=[];
         setPartidos(prev=>{
@@ -6394,7 +6394,7 @@ export default function App(){
         });
         setPartidosFull(true);
         try{
-          const CK="basketfemdb:cache:v2";
+          const CK="basketfemdb:cache:v3";
           const raw=localStorage.getItem(CK);
           if(raw){
             const c=JSON.parse(raw);
