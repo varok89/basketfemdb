@@ -4510,8 +4510,7 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
             </div>
             <div className="bfdb-cards-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:"10px"}}>
               {items.map(l=>{
-                const teamSet=new Set(),yearSet=new Set();
-                players.forEach(p=>(p.seasons||[]).forEach(s=>{if(s.id_liga===l.id_liga){teamSet.add(s.id_equipo);yearSet.add(s.temporada);}}));
+                const paises=[l.pais,l.pais2,l.pais3].filter(Boolean);
                 return(
                   <div key={l.id_liga} onClick={()=>{setSelId(l.id_liga);setSelYear(null);window.scrollTo({top:0,behavior:"smooth"});}}
                     style={{background:"#fff",borderRadius:"16px",padding:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",cursor:"pointer",border:"2px solid transparent",transition:"all 0.15s",display:"flex",alignItems:"center",gap:"14px"}}
@@ -4520,10 +4519,9 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
                     <LeagueBadge liga={l} size={52}/>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b",lineHeight:"1.3"}}>{l.nombre}</div>
-                      <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"3px",display:"flex",alignItems:"center",gap:"2px"}}><MultiFlag countries={[l.pais,l.pais2,l.pais3]}/>{!l.pais&&"—"}</div>
-                      <div style={{display:"flex",gap:"6px",marginTop:"6px"}}>
-                        <span style={{background:"#f1f5f9",color:"#475569",fontSize:"10px",fontWeight:600,padding:"2px 8px",borderRadius:"20px"}}>{teamSet.size} equipos</span>
-                        <span style={{background:"#f1f5f9",color:"#475569",fontSize:"10px",fontWeight:600,padding:"2px 8px",borderRadius:"20px"}}>{yearSet.size} temporadas</span>
+                      <div style={{fontSize:"12px",color:"#64748b",marginTop:"4px",display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
+                        <MultiFlag countries={[l.pais,l.pais2,l.pais3]}/>
+                        <span>{paises.length?paises.join(" · "):"—"}</span>
                       </div>
                     </div>
                   </div>
