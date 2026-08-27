@@ -4335,6 +4335,8 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
     (partidos||[]).forEach(p=>{
       if(p.id_liga!==selected.id_liga||!p.temporada) return;
       if(!yMap[p.temporada]) yMap[p.temporada]=new Set();
+      if(p.id_equipo_local) yMap[p.temporada].add(p.id_equipo_local);
+      if(p.id_equipo_visitante) yMap[p.temporada].add(p.id_equipo_visitante);
     });
     return {years:Object.keys(yMap).sort((a,b)=>b.localeCompare(a)),teamsByYear:yMap};
   },[selected,players,partidos]);
