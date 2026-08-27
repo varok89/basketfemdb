@@ -6103,6 +6103,7 @@ export default function App(){
   const [tempCoach,setTempCoach] = useState([]);
   const [equiposNombres,setEquiposNombres] = useState([]);
   const [partidos,setPartidos]             = useState([]);
+  const [partidosFull,setPartidosFull]     = useState(false);
   const [mvps,setMvps]                     = useState([]);
   const [boxCount,setBoxCount]             = useState(0);
   const [openClasiKey,setOpenClasiKey]     = useState(null);
@@ -6274,7 +6275,7 @@ export default function App(){
     // Caché de sesión: no recargar si ya están en memoria
     if(!forzar && players.length>0 && equipos.length>0){return;}
     // Hidratación desde localStorage (arranque instantáneo)
-    const CK="basketfemdb:cache:v1";
+    const CK="basketfemdb:cache:v2";
     let hidratado=false;
     if(!forzar){
       try{
@@ -6290,6 +6291,7 @@ export default function App(){
             setTempCoach(c.tempCoach||[]);
             setEquiposNombres(c.equiposNombres||[]);
             setPartidos(c.partidos||[]);
+            if(c.partidosFull) setPartidosFull(true);
             setMvps(c.mvps||[]);
             setIsFirstLoad(false);
             setLoading(false);
@@ -6307,7 +6309,7 @@ export default function App(){
         fetchAll("equipos",{order:"id_equipo"}),
         fetchAll("ligas",{order:"id_liga"}),
         fetchAll("dos_ultimas_temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.neq("id_liga","L020")}),
-        fetchAll("partidos",{order:"fecha_hora",select:"id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas,es_live,periodo,id_ext,fuente,bracket_pos",filter:q=>q.neq("id_liga","L020")}),
+        fetchAll("partidos",{order:"fecha_hora",select:"id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas,es_live,periodo,id_ext,fuente,bracket_pos",filter:q=>q.neq("id_liga","L020").gte("temporada",String(new Date().getFullYear()-1))}),
       ]);
       if(rJ.error)throw rJ.error;if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rT.error)throw rT.error;
       const sbp={};
@@ -6364,6 +6366,37 @@ export default function App(){
   };
 
   useEffect(()=>{loadAll();},[]);
+
+  // Carga bajo demanda del histórico de partidos al entrar en "partidos"
+  useEffect(()=>{
+    if(tab!=="partidos"||partidosFull) return;
+    (async()=>{
+      try{
+        const {data}=await fetchAll("partidos",{
+          order:"fecha_hora",
+          select:"id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas,es_live,periodo,id_ext,fuente,bracket_pos",
+          filter:q=>q.neq("id_liga","L020").lt("temporada",String(new Date().getFullYear()-1))
+        });
+        let merged=[];
+        setPartidos(prev=>{
+          const ids=new Set(prev.map(p=>p.id));
+          merged=[...prev,...(data||[]).filter(p=>!ids.has(p.id))].sort((a,b)=>(a.fecha_hora||"").localeCompare(b.fecha_hora||""));
+          return merged;
+        });
+        setPartidosFull(true);
+        try{
+          const CK="basketfemdb:cache:v2";
+          const raw=localStorage.getItem(CK);
+          if(raw){
+            const c=JSON.parse(raw);
+            c.partidos=merged;
+            c.partidosFull=true;
+            localStorage.setItem(CK,JSON.stringify(c));
+          }
+        }catch(e){}
+      }catch(e){console.warn("Carga histórica partidos falló:",e.message||e);}
+    })();
+  },[tab,partidosFull]);
 
   // Aplica el estado de navegación (tab + ficha abierta) a partir de una URL dada.
   // Se usa tanto al montar la app (URL inicial pegada/recargada) como en cada evento
