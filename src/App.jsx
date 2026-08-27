@@ -6349,9 +6349,23 @@ export default function App(){
           setTempCoach(rTC.data||[]);
           setEquiposNombres(rEN?.data||[]);
           setMvps(rMvp?.data||[]);
+          // Fase 3: temporadas L020 (NCAA) — excluidas del preload por tamaño
+          let playersFinal=nuevosPlayers;
+          try{
+            const {data:rNcaa}=await fetchAll("temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.eq("id_liga","L020")});
+            const byPlayer={};
+            (rNcaa||[]).forEach(t=>{if(!byPlayer[t.id_jugadora])byPlayer[t.id_jugadora]=[];byPlayer[t.id_jugadora].push(t);});
+            playersFinal=nuevosPlayers.map(p=>{
+              const extra=byPlayer[p.id_jugadora];
+              if(!extra) return p;
+              const seen=new Set((p.seasons||[]).map(s=>s.id));
+              return {...p,seasons:[...(p.seasons||[]),...extra.filter(s=>!seen.has(s.id))]};
+            });
+            setPlayers(playersFinal);
+          }catch(e){console.warn("Fase 3 NCAA falló:",e.message||e);}
           try{
             localStorage.setItem(CK,JSON.stringify({
-              players:nuevosPlayers,
+              players:playersFinal,
               equipos:rE.data||[],
               ligas:rL.data||[],
               palmares:rP.data||[],
