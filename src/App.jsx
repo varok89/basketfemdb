@@ -6301,17 +6301,13 @@ export default function App(){
     if(!hidratado) setLoading(isFirstLoad);
     setError(null);
     try{
-      const [rJ,rE,rL,rT,rP,rC,rTC,rEN,rPar,rMvp]=await Promise.all([
+      // Fase 1: críticas para Home (players/equipos/ligas/temporadas/partidos)
+      const [rJ,rE,rL,rT,rPar]=await Promise.all([
         fetchAll("jugadoras",{order:"id_jugadora",select:"id_jugadora,nombre,posicion,nacionalidad,nacionalidad2,fecha_nac,altura_cm,id_ext,id_espn,fuente,foto"}),
         fetchAll("equipos",{order:"id_equipo"}),
         fetchAll("ligas",{order:"id_liga"}),
         fetchAll("dos_ultimas_temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.neq("id_liga","L020")}),
-        fetchAll("palmares",{order:"temporada"}),
-        fetchAll("coach",{order:"id_coach"}),
-        fetchAll("temporadas_coach",{order:"id"}),
-        fetchAll("equipos_nombres",{order:"id"}),
         fetchAll("partidos",{order:"fecha_hora",select:"id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas,es_live,periodo,id_ext,fuente,bracket_pos",filter:q=>q.neq("id_liga","L020")}),
-        fetchAll("mvps",{order:"id"}),
       ]);
       if(rJ.error)throw rJ.error;if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rT.error)throw rT.error;
       const sbp={};
@@ -6320,42 +6316,51 @@ export default function App(){
       setPlayers(nuevosPlayers);
       setEquipos(rE.data||[]);
       setLigas(rL.data||[]);
-      setPalmares(rP.data||[]);
-      setCoaches(rC.data||[]);
-      setTempCoach(rTC.data||[]);
-      setEquiposNombres(rEN?.data||[]);
       setPartidos(rPar?.data||[]);
-      setMvps(rMvp?.data||[]);
-      // Guardar snapshot para próximo arranque
-      try{
-        localStorage.setItem(CK,JSON.stringify({
-          players:nuevosPlayers,
-          equipos:rE.data||[],
-          ligas:rL.data||[],
-          palmares:rP.data||[],
-          coaches:rC.data||[],
-          tempCoach:rTC.data||[],
-          equiposNombres:rEN?.data||[],
-          partidos:rPar?.data||[],
-          mvps:rMvp?.data||[],
-        }));
-      }catch(e){
-        // quota exceeded → limpiar y seguir; ponytail: no fallback más elaborado
-        try{localStorage.removeItem(CK);}catch(_){}
-      }
-      try{
-        const [bc,sc]=await Promise.all([
-          supabase.from("partido_boxscore").select("*",{count:"exact",head:true}),
-          supabase.from("partido_stats").select("*",{count:"exact",head:true}),
-        ]);
-        setBoxCount((bc.count||0)+(sc.count||0));
-      }catch(e){}
       setIsFirstLoad(false);
+      if(!hidratado) setLoading(false);
+      // Fase 2: secundarias en background (no bloquean Home)
+      (async()=>{
+        try{
+          const [rP,rC,rTC,rEN,rMvp]=await Promise.all([
+            fetchAll("palmares",{order:"temporada"}),
+            fetchAll("coach",{order:"id_coach"}),
+            fetchAll("temporadas_coach",{order:"id"}),
+            fetchAll("equipos_nombres",{order:"id"}),
+            fetchAll("mvps",{order:"id"}),
+          ]);
+          setPalmares(rP.data||[]);
+          setCoaches(rC.data||[]);
+          setTempCoach(rTC.data||[]);
+          setEquiposNombres(rEN?.data||[]);
+          setMvps(rMvp?.data||[]);
+          try{
+            localStorage.setItem(CK,JSON.stringify({
+              players:nuevosPlayers,
+              equipos:rE.data||[],
+              ligas:rL.data||[],
+              palmares:rP.data||[],
+              coaches:rC.data||[],
+              tempCoach:rTC.data||[],
+              equiposNombres:rEN?.data||[],
+              partidos:rPar?.data||[],
+              mvps:rMvp?.data||[],
+            }));
+          }catch(e){try{localStorage.removeItem(CK);}catch(_){}}
+          try{
+            const [bc,sc]=await Promise.all([
+              supabase.from("partido_boxscore").select("*",{count:"exact",head:true}),
+              supabase.from("partido_stats").select("*",{count:"exact",head:true}),
+            ]);
+            setBoxCount((bc.count||0)+(sc.count||0));
+          }catch(e){}
+        }catch(e){console.warn("Fase 2 falló:",e.message||e);}
+      })();
     }catch(e){
       if(!hidratado) setError(e.message||"Error cargando datos");
       else console.warn("Refresh en background falló:",e.message||e);
+      if(!hidratado) setLoading(false);
     }
-    if(!hidratado) setLoading(false);
   };
 
   useEffect(()=>{loadAll();},[]);
