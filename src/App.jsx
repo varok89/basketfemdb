@@ -6359,8 +6359,17 @@ export default function App(){
         }catch(e){console.warn("Fase 2 falló:",e.message||e);}
       })();
     }catch(e){
-      if(!hidratado) setError(e.message||"Error cargando datos");
-      else console.warn("Refresh en background falló:",e.message||e);
+      const msg=e.message||"Error cargando datos";
+      // Token con iat en el futuro (reloj desincronizado en algún momento):
+      // limpiar sesión y recargar para forzar un token nuevo.
+      if(/issued at future|JWT/i.test(msg)){
+        try{await supabase.auth.signOut();}catch(_){}
+        try{Object.keys(localStorage).filter(k=>k.startsWith("sb-")).forEach(k=>localStorage.removeItem(k));}catch(_){}
+        window.location.reload();
+        return;
+      }
+      if(!hidratado) setError(msg);
+      else console.warn("Refresh en background falló:",msg);
       if(!hidratado) setLoading(false);
     }
   };
