@@ -6117,6 +6117,7 @@ export default function App(){
   const [equiposNombres,setEquiposNombres] = useState([]);
   const [partidos,setPartidos]             = useState([]);
   const [partidosFull,setPartidosFull]     = useState(false);
+  const [seasonsFull,setSeasonsFull]       = useState(false);
   const [mvps,setMvps]                     = useState([]);
   const [boxCount,setBoxCount]             = useState(0);
   const [openClasiKey,setOpenClasiKey]     = useState(null);
@@ -6305,6 +6306,7 @@ export default function App(){
             setEquiposNombres(c.equiposNombres||[]);
             setPartidos(c.partidos||[]);
             if(c.partidosFull) setPartidosFull(true);
+            if(c.seasonsFull) setSeasonsFull(true);
             setMvps(c.mvps||[]);
             setIsFirstLoad(false);
             setLoading(false);
@@ -6349,23 +6351,9 @@ export default function App(){
           setTempCoach(rTC.data||[]);
           setEquiposNombres(rEN?.data||[]);
           setMvps(rMvp?.data||[]);
-          // Fase 3: temporadas L020 (NCAA) — excluidas del preload por tamaño
-          let playersFinal=nuevosPlayers;
-          try{
-            const {data:rNcaa}=await fetchAll("temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.eq("id_liga","L020")});
-            const byPlayer={};
-            (rNcaa||[]).forEach(t=>{if(!byPlayer[t.id_jugadora])byPlayer[t.id_jugadora]=[];byPlayer[t.id_jugadora].push(t);});
-            playersFinal=nuevosPlayers.map(p=>{
-              const extra=byPlayer[p.id_jugadora];
-              if(!extra) return p;
-              const seen=new Set((p.seasons||[]).map(s=>s.id));
-              return {...p,seasons:[...(p.seasons||[]),...extra.filter(s=>!seen.has(s.id))]};
-            });
-            setPlayers(playersFinal);
-          }catch(e){console.warn("Fase 3 NCAA falló:",e.message||e);}
           try{
             localStorage.setItem(CK,JSON.stringify({
-              players:playersFinal,
+              players:nuevosPlayers,
               equipos:rE.data||[],
               ligas:rL.data||[],
               palmares:rP.data||[],
@@ -6402,6 +6390,34 @@ export default function App(){
   };
 
   useEffect(()=>{loadAll();},[]);
+
+  // Carga bajo demanda del historial completo de temporadas al entrar en "jugadoras"
+  useEffect(()=>{
+    if(tab!=="jugadoras"||seasonsFull) return;
+    (async()=>{
+      try{
+        const {data}=await fetchAll("temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden"});
+        const byPlayer={};
+        (data||[]).forEach(t=>{if(!byPlayer[t.id_jugadora])byPlayer[t.id_jugadora]=[];byPlayer[t.id_jugadora].push(t);});
+        let merged=[];
+        setPlayers(prev=>{
+          merged=prev.map(p=>({...p,seasons:byPlayer[p.id_jugadora]||p.seasons||[]}));
+          return merged;
+        });
+        setSeasonsFull(true);
+        try{
+          const CK="basketfemdb:cache:v4";
+          const raw=localStorage.getItem(CK);
+          if(raw){
+            const c=JSON.parse(raw);
+            c.players=merged;
+            c.seasonsFull=true;
+            localStorage.setItem(CK,JSON.stringify(c));
+          }
+        }catch(e){}
+      }catch(e){console.warn("Carga completa temporadas falló:",e.message||e);}
+    })();
+  },[tab,seasonsFull]);
 
   // Carga bajo demanda del histórico de partidos al entrar en "partidos"
   useEffect(()=>{
