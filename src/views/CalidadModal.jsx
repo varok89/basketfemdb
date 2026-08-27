@@ -26,10 +26,17 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   useEffect(()=>{
     if(tab!=="carreras"||!carrLiga||!carrTemp)return;
     (async()=>{
-      const {data}=await supabase.from("temporadas").select("id_equipo,equipos(id_equipo,nombre,id_espn)").eq("id_liga",carrLiga).eq("temporada",carrTemp).limit(2000);
-      const seen=new Set();const arr=[];
-      (data||[]).forEach(t=>{const e=t.equipos;if(!e||!e.id_espn||seen.has(e.id_equipo))return;seen.add(e.id_equipo);arr.push(e);});
-      arr.sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||""));
+      const ids=new Set();let from=0;
+      while(true){
+        const {data}=await supabase.from("temporadas").select("id_equipo").eq("id_liga",carrLiga).eq("temporada",carrTemp).range(from,from+999);
+        if(!data||!data.length)break;
+        data.forEach(t=>ids.add(t.id_equipo));
+        if(data.length<1000)break;
+        from+=1000;
+      }
+      if(!ids.size){setCarrEquiposLiga([]);return;}
+      const {data:eqs}=await supabase.from("equipos").select("id_equipo,nombre,id_espn").in("id_equipo",[...ids]).not("id_espn","is",null);
+      const arr=(eqs||[]).sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||""));
       setCarrEquiposLiga(arr);
     })();
   },[tab,carrLiga,carrTemp]);
