@@ -2072,12 +2072,33 @@ function WNBABracketAuto({globalRanked, playoffPartidos, equipoMap, onOpenPartid
     };
   }
 
-  function ColSerie({serie, needed, roundLabel}){
-    const {titulo, ganador}=labelSerie(serie, needed);
+  function SerieBox({serie, needed, roundLabel}){
+    const [open,setOpen]=useState(false);
+    const {ganador, marcador}=ganadorSerie(serie, needed);
+    const teamA=serie[0].id_equipo_local, teamB=serie[0].id_equipo_visitante;
+    const sA=seeds[teamA], sB=seeds[teamB];
+    const [ta,tb]=(sA&&sB&&sA>sB)?[teamB,teamA]:[teamA,teamB];
+    const mA=marcador[ta]||0, mB=marcador[tb]||0;
+    const eA=equipoMap[ta]||{}, eB=equipoMap[tb]||{};
+    const row=(id,eq,m,win,seed)=>(
+      <div style={{display:"flex",alignItems:"center",gap:"6px",padding:"6px 8px",background:win?"#faf5ff":"transparent"}}>
+        {eq.escudo?<img src={eq.escudo} alt="" style={{width:20,height:20,objectFit:"contain",flexShrink:0}} onError={e=>{e.currentTarget.style.display="none";}}/>:<div style={{width:20,height:20,flexShrink:0}}/>}
+        <span style={{flex:1,fontSize:"12px",fontWeight:win?800:600,color:win?"#7c3aed":"#334155",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{seed?`(${seed}) `:""}{eq.nombre||id}</span>
+        <span style={{fontSize:"14px",fontWeight:win?800:600,color:win?"#7c3aed":"#64748b",fontVariantNumeric:"tabular-nums"}}>{m}</span>
+      </div>
+    );
     return(
       <BracketCol label={roundLabel}>
-        <div style={{textAlign:"center",fontSize:"10px",fontWeight:700,color:ganador?"#16a34a":"#475569",marginBottom:"4px",whiteSpace:"nowrap"}}>{titulo}</div>
-        {serie.map((p,i)=><KOBox key={p.id} p={p} equipoMap={equipoMap} caption={`Juego ${i+1}`} onOpen={onOpenPartido}/>)}
+        <div style={{width:"180px"}}>
+          <div onClick={()=>setOpen(!open)} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:"10px",overflow:"hidden",cursor:"pointer"}}>
+            {row(ta,eA,mA,ganador===ta,seeds[ta])}
+            <div style={{height:"1px",background:"#f1f5f9"}}/>
+            {row(tb,eB,mB,ganador===tb,seeds[tb])}
+          </div>
+          {open&&<div style={{marginTop:"6px",display:"flex",flexDirection:"column",gap:"6px"}}>
+            {serie.map((p,i)=><KOBox key={p.id} p={p} equipoMap={equipoMap} caption={`Juego ${i+1}`} onOpen={onOpenPartido}/>)}
+          </div>}
+        </div>
       </BracketCol>
     );
   }
@@ -2102,19 +2123,19 @@ function WNBABracketAuto({globalRanked, playoffPartidos, equipoMap, onOpenPartid
         <div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
           <div style={{fontSize:"10px",fontWeight:800,color:"#7c3aed",textTransform:"uppercase",letterSpacing:"0.4px"}}>1ª Ronda · Bo3</div>
           {series1R.length>0
-            ? series1R.map((s,i)=><ColSerie key={i} serie={s} needed={2} roundLabel={`Serie ${i+1}`}/>)
+            ? series1R.map((s,i)=><SerieBox key={i} serie={s} needed={2} roundLabel={`Serie ${i+1}`}/>)
             : seriePairs.map(([s1,s2],i)=>placeholder(s1,s2,i))}
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:"14px",justifyContent:"space-around"}}>
           <div style={{fontSize:"10px",fontWeight:800,color:"#7c3aed",textTransform:"uppercase",letterSpacing:"0.4px"}}>Semifinales · Bo5</div>
           {seriesSemi.length>0
-            ? seriesSemi.map((s,i)=><ColSerie key={i} serie={s} needed={3} roundLabel={`Semi ${i+1}`}/>)
+            ? seriesSemi.map((s,i)=><SerieBox key={i} serie={s} needed={3} roundLabel={`Semi ${i+1}`}/>)
             : [0,1].map(i=><BracketCol key={i} label={`Semi ${i+1}`}><div style={{background:"#f8fafc",border:"1px dashed #cbd5e1",borderRadius:"10px",padding:"14px",width:"150px",fontSize:"11px",color:"#94a3b8",textAlign:"center"}}>Sin jugar</div></BracketCol>)}
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:"14px",justifyContent:"center"}}>
           <div style={{fontSize:"10px",fontWeight:800,color:"#7c3aed",textTransform:"uppercase",letterSpacing:"0.4px"}}>🏆 Finales · Bo7</div>
           {serieFinal.length>0
-            ? serieFinal.map((s,i)=><ColSerie key={i} serie={s} needed={4} roundLabel="Final"/>)
+            ? serieFinal.map((s,i)=><SerieBox key={i} serie={s} needed={4} roundLabel="Final"/>)
             : <BracketCol label="Final"><div style={{background:"#f8fafc",border:"1px dashed #cbd5e1",borderRadius:"10px",padding:"14px",width:"150px",fontSize:"11px",color:"#94a3b8",textAlign:"center"}}>Sin jugar</div></BracketCol>}
         </div>
       </div>
