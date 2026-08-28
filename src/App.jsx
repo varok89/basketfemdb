@@ -5187,8 +5187,8 @@ function Landing({onEnter,players,equipos,ligas,coaches,tempCoach,palmares,regEx
         <div style={{fontSize:"14px",color:"#94a3b8",marginBottom:"36px",fontWeight:500}}>Base de datos del baloncesto femenino</div>
         {players&&<div style={{background:"rgba(255,255,255,0.04)",borderRadius:"14px",padding:"16px 20px",marginBottom:"16px",border:"1px solid rgba(255,255,255,0.07)"}}>
           <div style={{fontWeight:700,fontSize:"12px",color:"#94a3b8",marginBottom:"12px",textTransform:"uppercase",letterSpacing:"0.5px"}}>La Basketneta en números</div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"8px"}}>
-            {[["👩‍🏀",(players||[]).length,"Jugadoras"],["🏟️",(equipos||[]).length,"Equipos"],["🏆",(ligas||[]).length,"Ligas"],["📋",(coaches||[]).length,"Coaches"],["📊",(players||[]).flatMap(p=>p.seasons||[]).length,"Fichajes"],["🗂️",((players||[]).length+(equipos||[]).length+(ligas||[]).length+(coaches||[]).length+(players||[]).flatMap(p=>p.seasons||[]).length+(tempCoach||[]).length+(palmares||[]).length+(regExtra||0)).toLocaleString("es"),"Registros"]].map(([icon,val,label])=>(
+          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:"8px"}}>
+            {[["👩‍🏀",(players||[]).length,"Jugadoras"],["🏟️",(equipos||[]).length,"Equipos"],["🏆",(ligas||[]).length,"Ligas"],["🗂️",((players||[]).length+(equipos||[]).length+(ligas||[]).length+(coaches||[]).length+(tempCoach||[]).length+(palmares||[]).length+(regExtra||0)).toLocaleString("es"),"Registros"]].map(([icon,val,label])=>(
               <div key={label} style={{textAlign:"center",padding:"8px 4px"}}>
                 <div style={{fontSize:"14px"}}>{icon}</div>
                 <div style={{fontSize:"18px",fontWeight:800,color:"#f1f5f9"}}>{typeof val==="number"?val.toLocaleString("es"):val}</div>
@@ -6469,6 +6469,7 @@ export default function App(){
   const [seasonsFull,setSeasonsFull]       = useState(false);
   const [mvps,setMvps]                     = useState([]);
   const [boxCount,setBoxCount]             = useState(0);
+  const [totalCounts,setTotalCounts]       = useState({partidos:0,temporadas:0});
   const [openClasiKey,setOpenClasiKey]     = useState(null);
   const [partidosSub,setPartidosSub]       = useState(null); // subruta de /partidos (["partido","85"] o ["clasificacion","L067","2025"])
   const [loading,setLoading] = useState(true);
@@ -6623,7 +6624,7 @@ export default function App(){
   const goToPlayer = (id,from=null)=>{pushNav(from,"jugadoras",id);setOpenPlayerId(id);setOpenTeamId(null);setTab("jugadoras");scrollTop();};
   const goToCoach  = (id,from=null)=>{pushNav(from,"cuerpo_tecnico",id);setOpenCoachId(id);setTab("cuerpo_tecnico");scrollTop();};
   const goToPartido= (id,from=null)=>{setPartidosSub(["partido",String(id)]);setTab("partidos");try{window.history.pushState({},"",`/partidos/partido/${id}`);}catch(e){}scrollTop();};
-  const regExtra=(mvps?.length||0)+(partidos?.length||0)+boxCount+(equiposNombres?.length||0);
+  const regExtra=(mvps?.length||0)+(totalCounts.partidos||partidos?.length||0)+boxCount+(equiposNombres?.length||0)+(totalCounts.temporadas||0);
 
   // goBack ahora delega en el navegador: window.history.back() dispara un popstate real,
   // que ya tenemos gestionado más abajo. Mantenemos el pop de navHistory en paralelo
@@ -6714,11 +6715,14 @@ export default function App(){
             }));
           }catch(e){try{localStorage.removeItem(CK);}catch(_){}}
           try{
-            const [bc,sc]=await Promise.all([
+            const [bc,sc,tp,tt]=await Promise.all([
               supabase.from("partido_boxscore").select("*",{count:"exact",head:true}),
               supabase.from("partido_stats").select("*",{count:"exact",head:true}),
+              supabase.from("partidos").select("*",{count:"exact",head:true}),
+              supabase.from("temporadas").select("*",{count:"exact",head:true}),
             ]);
             setBoxCount((bc.count||0)+(sc.count||0));
+            setTotalCounts({partidos:tp.count||0,temporadas:tt.count||0});
           }catch(e){}
         }catch(e){console.warn("Fase 2 falló:",e.message||e);}
       })();
