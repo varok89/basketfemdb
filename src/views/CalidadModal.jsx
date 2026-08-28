@@ -16,6 +16,9 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   var [carrLog,setCarrLog]=useState([]);
   useEffect(()=>{setCarrTemp(carrLiga==="L020"?"2025-26":"2026");setCarrEquipoId("");setCarrInfo(null);setCarrLog([]);},[carrLiga]);
   var [carrEquiposLiga,setCarrEquiposLiga]=useState([]);
+  // Modo liga completa
+  var [ligaInfo,setLigaInfo]=useState(null); // [{equipo, id_equipo, bd_total, espn_total, mapeados, solo_en_espn_obj, roster}]
+  var [ligaProgress,setLigaProgress]=useState({done:0,total:0,paso:""});
   useEffect(()=>{
     if(tab!=="carreras"||!carrLiga||!carrTemp)return;
     (async()=>{
@@ -51,6 +54,80 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     }catch(e){setCarrInfo({error:e.message});}
     setCarrBusy("");
   }
+  // ── Modo liga completa: recorre TODOS los equipos de la liga+temp seleccionada ──
+  async function ligaAnalizar(){
+    if(!carrEquiposLiga.length){alert("No hay equipos");return;}
+    setCarrBusy("liga_info");setLigaInfo(null);setCarrLog([]);
+    var out=[];
+    for(var i=0;i<carrEquiposLiga.length;i++){
+      var eq=carrEquiposLiga[i];
+      setLigaProgress({done:i,total:carrEquiposLiga.length,paso:"Analizando "+eq.nombre});
+      try{
+        var r=await fetch(SUPABASE_URL+"/functions/v1/mapear-roster-espn",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:JSON.stringify({id_equipo:eq.id_equipo,id_liga:carrLiga,temporada:carrTemp,dry:true})});
+        var j=await r.json();
+        out.push({id_equipo:eq.id_equipo,equipo:eq.nombre,bd_total:j.bd_total||0,espn_total:j.espn_total||0,mapeados:j.mapeados||0,solo_en_espn_obj:j.solo_en_espn_obj||[],roster:j.roster||[],error:j.error});
+      }catch(e){out.push({id_equipo:eq.id_equipo,equipo:eq.nombre,error:e.message});}
+    }
+    setLigaProgress({done:carrEquiposLiga.length,total:carrEquiposLiga.length,paso:"Análisis completo"});
+    setLigaInfo(out);
+    setCarrBusy("");
+  }
+  async function ligaCrearYMapear(){
+    if(!ligaInfo)return;
+    var totalCrear=ligaInfo.reduce((a,e)=>a+(e.solo_en_espn_obj?.length||0),0);
+    var totalMapear=ligaInfo.reduce((a,e)=>a+(e.mapeados||0),0);
+    if(!totalCrear&&!totalMapear){alert("Nada que hacer");return;}
+    if(!confirm("Mapear "+totalMapear+" id_espn y crear "+totalCrear+" jugadoras nuevas repartidas en "+ligaInfo.length+" equipos?"))return;
+    setCarrBusy("liga_crear");
+    var out=[];
+    for(var i=0;i<ligaInfo.length;i++){
+      var eq=ligaInfo[i];
+      if(eq.error){out.push(eq);continue;}
+      setLigaProgress({done:i,total:ligaInfo.length,paso:"Creando en "+eq.equipo});
+      try{
+        var r=await fetch(SUPABASE_URL+"/functions/v1/mapear-roster-espn",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:JSON.stringify({id_equipo:eq.id_equipo,id_liga:carrLiga,temporada:carrTemp,dry:false,crear_faltantes:true})});
+        var j=await r.json();
+        out.push({id_equipo:eq.id_equipo,equipo:eq.nombre,bd_total:j.bd_total||0,espn_total:j.espn_total||0,mapeados:j.mapeados||0,solo_en_espn_obj:j.solo_en_espn_obj||[],roster:j.roster||[],creadas:j.total_creadas||0,adjuntadas:j.total_adjuntadas||0});
+      }catch(e){out.push({id_equipo:eq.id_equipo,equipo:eq.nombre,error:e.message});}
+    }
+    setLigaProgress({done:ligaInfo.length,total:ligaInfo.length,paso:"Creación completa"});
+    setLigaInfo(out);
+    setCarrBusy("");
+    alert("Listo: "+out.reduce((a,e)=>a+(e.creadas||0),0)+" creadas · "+out.reduce((a,e)=>a+(e.adjuntadas||0),0)+" adjuntadas");
+  }
+  async function ligaCargarCarreras(){
+    if(!ligaInfo)return;
+    // Junta todas las jugadoras únicas con id_espn (roster + puede que las adjuntadas ya estén en roster tras re-analizar)
+    var vistos={};
+    var todas=[];
+    ligaInfo.forEach(eq=>{
+      (eq.roster||[]).forEach(r=>{
+        if(!(r.id_espn||r.espn_match))return;
+        if(vistos[r.id_jugadora])return;
+        vistos[r.id_jugadora]=true;
+        todas.push({id_jugadora:r.id_jugadora,nombre:r.nombre});
+      });
+    });
+    if(!todas.length){alert("Sin jugadoras con id_espn (re-analiza tras crear)");return;}
+    if(!confirm("Cargar carreras completas de "+todas.length+" jugadoras? (puede tardar varios minutos)"))return;
+    setCarrBusy("liga_cargar");
+    var log=[];
+    for(var i=0;i<todas.length;i++){
+      var p=todas[i];
+      setLigaProgress({done:i,total:todas.length,paso:"Cargando "+p.nombre});
+      log.push({jugadora:p.nombre,estado:"⏳"});
+      setCarrLog([].concat(log));
+      try{
+        var resp=await fetch(SUPABASE_URL+"/functions/v1/cargar-carrera-espn-jugadora",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:JSON.stringify({id_jugadora:p.id_jugadora,discover:true,dry:false})});
+        var j=await resp.json();
+        log[i]={jugadora:p.nombre,estado:j.error?"❌ "+j.error:"✅ box:"+(j.total_boxscores||0)+" temps+:"+(j.total_temporadas_creadas||0)+" partidos+:"+(j.total_partidos_creados||0)};
+      }catch(e){log[i]={jugadora:p.nombre,estado:"❌ "+e.message};}
+      setCarrLog([].concat(log));
+    }
+    setLigaProgress({done:todas.length,total:todas.length,paso:"Carga completa"});
+    setCarrBusy("");
+  }
+
   async function carrCrearFaltantes(){
     var faltan=carrInfo?.solo_en_espn_obj?.length||(carrInfo?.solo_en_espn?.length||0);
     if(!faltan){alert("No hay jugadoras que crear");return;}
@@ -1110,6 +1187,39 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                 {carrInfo&&!carrInfo.error&&(carrInfo.solo_en_espn_obj?.length||carrInfo.solo_en_espn?.length)>0&&<button onClick={carrCrearFaltantes} disabled={!!carrBusy} style={{background:"#0ea5e9",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="crear"?"Creando...":"➕ Crear "+(carrInfo.solo_en_espn_obj?.length||carrInfo.solo_en_espn?.length)+" jugadora(s) con esta temporada"}</button>}
                 {carrInfo&&!carrInfo.error&&<button onClick={()=>carrCargar(true)} disabled={!!carrBusy} style={{background:"#64748b",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="dry"?"Dry run...":"🧪 Dry run"}</button>}
                 {carrInfo&&!carrInfo.error&&<button onClick={()=>carrCargar(false)} disabled={!!carrBusy} style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="cargar"?"Cargando...":"🚀 Cargar carreras"}</button>}
+              </div>
+              <div style={{padding:"10px 12px",background:"#faf5ff",border:"1px solid #e9d5ff",borderRadius:"10px",marginBottom:"12px"}}>
+                <div style={{fontSize:"12px",fontWeight:700,color:"#7c3aed",marginBottom:"6px"}}>🌐 Modo liga completa ({carrEquiposLiga.length} equipos en {carrTemp})</div>
+                <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
+                  <button onClick={ligaAnalizar} disabled={!!carrBusy||!carrEquiposLiga.length} style={{background:"#7c3aed",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy||!carrEquiposLiga.length?0.5:1}}>{carrBusy==="liga_info"?"Analizando...":"🔍 Analizar TODA la liga"}</button>
+                  {ligaInfo&&<button onClick={ligaCrearYMapear} disabled={!!carrBusy} style={{background:"#0ea5e9",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="liga_crear"?"Creando...":"➕ Crear/mapear todo"}</button>}
+                  {ligaInfo&&<button onClick={ligaCargarCarreras} disabled={!!carrBusy} style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="liga_cargar"?"Cargando...":"🚀 Cargar TODAS las carreras"}</button>}
+                </div>
+                {ligaProgress.total>0&&<div style={{marginTop:"6px",fontSize:"11px",color:"#64748b"}}>{ligaProgress.paso} · {ligaProgress.done}/{ligaProgress.total}</div>}
+                {ligaInfo&&<div style={{marginTop:"8px",maxHeight:"200px",overflowY:"auto",fontSize:"11px",background:"#fff",border:"1px solid #e9d5ff",borderRadius:"8px"}}>
+                  <table style={{width:"100%",borderCollapse:"collapse"}}>
+                    <thead><tr style={{background:"#f5f3ff",color:"#64748b",fontSize:"10px"}}>
+                      <th style={{padding:"4px 6px",textAlign:"left"}}>Equipo</th>
+                      <th style={{padding:"4px 6px"}}>BD</th>
+                      <th style={{padding:"4px 6px"}}>ESPN</th>
+                      <th style={{padding:"4px 6px"}}>Mapear</th>
+                      <th style={{padding:"4px 6px"}}>Crear</th>
+                      <th style={{padding:"4px 6px"}}>Estado</th>
+                    </tr></thead>
+                    <tbody>
+                      {ligaInfo.map((e,i)=>(
+                        <tr key={i} style={{borderTop:"1px solid #f1f5f9"}}>
+                          <td style={{padding:"4px 6px",color:"#1e293b",fontWeight:600}}>{e.equipo}</td>
+                          <td style={{padding:"4px 6px",textAlign:"center",color:"#64748b"}}>{e.bd_total}</td>
+                          <td style={{padding:"4px 6px",textAlign:"center",color:"#64748b"}}>{e.espn_total}</td>
+                          <td style={{padding:"4px 6px",textAlign:"center",color:e.mapeados?"#f59e0b":"#94a3b8",fontWeight:e.mapeados?700:400}}>{e.mapeados||0}</td>
+                          <td style={{padding:"4px 6px",textAlign:"center",color:(e.solo_en_espn_obj?.length||0)?"#0ea5e9":"#94a3b8",fontWeight:(e.solo_en_espn_obj?.length||0)?700:400}}>{e.solo_en_espn_obj?.length||0}</td>
+                          <td style={{padding:"4px 6px",textAlign:"center",fontSize:"10px",color:e.error?"#ef4444":e.creadas!=null?"#16a34a":"#94a3b8"}}>{e.error?"❌ "+e.error:e.creadas!=null?"✅ "+e.creadas+"+"+e.adjuntadas:"—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>}
               </div>
               {carrInfo&&(carrInfo.error?<div style={{background:"#fef2f2",border:"1px solid #fecaca",color:"#dc2626",padding:"10px",borderRadius:"10px",fontSize:"13px"}}>❌ {carrInfo.error}</div>:
                 <div style={{background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"12px",marginBottom:"12px"}}>
