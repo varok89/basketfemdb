@@ -2145,6 +2145,24 @@ function WNBABracketAuto({globalRanked, playoffPartidos, equipoMap, onOpenPartid
 
 function WNBAClasificacion({psLiga, equipoMap, temporada, onOpenPartido, onGoToTeam, onBack}){
   const [tab,setTab]=useState("global");
+  const [liveOverrides,setLiveOverrides]=useState({});
+  // Auto-refresh cada 90s si estamos en la temporada en curso
+  useEffect(()=>{
+    const yr=new Date().getFullYear();
+    if(String(temporada)!==String(yr))return;
+    const refresh=async()=>{
+      try{
+        await fetch(`${SUPABASE_URL}/functions/v1/actualizar-resultados-wnba`,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:"{}"});
+        const {data}=await supabase.from("partidos").select("id,resultado_local,resultado_visitante,es_live,periodo").in("id_liga",["L006","L109"]).eq("temporada",String(temporada)).or("es_live.eq.true,fecha_hora.gte."+new Date(Date.now()-30*3600*1000).toISOString()).limit(50);
+        if(data){const m={};data.forEach(p=>{m[p.id]=p;});setLiveOverrides(m);}
+      }catch{}
+    };
+    refresh();
+    const id=setInterval(refresh,90000);
+    return()=>clearInterval(id);
+  },[temporada]);
+  // Aplicar overrides
+  psLiga=psLiga.map(p=>liveOverrides[p.id]?{...p,...liveOverrides[p.id]}:p);
   const regular=useMemo(()=>psLiga.filter(p=>!WNBA_RONDA_RE.test(p.notas||"")),[psLiga]);
   const playoff=useMemo(()=>psLiga.filter(p=>WNBA_RONDA_RE.test(p.notas||"")),[psLiga]);
   const stats=useMemo(()=>calcStatsWNBA(regular),[regular]);
