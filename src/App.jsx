@@ -3527,7 +3527,14 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           {shareMsg&&<span style={{fontSize:"12px",color:"#16a34a",fontWeight:600}}>¡Enlace copiado!</span>}
           {isAdmin&&!del&&(<>
           <div style={{display:"flex",gap:"8px"}}>
-            <button onClick={()=>setModal("editPlayer")} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>✏️ Editar</button>
+            <button onClick={async()=>{
+              // Fetch IDs externos + fuente antes de abrir el editor (no vienen en fase 1)
+              try{
+                const {data}=await supabase.from("jugadoras").select("id_espn,fiba_person_id,id_feb,id_ext,fuente").eq("id_jugadora",selId).single();
+                if(data)setPlayers(prev=>prev.map(p=>p.id_jugadora===selId?{...p,...data}:p));
+              }catch(_){}
+              setModal("editPlayer");
+            }} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>✏️ Editar</button>
             <button onClick={()=>setDel("player")} style={{background:"#fee2e2",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#ef4444"}}>🗑️</button>
           </div>
           </>)}
@@ -6631,7 +6638,7 @@ export default function App(){
     // Caché de sesión: no recargar si ya están en memoria
     if(!forzar && players.length>0 && equipos.length>0){return;}
     // Hidratación desde localStorage (arranque instantáneo)
-    const CK="basketfemdb:cache:v6";
+    const CK="basketfemdb:cache:v7";
     let hidratado=false;
     if(!forzar){
       try{
@@ -6662,7 +6669,7 @@ export default function App(){
     try{
       // Fase 1: críticas para Home (players/equipos/ligas/temporadas/partidos)
       const [rJ,rE,rL,rT,rPar]=await Promise.all([
-        fetchAll("jugadoras",{order:"id_jugadora",select:"id_jugadora,nombre,posicion,posicion2,nacionalidad,nacionalidad2,fecha_nac,fecha_fallecimiento,altura_cm,id_ext,id_espn,fiba_person_id,id_feb,fuente,foto"}),
+        fetchAll("jugadoras",{order:"id_jugadora",select:"id_jugadora,nombre,posicion,posicion2,nacionalidad,nacionalidad2,fecha_nac,fecha_fallecimiento,altura_cm,foto"}),
         fetchAll("equipos",{order:"id_equipo"}),
         fetchAll("ligas",{order:"id_liga"}),
         fetchAll("dos_ultimas_temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.neq("id_liga","L020")}),
@@ -6748,7 +6755,7 @@ export default function App(){
         });
         setSeasonsFull(true);
         try{
-          const CK="basketfemdb:cache:v6";
+          const CK="basketfemdb:cache:v7";
           const raw=localStorage.getItem(CK);
           if(raw){
             const c=JSON.parse(raw);
@@ -6779,7 +6786,7 @@ export default function App(){
         });
         setPartidosFull(true);
         try{
-          const CK="basketfemdb:cache:v6";
+          const CK="basketfemdb:cache:v7";
           const raw=localStorage.getItem(CK);
           if(raw){
             const c=JSON.parse(raw);
