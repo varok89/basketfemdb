@@ -2023,14 +2023,11 @@ function WNBATabla({filas, equipoMap, onGoToTeam, mostrarGB}){
   );
 }
 
-// Bracket automático WNBA a partir del ranking global y los partidos playoff
+// Bracket WNBA estilo FIBA (KOBox + escudos + columnas alineadas)
 function WNBABracketAuto({globalRanked, playoffPartidos, equipoMap, onOpenPartido}){
   const seeds={};
   globalRanked.slice(0,8).forEach((e,i)=>{seeds[e.id]=i+1;});
-  const seriePairs=[[1,8],[4,5],[3,6],[2,7]]; // orden para Semis 1v4 y 2v3 según ranking
-  const seedToEquipo=n=>globalRanked[n-1]?.id||null;
 
-  // Agrupa partidos por serie: clave = "ronda|{teamA-teamB}" (sorted por seed)
   function agrupaSerie(ps){
     const map=new Map();
     ps.forEach(p=>{
@@ -2041,7 +2038,6 @@ function WNBABracketAuto({globalRanked, playoffPartidos, equipoMap, onOpenPartid
     });
     return [...map.values()].map(arr=>arr.sort((x,y)=>new Date(x.fecha_hora)-new Date(y.fecha_hora)));
   }
-
   function ganadorSerie(serie, needed){
     const w={};
     serie.forEach(p=>{
@@ -2061,56 +2057,68 @@ function WNBABracketAuto({globalRanked, playoffPartidos, equipoMap, onOpenPartid
   const seriesSemi=agrupaSerie(pSemi);
   const serieFinal=agrupaSerie(pFinal);
 
-  function Serie({partidos, needed, titulo}){
-    const {ganador,marcador}=ganadorSerie(partidos, needed);
-    const teamA=partidos[0]?.id_equipo_local, teamB=partidos[0]?.id_equipo_visitante;
-    const eqA=equipoMap[teamA]||{}, eqB=equipoMap[teamB]||{};
+  function labelSerie(serie, needed){
+    const {ganador, marcador}=ganadorSerie(serie, needed);
+    const [teamA,teamB]=[serie[0].id_equipo_local, serie[0].id_equipo_visitante];
     const mA=marcador[teamA]||0, mB=marcador[teamB]||0;
+    const eqA=equipoMap[teamA]||{}, eqB=equipoMap[teamB]||{};
+    const seedA=seeds[teamA], seedB=seeds[teamB];
+    // Ordenar visual: seed más bajo primero
+    const [ta,tb,ma,mb]=(seedA&&seedB&&seedA>seedB)?[teamB,teamA,mB,mA]:[teamA,teamB,mA,mB];
+    const eA=equipoMap[ta]||eqA, eB=equipoMap[tb]||eqB;
+    return {
+      titulo: `${seeds[ta]?`(${seeds[ta]}) `:""}${eA.nombre||ta}  ${ma}–${mb}  ${seeds[tb]?`(${seeds[tb]}) `:""}${eB.nombre||tb}`,
+      ganador
+    };
+  }
+
+  function ColSerie({serie, needed, roundLabel}){
+    const {titulo, ganador}=labelSerie(serie, needed);
     return(
-      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"10px",minWidth:"180px"}}>
-        <div style={{fontSize:"10px",fontWeight:700,color:"#94a3b8",marginBottom:"6px",textTransform:"uppercase"}}>{titulo}</div>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"3px 0",fontWeight:ganador===teamA?800:500,color:ganador===teamA?"#16a34a":"#334155"}}>
-          <span>{seeds[teamA]?`(${seeds[teamA]}) `:""}{eqA.nombre||teamA}</span><span>{mA}</span>
-        </div>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"3px 0",fontWeight:ganador===teamB?800:500,color:ganador===teamB?"#16a34a":"#334155"}}>
-          <span>{seeds[teamB]?`(${seeds[teamB]}) `:""}{eqB.nombre||teamB}</span><span>{mB}</span>
-        </div>
-        <div style={{marginTop:"6px",display:"flex",gap:"3px",flexWrap:"wrap"}}>
-          {partidos.map((p,i)=>{
-            const jugado=p.resultado_local!=null&&p.resultado_visitante!=null;
-            return <button key={p.id} onClick={()=>onOpenPartido&&onOpenPartido(p)} style={{fontSize:"10px",padding:"2px 6px",background:jugado?"#f1f5f9":"#fff",border:"1px solid #e2e8f0",borderRadius:"6px",cursor:"pointer",color:"#475569"}}>G{i+1}{jugado?` ${p.resultado_local}-${p.resultado_visitante}`:""}</button>;
-          })}
-        </div>
-      </div>
+      <BracketCol label={roundLabel}>
+        <div style={{textAlign:"center",fontSize:"10px",fontWeight:700,color:ganador?"#16a34a":"#475569",marginBottom:"4px",whiteSpace:"nowrap"}}>{titulo}</div>
+        {serie.map((p,i)=><KOBox key={p.id} p={p} equipoMap={equipoMap} caption={`Juego ${i+1}`} onOpen={onOpenPartido}/>)}
+      </BracketCol>
     );
   }
 
+  const seriePairs=[[1,8],[4,5],[3,6],[2,7]];
+  const placeholder=(s1,s2,key)=>{
+    const a=globalRanked[s1-1], b=globalRanked[s2-1];
+    const eqA=a?equipoMap[a.id]:null, eqB=b?equipoMap[b.id]:null;
+    return(
+      <BracketCol key={key} label={`(${s1}) vs (${s2})`}>
+        <div style={{background:"#f8fafc",border:"1px dashed #cbd5e1",borderRadius:"10px",padding:"10px",width:"150px",fontSize:"11px",color:"#64748b",display:"flex",flexDirection:"column",gap:"4px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:"6px"}}>{eqA?.escudo&&<img src={eqA.escudo} alt="" style={{width:16,height:16,objectFit:"contain"}} onError={e=>{e.currentTarget.style.display="none";}}/>}<span>({s1}) {eqA?.nombre||"—"}</span></div>
+          <div style={{display:"flex",alignItems:"center",gap:"6px"}}>{eqB?.escudo&&<img src={eqB.escudo} alt="" style={{width:16,height:16,objectFit:"contain"}} onError={e=>{e.currentTarget.style.display="none";}}/>}<span>({s2}) {eqB?.nombre||"—"}</span></div>
+        </div>
+      </BracketCol>
+    );
+  };
+
   return(
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"14px",alignItems:"start"}}>
-      <div>
-        <h3 style={{fontSize:"12px",fontWeight:700,color:"#7c3aed",margin:"0 0 8px",textTransform:"uppercase"}}>1ª Ronda (Bo3)</h3>
-        <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
-          {series1R.length===0&&seriePairs.map(([s1,s2],i)=>{const eqA=equipoMap[seedToEquipo(s1)]||{},eqB=equipoMap[seedToEquipo(s2)]||{};return(
-            <div key={i} style={{background:"#f8fafc",border:"1px dashed #cbd5e1",borderRadius:"10px",padding:"8px",fontSize:"12px",color:"#64748b"}}>
-              ({s1}) {eqA.nombre||"—"} vs ({s2}) {eqB.nombre||"—"}
-            </div>
-          );})}
-          {series1R.map((s,i)=><Serie key={i} partidos={s} needed={2} titulo={`Serie ${i+1}`}/>)}
+    <BracketCard title="🏀 Playoffs">
+      <div style={{display:"flex",gap:"22px",alignItems:"stretch",minHeight:"320px"}}>
+        <div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
+          <div style={{fontSize:"10px",fontWeight:800,color:"#7c3aed",textTransform:"uppercase",letterSpacing:"0.4px"}}>1ª Ronda · Bo3</div>
+          {series1R.length>0
+            ? series1R.map((s,i)=><ColSerie key={i} serie={s} needed={2} roundLabel={`Serie ${i+1}`}/>)
+            : seriePairs.map(([s1,s2],i)=>placeholder(s1,s2,i))}
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:"14px",justifyContent:"space-around"}}>
+          <div style={{fontSize:"10px",fontWeight:800,color:"#7c3aed",textTransform:"uppercase",letterSpacing:"0.4px"}}>Semifinales · Bo5</div>
+          {seriesSemi.length>0
+            ? seriesSemi.map((s,i)=><ColSerie key={i} serie={s} needed={3} roundLabel={`Semi ${i+1}`}/>)
+            : [0,1].map(i=><BracketCol key={i} label={`Semi ${i+1}`}><div style={{background:"#f8fafc",border:"1px dashed #cbd5e1",borderRadius:"10px",padding:"14px",width:"150px",fontSize:"11px",color:"#94a3b8",textAlign:"center"}}>Sin jugar</div></BracketCol>)}
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:"14px",justifyContent:"center"}}>
+          <div style={{fontSize:"10px",fontWeight:800,color:"#7c3aed",textTransform:"uppercase",letterSpacing:"0.4px"}}>🏆 Finales · Bo7</div>
+          {serieFinal.length>0
+            ? serieFinal.map((s,i)=><ColSerie key={i} serie={s} needed={4} roundLabel="Final"/>)
+            : <BracketCol label="Final"><div style={{background:"#f8fafc",border:"1px dashed #cbd5e1",borderRadius:"10px",padding:"14px",width:"150px",fontSize:"11px",color:"#94a3b8",textAlign:"center"}}>Sin jugar</div></BracketCol>}
         </div>
       </div>
-      <div>
-        <h3 style={{fontSize:"12px",fontWeight:700,color:"#7c3aed",margin:"0 0 8px",textTransform:"uppercase"}}>Semifinales (Bo5)</h3>
-        <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
-          {seriesSemi.map((s,i)=><Serie key={i} partidos={s} needed={3} titulo={`Semi ${i+1}`}/>)}
-          {seriesSemi.length===0&&<div style={{background:"#f8fafc",border:"1px dashed #cbd5e1",borderRadius:"10px",padding:"12px",fontSize:"12px",color:"#94a3b8",textAlign:"center"}}>Sin cruces cargados</div>}
-        </div>
-      </div>
-      <div>
-        <h3 style={{fontSize:"12px",fontWeight:700,color:"#7c3aed",margin:"0 0 8px",textTransform:"uppercase"}}>Finales (Bo7)</h3>
-        {serieFinal.map((s,i)=><Serie key={i} partidos={s} needed={4} titulo="🏆 Finales"/>)}
-        {serieFinal.length===0&&<div style={{background:"#f8fafc",border:"1px dashed #cbd5e1",borderRadius:"10px",padding:"12px",fontSize:"12px",color:"#94a3b8",textAlign:"center"}}>Sin cruces cargados</div>}
-      </div>
-    </div>
+    </BracketCard>
   );
 }
 
