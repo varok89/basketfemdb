@@ -142,6 +142,14 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       setCarrLog([].concat(log));
     }
     setLigaProgress({done:todas.length,total:todas.length,paso:"Carga completa"});
+    // Auto-saneo WNBA (playoffs + CC + consolidar CC Finals duplicados)
+    if(carrLiga==="L006"){
+      setLigaProgress({done:todas.length,total:todas.length,paso:"🧹 Saneando WNBA "+carrTemp+"..."});
+      try{
+        await fetch(SUPABASE_URL+"/functions/v1/sanear-wnba",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:JSON.stringify({year:parseInt(carrTemp)})});
+        setLigaProgress({done:todas.length,total:todas.length,paso:"✅ Saneado completo"});
+      }catch(e){setLigaProgress({done:todas.length,total:todas.length,paso:"⚠️ Saneo falló: "+e.message});}
+    }
     setCarrBusy("");
   }
 
