@@ -3445,7 +3445,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
 
 /* ── TeamForm ───────────────────────────────────────────── */
 function TeamForm({initial,onSave,onCancel,saving}){
-  const [f,setF]=useState({nombre:'',ciudad:'',pais:'',año_fundacion:'',escudo:'',tipo:'equipo',redes_sociales:'',pabellon:'',id_espn:'',id_fiba:'',id_ext:'',...(initial||{})});
+  const [f,setF]=useState({nombre:'',ciudad:'',pais:'',año_fundacion:'',escudo:'',tipo:'equipo',redes_sociales:'',pabellon:'',id_espn:'',id_fiba:'',id_ext:'',conferencia:'',...(initial||{})});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
   const inp={width:'100%',border:'1.5px solid #e2e8f0',borderRadius:'10px',padding:'9px 12px',fontSize:'14px',outline:'none',boxSizing:'border-box'};
   return(<div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
@@ -3454,9 +3454,10 @@ function TeamForm({initial,onSave,onCancel,saving}){
       <Fld label='Ciudad'><input style={inp} value={f.ciudad||''} onChange={set('ciudad')} placeholder='Salamanca'/></Fld>
       <Fld label='País'><input style={inp} value={f.pais||''} onChange={set('pais')} placeholder='España'/></Fld>
     </div>
-    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'12px'}}>
       <Fld label='Año fundación'><input style={inp} type='number' value={f.año_fundacion||''} onChange={set('año_fundacion')} placeholder='1994'/></Fld>
       <Fld label='Tipo'><select style={inp} value={f.tipo||''} onChange={set('tipo')}><option value=''>— Sin definir —</option><option value='equipo'>Club</option><option value='seleccion'>Selección</option></select></Fld>
+      <Fld label='Conferencia (WNBA)'><select style={inp} value={f.conferencia||''} onChange={set('conferencia')}><option value=''>—</option><option value='East'>East</option><option value='West'>West</option></select></Fld>
     </div>
     <EscudoPicker value={f.escudo} onChange={v=>setF(p=>({...p,escudo:v}))}/>
     <Fld label='Pabellón'><input style={inp} value={f.pabellon||''} onChange={set('pabellon')} placeholder='Würzburg'/></Fld>
@@ -3711,13 +3712,13 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
       if(teamModal==="addTeam"){
         const ids=equipos.map(e=>parseInt(e.id_equipo.replace("E",""))).filter(n=>!isNaN(n));
         const newId=firstFreeId(ids,"E",3);
-        const payload={...f,año_fundacion:f.año_fundacion===''||f.año_fundacion===null?null:parseInt(f.año_fundacion)||null,id_espn:f.id_espn?.trim()||null,id_fiba:f.id_fiba?.trim()||null,id_ext:f.id_ext?.trim()||null};
+        const payload={...f,año_fundacion:f.año_fundacion===''||f.año_fundacion===null?null:parseInt(f.año_fundacion)||null,id_espn:f.id_espn?.trim()||null,id_fiba:f.id_fiba?.trim()||null,id_ext:f.id_ext?.trim()||null,conferencia:f.conferencia?.trim()||null};
         const newTeam={id_equipo:newId,...payload};
         const{error}=await supabase.from("equipos").insert(newTeam);
         if(error)throw error;
         setEquipos(prev=>[...prev,newTeam]);
       } else {
-        const payload={...f,año_fundacion:f.año_fundacion===''||f.año_fundacion===null?null:parseInt(f.año_fundacion)||null,id_espn:f.id_espn?.trim()||null,id_fiba:f.id_fiba?.trim()||null,id_ext:f.id_ext?.trim()||null};
+        const payload={...f,año_fundacion:f.año_fundacion===''||f.año_fundacion===null?null:parseInt(f.año_fundacion)||null,id_espn:f.id_espn?.trim()||null,id_fiba:f.id_fiba?.trim()||null,id_ext:f.id_ext?.trim()||null,conferencia:f.conferencia?.trim()||null};
         const{error}=await supabase.from("equipos").update(payload).eq("id_equipo",selId);
         if(error)throw error;
         setEquipos(prev=>prev.map(e=>e.id_equipo!==selId?e:{...e,...payload}));
