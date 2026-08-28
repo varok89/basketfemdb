@@ -51,6 +51,19 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     }catch(e){setCarrInfo({error:e.message});}
     setCarrBusy("");
   }
+  async function carrCrearFaltantes(){
+    var faltan=carrInfo?.solo_en_espn_obj?.length||(carrInfo?.solo_en_espn?.length||0);
+    if(!faltan){alert("No hay jugadoras que crear");return;}
+    if(!confirm("Crear "+faltan+" jugadoras y añadirles temporada "+carrTemp+" en "+carrInfo.equipo+"?"))return;
+    setCarrBusy("crear");
+    try{
+      var r=await fetch(SUPABASE_URL+"/functions/v1/mapear-roster-espn",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:JSON.stringify({id_equipo:carrEquipoId,id_liga:carrLiga,temporada:carrTemp,dry:false,crear_faltantes:true})});
+      var j=await r.json();
+      setCarrInfo(j);
+      alert("Creadas: "+(j.total_creadas||0)+" · Adjuntadas: "+(j.total_adjuntadas||0));
+    }catch(e){alert("Error: "+e.message);}
+    setCarrBusy("");
+  }
   async function carrCargar(dry){
     if(!carrInfo?.roster)return;
     var conEspn=carrInfo.roster.filter(function(r){return r.id_espn||r.espn_match;});
@@ -1094,6 +1107,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               <div style={{display:"flex",gap:"8px",marginBottom:"12px",flexWrap:"wrap"}}>
                 <button onClick={carrAnalizar} disabled={!!carrBusy||!carrEquipoId} style={{background:"#2563eb",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy||!carrEquipoId?0.5:1}}>{carrBusy==="info"?"Analizando...":"🔍 Analizar roster"}</button>
                 {carrInfo&&!carrInfo.error&&carrInfo.mapeados>0&&<button onClick={carrMapear} disabled={!!carrBusy} style={{background:"#f59e0b",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="mapear"?"Mapeando...":"🔗 Auto-mapear "+carrInfo.mapeados+" faltante(s)"}</button>}
+                {carrInfo&&!carrInfo.error&&(carrInfo.solo_en_espn_obj?.length||carrInfo.solo_en_espn?.length)>0&&<button onClick={carrCrearFaltantes} disabled={!!carrBusy} style={{background:"#0ea5e9",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="crear"?"Creando...":"➕ Crear "+(carrInfo.solo_en_espn_obj?.length||carrInfo.solo_en_espn?.length)+" jugadora(s) con esta temporada"}</button>}
                 {carrInfo&&!carrInfo.error&&<button onClick={()=>carrCargar(true)} disabled={!!carrBusy} style={{background:"#64748b",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="dry"?"Dry run...":"🧪 Dry run"}</button>}
                 {carrInfo&&!carrInfo.error&&<button onClick={()=>carrCargar(false)} disabled={!!carrBusy} style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="cargar"?"Cargando...":"🚀 Cargar carreras"}</button>}
               </div>
