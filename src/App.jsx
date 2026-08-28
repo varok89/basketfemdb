@@ -1872,7 +1872,7 @@ function SerieBox({partidosSerie,equipoMap,compacto,onOpen}){
    Módulo específico WNBA (L006). Tabs Global / East / West / Playoffs.
    Regular vs playoff se distingue por notas "Playoff 1R" / "Semifinal" / "Final".
    Tiebreakers WNBA oficiales: H2H → V vs top-8 → V vs top-4 → point differential. */
-const WNBA_RONDA_RE=/^(Playoff 1R|Semifinal|Final)\b/i;
+const WNBA_RONDA_RE=/^(Playoff 1R|Semifinal|Final|Commissioner)/i;
 
 function calcStatsWNBA(partidos){
   const s={};
