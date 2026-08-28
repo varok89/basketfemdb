@@ -1207,16 +1207,26 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                       <th style={{padding:"4px 6px"}}>Estado</th>
                     </tr></thead>
                     <tbody>
-                      {ligaInfo.map((e,i)=>(
-                        <tr key={i} style={{borderTop:"1px solid #f1f5f9"}}>
-                          <td style={{padding:"4px 6px",color:"#1e293b",fontWeight:600}}>{e.equipo}</td>
-                          <td style={{padding:"4px 6px",textAlign:"center",color:"#64748b"}}>{e.bd_total}</td>
-                          <td style={{padding:"4px 6px",textAlign:"center",color:"#64748b"}}>{e.espn_total}</td>
-                          <td style={{padding:"4px 6px",textAlign:"center",color:e.mapeados?"#f59e0b":"#94a3b8",fontWeight:e.mapeados?700:400}}>{e.mapeados||0}</td>
-                          <td style={{padding:"4px 6px",textAlign:"center",color:(e.solo_en_espn_obj?.length||0)?"#0ea5e9":"#94a3b8",fontWeight:(e.solo_en_espn_obj?.length||0)?700:400}}>{e.solo_en_espn_obj?.length||0}</td>
-                          <td style={{padding:"4px 6px",textAlign:"center",fontSize:"10px",color:e.error?"#ef4444":e.creadas!=null?"#16a34a":"#94a3b8"}}>{e.error?"❌ "+e.error:e.creadas!=null?"✅ "+e.creadas+"+"+e.adjuntadas:"—"}</td>
-                        </tr>
-                      ))}
+                      {ligaInfo.map((e,i)=>{
+                        const nFaltan=e.solo_en_espn_obj?.length||0;
+                        return[
+                          <tr key={i} style={{borderTop:"1px solid #f1f5f9"}}>
+                            <td style={{padding:"4px 6px",color:"#1e293b",fontWeight:600}}>{e.equipo}</td>
+                            <td style={{padding:"4px 6px",textAlign:"center",color:"#64748b"}}>{e.bd_total}</td>
+                            <td style={{padding:"4px 6px",textAlign:"center",color:"#64748b"}}>{e.espn_total}</td>
+                            <td style={{padding:"4px 6px",textAlign:"center",color:e.mapeados?"#f59e0b":"#94a3b8",fontWeight:e.mapeados?700:400}}>{e.mapeados||0}</td>
+                            <td style={{padding:"4px 6px",textAlign:"center",color:nFaltan?"#0ea5e9":"#94a3b8",fontWeight:nFaltan?700:400}}>{nFaltan}</td>
+                            <td style={{padding:"4px 6px",textAlign:"center",fontSize:"10px",color:e.error?"#ef4444":e.creadas!=null?"#16a34a":"#94a3b8"}}>{e.error?"❌ "+e.error:e.creadas!=null?"✅ "+e.creadas+"+"+e.adjuntadas:"—"}</td>
+                          </tr>,
+                          nFaltan>0&&<tr key={i+"-d"}><td colSpan={6} style={{padding:"2px 8px 6px 20px",background:"#fafafa",fontSize:"10px",color:"#475569"}}>
+                            <div style={{fontWeight:700,color:"#0ea5e9",marginBottom:"2px"}}>Faltan en BD:</div>
+                            {e.solo_en_espn_obj.map((s,k)=><span key={k} style={{display:"inline-block",marginRight:"10px"}}>
+                              <a href={"https://www.espn.com/wnba/player/_/id/"+s.id} target="_blank" rel="noreferrer" style={{color:"#0ea5e9",textDecoration:"none"}}>{s.nombre}</a>
+                              <span style={{color:"#94a3b8"}}> ({s.id})</span>
+                            </span>)}
+                          </td></tr>
+                        ];
+                      })}
                     </tbody>
                   </table>
                 </div>}
