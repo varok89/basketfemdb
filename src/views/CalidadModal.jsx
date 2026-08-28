@@ -19,6 +19,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   // Modo liga completa
   var [ligaInfo,setLigaInfo]=useState(null); // [{equipo, id_equipo, bd_total, espn_total, mapeados, solo_en_espn_obj, roster}]
   var [ligaProgress,setLigaProgress]=useState({done:0,total:0,paso:""});
+  var [skipCargadas,setSkipCargadas]=useState(true);
   useEffect(()=>{
     if(tab!=="carreras"||!carrLiga||!carrTemp)return;
     (async()=>{
@@ -112,16 +113,32 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     if(!confirm("Cargar carreras completas de "+todas.length+" jugadoras? (puede tardar varios minutos)"))return;
     setCarrBusy("liga_cargar");
     var log=[];
+    // Pre-check: partidos de la liga+temp seleccionada
+    var partidosTemp=[];
+    if(skipCargadas){
+      var {data:ptmp}=await supabase.from("partidos").select("id").eq("id_liga",carrLiga).eq("temporada",carrTemp).limit(500);
+      partidosTemp=(ptmp||[]).map(x=>x.id);
+    }
+    var UMBRAL=carrLiga==="L006"?40:20; // WNBA regular ~44, NCAA ~28
     for(var i=0;i<todas.length;i++){
       var p=todas[i];
       setLigaProgress({done:i,total:todas.length,paso:"Cargando "+p.nombre});
+      // Pre-check skip
+      if(skipCargadas&&partidosTemp.length){
+        var {count}=await supabase.from("partido_boxscore").select("id",{count:"exact",head:true}).eq("id_jugadora",p.id_jugadora).in("id_partido",partidosTemp);
+        if(count>=UMBRAL){
+          log.push({jugadora:p.nombre,estado:"⏭ ya cargada ("+count+" box)"});
+          setCarrLog([].concat(log));
+          continue;
+        }
+      }
       log.push({jugadora:p.nombre,estado:"⏳"});
       setCarrLog([].concat(log));
       try{
         var resp=await fetch(SUPABASE_URL+"/functions/v1/cargar-carrera-espn-jugadora",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:JSON.stringify({id_jugadora:p.id_jugadora,discover:true,dry:false})});
         var j=await resp.json();
-        log[i]={jugadora:p.nombre,estado:j.error?"❌ "+j.error:"✅ box:"+(j.total_boxscores||0)+" temps+:"+(j.total_temporadas_creadas||0)+" partidos+:"+(j.total_partidos_creados||0)};
-      }catch(e){log[i]={jugadora:p.nombre,estado:"❌ "+e.message};}
+        log[log.length-1]={jugadora:p.nombre,estado:j.error?"❌ "+j.error:"✅ box:"+(j.total_boxscores||0)+" temps+:"+(j.total_temporadas_creadas||0)+" partidos+:"+(j.total_partidos_creados||0)};
+      }catch(e){log[log.length-1]={jugadora:p.nombre,estado:"❌ "+e.message};}
       setCarrLog([].concat(log));
     }
     setLigaProgress({done:todas.length,total:todas.length,paso:"Carga completa"});
@@ -1194,6 +1211,10 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                   <button onClick={ligaAnalizar} disabled={!!carrBusy||!carrEquiposLiga.length} style={{background:"#7c3aed",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy||!carrEquiposLiga.length?0.5:1}}>{carrBusy==="liga_info"?"Analizando...":"🔍 Analizar TODA la liga"}</button>
                   {ligaInfo&&<button onClick={ligaCrearYMapear} disabled={!!carrBusy} style={{background:"#0ea5e9",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="liga_crear"?"Creando...":"➕ Crear/mapear todo"}</button>}
                   {ligaInfo&&<button onClick={ligaCargarCarreras} disabled={!!carrBusy} style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="liga_cargar"?"Cargando...":"🚀 Cargar TODAS las carreras"}</button>}
+                  {ligaInfo&&<label style={{display:"flex",alignItems:"center",gap:"5px",fontSize:"11px",color:"#475569",cursor:"pointer",background:"#fff",border:"1px solid #e2e8f0",borderRadius:"8px",padding:"7px 10px"}}>
+                    <input type="checkbox" checked={skipCargadas} onChange={e=>setSkipCargadas(e.target.checked)}/>
+                    Saltar ya cargadas
+                  </label>}
                 </div>
                 {ligaProgress.total>0&&<div style={{marginTop:"6px",fontSize:"11px",color:"#64748b"}}>{ligaProgress.paso} · {ligaProgress.done}/{ligaProgress.total}</div>}
                 {ligaInfo&&<div style={{marginTop:"8px",maxHeight:"200px",overflowY:"auto",fontSize:"11px",background:"#fff",border:"1px solid #e9d5ff",borderRadius:"8px"}}>
