@@ -1868,6 +1868,287 @@ function SerieBox({partidosSerie,equipoMap,compacto,onOpen}){
   );
 }
 
+/* ── WNBAClasificacion ─────────────────────────────────────
+   Módulo específico WNBA (L006). Tabs Global / East / West / Playoffs.
+   Regular vs playoff se distingue por notas "Playoff 1R" / "Semifinal" / "Final".
+   Tiebreakers WNBA oficiales: H2H → V vs top-8 → V vs top-4 → point differential. */
+const WNBA_RONDA_RE=/^(Playoff 1R|Semifinal|Final)\b/i;
+
+function calcStatsWNBA(partidos){
+  const s={};
+  const ini=id=>{if(id&&!s[id])s[id]={id,pj:0,v:0,d:0,pf:0,pc:0};};
+  partidos.forEach(p=>{
+    ini(p.id_equipo_local); ini(p.id_equipo_visitante);
+    if(p.resultado_local==null||p.resultado_visitante==null)return;
+    if(getPartidoEstado(p)==="en_juego")return;
+    const sl=p.resultado_local,sv=p.resultado_visitante;
+    s[p.id_equipo_local].pj++; s[p.id_equipo_visitante].pj++;
+    s[p.id_equipo_local].pf+=sl; s[p.id_equipo_local].pc+=sv;
+    s[p.id_equipo_visitante].pf+=sv; s[p.id_equipo_visitante].pc+=sl;
+    if(sl>sv){s[p.id_equipo_local].v++; s[p.id_equipo_visitante].d++;}
+    else{s[p.id_equipo_visitante].v++; s[p.id_equipo_local].d++;}
+  });
+  Object.values(s).forEach(e=>{e.dif=e.pf-e.pc; e.pctV=e.pj?e.v/e.pj:0;});
+  return Object.values(s);
+}
+
+// H2H: puntos ganados entre subconjunto de equipos empatados
+function h2hRecord(partidos, ids){
+  const set=new Set(ids);
+  const r={};
+  ids.forEach(id=>r[id]={v:0,d:0,dif:0});
+  partidos.forEach(p=>{
+    if(p.resultado_local==null||p.resultado_visitante==null)return;
+    if(!set.has(p.id_equipo_local)||!set.has(p.id_equipo_visitante))return;
+    const sl=p.resultado_local,sv=p.resultado_visitante;
+    r[p.id_equipo_local].dif+=(sl-sv); r[p.id_equipo_visitante].dif+=(sv-sl);
+    if(sl>sv){r[p.id_equipo_local].v++;r[p.id_equipo_visitante].d++;}
+    else{r[p.id_equipo_visitante].v++;r[p.id_equipo_local].d++;}
+  });
+  return r;
+}
+
+// V contra subconjunto (top-8 / top-4)
+function vsSubset(partidos, teamId, subsetIds){
+  const set=new Set(subsetIds);
+  let v=0;
+  partidos.forEach(p=>{
+    if(p.resultado_local==null||p.resultado_visitante==null)return;
+    const l=p.id_equipo_local,vt=p.id_equipo_visitante;
+    if(l!==teamId&&vt!==teamId)return;
+    const rival=l===teamId?vt:l;
+    if(!set.has(rival))return;
+    const gano=(l===teamId&&p.resultado_local>p.resultado_visitante)||(vt===teamId&&p.resultado_visitante>p.resultado_local);
+    if(gano)v++;
+  });
+  return v;
+}
+
+function sortWNBA(stats, partidos){
+  if(!stats.length)return [];
+  // Paso 1: ordenar por %V (calcula un ranking provisional para top-8/top-4)
+  const prov=[...stats].sort((a,b)=>b.pctV-a.pctV||b.v-a.v);
+  const top8=prov.slice(0,8).map(e=>e.id);
+  const top4=prov.slice(0,4).map(e=>e.id);
+  // Paso 2: ordenar con tiebreakers usando el ranking provisional
+  return [...stats].sort((a,b)=>{
+    if(a.pctV!==b.pctV)return b.pctV-a.pctV;
+    // Empate en %V → H2H entre TODOS los equipos con ese pctV
+    const empatados=stats.filter(e=>Math.abs(e.pctV-a.pctV)<1e-9).map(e=>e.id);
+    if(empatados.length>=2){
+      const h=h2hRecord(partidos, empatados);
+      const hA=h[a.id]||{v:0,d:0,dif:0}, hB=h[b.id]||{v:0,d:0,dif:0};
+      if(hA.v!==hB.v)return hB.v-hA.v;
+    }
+    const vs8A=vsSubset(partidos,a.id,top8), vs8B=vsSubset(partidos,b.id,top8);
+    if(vs8A!==vs8B)return vs8B-vs8A;
+    const vs4A=vsSubset(partidos,a.id,top4), vs4B=vsSubset(partidos,b.id,top4);
+    if(vs4A!==vs4B)return vs4B-vs4A;
+    return b.dif-a.dif;
+  });
+}
+
+function calcRacha(partidos, teamId){
+  const rel=partidos
+    .filter(p=>(p.id_equipo_local===teamId||p.id_equipo_visitante===teamId)&&p.resultado_local!=null&&p.resultado_visitante!=null)
+    .sort((a,b)=>new Date(b.fecha_hora)-new Date(a.fecha_hora));
+  let signo=null, n=0;
+  for(const p of rel){
+    const gano=(p.id_equipo_local===teamId&&p.resultado_local>p.resultado_visitante)||(p.id_equipo_visitante===teamId&&p.resultado_visitante>p.resultado_local);
+    const s=gano?"V":"D";
+    if(signo===null){signo=s;n=1;}
+    else if(signo===s)n++;
+    else break;
+  }
+  return signo?`${signo}${n}`:"—";
+}
+
+function calcUlt10(partidos, teamId){
+  const rel=partidos
+    .filter(p=>(p.id_equipo_local===teamId||p.id_equipo_visitante===teamId)&&p.resultado_local!=null&&p.resultado_visitante!=null)
+    .sort((a,b)=>new Date(b.fecha_hora)-new Date(a.fecha_hora))
+    .slice(0,10);
+  let v=0,d=0;
+  rel.forEach(p=>{
+    const gano=(p.id_equipo_local===teamId&&p.resultado_local>p.resultado_visitante)||(p.id_equipo_visitante===teamId&&p.resultado_visitante>p.resultado_local);
+    if(gano)v++;else d++;
+  });
+  return `${v}-${d}`;
+}
+
+function WNBATabla({filas, equipoMap, onGoToTeam, mostrarGB}){
+  const lider=filas[0];
+  return(
+    <div style={{background:"#fff",borderRadius:"14px",overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
+      <table style={{width:"100%",borderCollapse:"collapse",fontSize:"13px"}}>
+        <thead><tr style={{background:"#fafafa",color:"#64748b",fontSize:"11px"}}>
+          <th style={{padding:"7px 8px",textAlign:"left"}}>#</th>
+          <th style={{padding:"7px 6px",textAlign:"left"}}>Equipo</th>
+          <th style={{padding:"7px 6px"}}>PJ</th>
+          <th style={{padding:"7px 6px"}}>V</th>
+          <th style={{padding:"7px 6px"}}>D</th>
+          <th style={{padding:"7px 6px"}}>%V</th>
+          {mostrarGB&&<th style={{padding:"7px 6px"}}>GB</th>}
+          <th style={{padding:"7px 6px"}}>DIF</th>
+          <th style={{padding:"7px 6px"}}>Últ.10</th>
+          <th style={{padding:"7px 6px"}}>Racha</th>
+        </tr></thead>
+        <tbody>
+          {filas.map((e,i)=>{
+            const eq=equipoMap[e.id]||{};
+            const gb=lider?((lider.v-e.v)+(e.d-lider.d))/2:0;
+            const enPlayoff=i<8;
+            const seed=i+1;
+            return(
+              <tr key={e.id} style={{borderTop:"1px solid #f1f5f9",cursor:onGoToTeam?"pointer":"default"}} onClick={()=>onGoToTeam&&onGoToTeam(e.id)}>
+                <td style={{padding:"8px",borderLeft:"4px solid "+(enPlayoff?"#16a34a":"transparent"),fontWeight:700,color:"#475569"}}>{seed}</td>
+                <td style={{padding:"8px 6px",color:"#1e293b",fontWeight:600,display:"flex",alignItems:"center",gap:"8px"}}>
+                  {eq.escudo&&<img src={eq.escudo} alt="" style={{width:22,height:22,objectFit:"contain"}} onError={ev=>{ev.currentTarget.style.display="none";}}/>}
+                  <span>{eq.nombre||e.id}</span>
+                </td>
+                <td style={{padding:"8px 6px",textAlign:"center",color:"#64748b"}}>{e.pj}</td>
+                <td style={{padding:"8px 6px",textAlign:"center",fontWeight:700,color:"#16a34a"}}>{e.v}</td>
+                <td style={{padding:"8px 6px",textAlign:"center",color:"#ef4444"}}>{e.d}</td>
+                <td style={{padding:"8px 6px",textAlign:"center",fontWeight:700}}>{(e.pctV*100).toFixed(1)}</td>
+                {mostrarGB&&<td style={{padding:"8px 6px",textAlign:"center",color:"#64748b"}}>{gb===0?"—":gb.toFixed(1)}</td>}
+                <td style={{padding:"8px 6px",textAlign:"center",color:e.dif>0?"#16a34a":e.dif<0?"#ef4444":"#64748b"}}>{e.dif>0?"+":""}{e.dif}</td>
+                <td style={{padding:"8px 6px",textAlign:"center",color:"#64748b"}}>{calcUlt10.__cache?.[e.id]||e.ult10||"—"}</td>
+                <td style={{padding:"8px 6px",textAlign:"center",fontWeight:700,color:e.racha?.startsWith("V")?"#16a34a":e.racha?.startsWith("D")?"#ef4444":"#64748b"}}>{e.racha||"—"}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// Bracket automático WNBA a partir del ranking global y los partidos playoff
+function WNBABracketAuto({globalRanked, playoffPartidos, equipoMap, onOpenPartido}){
+  const seeds={};
+  globalRanked.slice(0,8).forEach((e,i)=>{seeds[e.id]=i+1;});
+  const seriePairs=[[1,8],[4,5],[3,6],[2,7]]; // orden para Semis 1v4 y 2v3 según ranking
+  const seedToEquipo=n=>globalRanked[n-1]?.id||null;
+
+  // Agrupa partidos por serie: clave = "ronda|{teamA-teamB}" (sorted por seed)
+  function agrupaSerie(ps){
+    const map=new Map();
+    ps.forEach(p=>{
+      const a=[p.id_equipo_local,p.id_equipo_visitante].sort().join("_");
+      const k=(p.notas||"").split(" · ")[0]+"|"+a;
+      if(!map.has(k))map.set(k,[]);
+      map.get(k).push(p);
+    });
+    return [...map.values()].map(arr=>arr.sort((x,y)=>new Date(x.fecha_hora)-new Date(y.fecha_hora)));
+  }
+
+  function ganadorSerie(serie, needed){
+    const w={};
+    serie.forEach(p=>{
+      if(p.resultado_local==null||p.resultado_visitante==null)return;
+      const g=p.resultado_local>p.resultado_visitante?p.id_equipo_local:p.id_equipo_visitante;
+      w[g]=(w[g]||0)+1;
+    });
+    const gan=Object.entries(w).find(([,n])=>n>=needed);
+    return {ganador:gan?gan[0]:null, marcador:w};
+  }
+
+  const p1R=playoffPartidos.filter(p=>/^Playoff 1R/i.test(p.notas||""));
+  const pSemi=playoffPartidos.filter(p=>/^Semifinal/i.test(p.notas||""));
+  const pFinal=playoffPartidos.filter(p=>/^Final/i.test(p.notas||""));
+
+  const series1R=agrupaSerie(p1R);
+  const seriesSemi=agrupaSerie(pSemi);
+  const serieFinal=agrupaSerie(pFinal);
+
+  function Serie({partidos, needed, titulo}){
+    const {ganador,marcador}=ganadorSerie(partidos, needed);
+    const teamA=partidos[0]?.id_equipo_local, teamB=partidos[0]?.id_equipo_visitante;
+    const eqA=equipoMap[teamA]||{}, eqB=equipoMap[teamB]||{};
+    const mA=marcador[teamA]||0, mB=marcador[teamB]||0;
+    return(
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"10px",minWidth:"180px"}}>
+        <div style={{fontSize:"10px",fontWeight:700,color:"#94a3b8",marginBottom:"6px",textTransform:"uppercase"}}>{titulo}</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"3px 0",fontWeight:ganador===teamA?800:500,color:ganador===teamA?"#16a34a":"#334155"}}>
+          <span>{seeds[teamA]?`(${seeds[teamA]}) `:""}{eqA.nombre||teamA}</span><span>{mA}</span>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"3px 0",fontWeight:ganador===teamB?800:500,color:ganador===teamB?"#16a34a":"#334155"}}>
+          <span>{seeds[teamB]?`(${seeds[teamB]}) `:""}{eqB.nombre||teamB}</span><span>{mB}</span>
+        </div>
+        <div style={{marginTop:"6px",display:"flex",gap:"3px",flexWrap:"wrap"}}>
+          {partidos.map((p,i)=>{
+            const jugado=p.resultado_local!=null&&p.resultado_visitante!=null;
+            return <button key={p.id} onClick={()=>onOpenPartido&&onOpenPartido(p)} style={{fontSize:"10px",padding:"2px 6px",background:jugado?"#f1f5f9":"#fff",border:"1px solid #e2e8f0",borderRadius:"6px",cursor:"pointer",color:"#475569"}}>G{i+1}{jugado?` ${p.resultado_local}-${p.resultado_visitante}`:""}</button>;
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  return(
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"14px",alignItems:"start"}}>
+      <div>
+        <h3 style={{fontSize:"12px",fontWeight:700,color:"#7c3aed",margin:"0 0 8px",textTransform:"uppercase"}}>1ª Ronda (Bo3)</h3>
+        <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
+          {series1R.length===0&&seriePairs.map(([s1,s2],i)=>{const eqA=equipoMap[seedToEquipo(s1)]||{},eqB=equipoMap[seedToEquipo(s2)]||{};return(
+            <div key={i} style={{background:"#f8fafc",border:"1px dashed #cbd5e1",borderRadius:"10px",padding:"8px",fontSize:"12px",color:"#64748b"}}>
+              ({s1}) {eqA.nombre||"—"} vs ({s2}) {eqB.nombre||"—"}
+            </div>
+          );})}
+          {series1R.map((s,i)=><Serie key={i} partidos={s} needed={2} titulo={`Serie ${i+1}`}/>)}
+        </div>
+      </div>
+      <div>
+        <h3 style={{fontSize:"12px",fontWeight:700,color:"#7c3aed",margin:"0 0 8px",textTransform:"uppercase"}}>Semifinales (Bo5)</h3>
+        <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
+          {seriesSemi.map((s,i)=><Serie key={i} partidos={s} needed={3} titulo={`Semi ${i+1}`}/>)}
+          {seriesSemi.length===0&&<div style={{background:"#f8fafc",border:"1px dashed #cbd5e1",borderRadius:"10px",padding:"12px",fontSize:"12px",color:"#94a3b8",textAlign:"center"}}>Sin cruces cargados</div>}
+        </div>
+      </div>
+      <div>
+        <h3 style={{fontSize:"12px",fontWeight:700,color:"#7c3aed",margin:"0 0 8px",textTransform:"uppercase"}}>Finales (Bo7)</h3>
+        {serieFinal.map((s,i)=><Serie key={i} partidos={s} needed={4} titulo="🏆 Finales"/>)}
+        {serieFinal.length===0&&<div style={{background:"#f8fafc",border:"1px dashed #cbd5e1",borderRadius:"10px",padding:"12px",fontSize:"12px",color:"#94a3b8",textAlign:"center"}}>Sin cruces cargados</div>}
+      </div>
+    </div>
+  );
+}
+
+function WNBAClasificacion({psLiga, equipoMap, temporada, onOpenPartido, onGoToTeam, onBack}){
+  const [tab,setTab]=useState("global");
+  const regular=useMemo(()=>psLiga.filter(p=>!WNBA_RONDA_RE.test(p.notas||"")),[psLiga]);
+  const playoff=useMemo(()=>psLiga.filter(p=>WNBA_RONDA_RE.test(p.notas||"")),[psLiga]);
+  const stats=useMemo(()=>calcStatsWNBA(regular),[regular]);
+  const globalRanked=useMemo(()=>{
+    const ord=sortWNBA(stats, regular);
+    return ord.map(e=>({...e,racha:calcRacha(regular,e.id),ult10:calcUlt10(regular,e.id)}));
+  },[stats,regular]);
+  const east=useMemo(()=>globalRanked.filter(e=>equipoMap[e.id]?.conferencia==="East"),[globalRanked,equipoMap]);
+  const west=useMemo(()=>globalRanked.filter(e=>equipoMap[e.id]?.conferencia==="West"),[globalRanked,equipoMap]);
+
+  const tabBtn=(k,l)=>(
+    <button key={k} onClick={()=>setTab(k)} style={{background:tab===k?"#9333ea":"#f1f5f9",color:tab===k?"#fff":"#475569",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>{l}</button>
+  );
+
+  return(
+    <div style={{maxWidth:"900px",margin:"0 auto",padding:"16px",fontFamily:"system-ui,sans-serif"}}>
+      <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"15px",cursor:"pointer",padding:"0 0 16px"}}>← Volver</button>
+      <h1 style={{fontWeight:800,fontSize:"20px",color:"#1e293b",margin:"0 0 6px"}}>🏆 WNBA {temporada}</h1>
+      <p style={{fontSize:"12px",color:"#94a3b8",margin:"0 0 14px"}}>Clasificación por %V con desempates oficiales WNBA (H2H → V vs top-8 → V vs top-4 → dif.). Verde: puestos 1-8 (playoffs).</p>
+      <div style={{display:"flex",gap:"6px",marginBottom:"14px",flexWrap:"wrap"}}>
+        {tabBtn("global","Global")}
+        {tabBtn("east","🌅 East")}
+        {tabBtn("west","🌇 West")}
+        {tabBtn("playoffs","🏀 Playoffs")}
+      </div>
+      {tab==="global"&&<WNBATabla filas={globalRanked} equipoMap={equipoMap} onGoToTeam={onGoToTeam} mostrarGB={true}/>}
+      {tab==="east"&&<WNBATabla filas={east} equipoMap={equipoMap} onGoToTeam={onGoToTeam} mostrarGB={false}/>}
+      {tab==="west"&&<WNBATabla filas={west} equipoMap={equipoMap} onGoToTeam={onGoToTeam} mostrarGB={false}/>}
+      {tab==="playoffs"&&<WNBABracketAuto globalRanked={globalRanked} playoffPartidos={playoff} equipoMap={equipoMap} onOpenPartido={onOpenPartido}/>}
+    </div>
+  );
+}
+
 function PlayoffBracket({psLiga,equipoMap,soloPrevia,onOpenPartido,showAscenso}){
   const series=useMemo(()=>{
     const m={};
@@ -2089,6 +2370,8 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
       <EuroligaFases psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido} mvpPlayer={mvpPlayer} onGoToPlayer={onGoToPlayer}/>
     </div>
   );
+
+  if(ligaId==="L006")return <WNBAClasificacion psLiga={psLiga} equipoMap={equipoMap} temporada={temporada} onOpenPartido={onOpenPartido} onGoToTeam={onGoToTeam} onBack={onBack}/>;
 
   return(
     <div style={{maxWidth:"700px",margin:"0 auto",padding:"16px",fontFamily:"system-ui,sans-serif"}}>
@@ -6301,7 +6584,7 @@ export default function App(){
     // Caché de sesión: no recargar si ya están en memoria
     if(!forzar && players.length>0 && equipos.length>0){return;}
     // Hidratación desde localStorage (arranque instantáneo)
-    const CK="basketfemdb:cache:v5";
+    const CK="basketfemdb:cache:v6";
     let hidratado=false;
     if(!forzar){
       try{
@@ -6418,7 +6701,7 @@ export default function App(){
         });
         setSeasonsFull(true);
         try{
-          const CK="basketfemdb:cache:v5";
+          const CK="basketfemdb:cache:v6";
           const raw=localStorage.getItem(CK);
           if(raw){
             const c=JSON.parse(raw);
@@ -6449,7 +6732,7 @@ export default function App(){
         });
         setPartidosFull(true);
         try{
-          const CK="basketfemdb:cache:v5";
+          const CK="basketfemdb:cache:v6";
           const raw=localStorage.getItem(CK);
           if(raw){
             const c=JSON.parse(raw);
