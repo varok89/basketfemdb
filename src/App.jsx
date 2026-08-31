@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import { supabase, SUPABASE_URL, SUPABASE_KEY, fetchAll } from "./lib/supabaseClient";
+import { LOGROS, LOGROS_BY_SLUG, CATEGORIAS, initLogros, registrarEvento, onLogroDesbloqueado, getEstadoLogros } from "./lib/logros";
 
 const CalidadModal = lazy(() => import("./views/CalidadModal"));
+const LogrosModal  = lazy(() => import("./views/LogrosModal"));
+const PerfilPublicoModal = lazy(() => import("./views/PerfilPublicoModal"));
 
 /* inject bounce keyframe once */
 if (!document.getElementById("bfdb-styles")) {
@@ -6370,7 +6373,7 @@ function VerPrediccionesModal({target,equipos,onClose}){
 }
 
 /* ── QuinielaView ────────────────────────────────────────── */
-function QuinielaView({user,equipos}){
+function QuinielaView({user,equipos,onAbrirPerfil}){
   const [cierre,setCierre]=useState(null);
   const [rank,setRank]=useState([]);
   const [tab,setTab]=useState("basketneta");
@@ -6438,7 +6441,12 @@ function QuinielaView({user,equipos}){
                   <td style={{padding:"8px 14px",fontWeight:600,color:"#1e293b"}}>
                     <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                       <UserAvatar avatar={r.avatar} googleUrl={google} nombre={r.nombre} size={28}/>
-                      <span>{r.nombre}{r.user_id===user.id?" (tú)":""}</span>
+                      <span
+                        onClick={e=>{e.stopPropagation();if(onAbrirPerfil&&r.alias)onAbrirPerfil(r.alias);}}
+                        style={{cursor:(onAbrirPerfil&&r.alias)?"pointer":"default",textDecoration:(onAbrirPerfil&&r.alias)?"underline":"none",textDecorationColor:"#c084fc",textUnderlineOffset:"3px"}}
+                        title={r.alias?"Ver perfil público":undefined}>
+                        {r.nombre}{r.user_id===user.id?" (tú)":""}
+                      </span>
                       {cerrado&&<span style={{fontSize:"11px",color:"#9333ea",marginLeft:"4px"}}>👁</span>}
                     </div>
                   </td>
@@ -6535,7 +6543,7 @@ export default function App(){
   const [showPrivacidad,setShowPrivacidad] = useState(false);
   const [showPerfil,setShowPerfil] = useState(false);
   const [tab,setTabRaw] = useState("home");
-  const setTab = (v)=>{setShowPerfil(false);setTabRaw(v);};
+  const setTab = (v)=>{setShowPerfil(false);setTabRaw(v);try{registrarEvento("visita_tab",v);}catch{}};
 
   useEffect(()=>{
     const setupUser=async(session)=>{
@@ -6550,7 +6558,9 @@ export default function App(){
         const {data:notifs}=await supabase.from("notificaciones").select("*").eq("user_id",u.id).order("created_at",{ascending:false}).limit(20);
         setNotificaciones(notifs||[]);
         setNotifCount((notifs||[]).filter(n=>!n.leida).length);
-      }else{setIsAdmin(false);setFavoritos([]);setNotificaciones([]);setNotifCount(0);}
+        // Logros: inicializa estado y registra login (cubre bienvenida, habitual, season_pass, veterano, noctambulo)
+        try{ await initLogros(u); await registrarEvento("login",{}); }catch(e){ console.warn("logros init",e); }
+      }else{setIsAdmin(false);setFavoritos([]);setNotificaciones([]);setNotifCount(0);initLogros(null);}
     };
     supabase.auth.getSession().then(({data:{session}})=>setupUser(session));
     const {data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>setupUser(session));
@@ -6566,7 +6576,17 @@ export default function App(){
       setFavoritos(prev=>prev.filter(f=>f.id!==ex.id));
     }else{
       const {data}=await supabase.from("favoritos").insert({user_id:user.id,tipo,id_referencia:idRef}).select().single();
-      if(data)setFavoritos(prev=>[...prev,data]);
+      if(data){
+        setFavoritos(prev=>[...prev,data]);
+        try{
+          if(tipo==="jugadora") registrarEvento("fav_jugadora", idRef);
+          else if(tipo==="equipo"){
+            registrarEvento("fav_equipo", idRef);
+            const eq=(equipos||[]).find(e=>e.id_equipo===idRef);
+            if(eq?.id_liga) registrarEvento("fav_equipo_liga", eq.id_liga);
+          }
+        }catch(e){/* ignore */}
+      }
     }
   };
 
@@ -6586,7 +6606,37 @@ export default function App(){
     const {error}=await supabase.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin}});
     if(error)setLoginErr(error.message);
   };
-  const handleLogout=async()=>{await supabase.auth.signOut();setUser(null);setIsAdmin(false);setFavoritos([]);};
+  const handleLogout=async()=>{await supabase.auth.signOut();setUser(null);setIsAdmin(false);setFavoritos([]);initLogros(null);};
+
+  // Logros: toast + modales
+  const [logroToast,setLogroToast]=useState(null);
+  const [showLogros,setShowLogros]=useState(false);
+  const [verPerfilAlias,setVerPerfilAlias]=useState(null);
+  useEffect(()=>{
+    const off=onLogroDesbloqueado(l=>{
+      setLogroToast(l);
+      setTimeout(()=>setLogroToast(cur=>cur?.slug===l.slug?null:cur),4500);
+    });
+    return off;
+  },[]);
+  // día_partido + tip-off (cuando hay user + partidos cargados)
+  useEffect(()=>{
+    if(!user || !partidos || partidos.length===0) return;
+    const LIGAS_LIVE=new Set(["L006","L010","L011","L109"]); // WNBA, Euroliga, Eurocup, LF
+    const hoy=new Date();
+    const hoyStr=hoy.toISOString().slice(0,10);
+    const hoyPartidos=partidos.filter(p=>p.fecha_hora && LIGAS_LIVE.has(p.id_liga) && p.fecha_hora.slice(0,10)===hoyStr);
+    if(hoyPartidos.length>0){
+      try{ registrarEvento("login_dia_partido", hoyStr); }catch{}
+    }
+    // tip-off: alguno acaba de empezar (últimos 5 min)
+    const now=Date.now();
+    const tipoff=hoyPartidos.some(p=>{
+      const t=new Date(p.fecha_hora).getTime();
+      return now>=t && now-t <= 5*60*1000;
+    });
+    if(tipoff){ try{ registrarEvento("login_tipoff",{});}catch{} }
+  },[user, partidos]);
   const [openPlayerId,setOpenPlayerId] = useState(null);
   const [openTeamId,setOpenTeamId]     = useState(null);
   const [openTeamYear,setOpenTeamYear] = useState(null);
@@ -6619,10 +6669,16 @@ export default function App(){
     window.history.pushState({from},"",pathFor(destTab,destId));
   };
 
-  const goToTeam   = (id,year=null,from=null)=>{pushNav(from,"equipos",id);setOpenTeamId(id);setOpenTeamYear(year);setOpenPlayerId(null);setTab("equipos");scrollTop();};
-  const goToLeague = (id,from=null)=>{pushNav(from,"ligas",id);setOpenLigaId(id);setTab("ligas");scrollTop();};
-  const goToPlayer = (id,from=null)=>{pushNav(from,"jugadoras",id);setOpenPlayerId(id);setOpenTeamId(null);setTab("jugadoras");scrollTop();};
-  const goToCoach  = (id,from=null)=>{pushNav(from,"cuerpo_tecnico",id);setOpenCoachId(id);setTab("cuerpo_tecnico");scrollTop();};
+  const goToTeam   = (id,year=null,from=null)=>{pushNav(from,"equipos",id);setOpenTeamId(id);setOpenTeamYear(year);setOpenPlayerId(null);setTab("equipos");scrollTop();try{registrarEvento("visita_equipo",id);}catch{}};
+  const goToLeague = (id,from=null)=>{pushNav(from,"ligas",id);setOpenLigaId(id);setTab("ligas");scrollTop();try{registrarEvento("visita_liga",id);}catch{}};
+  const goToPlayer = (id,from=null)=>{
+    pushNav(from,"jugadoras",id);setOpenPlayerId(id);setOpenTeamId(null);setTab("jugadoras");scrollTop();
+    try{
+      const p=(players||[]).find(x=>x.id_jugadora===id);
+      registrarEvento("visita_jugadora",{id, id_liga:p?.id_liga});
+    }catch{}
+  };
+  const goToCoach  = (id,from=null)=>{pushNav(from,"cuerpo_tecnico",id);setOpenCoachId(id);setTab("cuerpo_tecnico");scrollTop();try{registrarEvento("visita_coach",id);}catch{}};
   const goToPartido= (id,from=null)=>{setPartidosSub(["partido",String(id)]);setTab("partidos");try{window.history.pushState({},"",`/partidos/partido/${id}`);}catch(e){}scrollTop();};
   const regExtra=(mvps?.length||0)+(totalCounts.partidos||partidos?.length||0)+boxCount+(equiposNombres?.length||0)+(totalCounts.temporadas||0);
 
@@ -6962,6 +7018,10 @@ export default function App(){
                     style={{width:"100%",background:"rgba(147,51,234,0.2)",color:"#a78bfa",border:"1px solid rgba(147,51,234,0.4)",borderRadius:"8px",padding:"8px",fontWeight:700,fontSize:"12px",cursor:"pointer",marginBottom:"8px"}}>
                     👤 Mi perfil
                   </button>
+                  <button onClick={()=>{setShowLogros(true);setShowUserMenu(false);}}
+                    style={{width:"100%",background:"rgba(234,179,8,0.15)",color:"#fde047",border:"1px solid rgba(234,179,8,0.3)",borderRadius:"8px",padding:"8px",fontWeight:700,fontSize:"12px",cursor:"pointer",marginBottom:"8px"}}>
+                    🏆 Mis logros
+                  </button>
                   <button onClick={togglePush} style={{width:"100%",background:pushEnabled?"rgba(34,197,94,0.15)":"rgba(147,51,234,0.15)",color:pushEnabled?"#4ade80":"#a78bfa",border:`1px solid ${pushEnabled?"rgba(34,197,94,0.3)":"rgba(147,51,234,0.3)"}`,borderRadius:"8px",padding:"8px",fontWeight:700,fontSize:"12px",cursor:"pointer",marginBottom:"8px"}}>{pushEnabled?"🔔 Notificaciones activadas":"🔕 Activar notificaciones"}</button>
                   <button onClick={()=>{handleLogout();setShowUserMenu(false);}} style={{width:"100%",background:"#ef4444",color:"#fff",border:"none",borderRadius:"8px",padding:"8px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>Cerrar sesión</button>
                 </div>
@@ -6980,7 +7040,7 @@ export default function App(){
         {!showPerfil&&tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} coaches={coaches} tempCoach={tempCoach} partidos={partidos} onGoToClasificacion={(ligaId,temporada)=>{setOpenClasiKey(`${ligaId}|${temporada||""}`);setTab("partidos");scrollTop();}} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setLigas={setLigas} regExtra={regExtra} isFavFn={isFav} onToggleFav={toggleFav}/>}
         {!showPrivacidad&&!showPerfil&&tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setCoaches={setCoaches} setTempCoach={setTempCoach} equiposNombres={equiposNombres} regExtra={regExtra}/>}
         {!showPrivacidad&&!showPerfil&&tab==="quiniela"&&(user
-          ?<QuinielaView user={user} equipos={equipos}/>
+          ?<QuinielaView user={user} equipos={equipos} onAbrirPerfil={setVerPerfilAlias}/>
           :<div style={{maxWidth:"420px",margin:"48px auto",padding:"24px",background:"#fff",borderRadius:"16px",textAlign:"center",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
             <div style={{fontSize:"38px",marginBottom:"8px"}}>🎯</div>
             <h3 style={{margin:"0 0 6px",color:"#1e293b",fontSize:"18px",fontWeight:800}}>Quiniela · Mundial 2026</h3>
@@ -6990,5 +7050,26 @@ export default function App(){
         {!showPrivacidad&&!showPerfil&&tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} mvps={mvps} equiposNombres={equiposNombres} openClasiKey={openClasiKey} onClearClasi={()=>setOpenClasiKey(null)} partidosSub={partidosSub} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id,year)=>goToTeam(id,year||null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})} onGoToPlayer={(id)=>goToPlayer(id,{tab:"partidos",label:"Ver partidos"})}/>}
       </div>
     </div>
+    {/* Logros: toast + modales */}
+    {logroToast&&(
+      <div onClick={()=>{setShowLogros(true);setLogroToast(null);}}
+        style={{position:"fixed",bottom:"20px",left:"50%",transform:"translateX(-50%)",background:"#1e293b",color:"#fde047",border:"1.5px solid #eab308",borderRadius:"14px",padding:"12px 18px",boxShadow:"0 10px 30px rgba(0,0,0,0.4)",zIndex:999,display:"flex",alignItems:"center",gap:"10px",cursor:"pointer",maxWidth:"90vw",fontFamily:"system-ui,sans-serif"}}>
+        <div style={{fontSize:"28px"}}>{logroToast.emoji}</div>
+        <div>
+          <div style={{fontSize:"11px",color:"#fef9c3",fontWeight:700}}>🏆 LOGRO DESBLOQUEADO</div>
+          <div style={{fontSize:"14px",color:"#fff",fontWeight:800}}>{logroToast.nombre}</div>
+        </div>
+      </div>
+    )}
+    {showLogros&&(
+      <Suspense fallback={null}>
+        <LogrosModal onClose={()=>setShowLogros(false)}/>
+      </Suspense>
+    )}
+    {verPerfilAlias&&(
+      <Suspense fallback={null}>
+        <PerfilPublicoModal alias={verPerfilAlias} onClose={()=>setVerPerfilAlias(null)}/>
+      </Suspense>
+    )}
     </>);
 }
