@@ -5957,8 +5957,8 @@ function bnParticipantes(slot, d){
     case "qf_30":return [g("B",1),w("playin_28")];
     case "qf_31":return [g("C",1),w("playin_25")];
     case "qf_32":return [g("D",1),w("playin_26")];
-    case "sf_33":return [w("qf_29"),w("qf_30")];
-    case "sf_34":return [w("qf_31"),w("qf_32")];
+    case "sf_33":return [w("qf_29"),w("qf_32")];
+    case "sf_34":return [w("qf_30"),w("qf_31")];
     case "final_36":return [w("sf_33"),w("sf_34")];
     case "br_35":return [loser("sf_33"),loser("sf_34")];
     default:return [];
@@ -6131,18 +6131,18 @@ function BasketnetaView({user,equipos,cierre}){
             );
           };
           const line="#cbd5e1";
-          // Play-in ordenados para alinearse visualmente con su QF de destino
+          // Orden visual: SF#33 arriba = QF29+QF32 (cross), SF#34 abajo = QF30+QF31
           const playins=[
             {slot:"playin_27",label:"Play-in #27",puntos:2}, // → QF#29
+            {slot:"playin_26",label:"Play-in #26",puntos:2}, // → QF#32
             {slot:"playin_28",label:"Play-in #28",puntos:2}, // → QF#30
             {slot:"playin_25",label:"Play-in #25",puntos:2}, // → QF#31
-            {slot:"playin_26",label:"Play-in #26",puntos:2}, // → QF#32
           ];
           const qfs=[
             {slot:"qf_29",label:"Cuartos #29",puntos:3},
+            {slot:"qf_32",label:"Cuartos #32",puntos:3},
             {slot:"qf_30",label:"Cuartos #30",puntos:3},
             {slot:"qf_31",label:"Cuartos #31",puntos:3},
-            {slot:"qf_32",label:"Cuartos #32",puntos:3},
           ];
           const sfs=[
             {slot:"sf_33",label:"Semifinal #33",puntos:5},
