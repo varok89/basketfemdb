@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { LOGROS, CATEGORIAS, getEstadoLogros } from "../lib/logros";
+import Medalla from "./Medalla";
 
 /* Modal privado "🏆 Mis logros": grid con desbloqueados en color y bloqueados en gris. */
 export default function LogrosModal({onClose}){
@@ -43,10 +44,10 @@ export default function LogrosModal({onClose}){
                   const ok=desbloq.has(l.slug);
                   return (
                     <div key={l.slug} title={ok?l.desc:l.pista}
-                      style={{background:ok?"linear-gradient(135deg,#fef3c7,#fde68a)":"#f8fafc",border:`1.5px solid ${ok?"#f59e0b":"#e2e8f0"}`,borderRadius:"12px",padding:"12px 10px",textAlign:"center",opacity:ok?1:0.55}}>
-                      <div style={{fontSize:"32px",filter:ok?"none":"grayscale(1)"}}>{ok?l.emoji:"🔒"}</div>
-                      <div style={{fontSize:"12px",fontWeight:700,color:"#1e293b",marginTop:"4px",lineHeight:1.2}}>{l.nombre}</div>
-                      <div style={{fontSize:"10px",color:"#64748b",marginTop:"3px",lineHeight:1.25}}>{ok?l.desc:l.pista}</div>
+                      style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:"12px",padding:"14px 10px",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:"6px"}}>
+                      <Medalla slug={l.slug} cat={l.cat} emoji={l.emoji} size={84} locked={!ok}/>
+                      <div style={{fontSize:"12px",fontWeight:700,color:ok?"#1e293b":"#94a3b8",marginTop:"4px",lineHeight:1.2}}>{l.nombre}</div>
+                      <div style={{fontSize:"10px",color:"#94a3b8",lineHeight:1.25}}>{ok?l.desc:l.pista}</div>
                     </div>
                   );
                 })}

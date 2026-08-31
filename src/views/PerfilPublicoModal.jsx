@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { LOGROS_BY_SLUG } from "../lib/logros";
+import Medalla from "./Medalla";
 
 /* Perfil público: solo alias + avatar + miembro desde + logros desbloqueados.
    Cero información adicional (email, favoritos, historial, etc). */
@@ -59,11 +60,11 @@ export default function PerfilPublicoModal({alias, onClose}){
               {logros.length===0
                 ? <div style={{padding:"24px",textAlign:"center",color:"#94a3b8",fontSize:"13px",background:"#f8fafc",borderRadius:"10px"}}>Todavía sin logros desbloqueados.</div>
                 : (
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))",gap:"10px"}}>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:"10px"}}>
                     {logros.map(l=>(
                       <div key={l.slug} title={l.desc}
-                        style={{background:"linear-gradient(135deg,#fef3c7,#fde68a)",border:"1.5px solid #f59e0b",borderRadius:"12px",padding:"10px",textAlign:"center"}}>
-                        <div style={{fontSize:"28px"}}>{l.emoji}</div>
+                        style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:"12px",padding:"12px 8px",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:"4px"}}>
+                        <Medalla slug={l.slug} cat={l.cat} emoji={l.emoji} size={72}/>
                         <div style={{fontSize:"11px",fontWeight:700,color:"#1e293b",marginTop:"3px",lineHeight:1.2}}>{l.nombre}</div>
                       </div>
                     ))}
