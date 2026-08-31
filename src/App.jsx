@@ -1179,7 +1179,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
           const hoy=new Date().toDateString();
           const esHoy=p=>new Date(p.fecha_hora).toDateString()===hoy;
           const partHoy=ps.filter(p=>esHoy(p)).sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
-          const resultados=ps.filter(p=>getPartidoEstado(p)==="terminado"&&!esHoy(p)).sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
+          const resultados=ps.filter(p=>getPartidoEstado(p)==="terminado"&&!esHoy(p)).sort((a,b)=>new Date(b.fecha_hora)-new Date(a.fecha_hora));
           const proximos=ps.filter(p=>(getPartidoEstado(p)==="proximo"||getPartidoEstado(p)==="normal")&&!esHoy(p)).sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
           const hayEnJuego=ps.some(p=>getPartidoEstado(p)==="en_juego");
           const hayHoy=partHoy.length>0;
@@ -1321,20 +1321,6 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                     </div>
                   )}
 
-                  {/* ÚLTIMOS RESULTADOS */}
-                  {resultados.length>0&&(
-                    <div style={{marginTop:"8px"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px"}}>
-                        <div style={{flex:1,height:"1px",background:"#e2e8f0"}}/>
-                        <span style={{fontSize:"11px",fontWeight:700,color:"#94a3b8",whiteSpace:"nowrap"}}>Últimos resultados</span>
-                        <div style={{flex:1,height:"1px",background:"#e2e8f0"}}/>
-                      </div>
-                      <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
-                        {resultados.map(p=><TarjetaPartido key={p.id} p={p}/>)}
-                      </div>
-                    </div>
-                  )}
-
                   {/* PRÓXIMOS */}
                   {proximos.length>0&&(
                     <div style={{marginTop:"8px"}}>
@@ -1345,6 +1331,20 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                       </div>
                       <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
                         {proximos.map(p=><TarjetaPartido key={p.id} p={p}/>)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ÚLTIMOS RESULTADOS */}
+                  {resultados.length>0&&(
+                    <div style={{marginTop:"8px"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px"}}>
+                        <div style={{flex:1,height:"1px",background:"#e2e8f0"}}/>
+                        <span style={{fontSize:"11px",fontWeight:700,color:"#94a3b8",whiteSpace:"nowrap"}}>Últimos resultados</span>
+                        <div style={{flex:1,height:"1px",background:"#e2e8f0"}}/>
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+                        {resultados.map(p=><TarjetaPartido key={p.id} p={p}/>)}
                       </div>
                     </div>
                   )}
