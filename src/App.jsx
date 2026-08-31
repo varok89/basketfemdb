@@ -5953,10 +5953,10 @@ function bnParticipantes(slot, d){
     case "playin_26":return [g("B",2),g("A",3)];
     case "playin_27":return [g("C",2),g("D",3)];
     case "playin_28":return [g("D",2),g("C",3)];
-    case "qf_29":return [g("A",1),w("playin_26")];
-    case "qf_30":return [g("B",1),w("playin_25")];
-    case "qf_31":return [g("C",1),w("playin_28")];
-    case "qf_32":return [g("D",1),w("playin_27")];
+    case "qf_29":return [g("A",1),w("playin_27")];
+    case "qf_30":return [g("B",1),w("playin_28")];
+    case "qf_31":return [g("C",1),w("playin_25")];
+    case "qf_32":return [g("D",1),w("playin_26")];
     case "sf_33":return [w("qf_29"),w("qf_30")];
     case "sf_34":return [w("qf_31"),w("qf_32")];
     case "final_36":return [w("sf_33"),w("sf_34")];
