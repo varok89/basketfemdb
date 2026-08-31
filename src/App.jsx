@@ -6131,12 +6131,12 @@ function BasketnetaView({user,equipos,cierre}){
             );
           };
           const line="#cbd5e1";
-          // Play-in ordenados para alinearse con su QF de destino
+          // Play-in ordenados para alinearse visualmente con su QF de destino
           const playins=[
-            {slot:"playin_26",label:"Play-in #26",puntos:2}, // → QF#29
-            {slot:"playin_25",label:"Play-in #25",puntos:2}, // → QF#30
-            {slot:"playin_28",label:"Play-in #28",puntos:2}, // → QF#31
-            {slot:"playin_27",label:"Play-in #27",puntos:2}, // → QF#32
+            {slot:"playin_27",label:"Play-in #27",puntos:2}, // → QF#29
+            {slot:"playin_28",label:"Play-in #28",puntos:2}, // → QF#30
+            {slot:"playin_25",label:"Play-in #25",puntos:2}, // → QF#31
+            {slot:"playin_26",label:"Play-in #26",puntos:2}, // → QF#32
           ];
           const qfs=[
             {slot:"qf_29",label:"Cuartos #29",puntos:3},
