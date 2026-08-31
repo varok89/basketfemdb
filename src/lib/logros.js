@@ -130,12 +130,6 @@ export const LOGROS = [
     evento:"fav_equipo_liga", clave:"fav_equipos_ligas_set",
     check:v=>(v?.set||[]).length>=3 },
 
-  { slug:"cazatalentos", cat:"coleccionismo", emoji:"🕵️",
-    nombre:"Cazatalentos", desc:"5 jugadoras seguidas antes de los 20 años llegan a WNBA o Euroliga.",
-    pista:"Ojo clínico para el futuro.",
-    evento:"cazatalentos_hit", clave:"cazatalentos_set",
-    check:v=>(v?.set||[]).length>=5 },
-
   // ── Secretos ─────────────────────────────────────
   { slug:"fan_de_x", cat:"secretos", emoji:"💜",
     nombre:"Fan de...", desc:"Visita el perfil de una misma jugadora 10 veces.",
@@ -166,12 +160,17 @@ function _emit(logro){ _listeners.forEach(fn=>{ try{fn(logro);}catch{} }); }
 
 export async function initLogros(user){
   if(!user){ _estado=null; return null; }
-  const [{data:d}, {data:p}] = await Promise.all([
+  const [{data:d}, {data:p}, {count:cbn}, {count:cbo}] = await Promise.all([
     supabase.from("logros_usuario").select("slug_logro").eq("id_usuario",user.id),
     supabase.from("logros_progreso").select("clave,valor").eq("id_usuario",user.id),
+    supabase.from("basketneta_predicciones").select("*",{count:"exact",head:true}).eq("user_id",user.id),
+    supabase.from("bola_cristal_predicciones").select("*",{count:"exact",head:true}).eq("user_id",user.id),
   ]);
   const progreso = {};
   (p||[]).forEach(r=>{ progreso[r.clave]=r.valor; });
+  // Recount predicciones reales (fuente de verdad = tablas de predicciones)
+  const totalPred = (cbn||0)+(cbo||0);
+  if(totalPred>0) progreso.predicciones_count = { count: totalPred };
   const antiguedad = user.created_at ? Math.floor((Date.now()-new Date(user.created_at).getTime())/86400000) : 0;
   _estado = {
     userId: user.id,
@@ -179,6 +178,13 @@ export async function initLogros(user){
     progreso,
     antiguedadDias: antiguedad,
   };
+  // Persistir recount si difiere
+  if(totalPred>0){
+    await supabase.from("logros_progreso").upsert({
+      id_usuario: user.id, clave:"predicciones_count",
+      valor: progreso.predicciones_count, actualizado_en: new Date().toISOString(),
+    }, { onConflict:"id_usuario,clave" });
+  }
   return _estado;
 }
 
@@ -189,7 +195,7 @@ function _mutar(valorPrev, tipo, payload){
   if(tipo==="add_set"){
     const s = new Set(v.set||[]); s.add(payload); v.set=[...s];
   } else if(tipo==="inc"){
-    v.count = (v.count||0)+1;
+    v.count = (v.count||0) + (payload?.n || 1);
   } else if(tipo==="racha"){
     const hoy = payload.hoy;
     if(v.last===hoy) return v;
@@ -251,9 +257,8 @@ export async function registrarEvento(tipo, payload){
     else if(tipo==="fav_jugadora")     nuevo = _mutar(prev,"add_set", payload);
     else if(tipo==="fav_equipo")       nuevo = _mutar(prev,"add_set", payload);
     else if(tipo==="fav_equipo_liga")  nuevo = _mutar(prev,"add_set", payload);
-    else if(tipo==="cazatalentos_hit") nuevo = _mutar(prev,"add_set", payload);
-    else if(tipo==="prediccion")       nuevo = _mutar(prev,"inc");
-    else if(tipo==="exacto")           nuevo = _mutar(prev,"inc");
+    else if(tipo==="prediccion")       nuevo = _mutar(prev,"inc", {n: payload?.n||1});
+    else if(tipo==="exacto")           nuevo = _mutar(prev,"inc", {n: payload?.n||1});
     else if(tipo==="acierto_ganador")  nuevo = _mutar(prev,"racha_ganador", payload);
     else if(tipo==="login" && logro.clave==="login_racha")
       nuevo = _mutar(prev,"racha",{hoy:new Date().toISOString().slice(0,10)});

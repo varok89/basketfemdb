@@ -6559,7 +6559,12 @@ export default function App(){
         setNotificaciones(notifs||[]);
         setNotifCount((notifs||[]).filter(n=>!n.leida).length);
         // Logros: inicializa estado y registra login (cubre bienvenida, habitual, season_pass, veterano, noctambulo)
-        try{ await initLogros(u); await registrarEvento("login",{}); }catch(e){ console.warn("logros init",e); }
+        // + evaluación de logros de quiniela con el conteo real de predicciones que trae initLogros
+        try{
+          await initLogros(u);
+          await registrarEvento("login",{});
+          await registrarEvento("prediccion",{n:0}); // evalúa debut_quinielero + analista sin sumar
+        }catch(e){ console.warn("logros init",e); }
       }else{setIsAdmin(false);setFavoritos([]);setNotificaciones([]);setNotifCount(0);initLogros(null);}
     };
     supabase.auth.getSession().then(({data:{session}})=>setupUser(session));
