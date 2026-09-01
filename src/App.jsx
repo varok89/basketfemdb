@@ -3440,11 +3440,12 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   const updPlayer=async f=>{
     setSaving(true);
     const payload={nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,fecha_fallecimiento:f.fecha_fallecimiento||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null,id_espn:f.id_espn?.trim()||null,fiba_person_id:f.fiba_person_id?.trim()||null,id_feb:f.id_feb?.trim()||null};
-    try{const{error}=await supabase.from("jugadoras").update(payload).eq("id_jugadora",selId);
+    const timeout=new Promise((_,r)=>setTimeout(()=>r(new Error("Timeout guardando (15s). Reintenta.")),15000));
+    try{const{error}=await Promise.race([supabase.from("jugadoras").update(payload).eq("id_jugadora",selId),timeout]);
       if(error)throw error;
       setPlayers(prev=>prev.map(p=>p.id_jugadora!==selId?p:{...p,...payload}));
       setModal(null);}catch(e){alert("Error: "+e.message);}
-    setSaving(false);
+    finally{setSaving(false);}
   };
   const delPlayer=async()=>{
     try{await supabase.from("temporadas").delete().eq("id_jugadora",selId);

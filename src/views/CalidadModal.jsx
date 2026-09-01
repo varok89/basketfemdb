@@ -581,10 +581,13 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     // ventanas de partidos y vamos acumulando hasta que no quede siguiente_offset.
     var acc={partidos:0,total:0,creados:0,notas_rellenadas:0,parciales_escritos:0,hechos:0,saltados:0,filas:0,via_global:0,plantilla_altas:0,sin_mapear:[],sin_mapear_equipos:[],colisiones:[],creados_detalle:[],dry:scDry};
     try{
+      // History (render=true en ScraperAPI) tarda ~25s por partido → bajar tamaño de lote para no exceder el timeout de la edge (150s).
+      var esHistory=scSlug.trim().indexOf("history/")===0;
+      var loteLimit=esHistory?5:15;
       var offset=0,primera=true,guard=0;
       while(guard<80){
         guard++;
-        var inv=await supabase.functions.invoke("cargar-boxscores-fiba",{body:{id_liga:scLiga,temporada:scTemp.trim(),slug:scSlug.trim(),dry:scDry,crear:scCrear&&primera,force:scForce,offset:offset,limit:15}});
+        var inv=await supabase.functions.invoke("cargar-boxscores-fiba",{body:{id_liga:scLiga,temporada:scTemp.trim(),slug:scSlug.trim(),dry:scDry,crear:scCrear&&primera,force:scForce,offset:offset,limit:loteLimit}});
         if(inv.error){setScRes(Object.assign({},acc,{error:String((inv.error&&inv.error.message)||inv.error)}));setScBusy(false);return;}
         var d=inv.data||{};
         if(d.error){setScRes(Object.assign({},acc,{error:d.error}));setScBusy(false);return;}
