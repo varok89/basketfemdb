@@ -45,7 +45,7 @@ export default function RankingFibaView({ equipos, isAdmin, onGoToTeam, onReload
     <div style={{ maxWidth: "980px", margin: "0 auto", padding: "16px", fontFamily: "system-ui,sans-serif" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px", flexWrap: "wrap", gap: "10px" }}>
         <div>
-          <h1 style={{ fontWeight: 800, fontSize: "22px", color: "#1e293b", margin: 0 }}>🌐 Ranking FIBA · Mujeres</h1>
+          <h1 style={{ fontWeight: 800, fontSize: "22px", color: "#1e293b", margin: 0 }}>🌐 Ranking FIBA</h1>
           {updated && <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>Última actualización: {updated.toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" })}</div>}
         </div>
         {isAdmin && (
