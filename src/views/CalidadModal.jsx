@@ -583,7 +583,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     try{
       // History (render=true en ScraperAPI) tarda ~25s por partido → bajar tamaño de lote para no exceder el timeout de la edge (150s).
       var esHistory=scSlug.trim().indexOf("history/")===0;
-      var loteLimit=esHistory?5:15;
+      var loteLimit=esHistory?4:15;
       var offset=0,primera=true,guard=0;
       while(guard<80){
         guard++;
