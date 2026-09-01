@@ -30,3 +30,4 @@ yarn-error.log*
 # Obsidian vault personal
 Basketneta/
 Vault/
+.firecrawl/
