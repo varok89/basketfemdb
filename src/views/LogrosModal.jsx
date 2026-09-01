@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { LOGROS, CATEGORIAS, getEstadoLogros } from "../lib/logros";
-import Medalla from "./Medalla";
+import { MedallaCard } from "./Medalla";
 
 /* Modal privado "🏆 Mis logros": grid con desbloqueados en color y bloqueados en gris. */
 export default function LogrosModal({onClose}){
@@ -40,17 +40,9 @@ export default function LogrosModal({onClose}){
             <div key={cat} style={{marginBottom:"22px"}}>
               <div style={{fontSize:"12px",fontWeight:800,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:"10px"}}>{CATEGORIAS[cat]?.titulo||cat}</div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:"10px"}}>
-                {items.map(l=>{
-                  const ok=desbloq.has(l.slug);
-                  return (
-                    <div key={l.slug} title={ok?l.desc:l.pista}
-                      style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:"12px",padding:"14px 10px",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:"6px"}}>
-                      <Medalla slug={l.slug} cat={l.cat} emoji={l.emoji} size={84} locked={!ok}/>
-                      <div style={{fontSize:"12px",fontWeight:700,color:ok?"#1e293b":"#94a3b8",marginTop:"4px",lineHeight:1.2}}>{l.nombre}</div>
-                      <div style={{fontSize:"10px",color:"#94a3b8",lineHeight:1.25}}>{ok?l.desc:l.pista}</div>
-                    </div>
-                  );
-                })}
+                {items.map(l=>(
+                  <MedallaCard key={l.slug} logro={l} conseguido={desbloq.has(l.slug)} size={84} showDesc/>
+                ))}
               </div>
             </div>
           ))}

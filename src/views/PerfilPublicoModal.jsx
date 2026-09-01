@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { LOGROS_BY_SLUG } from "../lib/logros";
-import Medalla from "./Medalla";
+import { MedallaCard } from "./Medalla";
 
 /* Perfil público: solo alias + avatar + miembro desde + logros desbloqueados.
    Cero información adicional (email, favoritos, historial, etc). */
@@ -62,11 +62,7 @@ export default function PerfilPublicoModal({alias, onClose}){
                 : (
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:"10px"}}>
                     {logros.map(l=>(
-                      <div key={l.slug} title={l.desc}
-                        style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:"12px",padding:"12px 8px",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:"4px"}}>
-                        <Medalla slug={l.slug} cat={l.cat} emoji={l.emoji} size={72}/>
-                        <div style={{fontSize:"11px",fontWeight:700,color:"#1e293b",marginTop:"3px",lineHeight:1.2}}>{l.nombre}</div>
-                      </div>
+                      <MedallaCard key={l.slug} logro={l} size={72} dense/>
                     ))}
                   </div>
                 )}

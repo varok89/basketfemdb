@@ -85,6 +85,24 @@ const TIPO_COLORS = {
 // Si se pasa fechaFin (p.ej. fallecimiento), calcula la edad hasta esa fecha, no hasta hoy.
 const calcAge = (d, fechaFin) => d ? Math.floor(((fechaFin?new Date(fechaFin):new Date())-new Date(d))/(365.25*24*3600*1000)) : null;
 
+const CHIP_STYLES = {
+  neutral: {background:"#f1f5f9", color:"#475569", fontWeight:600},
+  fiba:    {background:"#f5f3ff", color:"#7c3aed", border:"1px solid #ddd6fe", fontWeight:700},
+  venue:   {background:"#eff6ff", color:"#2563eb", fontWeight:600},
+  year:    {background:"#fff7ed", color:"#c2410c", fontWeight:700},
+};
+function Chip({ variant="neutral", children, onClick, href, title }){
+  const base = {
+    ...CHIP_STYLES[variant],
+    fontSize:"12px", padding:"3px 10px", borderRadius:"20px",
+    display:"inline-flex", alignItems:"center", gap:"3px",
+    ...(onClick ? {cursor:"pointer"} : {}),
+    ...(href ? {textDecoration:"none"} : {}),
+  };
+  if (href) return <a href={href} target="_blank" rel="noopener noreferrer" title={title} style={base}>{children}</a>;
+  return <span title={title} onClick={onClick} style={base}>{children}</span>;
+}
+
 function sortS(ss) {
   return [...(ss||[])].sort((a,b) => {
     const ay = a.temporada||a.year||"";
@@ -4268,11 +4286,11 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
             <div style={{flex:1,minWidth:"180px"}}>
               <div><div style={{display:"flex",alignItems:"center",gap:"8px"}}><h1 style={{fontWeight:800,fontSize:"22px",color:"#1e293b",margin:"0 0 4px"}}>{eq.nombre}</h1>{eq.filial_de&&<span style={{background:"#f0fdf4",color:"#16a34a",fontSize:"10px",fontWeight:800,padding:"2px 8px",borderRadius:"20px"}}>Filial de {equipoMap[eq.filial_de]?.nombre||eq.filial_de}</span>}{onToggleFav&&<button onClick={e=>{e.stopPropagation();onToggleFav("equipo",eq.id_equipo);}} title={isFavFn?.("equipo",eq.id_equipo)?"Quitar de favoritos":"Añadir a favoritos"} style={{background:"none",border:"none",cursor:"pointer",fontSize:"20px",padding:0,lineHeight:1,flexShrink:0}}>{isFavFn?.("equipo",eq.id_equipo)?"⭐":"☆"}</button>}</div>{isAdmin&&<span style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{eq.id_equipo}</span>}</div>
               <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
-                {eq.pais&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center"}}><FlagImg country={eq.pais}/>{eq.pais}</span>}
-                {eq.fiba_rank&&<span title={eq.fiba_zona?`Ranking FIBA (${eq.fiba_zona})`:"Ranking FIBA mundial"} onClick={e=>{e.stopPropagation();onGoToTab&&onGoToTab("ranking_fiba");}} style={{background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe",fontSize:"12px",fontWeight:700,padding:"3px 10px",borderRadius:"20px",cursor:onGoToTab?"pointer":"default"}}>🌐 RankFIBA: #{eq.fiba_rank}</span>}
-                {eq.ciudad&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px"}}>📍 {eq.ciudad}</span>}
-                {eq.pabellon&&<a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(eq.ciudad?`${eq.pabellon}, ${eq.ciudad}`:eq.pabellon)}`} target="_blank" rel="noopener noreferrer" style={{background:"#eff6ff",color:"#2563eb",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"3px"}}>🏟️ {eq.pabellon}</a>}
-                {eq.año_fundacion&&<span style={{background:"#fff7ed",color:"#c2410c",fontSize:"12px",fontWeight:700,padding:"3px 10px",borderRadius:"20px"}}>Est. {eq.año_fundacion}</span>}
+                {eq.pais&&<Chip><FlagImg country={eq.pais}/>{eq.pais}</Chip>}
+                {eq.fiba_rank&&<Chip variant="fiba" title={eq.fiba_zona?`Ranking FIBA (${eq.fiba_zona})`:"Ranking FIBA mundial"} onClick={onGoToTab?(e=>{e.stopPropagation();onGoToTab("ranking_fiba");}):undefined}>🌐 RankFIBA: #{eq.fiba_rank}</Chip>}
+                {eq.ciudad&&<Chip>📍 {eq.ciudad}</Chip>}
+                {eq.pabellon&&<Chip variant="venue" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(eq.ciudad?`${eq.pabellon}, ${eq.ciudad}`:eq.pabellon)}`}>🏟️ {eq.pabellon}</Chip>}
+                {eq.año_fundacion&&<Chip variant="year">Est. {eq.año_fundacion}</Chip>}
               </div>
             </div>
             {(()=>{const pal=(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo);if(!pal.length)return null;const counts={};pal.forEach(p=>{const n=ligaMap[p.id_liga]?.nombre||p.id_liga;counts[n]=(counts[n]||0)+1;});return(<div style={{display:"flex",flexDirection:"column",gap:"6px",alignItems:"flex-end",flexShrink:1,minWidth:0,maxWidth:"100%"}}>{Object.entries(counts).map(([nombre,n])=>(<span key={nombre} title={`${n}x ${nombre}`} style={{background:"#fffbeb",border:"1.5px solid #fed7aa",color:"#b45309",fontSize:"12px",fontWeight:700,padding:"4px 10px",borderRadius:"20px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"100%",boxSizing:"border-box"}}>🏆 {n}x {nombre}</span>))}</div>);})()}

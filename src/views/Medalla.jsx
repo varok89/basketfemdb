@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 const COLORES = {
   bienvenida:    {c1:"#fecaca", c2:"#dc2626", c3:"#7f1d1d"},
   exploracion:   {c1:"#bbf7d0", c2:"#16a34a", c3:"#14532d"},
@@ -10,9 +12,10 @@ const COLORES = {
 /* Medalla clásica: disco esmaltado con láurel grabado, emoji en relieve. */
 export default function Medalla({ slug, cat, emoji, size = 96, locked = false }){
   const col = COLORES[cat] || COLORES.bienvenida;
-  const gid = `mg_${slug}`;
-  const eid = `me_${slug}`;
-  const fid = `mf_${slug}`;
+  const uid = useId();
+  const gid = `mg_${uid}`;
+  const eid = `me_${uid}`;
+  const fid = `mf_${uid}`;
 
   const laurel = [];
   for(let i=0;i<24;i++){
@@ -70,5 +73,20 @@ export default function Medalla({ slug, cat, emoji, size = 96, locked = false })
 
       <ellipse cx="44" cy="40" rx="26" ry="14" fill={`url(#${eid})`}/>
     </svg>
+  );
+}
+
+export function MedallaCard({ logro, conseguido = true, size = 84, showDesc = false, dense = false }){
+  const pad = dense ? "12px 8px" : "14px 10px";
+  const gap = dense ? "4px" : "6px";
+  const nameFont = dense ? "11px" : "12px";
+  const nameMargin = dense ? "3px" : "4px";
+  return (
+    <div title={conseguido ? logro.desc : logro.pista}
+      style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:"12px",padding:pad,textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap}}>
+      <Medalla slug={logro.slug} cat={logro.cat} emoji={logro.emoji} size={size} locked={!conseguido}/>
+      <div style={{fontSize:nameFont,fontWeight:700,color:conseguido?"#1e293b":"#94a3b8",marginTop:nameMargin,lineHeight:1.2}}>{logro.nombre}</div>
+      {showDesc && <div style={{fontSize:"10px",color:"#94a3b8",lineHeight:1.25}}>{conseguido?logro.desc:logro.pista}</div>}
+    </div>
   );
 }

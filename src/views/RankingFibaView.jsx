@@ -1,13 +1,32 @@
 import { useMemo, useState } from "react";
-import { SUPABASE_URL, SUPABASE_KEY } from "../lib/supabaseClient";
+import { supabase } from "../lib/supabaseClient";
 
-const ZONAS = ["Mundo", "Africa", "Americas", "Asia", "Europe"];
-const ZONA_LABEL = { Mundo: "🌍 Mundo", Africa: "🌍 África", Americas: "🌎 Américas", Asia: "🌏 Asia", Europe: "🌍 Europa" };
+const ZONAS = [
+  { key: "Mundo",    label: "🌍 Mundo" },
+  { key: "Africa",   label: "🌍 África" },
+  { key: "Americas", label: "🌎 Américas" },
+  { key: "Asia",     label: "🌏 Asia" },
+  { key: "Europe",   label: "🌍 Europa" },
+];
+
+const HEADER_STYLE = {
+  display: "grid", gridTemplateColumns: "60px 1fr 90px 80px",
+  padding: "10px 14px", background: "#f8fafc",
+  fontSize: "11px", fontWeight: 800, color: "#64748b",
+  textTransform: "uppercase", letterSpacing: "0.5px",
+  borderBottom: "1px solid #e2e8f0",
+};
+
+const ROW_STYLE = {
+  display: "grid", gridTemplateColumns: "60px 1fr 90px 80px",
+  alignItems: "center", padding: "10px 14px",
+  borderBottom: "1px solid #f1f5f9", cursor: "pointer",
+};
 
 export default function RankingFibaView({ equipos, isAdmin, onGoToTeam, onReload }) {
   const [zona, setZona] = useState("Mundo");
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg] = useState(null); // { tipo: 'ok'|'err', texto }
 
   const rows = useMemo(() => {
     return (equipos || [])
@@ -23,23 +42,22 @@ export default function RankingFibaView({ equipos, isAdmin, onGoToTeam, onReload
 
   async function actualizar() {
     if (!confirm("Descargar el ranking actual de FIBA y actualizar la BD (crea selecciones que falten)?")) return;
-    setBusy(true); setMsg("");
+    setBusy(true); setMsg(null);
     try {
-      const url = SUPABASE_URL + "/functions/v1/cargar-ranking-fiba";
-      const r = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY },
-        body: JSON.stringify({ gender: "women", crear_faltantes: true, dry: false }),
+      const { data, error } = await supabase.functions.invoke("cargar-ranking-fiba", {
+        body: { gender: "women", crear_faltantes: true, dry: false },
       });
-      const d = await r.json();
-      if (!d.ok) setMsg("❌ " + (d.error || "Error"));
+      if (error) setMsg({ tipo: "err", texto: error.message });
+      else if (!data?.ok) setMsg({ tipo: "err", texto: data?.error || "Error" });
       else {
-        setMsg(`✅ ${d.actualizados} actualizados · ${d.creados} creados · ${d.aprendidos_org_id} aprendieron org_id`);
+        setMsg({ tipo: "ok", texto: `${data.actualizados} actualizados · ${data.creados} creados · ${data.aprendidos_org_id} aprendieron org_id` });
         if (onReload) await onReload();
       }
-    } catch (e) { setMsg("❌ " + e.message); }
+    } catch (e) { setMsg({ tipo: "err", texto: e.message }); }
     setBusy(false);
   }
+
+  const isOk = msg?.tipo === "ok";
 
   return (
     <div style={{ maxWidth: "980px", margin: "0 auto", padding: "16px", fontFamily: "system-ui,sans-serif" }}>
@@ -57,14 +75,16 @@ export default function RankingFibaView({ equipos, isAdmin, onGoToTeam, onReload
       </div>
 
       {msg && (
-        <div style={{ background: msg.startsWith("✅") ? "#ecfdf5" : "#fef2f2", color: msg.startsWith("✅") ? "#059669" : "#dc2626", border: "1px solid " + (msg.startsWith("✅") ? "#6ee7b7" : "#fecaca"), borderRadius: "10px", padding: "10px 14px", marginBottom: "12px", fontSize: "13px", fontWeight: 600 }}>{msg}</div>
+        <div style={{ background: isOk ? "#ecfdf5" : "#fef2f2", color: isOk ? "#059669" : "#dc2626", border: "1px solid " + (isOk ? "#6ee7b7" : "#fecaca"), borderRadius: "10px", padding: "10px 14px", marginBottom: "12px", fontSize: "13px", fontWeight: 600 }}>
+          {(isOk ? "✅ " : "❌ ") + msg.texto}
+        </div>
       )}
 
       <div style={{ display: "flex", gap: "6px", marginBottom: "14px", flexWrap: "wrap" }}>
         {ZONAS.map(z => (
-          <button key={z} onClick={() => setZona(z)}
-            style={{ background: zona === z ? "#9333ea" : "#f1f5f9", color: zona === z ? "#fff" : "#475569", border: "none", borderRadius: "999px", padding: "7px 14px", fontWeight: 700, fontSize: "12px", cursor: "pointer" }}>
-            {ZONA_LABEL[z]}
+          <button key={z.key} onClick={() => setZona(z.key)}
+            style={{ background: zona === z.key ? "#9333ea" : "#f1f5f9", color: zona === z.key ? "#fff" : "#475569", border: "none", borderRadius: "999px", padding: "7px 14px", fontWeight: 700, fontSize: "12px", cursor: "pointer" }}>
+            {z.label}
           </button>
         ))}
       </div>
@@ -75,15 +95,14 @@ export default function RankingFibaView({ equipos, isAdmin, onGoToTeam, onReload
         </div>
       ) : (
         <div style={{ background: "#fff", borderRadius: "14px", overflow: "hidden", boxShadow: "0 1px 6px rgba(0,0,0,0.05)" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "60px 1fr 90px 80px", padding: "10px 14px", background: "#f8fafc", fontSize: "11px", fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", borderBottom: "1px solid #e2e8f0" }}>
+          <div style={HEADER_STYLE}>
             <div style={{ textAlign: "center" }}>#</div>
             <div>País</div>
             <div style={{ textAlign: "right" }}>Puntos</div>
             <div style={{ textAlign: "right" }}>Zona</div>
           </div>
           {rows.map(e => (
-            <div key={e.id_equipo} onClick={() => onGoToTeam && onGoToTeam(e.id_equipo)}
-              style={{ display: "grid", gridTemplateColumns: "60px 1fr 90px 80px", alignItems: "center", padding: "10px 14px", borderBottom: "1px solid #f1f5f9", cursor: "pointer" }}>
+            <div key={e.id_equipo} onClick={() => onGoToTeam && onGoToTeam(e.id_equipo)} style={ROW_STYLE}>
               <div style={{ textAlign: "center", fontSize: "16px", fontWeight: 800, color: e.fiba_rank <= 3 ? "#9333ea" : "#1e293b" }}>{e.fiba_rank}</div>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 {e.escudo && <img src={e.escudo} alt="" style={{ width: "28px", height: "20px", objectFit: "cover", borderRadius: "3px", boxShadow: "0 0 0 1px #e2e8f0" }} />}
