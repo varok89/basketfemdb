@@ -112,12 +112,6 @@ function sortS(ss) {
   });
 }
 
-function toBase64(file) {
-  return new Promise((res,rej) => {
-    const r = new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file);
-  });
-}
-
 /* ── Banderas ────────────────────────────────────────────── */
 const COUNTRY_CODES = {
   /* Europa */
@@ -567,8 +561,6 @@ function ConfirmDel({msg,onCancel,onConfirm}){return(
 
 function PhotoPicker({value,onChange}){
   const [mode,setMode]=useState("url");
-  const ref=useRef();
-  const handleFile=async e=>{const f=e.target.files[0];if(!f)return;if(f.size>3*1024*1024){alert("Máx 3 MB");return;}onChange(await toBase64(f));};
   const inp={width:"100%",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 12px",fontSize:"13px",outline:"none",boxSizing:"border-box"};
   return(
     <div style={{marginBottom:"8px"}}>
