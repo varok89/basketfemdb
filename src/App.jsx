@@ -4234,7 +4234,8 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
   const ligasInYear = useMemo(()=>{
     if(!selected||!effectiveYear)return [];
     const ids=[...new Set(selected.players.filter(({season})=>season.temporada===effectiveYear).map(({season})=>season.id_liga).filter(Boolean))];
-    return ids.map(id=>ligaMap[id]).filter(Boolean).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+    const esQuali=n=>/^clasificaci/i.test(n)||/qualifier|quali/i.test(n);
+    return ids.map(id=>ligaMap[id]).filter(Boolean).sort((a,b)=>{const qa=esQuali(a.nombre),qb=esQuali(b.nombre);return qa!==qb?(qa?1:-1):a.nombre.localeCompare(b.nombre,"es");});
   },[selected,effectiveYear,ligaMap]);
   const effectiveLiga = ligasInYear.length>1?(selLiga&&ligasInYear.some(l=>l.id_liga===selLiga)?selLiga:ligasInYear[0].id_liga):null;
   const squad       = selected
