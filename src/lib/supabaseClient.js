@@ -4,6 +4,14 @@ export const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
 export const SUPABASE_KEY = process.env.REACT_APP_SUPABASE_KEY;
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// Llama a una edge function. Lanza Error si el transporte falla.
+// Uso: const data = await callFn("mi-funcion", { foo: 1 });
+export async function callFn(name, body) {
+  const { data, error } = await supabase.functions.invoke(name, { body });
+  if (error) throw new Error(error.message || `Fallo llamando ${name}`);
+  return data;
+}
+
 export async function fetchAll(table, opts = {}) {
   const { order = "id", ascending = true, select = "*", filter = null } = opts;
   let all = [], from = 0;

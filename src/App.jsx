@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, lazy, Suspense } from "react";
-import { supabase, SUPABASE_URL, SUPABASE_KEY, fetchAll } from "./lib/supabaseClient";
+import { supabase, callFn, fetchAll } from "./lib/supabaseClient";
 import { LOGROS, LOGROS_BY_SLUG, CATEGORIAS, initLogros, registrarEvento, onLogroDesbloqueado, getEstadoLogros } from "./lib/logros";
 
 const CalidadModal = lazy(() => import("./views/CalidadModal"));
@@ -964,12 +964,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
     if(!fibaSlug.trim()){setFibaMensaje("Introduce el slug de FIBA");return;}
     setFibaGuardando(true);setFibaMensaje("");setFibaResultado(null);
     try{
-      const r=await fetch(SUPABASE_URL+"/functions/v1/actualizar-resultados-fiba",{
-        method:"POST",
-        headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},
-        body:JSON.stringify({modo,id_liga:fibaModal.ligaId,temporada:fibaModal.temporada,slug:fibaSlug.trim()})
-      });
-      const d=await r.json();
+      const d=await callFn("actualizar-resultados-fiba",{modo,id_liga:fibaModal.ligaId,temporada:fibaModal.temporada,slug:fibaSlug.trim()});
       if(d.ok){
         setFibaResultado(d);
         setFibaMensaje(modo==="desde_standings"?"✅ Standings cargado":"✅ Hecho");
@@ -2174,7 +2169,7 @@ function WNBAClasificacion({psLiga, equipoMap, temporada, onOpenPartido, onGoToT
     if(String(temporada)!==String(yr))return;
     const refresh=async()=>{
       try{
-        await fetch(`${SUPABASE_URL}/functions/v1/actualizar-resultados-wnba`,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:"{}"});
+        await callFn("actualizar-resultados-wnba",{});
         const {data}=await supabase.from("partidos").select("id,resultado_local,resultado_visitante,es_live,periodo").in("id_liga",["L006","L109"]).eq("temporada",String(temporada)).or("es_live.eq.true,fecha_hora.gte."+new Date(Date.now()-30*3600*1000).toISOString()).limit(50);
         if(data){const m={};data.forEach(p=>{m[p.id]=p;});setLiveOverrides(m);}
       }catch{}
@@ -5604,15 +5599,8 @@ function PerfilView({user,favoritos,onClose,onLogout}){
   const eliminarCuenta=async()=>{
     setDeleting(true);setDeleteErr("");
     try{
-      const {data:{session}}=await supabase.auth.getSession();
-      const jwt=session?.access_token;
-      const supaUrl=supabase.supabaseUrl||supabase.rest.url.replace(/\/rest\/v1$/,"");
-      const res=await fetch(`${supaUrl}/functions/v1/eliminar-mi-cuenta`,{
-        method:"POST",
-        headers:{Authorization:`Bearer ${jwt}`,"content-type":"application/json"},
-      });
-      const j=await res.json();
-      if(!res.ok||!j.ok){setDeleteErr(j.error||"Error al eliminar");setDeleting(false);return;}
+      const j=await callFn("eliminar-mi-cuenta",{});
+      if(!j?.ok){setDeleteErr(j?.error||"Error al eliminar");setDeleting(false);return;}
       await supabase.auth.signOut();
       window.location.reload();
     }catch(e){

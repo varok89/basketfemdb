@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { supabase, SUPABASE_URL, SUPABASE_KEY } from "../lib/supabaseClient";
+import { supabase, callFn } from "../lib/supabaseClient";
 import { COUNTRY_CODES, countryCode, flagEmoji, NO_COUNTRY_FLAGS, checkIdGaps, FibaRow } from "../lib/utils";
 
 function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach,onReload,isAdmin,setPlayers,setEquipos,setLigas,setCoaches,setTempCoach}){
@@ -42,16 +42,14 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     if(!carrEquipoId){alert("Selecciona un equipo");return;}
     setCarrBusy("info");setCarrInfo(null);setCarrLog([]);
     try{
-      var r=await fetch(SUPABASE_URL+"/functions/v1/mapear-roster-espn",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:JSON.stringify({id_equipo:carrEquipoId,id_liga:carrLiga,temporada:carrTemp,dry:true})});
-      setCarrInfo(await r.json());
+      setCarrInfo(await callFn("mapear-roster-espn",{id_equipo:carrEquipoId,id_liga:carrLiga,temporada:carrTemp,dry:true}));
     }catch(e){setCarrInfo({error:e.message});}
     setCarrBusy("");
   }
   async function carrMapear(){
     setCarrBusy("mapear");
     try{
-      var r=await fetch(SUPABASE_URL+"/functions/v1/mapear-roster-espn",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:JSON.stringify({id_equipo:carrEquipoId,id_liga:carrLiga,temporada:carrTemp,dry:false})});
-      setCarrInfo(await r.json());
+      setCarrInfo(await callFn("mapear-roster-espn",{id_equipo:carrEquipoId,id_liga:carrLiga,temporada:carrTemp,dry:false}));
     }catch(e){setCarrInfo({error:e.message});}
     setCarrBusy("");
   }
@@ -64,8 +62,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       var eq=carrEquiposLiga[i];
       setLigaProgress({done:i,total:carrEquiposLiga.length,paso:"Analizando "+eq.nombre});
       try{
-        var r=await fetch(SUPABASE_URL+"/functions/v1/mapear-roster-espn",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:JSON.stringify({id_equipo:eq.id_equipo,id_liga:carrLiga,temporada:carrTemp,dry:true})});
-        var j=await r.json();
+        var j=await callFn("mapear-roster-espn",{id_equipo:eq.id_equipo,id_liga:carrLiga,temporada:carrTemp,dry:true});
         out.push({id_equipo:eq.id_equipo,equipo:eq.nombre,bd_total:j.bd_total||0,espn_total:j.espn_total||0,mapeados:j.mapeados||0,solo_en_espn_obj:j.solo_en_espn_obj||[],roster:j.roster||[],error:j.error});
       }catch(e){out.push({id_equipo:eq.id_equipo,equipo:eq.nombre,error:e.message});}
     }
@@ -86,8 +83,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       if(eq.error){out.push(eq);continue;}
       setLigaProgress({done:i,total:ligaInfo.length,paso:"Creando en "+eq.equipo});
       try{
-        var r=await fetch(SUPABASE_URL+"/functions/v1/mapear-roster-espn",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:JSON.stringify({id_equipo:eq.id_equipo,id_liga:carrLiga,temporada:carrTemp,dry:false,crear_faltantes:true})});
-        var j=await r.json();
+        var j=await callFn("mapear-roster-espn",{id_equipo:eq.id_equipo,id_liga:carrLiga,temporada:carrTemp,dry:false,crear_faltantes:true});
         out.push({id_equipo:eq.id_equipo,equipo:eq.nombre,bd_total:j.bd_total||0,espn_total:j.espn_total||0,mapeados:j.mapeados||0,solo_en_espn_obj:j.solo_en_espn_obj||[],roster:j.roster||[],creadas:j.total_creadas||0,adjuntadas:j.total_adjuntadas||0});
       }catch(e){out.push({id_equipo:eq.id_equipo,equipo:eq.nombre,error:e.message});}
     }
@@ -135,8 +131,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       log.push({jugadora:p.nombre,estado:"⏳"});
       setCarrLog([].concat(log));
       try{
-        var resp=await fetch(SUPABASE_URL+"/functions/v1/cargar-carrera-espn-jugadora",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:JSON.stringify({id_jugadora:p.id_jugadora,discover:true,dry:false})});
-        var j=await resp.json();
+        var j=await callFn("cargar-carrera-espn-jugadora",{id_jugadora:p.id_jugadora,discover:true,dry:false});
         log[log.length-1]={jugadora:p.nombre,estado:j.error?"❌ "+j.error:"✅ box:"+(j.total_boxscores||0)+" temps+:"+(j.total_temporadas_creadas||0)+" partidos+:"+(j.total_partidos_creados||0)};
       }catch(e){log[log.length-1]={jugadora:p.nombre,estado:"❌ "+e.message};}
       setCarrLog([].concat(log));
@@ -146,7 +141,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     if(carrLiga==="L006"){
       setLigaProgress({done:todas.length,total:todas.length,paso:"🧹 Saneando WNBA "+carrTemp+"..."});
       try{
-        await fetch(SUPABASE_URL+"/functions/v1/sanear-wnba",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:JSON.stringify({year:parseInt(carrTemp)})});
+        await callFn("sanear-wnba",{year:parseInt(carrTemp)});
         setLigaProgress({done:todas.length,total:todas.length,paso:"✅ Saneado completo"});
       }catch(e){setLigaProgress({done:todas.length,total:todas.length,paso:"⚠️ Saneo falló: "+e.message});}
     }
@@ -159,8 +154,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     if(!confirm("Crear "+faltan+" jugadoras y añadirles temporada "+carrTemp+" en "+carrInfo.equipo+"?"))return;
     setCarrBusy("crear");
     try{
-      var r=await fetch(SUPABASE_URL+"/functions/v1/mapear-roster-espn",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:JSON.stringify({id_equipo:carrEquipoId,id_liga:carrLiga,temporada:carrTemp,dry:false,crear_faltantes:true})});
-      var j=await r.json();
+      var j=await callFn("mapear-roster-espn",{id_equipo:carrEquipoId,id_liga:carrLiga,temporada:carrTemp,dry:false,crear_faltantes:true});
       setCarrInfo(j);
       alert("Creadas: "+(j.total_creadas||0)+" · Adjuntadas: "+(j.total_adjuntadas||0));
     }catch(e){alert("Error: "+e.message);}
@@ -177,8 +171,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       log.push({jugadora:r.nombre,estado:"⏳ procesando..."});
       setCarrLog([].concat(log));
       try{
-        var resp=await fetch(SUPABASE_URL+"/functions/v1/cargar-carrera-espn-jugadora",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY,"apikey":SUPABASE_KEY},body:JSON.stringify({id_jugadora:r.id_jugadora,discover:true,dry:dry})});
-        var j=await resp.json();
+        var j=await callFn("cargar-carrera-espn-jugadora",{id_jugadora:r.id_jugadora,discover:true,dry:dry});
         log[i]={jugadora:r.nombre,estado:j.error?"❌ "+j.error:"✅ box:"+(j.total_boxscores||0)+" temps+:"+(j.total_temporadas_creadas||0)+" partidos+:"+(j.total_partidos_creados||0)};
       }catch(e){log[i]={jugadora:r.nombre,estado:"❌ "+e.message};}
       setCarrLog([].concat(log));
