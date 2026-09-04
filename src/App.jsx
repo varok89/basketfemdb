@@ -6720,6 +6720,13 @@ function AnalyticsPanel({onClose}){
   const [data,setData]=useState(null);
   const [loading,setLoading]=useState(true);
   const [err,setErr]=useState("");
+  const [snapshots,setSnapshots]=useState([]);
+  useEffect(()=>{
+    (async()=>{
+      const {data:s}=await supabase.from("visitas_snapshot_vercel").select("*").order("periodo_hasta",{ascending:false});
+      setSnapshots(s||[]);
+    })();
+  },[]);
   useEffect(()=>{
     let cancel=false;
     (async()=>{
@@ -6798,6 +6805,12 @@ function AnalyticsPanel({onClose}){
             <button onClick={onClose} style={{padding:"7px 14px",borderRadius:"10px",border:"1.5px solid #e2e8f0",background:"#fff",color:"#475569",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>Cerrar</button>
           </div>
         </div>
+        {snapshots.length>0&&<div style={{background:"#eef2ff",border:"1.5px solid #c7d2fe",borderRadius:"12px",padding:"12px 14px",marginBottom:"14px"}}>
+          <div style={{fontSize:"12px",fontWeight:800,color:"#4338ca",marginBottom:"6px"}}>📦 Histórico Vercel (antes del tracker propio)</div>
+          {snapshots.map(s=><div key={s.id} style={{fontSize:"12px",color:"#3730a3",lineHeight:"1.5"}}>
+            <b>{s.periodo_desde} → {s.periodo_hasta}</b>: {s.visitantes?.toLocaleString("es")} visitantes · {s.pageviews?.toLocaleString("es")} pageviews · rebote {s.bounce_rate}%
+          </div>)}
+        </div>}
         {loading&&<div style={{padding:"40px",textAlign:"center",color:"#94a3b8"}}>Cargando…</div>}
         {err&&<div style={{padding:"20px",background:"#fef2f2",border:"1.5px solid #fecaca",borderRadius:"12px",color:"#991b1b"}}>❌ {err}</div>}
         {data&&<>
