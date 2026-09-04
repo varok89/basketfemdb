@@ -1393,7 +1393,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
           );
         };
         // Clasificar cada competición: activa (le quedan partidos por jugar) o finalizada (todo con resultado)
-        const esFinalizada=ps=>ps.length>0&&ps.every(p=>p.resultado_local!=null&&p.resultado_visitante!=null);
+        const esFinalizada=ps=>ps.length>0&&ps.every(p=>p.resultado_local!=null&&p.resultado_visitante!=null&&!p.es_live);
         const entradas=Object.entries(byLiga);
         const activas=entradas.filter(([,ps])=>!esFinalizada(ps));
         const finalizadas=entradas.filter(([,ps])=>esFinalizada(ps));
