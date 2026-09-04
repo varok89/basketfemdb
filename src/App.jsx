@@ -6588,13 +6588,13 @@ function AnalyticsPanel({onClose}){
       for(let i=dias-1;i>=0;i--){const d=new Date(Date.now()-i*24*3600*1000).toISOString().slice(0,10);dayKeys.push(d);}
       const serieVisitas=dayKeys.map(d=>byDay[d]||0);
       const serieSesiones=dayKeys.map(d=>sesDay[d]?sesDay[d].size:0);
-      const topPaths=Object.entries(byPath).sort((a,b)=>b[1]-a[1]).slice(0,15);
-      const topRefs=Object.entries(byRef).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      const topPaths=Object.entries(byPath).sort((a,b)=>b[1]-a[1]);
+      const topRefs=Object.entries(byRef).sort((a,b)=>b[1]-a[1]);
       const iso2flag=c=>c&&/^[A-Z]{2}$/.test(c)?String.fromCodePoint(...c.split("").map(x=>0x1F1E6+x.charCodeAt(0)-65)):"";
       const paisName=(()=>{try{return new Intl.DisplayNames(["es"],{type:"region"});}catch{return null;}})();
       const nomPais=c=>{ if(!c||c==="(?)")return "(desconocido)"; const n=paisName?paisName.of(c):null; return `${iso2flag(c)} ${n||c}`.trim(); };
-      const topPais=Object.entries(byPais).sort((a,b)=>b[1]-a[1]).slice(0,15).map(([c,n])=>[nomPais(c),n]);
-      const topCiudad=Object.entries(byCiudad).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([k,n])=>{
+      const topPais=Object.entries(byPais).sort((a,b)=>b[1]-a[1]).map(([c,n])=>[nomPais(c),n]);
+      const topCiudad=Object.entries(byCiudad).sort((a,b)=>b[1]-a[1]).map(([k,n])=>{
         const m=/^(.+) · ([A-Z]{2})$/.exec(k);
         return m?[`${iso2flag(m[2])} ${m[1]}`,n]:[k,n];
       });
@@ -6661,20 +6661,28 @@ function MetricCard({label,value}){
     <div style={{fontSize:"22px",fontWeight:800,color:"#1e293b",marginTop:"4px"}}>{value}</div>
   </div>;
 }
-function TablaTop({titulo,filas}){
+function TablaTop({titulo,filas,limite=10}){
+  const [expand,setExpand]=useState(false);
   const tot=filas.reduce((a,[,n])=>a+n,0)||1;
+  const visibles=expand?filas:filas.slice(0,limite);
+  const restantes=filas.length-visibles.length;
   return <div style={{background:"#fff",borderRadius:"14px",padding:"16px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
     <div style={{fontSize:"13px",fontWeight:700,color:"#475569",marginBottom:"10px"}}>{titulo}</div>
     {filas.length===0&&<div style={{fontSize:"12px",color:"#94a3b8"}}>Sin datos</div>}
-    {filas.map(([k,n])=><div key={k} style={{marginBottom:"6px"}}>
-      <div style={{display:"flex",justifyContent:"space-between",fontSize:"12px",color:"#475569"}}>
-        <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"70%"}}>{k}</span>
-        <b style={{color:"#1e293b"}}>{n.toLocaleString("es")}</b>
-      </div>
-      <div style={{height:"4px",background:"#f1f5f9",borderRadius:"2px",marginTop:"2px"}}>
-        <div style={{height:"100%",background:"#9333ea",width:`${(n/tot)*100}%`,borderRadius:"2px"}}/>
-      </div>
-    </div>)}
+    <div style={{maxHeight:expand?"340px":"none",overflowY:expand?"auto":"visible"}}>
+      {visibles.map(([k,n])=><div key={k} style={{marginBottom:"6px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:"12px",color:"#475569"}}>
+          <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"70%"}}>{k}</span>
+          <b style={{color:"#1e293b"}}>{n.toLocaleString("es")}</b>
+        </div>
+        <div style={{height:"4px",background:"#f1f5f9",borderRadius:"2px",marginTop:"2px"}}>
+          <div style={{height:"100%",background:"#9333ea",width:`${(n/tot)*100}%`,borderRadius:"2px"}}/>
+        </div>
+      </div>)}
+    </div>
+    {filas.length>limite&&<button onClick={()=>setExpand(v=>!v)} style={{marginTop:"8px",width:"100%",padding:"7px",border:"1.5px solid #e2e8f0",borderRadius:"8px",background:"#f8fafc",color:"#475569",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
+      {expand?"↑ Ver menos":`↓ Ver todo (${restantes} más)`}
+    </button>}
   </div>;
 }
 
