@@ -6530,8 +6530,99 @@ function VerPrediccionesModal({target,equipos,onClose}){
   );
 }
 
+/* ── ResultadosOficialesAdmin (bola de cristal, post-Mundial) ── */
+function ResultadosOficialesAdmin(){
+  const [jugadoras,setJugadoras]=useState([]);
+  const [jovenes,setJovenes]=useState([]);
+  const [oficiales,setOficiales]=useState({});
+  const [terminado,setTerminado]=useState(false);
+  const [saving,setSaving]=useState({});
+  const [msg,setMsg]=useState("");
+  useEffect(()=>{(async()=>{
+    const {data:ts}=await supabase.from("temporadas")
+      .select("id_jugadora,jugadoras(nombre,fecha_nac)")
+      .eq("id_liga","L055").eq("temporada","2026");
+    const seen=new Set();
+    const js=(ts||[]).filter(t=>{if(seen.has(t.id_jugadora))return false;seen.add(t.id_jugadora);return true;})
+      .map(t=>({id:t.id_jugadora,nombre:t.jugadoras?.nombre||t.id_jugadora,fecha_nac:t.jugadoras?.fecha_nac}))
+      .sort((a,b)=>a.nombre.localeCompare(b.nombre));
+    setJugadoras(js);
+    setJovenes(js.filter(j=>j.fecha_nac&&j.fecha_nac>="2004-01-01"));
+    const {data:r}=await supabase.from("bola_resultados_oficiales").select("pregunta_id,ids");
+    const map={};(r||[]).forEach(x=>{map[x.pregunta_id]=x.ids;});
+    setOficiales(map);
+    const {data:t}=await supabase.rpc("mundial_terminado");
+    setTerminado(!!t);
+  })();},[]);
+  const guardar=async(pregunta_id,ids)=>{
+    setSaving(s=>({...s,[pregunta_id]:true}));
+    const clean=(ids||[]).filter(Boolean);
+    if(clean.length===0){
+      await supabase.from("bola_resultados_oficiales").delete().eq("pregunta_id",pregunta_id);
+      setOficiales(o=>{const n={...o};delete n[pregunta_id];return n;});
+    }else{
+      await supabase.from("bola_resultados_oficiales").upsert({pregunta_id,ids:clean,updated_at:new Date().toISOString()},{onConflict:"pregunta_id"});
+      setOficiales(o=>({...o,[pregunta_id]:clean}));
+    }
+    setSaving(s=>({...s,[pregunta_id]:false}));
+    setMsg("✓ Guardado "+pregunta_id);setTimeout(()=>setMsg(""),1800);
+  };
+  const sel={width:"100%",padding:"8px 10px",borderRadius:"8px",border:"1px solid #cbd5e1",fontSize:"13px",background:"#fff"};
+  const single=(pid,titulo,opciones,puntos)=>{
+    const v=oficiales[pid]?.[0]||"";
+    return(
+      <div style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+        <div style={{fontSize:"14px",fontWeight:800,color:"#1e293b",marginBottom:"8px"}}>{titulo} <span style={{fontSize:"11px",color:"#94a3b8",fontWeight:600}}>· {puntos} pts</span></div>
+        <select value={v} onChange={e=>guardar(pid,[e.target.value])} disabled={saving[pid]} style={sel}>
+          <option value="">— Sin resolver —</option>
+          {opciones.map(j=><option key={j.id} value={j.id}>{j.nombre}</option>)}
+        </select>
+        {v&&<div style={{fontSize:"11px",color:"#16a34a",marginTop:"6px",fontWeight:700}}>✓ Guardado: {opciones.find(j=>j.id===v)?.nombre||v}</div>}
+      </div>
+    );
+  };
+  const quinteto=()=>{
+    const ids=oficiales.quinteto||[];
+    const set=new Set(ids);
+    return(
+      <div style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+        <div style={{fontSize:"14px",fontWeight:800,color:"#1e293b",marginBottom:"4px"}}>🖐️ Quinteto ideal <span style={{fontSize:"11px",color:"#94a3b8",fontWeight:600}}>· 3 pts × jugadora acertada (máx 15)</span></div>
+        <div style={{fontSize:"11px",color:"#64748b",marginBottom:"8px"}}>Selecciona 5. Guarda automáticamente cuando marques la 5ª.</div>
+        <select value="" onChange={e=>{
+          const v=e.target.value;if(!v||set.has(v)||ids.length>=5)return;
+          const next=[...ids,v];guardar("quinteto",next);
+        }} disabled={saving.quinteto||ids.length>=5} style={sel}>
+          <option value="">— Añadir jugadora ({ids.length}/5) —</option>
+          {jugadoras.filter(j=>!set.has(j.id)).map(j=><option key={j.id} value={j.id}>{j.nombre}</option>)}
+        </select>
+        <div style={{marginTop:"8px",display:"flex",flexWrap:"wrap",gap:"6px"}}>
+          {ids.map(id=>{const j=jugadoras.find(x=>x.id===id);return(
+            <span key={id} style={{display:"inline-flex",alignItems:"center",gap:"6px",background:"#f5f3ff",color:"#7c3aed",padding:"4px 8px",borderRadius:"14px",fontSize:"12px",fontWeight:700}}>
+              {j?.nombre||id}
+              <button onClick={()=>guardar("quinteto",ids.filter(x=>x!==id))} style={{background:"none",border:"none",color:"#7c3aed",cursor:"pointer",fontWeight:800}}>×</button>
+            </span>
+          );})}
+        </div>
+      </div>
+    );
+  };
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
+      <div style={{background:terminado?"#f0fdf4":"#fef3c7",border:`1px solid ${terminado?"#bbf7d0":"#fde68a"}`,borderRadius:"12px",padding:"12px 14px",fontSize:"13px",color:terminado?"#166534":"#92400e"}}>
+        {terminado
+          ?<>✅ <b>El Mundial ha terminado.</b> Los picks automáticos ya se están evaluando. Rellena aquí los premios oficiales (MVP, Mejor Joven y Quinteto Ideal) que anuncie FIBA para completar la puntuación de bola de cristal.</>
+          :<>⏳ <b>El Mundial aún no ha terminado.</b> Los premios oficiales (MVP, Mejor Joven, Quinteto) se rellenan aquí cuando FIBA los anuncie tras la final. Los puntos de bola de cristal solo se dan cuando finalice el torneo.</>}
+      </div>
+      {msg&&<div style={{fontSize:"12px",color:"#16a34a",fontWeight:700}}>{msg}</div>}
+      {single("mvp","⭐ MVP del torneo",jugadoras,10)}
+      {single("joven","🌱 Mejor jugadora joven (U22)",jovenes,6)}
+      {quinteto()}
+    </div>
+  );
+}
+
 /* ── QuinielaView ────────────────────────────────────────── */
-function QuinielaView({user,equipos,onAbrirPerfil}){
+function QuinielaView({user,equipos,onAbrirPerfil,isAdmin}){
   const [cierre,setCierre]=useState(null);
   const [rank,setRank]=useState([]);
   const [tab,setTab]=useState("basketneta");
@@ -6560,10 +6651,12 @@ function QuinielaView({user,equipos,onAbrirPerfil}){
         <button onClick={()=>setTab("basketneta")} style={btnStyle(tab==="basketneta")}>🏀 Pronóstico</button>
         <button onClick={()=>setTab("bola")}       style={btnStyle(tab==="bola")}>🔮 Bola de cristal</button>
         <button onClick={()=>setTab("ranking")}    style={btnStyle(tab==="ranking")}>🏆 Ranking</button>
+        {isAdmin&&<button onClick={()=>setTab("admin")} style={btnStyle(tab==="admin")}>🛠️ Admin</button>}
       </div>
 
       {tab==="basketneta"&&<BasketnetaView user={user} equipos={equipos} cierre={cierre}/>}
       {tab==="bola"&&<BolaCristalView user={user} equipos={equipos} cierre={cierre}/>}
+      {tab==="admin"&&isAdmin&&<ResultadosOficialesAdmin/>}
 
       {verUser&&<VerPrediccionesModal target={verUser} equipos={equipos} onClose={()=>setVerUser(null)}/>}
 
@@ -7412,7 +7505,7 @@ export default function App(){
         {!showPrivacidad&&!showPerfil&&tab==="ranking_fiba"&&<Suspense fallback={<div style={{padding:"40px",textAlign:"center",color:"#94a3b8"}}>Cargando…</div>}><RankingFibaView equipos={equipos} isAdmin={isAdmin} onGoToTeam={(id)=>goToTeam(id,null,{tab:"ranking_fiba",label:"Ranking FIBA"})} onReload={loadAll}/></Suspense>}
         {!showPrivacidad&&!showPerfil&&tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setCoaches={setCoaches} setTempCoach={setTempCoach} equiposNombres={equiposNombres} regExtra={regExtra}/>}
         {!showPrivacidad&&!showPerfil&&tab==="quiniela"&&(user
-          ?<QuinielaView user={user} equipos={equipos} onAbrirPerfil={setVerPerfilAlias}/>
+          ?<QuinielaView user={user} equipos={equipos} onAbrirPerfil={setVerPerfilAlias} isAdmin={isAdmin}/>
           :<div style={{maxWidth:"420px",margin:"48px auto",padding:"24px",background:"#fff",borderRadius:"16px",textAlign:"center",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
             <div style={{fontSize:"38px",marginBottom:"8px"}}>🎯</div>
             <h3 style={{margin:"0 0 6px",color:"#1e293b",fontSize:"18px",fontWeight:800}}>Quiniela · Mundial 2026</h3>
