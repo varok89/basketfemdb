@@ -6771,6 +6771,20 @@ function AnalyticsPanel({onClose}){
       for(let i=dias-1;i>=0;i--){const d=new Date(Date.now()-i*24*3600*1000).toISOString().slice(0,10);dayKeys.push(d);}
       const serieVisitas=dayKeys.map(d=>byDay[d]||0);
       const serieSesiones=dayKeys.map(d=>sesDay[d]?sesDay[d].size:0);
+      // Fusion con snapshots Vercel (porcentajes → counts usando su total visitantes).
+      // Solo aplica si el rango pedido es >=30 dias (suficiente para contener el snapshot).
+      const snapsData=(dias>=30?(snapshots||[]):[]);
+      let extraTotal=0,extraSes=0;
+      const pctToCount=(pct,base)=>Math.round((pct/100)*base);
+      for(const s of snapsData){
+        extraTotal+=Number(s.pageviews)||0;
+        extraSes+=Number(s.visitantes)||0;
+        const base=Number(s.visitantes)||0;
+        Object.entries(s.top_paths||{}).forEach(([k,v])=>{byPath[k]=(byPath[k]||0)+Number(v);});
+        Object.entries(s.top_referrers||{}).forEach(([k,v])=>{byRef[k]=(byRef[k]||0)+Number(v);});
+        Object.entries(s.top_countries||{}).forEach(([k,v])=>{byPais[k]=(byPais[k]||0)+pctToCount(Number(v),base);});
+        Object.entries(s.top_devices||{}).forEach(([k,v])=>{const key=({Mobile:"📱 Móvil",Desktop:"🖥️ Desktop",Tablet:"🔲 Tablet"})[k]||k;byDisp[key]=(byDisp[key]||0)+pctToCount(Number(v),base);});
+      }
       const topPaths=Object.entries(byPath).sort((a,b)=>b[1]-a[1]);
       const topRefs=Object.entries(byRef).sort((a,b)=>b[1]-a[1]);
       const iso2flag=c=>c&&/^[A-Z]{2}$/.test(c)?String.fromCodePoint(...c.split("").map(x=>0x1F1E6+x.charCodeAt(0)-65)):"";
@@ -6784,11 +6798,11 @@ function AnalyticsPanel({onClose}){
       const topDisp=Object.entries(byDisp).sort((a,b)=>b[1]-a[1]);
       const topBrow=Object.entries(byBrow).sort((a,b)=>b[1]-a[1]);
       const totalSes=new Set(clean.map(r=>r.session_id)).size;
-      setData({total:clean.length,brutas:rows?.length||0,ses:totalSes,anon,auth,dayKeys,serieVisitas,serieSesiones,topPaths,topRefs,topPais,topCiudad,topDisp,topBrow});
+      setData({total:clean.length+extraTotal,brutas:rows?.length||0,ses:totalSes+extraSes,anon,auth,dayKeys,serieVisitas,serieSesiones,topPaths,topRefs,topPais,topCiudad,topDisp,topBrow,extraTotal,extraSes});
       setLoading(false);
     })();
     return ()=>{cancel=true;};
-  },[dias]);
+  },[dias,snapshots]);
   const chartH=140,chartW=760;
   const maxV=data?Math.max(1,...data.serieVisitas):1;
   const pointsV=data?data.serieVisitas.map((v,i)=>`${(i/(data.dayKeys.length-1||1))*chartW},${chartH-(v/maxV)*chartH}`).join(" "):"";
@@ -6806,7 +6820,7 @@ function AnalyticsPanel({onClose}){
           </div>
         </div>
         {snapshots.length>0&&<div style={{background:"#eef2ff",border:"1.5px solid #c7d2fe",borderRadius:"12px",padding:"12px 14px",marginBottom:"14px"}}>
-          <div style={{fontSize:"12px",fontWeight:800,color:"#4338ca",marginBottom:"6px"}}>📦 Histórico Vercel (antes del tracker propio)</div>
+          <div style={{fontSize:"12px",fontWeight:800,color:"#4338ca",marginBottom:"6px"}}>📦 Histórico Vercel {dias>=30?"(sumado en los totales)":"(no incluido — rango < 30 días)"}</div>
           {snapshots.map(s=><div key={s.id} style={{fontSize:"12px",color:"#3730a3",lineHeight:"1.5"}}>
             <b>{s.periodo_desde} → {s.periodo_hasta}</b>: {s.visitantes?.toLocaleString("es")} visitantes · {s.pageviews?.toLocaleString("es")} pageviews · rebote {s.bounce_rate}%
           </div>)}
