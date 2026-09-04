@@ -1087,7 +1087,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
   const hayLive=useMemo(()=>partidos.some(p=>p.es_live===true),[partidos]);
   useEffect(()=>{
     if(!hayLive)return;
-    const id=setInterval(refetchPartidos,30000);
+    const id=setInterval(refetchPartidos,5000);
     return ()=>clearInterval(id);
   },[hayLive,refetchPartidos]);
 
