@@ -6803,10 +6803,18 @@ function AnalyticsPanel({onClose}){
     })();
     return ()=>{cancel=true;};
   },[dias,snapshots]);
-  const chartH=140,chartW=760;
-  const maxV=data?Math.max(1,...data.serieVisitas):1;
-  const pointsV=data?data.serieVisitas.map((v,i)=>`${(i/(data.dayKeys.length-1||1))*chartW},${chartH-(v/maxV)*chartH}`).join(" "):"";
-  const pointsS=data?data.serieSesiones.map((v,i)=>`${(i/(data.dayKeys.length-1||1))*chartW},${chartH-(v/maxV)*chartH}`).join(" "):"";
+  const chartH=160,chartW=760,padL=40,padR=10,padT=10,padB=22;
+  const plotW=chartW-padL-padR,plotH=chartH-padT-padB;
+  const maxRaw=data?Math.max(1,...data.serieVisitas,...data.serieSesiones):1;
+  // Redondea el max hacia arriba a un múltiplo "bonito" (10,20,50,100,200,...)
+  const niceMax=v=>{const exp=Math.pow(10,Math.floor(Math.log10(v)));const n=v/exp;return (n<=1?1:n<=2?2:n<=5?5:10)*exp;};
+  const maxV=data?niceMax(maxRaw):1;
+  const px=(i,n)=>padL+(i/((n||1)-1||1))*plotW;
+  const py=v=>padT+plotH-(v/maxV)*plotH;
+  const pointsV=data?data.serieVisitas.map((v,i)=>`${px(i,data.dayKeys.length)},${py(v)}`).join(" "):"";
+  const pointsS=data?data.serieSesiones.map((v,i)=>`${px(i,data.dayKeys.length)},${py(v)}`).join(" "):"";
+  const yTicks=data?[0,maxV/4,maxV/2,maxV*3/4,maxV].map(v=>Math.round(v)):[];
+  const [hover,setHover]=useState(null);
   return(
     <div style={{minHeight:"100vh",background:"#f1f5f9",padding:"20px",fontFamily:"system-ui,-apple-system,sans-serif"}}>
       <div style={{maxWidth:"1000px",margin:"0 auto"}}>
@@ -6836,13 +6844,51 @@ function AnalyticsPanel({onClose}){
             {data.brutas!==data.total&&<MetricCard label="Bots filtrados" value={(data.brutas-data.total).toLocaleString("es")}/>}
           </div>
           <div style={{background:"#fff",borderRadius:"14px",padding:"16px",marginBottom:"16px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
-            <div style={{fontSize:"13px",fontWeight:700,color:"#475569",marginBottom:"8px"}}>Pageviews (morado) · Sesiones (verde) · últimos {dias} días</div>
-            <svg viewBox={`0 0 ${chartW} ${chartH+20}`} style={{width:"100%",height:"auto",display:"block"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px",flexWrap:"wrap",gap:"6px"}}>
+              <div style={{fontSize:"13px",fontWeight:700,color:"#475569"}}>Actividad · últimos {dias} días</div>
+              <div style={{display:"flex",gap:"12px",fontSize:"11px",color:"#64748b"}}>
+                <span style={{display:"inline-flex",alignItems:"center",gap:"4px"}}><span style={{width:10,height:2,background:"#9333ea",display:"inline-block"}}/>Pageviews</span>
+                <span style={{display:"inline-flex",alignItems:"center",gap:"4px"}}><span style={{width:10,height:2,background:"#059669",display:"inline-block"}}/>Sesiones</span>
+              </div>
+            </div>
+            <svg viewBox={`0 0 ${chartW} ${chartH}`} style={{width:"100%",height:"auto",display:"block"}}
+              onMouseMove={e=>{
+                const svg=e.currentTarget;const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;
+                const cp=pt.matrixTransform(svg.getScreenCTM().inverse());
+                if(cp.x<padL||cp.x>chartW-padR){setHover(null);return;}
+                const i=Math.round(((cp.x-padL)/plotW)*(data.dayKeys.length-1));
+                if(i<0||i>=data.dayKeys.length){setHover(null);return;}
+                setHover({i,x:px(i,data.dayKeys.length)});
+              }}
+              onMouseLeave={()=>setHover(null)}>
+              {/* Grid + eje Y */}
+              {yTicks.map((v,idx)=>{const y=py(v);return <g key={idx}>
+                <line x1={padL} y1={y} x2={chartW-padR} y2={y} stroke="#f1f5f9" strokeWidth="1"/>
+                <text x={padL-6} y={y+3} fontSize="9" fill="#94a3b8" textAnchor="end">{v.toLocaleString("es")}</text>
+              </g>;})}
+              {/* Línea del eje X */}
+              <line x1={padL} y1={py(0)} x2={chartW-padR} y2={py(0)} stroke="#cbd5e1" strokeWidth="1"/>
+              {/* Series */}
               <polyline fill="none" stroke="#9333ea" strokeWidth="2" points={pointsV}/>
               <polyline fill="none" stroke="#059669" strokeWidth="2" points={pointsS} strokeDasharray="4 3"/>
-              {data.dayKeys.length<=14&&data.dayKeys.map((d,i)=>
-                <text key={d} x={(i/(data.dayKeys.length-1||1))*chartW} y={chartH+15} fontSize="9" fill="#94a3b8" textAnchor="middle">{d.slice(5)}</text>
-              )}
+              {/* Fechas eje X (max 8 labels distribuidas) */}
+              {data.dayKeys.map((d,i)=>{
+                const step=Math.max(1,Math.ceil(data.dayKeys.length/8));
+                if(i%step!==0&&i!==data.dayKeys.length-1)return null;
+                return <text key={d} x={px(i,data.dayKeys.length)} y={chartH-4} fontSize="9" fill="#94a3b8" textAnchor="middle">{d.slice(5)}</text>;
+              })}
+              {/* Hover: línea + tooltip */}
+              {hover&&<>
+                <line x1={hover.x} y1={padT} x2={hover.x} y2={py(0)} stroke="#94a3b8" strokeWidth="1" strokeDasharray="2 2"/>
+                <circle cx={hover.x} cy={py(data.serieVisitas[hover.i])} r="3.5" fill="#9333ea"/>
+                <circle cx={hover.x} cy={py(data.serieSesiones[hover.i])} r="3.5" fill="#059669"/>
+                <g transform={`translate(${Math.min(hover.x+8,chartW-140)},${padT+4})`}>
+                  <rect width="132" height="42" rx="4" fill="#1e293b" opacity="0.95"/>
+                  <text x="8" y="14" fontSize="10" fill="#f1f5f9" fontWeight="700">{data.dayKeys[hover.i]}</text>
+                  <text x="8" y="28" fontSize="10" fill="#c4b5fd">● {data.serieVisitas[hover.i].toLocaleString("es")} pageviews</text>
+                  <text x="8" y="40" fontSize="10" fill="#6ee7b7">● {data.serieSesiones[hover.i].toLocaleString("es")} sesiones</text>
+                </g>
+              </>}
             </svg>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:"16px"}}>
