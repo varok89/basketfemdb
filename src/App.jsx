@@ -973,6 +973,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
   const [clasiVista,setClasiVista]=useState("grupos");
   const [filtroLiga,setFiltroLiga]=useState("");
   const [filtroEquipo,setFiltroEquipo]=useState("");
+  const [soloLive,setSoloLive]=useState(false);
   useEffect(()=>{
     if(openClasiKey){
       const [l,t]=openClasiKey.split("|");
@@ -1031,8 +1032,9 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
 
   const filtrados=useMemo(()=>partidos.filter(p=>
     (!filtroLiga||p.id_liga===filtroLiga)&&
-    (!filtroEquipo||p.id_equipo_local===filtroEquipo||p.id_equipo_visitante===filtroEquipo)
-  ),[partidos,filtroLiga,filtroEquipo]);
+    (!filtroEquipo||p.id_equipo_local===filtroEquipo||p.id_equipo_visitante===filtroEquipo)&&
+    (!soloLive||p.es_live===true)
+  ),[partidos,filtroLiga,filtroEquipo,soloLive]);
   const sorted=useMemo(()=>[...filtrados].sort((a,b)=>new Date(b.fecha_hora)-new Date(a.fecha_hora)),[filtrados]);
   // Opciones de los filtros: solo ligas y equipos que aparecen en partidos
   const ligasConPartidos=useMemo(()=>{
@@ -1202,6 +1204,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
           <option value="">Todos los equipos</option>
           {equiposConPartidos.map(e=><option key={e.id_equipo} value={e.id_equipo}>{e.nombre}</option>)}
         </select>
+        {hayLive&&<button onClick={()=>setSoloLive(v=>!v)} title="Ver solo partidos en juego" style={{border:soloLive?"1.5px solid #ef4444":"1.5px solid #fecaca",borderRadius:"10px",padding:"9px 14px",fontSize:"13px",fontWeight:700,cursor:"pointer",background:soloLive?"#ef4444":"#fef2f2",color:soloLive?"#fff":"#b91c1c",display:"inline-flex",alignItems:"center",gap:"6px"}}><span style={{width:8,height:8,borderRadius:"50%",background:soloLive?"#fff":"#ef4444",display:"inline-block",boxShadow:soloLive?"none":"0 0 0 3px rgba(239,68,68,0.2)"}}/>🔴 Solo live</button>}
       </div>
 
       {sorted.length===0?(
