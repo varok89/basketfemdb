@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from "react";
 import { supabase, callFn, fetchAll } from "./lib/supabaseClient";
 import { LOGROS, LOGROS_BY_SLUG, CATEGORIAS, initLogros, registrarEvento, onLogroDesbloqueado, getEstadoLogros } from "./lib/logros";
 
@@ -1062,6 +1062,26 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
     }
   },[scrollTargetId]);
 
+  // Autorefresh: cada 30s si hay al menos un partido en juego. Manual con botón 🔄.
+  const [refrescando,setRefrescando]=useState(false);
+  const refetchPartidos=useCallback(async()=>{
+    setRefrescando(true);
+    try{
+      const {data}=await supabase.from("partidos")
+        .select("id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas,es_live,periodo,id_ext,fuente,bracket_pos,link,url_stats,parciales,no_convocadas")
+        .neq("id_liga","L020").gte("temporada",String(new Date().getFullYear()-2))
+        .order("fecha_hora");
+      if(data)setPartidos(data);
+    }catch(e){/* silencioso */}
+    setRefrescando(false);
+  },[setPartidos]);
+  const hayLive=useMemo(()=>partidos.some(p=>p.es_live===true),[partidos]);
+  useEffect(()=>{
+    if(!hayLive)return;
+    const id=setInterval(refetchPartidos,30000);
+    return ()=>clearInterval(id);
+  },[hayLive,refetchPartidos]);
+
   const save=async f=>{
     setSaving(true);
     try{
@@ -1157,7 +1177,8 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
 
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"20px",flexWrap:"wrap",gap:"10px"}}>
         <h1 style={{fontWeight:800,fontSize:"22px",color:"#1e293b",margin:0}}>📺 Ver partidos</h1>
-        <div style={{display:"flex",gap:"8px"}}>
+        <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
+          <button onClick={refetchPartidos} disabled={refrescando} title="Actualizar" style={{background:"#f5f3ff",color:"#7c3aed",border:"1.5px solid #ddd6fe",borderRadius:"12px",padding:"9px 14px",fontWeight:700,fontSize:"13px",cursor:refrescando?"wait":"pointer"}}>{refrescando?"⏳":"🔄"}{hayLive&&<span style={{marginLeft:"6px",width:8,height:8,borderRadius:"50%",background:"#ef4444",display:"inline-block",verticalAlign:"middle",boxShadow:"0 0 0 3px rgba(239,68,68,0.2)"}}/>}</button>
           {isAdmin&&<button onClick={()=>{setFibaSlug("");setFibaMensaje("");setFibaResultado(null);setFibaModal({ligaId:filtroLiga||"",temporada:"",global:true});}} style={{background:"#ecfdf5",color:"#059669",border:"1.5px solid #6ee7b7",borderRadius:"12px",padding:"9px 18px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>⚡ FIBA Live</button>}
           {isAdmin&&<button onClick={()=>setModal("add")} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"12px",padding:"9px 18px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Partido</button>}
         </div>
@@ -1229,7 +1250,8 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
             const animStyle=estado==="en_juego"?{animation:"partidoPulse 2s infinite"}:{};
             return(
               <div ref={esPrimeroDestacado?scrollRef:null}
-                style={{background:"#fff",borderRadius:"14px",padding:"14px",boxShadow:estado==="en_juego"?"0 2px 12px rgba(239,68,68,0.15)":"0 1px 4px rgba(0,0,0,0.06)",border:borderStyle,...animStyle}}>
+                onClick={()=>abrirFicha(p)}
+                style={{background:"#fff",borderRadius:"14px",padding:"14px",boxShadow:estado==="en_juego"?"0 2px 12px rgba(239,68,68,0.15)":"0 1px 4px rgba(0,0,0,0.06)",border:borderStyle,cursor:"pointer",...animStyle}}>
                 <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px",flexWrap:"wrap"}}>
                   {estado==="en_juego"&&<span style={{background:"#ef4444",color:"#fff",borderRadius:"20px",padding:"2px 10px",fontSize:"11px",fontWeight:800,letterSpacing:"0.5px"}}>🔴 EN JUEGO{p.es_live&&p.periodo?` · P${p.periodo}`:""}</span>}
                   {estado==="proximo"&&<span style={{background:"#f59e0b",color:"#fff",borderRadius:"20px",padding:"2px 10px",fontSize:"11px",fontWeight:700}}>🟡 HOY</span>}
@@ -1237,8 +1259,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                   {p.notas&&<span style={{fontSize:"11px",color:"#64748b"}}>· {p.notas}</span>}
                 </div>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px"}}>
-                  <div onClick={()=>onGoToTeam&&onGoToTeam(p.id_equipo_local,p.temporada)}
-                    style={{display:"flex",alignItems:"center",gap:"7px",flex:1,minWidth:"80px",cursor:onGoToTeam?"pointer":"default"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:"7px",flex:1,minWidth:"80px"}}>
                     {local?.escudo&&<img src={local.escudo} alt="" style={{width:28,height:28,objectFit:"contain",flexShrink:0}}/>}
                     <span style={{fontWeight:700,fontSize:"12px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{local?.nombre||"—"}</span>
                   </div>
@@ -1247,19 +1268,17 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                       ?<span style={{fontWeight:800,fontSize:"16px",color:"#1e293b"}}>{p.resultado_local}–{p.resultado_visitante}</span>
                       :<span style={{fontWeight:800,fontSize:"13px",color:estado==="en_juego"?"#ef4444":"#9333ea"}}>vs</span>}
                   </div>
-                  <div onClick={()=>onGoToTeam&&onGoToTeam(p.id_equipo_visitante,p.temporada)}
-                    style={{display:"flex",alignItems:"center",gap:"7px",flex:1,minWidth:"80px",justifyContent:"flex-end",textAlign:"right",cursor:onGoToTeam?"pointer":"default"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:"7px",flex:1,minWidth:"80px",justifyContent:"flex-end",textAlign:"right"}}>
                     <span style={{fontWeight:700,fontSize:"12px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{visit?.nombre||"—"}</span>
                     {visit?.escudo&&<img src={visit.escudo} alt="" style={{width:28,height:28,objectFit:"contain",flexShrink:0}}/>}
                   </div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"10px",flexWrap:"wrap"}}>
-                  <button onClick={()=>abrirFicha(p)} style={{background:"#f5f3ff",color:"#7c3aed",border:"1.5px solid #ddd6fe",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>+ Info</button>
-                  {p.link&&<a href={p.link} target="_blank" rel="noopener noreferrer" style={{background:"#7c3aed",color:"#fff",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,textDecoration:"none"}}>▶ Ver</a>}
-                  {p.url_stats&&<a href={p.url_stats} target="_blank" rel="noopener noreferrer" style={{background:"#0f172a",color:"#fff",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,textDecoration:"none"}}>📊 Stats</a>}
+                  {p.link&&<a href={p.link} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{background:"#7c3aed",color:"#fff",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,textDecoration:"none"}}>▶ Ver</a>}
+                  {p.url_stats&&<a href={p.url_stats} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{background:"#0f172a",color:"#fff",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,textDecoration:"none"}}>📊 Stats</a>}
                   {isAdmin&&<>
-                    <button onClick={()=>setModal(p)} style={{background:"#f1f5f9",border:"none",borderRadius:"20px",padding:"4px 10px",fontSize:"11px",fontWeight:600,cursor:"pointer",color:"#475569"}}>✏️</button>
-                    <button onClick={()=>del(p.id)} style={{background:"#fee2e2",border:"none",borderRadius:"20px",padding:"4px 10px",fontSize:"11px",fontWeight:600,cursor:"pointer",color:"#ef4444"}}>🗑️</button>
+                    <button onClick={e=>{e.stopPropagation();setModal(p);}} style={{background:"#f1f5f9",border:"none",borderRadius:"20px",padding:"4px 10px",fontSize:"11px",fontWeight:600,cursor:"pointer",color:"#475569"}}>✏️</button>
+                    <button onClick={e=>{e.stopPropagation();del(p.id);}} style={{background:"#fee2e2",border:"none",borderRadius:"20px",padding:"4px 10px",fontSize:"11px",fontWeight:600,cursor:"pointer",color:"#ef4444"}}>🗑️</button>
                   </>}
                 </div>
               </div>
