@@ -1063,15 +1063,22 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
   },[scrollTargetId]);
 
   // Autorefresh: cada 30s si hay al menos un partido en juego. Manual con botón 🔄.
+  // Solo refetchea los partidos live + los que empiezan en la próxima hora (para pillar
+  // el paso a live). Fusiona en el estado sin reemplazarlo (evita perder filas por
+  // el límite 1000 de PostgREST).
   const [refrescando,setRefrescando]=useState(false);
   const refetchPartidos=useCallback(async()=>{
     setRefrescando(true);
     try{
+      const nowIso=new Date().toISOString();
+      const inHourIso=new Date(Date.now()+60*60*1000).toISOString();
       const {data}=await supabase.from("partidos")
-        .select("id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas,es_live,periodo,id_ext,fuente,bracket_pos,link,url_stats,parciales,no_convocadas")
-        .neq("id_liga","L020").gte("temporada",String(new Date().getFullYear()-2))
-        .order("fecha_hora");
-      if(data)setPartidos(data);
+        .select("id,resultado_local,resultado_visitante,es_live,periodo,parciales")
+        .or(`es_live.eq.true,and(fecha_hora.gte.${nowIso},fecha_hora.lte.${inHourIso})`);
+      if(data&&data.length){
+        const patch=new Map(data.map(r=>[r.id,r]));
+        setPartidos(prev=>prev.map(p=>patch.has(p.id)?{...p,...patch.get(p.id)}:p));
+      }
     }catch(e){/* silencioso */}
     setRefrescando(false);
   },[setPartidos]);
