@@ -6538,6 +6538,119 @@ function QuinielaView({user,equipos,onAbrirPerfil}){
   );
 }
 
+/* ── AnalyticsPanel ──────────────────────────────────────── */
+function AnalyticsPanel({onClose}){
+  const [dias,setDias]=useState(30);
+  const [data,setData]=useState(null);
+  const [loading,setLoading]=useState(true);
+  const [err,setErr]=useState("");
+  useEffect(()=>{
+    let cancel=false;
+    (async()=>{
+      setLoading(true);setErr("");
+      const desde=new Date(Date.now()-dias*24*3600*1000).toISOString();
+      // Traemos todas las filas de la ventana y agregamos en cliente (barato hasta ~50k filas)
+      const {data:rows,error}=await supabase.from("visitas")
+        .select("created_at,path,session_id,id_usuario,referrer,user_agent")
+        .gte("created_at",desde)
+        .order("created_at",{ascending:false})
+        .limit(50000);
+      if(cancel)return;
+      if(error){setErr(error.message);setLoading(false);return;}
+      const BOT=/bot|spider|crawler|preview|headless|lighthouse|slurp|facebookexternalhit|pingdom|uptime/i;
+      const clean=(rows||[]).filter(r=>!r.user_agent||!BOT.test(r.user_agent));
+      const byDay={},byPath={},byRef={},sesDay={};
+      let anon=0,auth=0;
+      for(const r of clean){
+        const d=new Date(r.created_at).toISOString().slice(0,10);
+        byDay[d]=(byDay[d]||0)+1;
+        byPath[r.path]=(byPath[r.path]||0)+1;
+        const ref=(r.referrer||"").replace(/^https?:\/\/(www\.)?/,"").split("/")[0]||"(directo)";
+        byRef[ref]=(byRef[ref]||0)+1;
+        if(!sesDay[d])sesDay[d]=new Set();
+        sesDay[d].add(r.session_id);
+        if(r.id_usuario)auth++;else anon++;
+      }
+      const dayKeys=[];
+      for(let i=dias-1;i>=0;i--){const d=new Date(Date.now()-i*24*3600*1000).toISOString().slice(0,10);dayKeys.push(d);}
+      const serieVisitas=dayKeys.map(d=>byDay[d]||0);
+      const serieSesiones=dayKeys.map(d=>sesDay[d]?sesDay[d].size:0);
+      const topPaths=Object.entries(byPath).sort((a,b)=>b[1]-a[1]).slice(0,15);
+      const topRefs=Object.entries(byRef).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      const totalSes=new Set(clean.map(r=>r.session_id)).size;
+      setData({total:clean.length,brutas:rows?.length||0,ses:totalSes,anon,auth,dayKeys,serieVisitas,serieSesiones,topPaths,topRefs});
+      setLoading(false);
+    })();
+    return ()=>{cancel=true;};
+  },[dias]);
+  const chartH=140,chartW=760;
+  const maxV=data?Math.max(1,...data.serieVisitas):1;
+  const pointsV=data?data.serieVisitas.map((v,i)=>`${(i/(data.dayKeys.length-1||1))*chartW},${chartH-(v/maxV)*chartH}`).join(" "):"";
+  const pointsS=data?data.serieSesiones.map((v,i)=>`${(i/(data.dayKeys.length-1||1))*chartW},${chartH-(v/maxV)*chartH}`).join(" "):"";
+  return(
+    <div style={{minHeight:"100vh",background:"#f1f5f9",padding:"20px",fontFamily:"system-ui,-apple-system,sans-serif"}}>
+      <div style={{maxWidth:"1000px",margin:"0 auto"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"20px",flexWrap:"wrap",gap:"10px"}}>
+          <h1 style={{fontSize:"22px",fontWeight:800,color:"#1e293b",margin:0}}>📊 Analytics</h1>
+          <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
+            {[7,30,90,365].map(d=>
+              <button key={d} onClick={()=>setDias(d)} style={{padding:"7px 12px",borderRadius:"10px",border:dias===d?"1.5px solid #9333ea":"1.5px solid #e2e8f0",background:dias===d?"#9333ea":"#fff",color:dias===d?"#fff":"#475569",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>{d>=365?"1 año":`${d} días`}</button>
+            )}
+            <button onClick={onClose} style={{padding:"7px 14px",borderRadius:"10px",border:"1.5px solid #e2e8f0",background:"#fff",color:"#475569",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>Cerrar</button>
+          </div>
+        </div>
+        {loading&&<div style={{padding:"40px",textAlign:"center",color:"#94a3b8"}}>Cargando…</div>}
+        {err&&<div style={{padding:"20px",background:"#fef2f2",border:"1.5px solid #fecaca",borderRadius:"12px",color:"#991b1b"}}>❌ {err}</div>}
+        {data&&<>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:"12px",marginBottom:"16px"}}>
+            <MetricCard label="Pageviews" value={data.total.toLocaleString("es")}/>
+            <MetricCard label="Sesiones únicas" value={data.ses.toLocaleString("es")}/>
+            <MetricCard label="Anónimas" value={data.anon.toLocaleString("es")}/>
+            <MetricCard label="Logueadas" value={data.auth.toLocaleString("es")}/>
+            {data.brutas!==data.total&&<MetricCard label="Bots filtrados" value={(data.brutas-data.total).toLocaleString("es")}/>}
+          </div>
+          <div style={{background:"#fff",borderRadius:"14px",padding:"16px",marginBottom:"16px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
+            <div style={{fontSize:"13px",fontWeight:700,color:"#475569",marginBottom:"8px"}}>Pageviews (morado) · Sesiones (verde) · últimos {dias} días</div>
+            <svg viewBox={`0 0 ${chartW} ${chartH+20}`} style={{width:"100%",height:"auto",display:"block"}}>
+              <polyline fill="none" stroke="#9333ea" strokeWidth="2" points={pointsV}/>
+              <polyline fill="none" stroke="#059669" strokeWidth="2" points={pointsS} strokeDasharray="4 3"/>
+              {data.dayKeys.length<=14&&data.dayKeys.map((d,i)=>
+                <text key={d} x={(i/(data.dayKeys.length-1||1))*chartW} y={chartH+15} fontSize="9" fill="#94a3b8" textAnchor="middle">{d.slice(5)}</text>
+              )}
+            </svg>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px"}}>
+            <TablaTop titulo="Top páginas" filas={data.topPaths}/>
+            <TablaTop titulo="Top referrers" filas={data.topRefs}/>
+          </div>
+        </>}
+      </div>
+    </div>
+  );
+}
+function MetricCard({label,value}){
+  return <div style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
+    <div style={{fontSize:"11px",fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.5px"}}>{label}</div>
+    <div style={{fontSize:"22px",fontWeight:800,color:"#1e293b",marginTop:"4px"}}>{value}</div>
+  </div>;
+}
+function TablaTop({titulo,filas}){
+  const tot=filas.reduce((a,[,n])=>a+n,0)||1;
+  return <div style={{background:"#fff",borderRadius:"14px",padding:"16px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
+    <div style={{fontSize:"13px",fontWeight:700,color:"#475569",marginBottom:"10px"}}>{titulo}</div>
+    {filas.length===0&&<div style={{fontSize:"12px",color:"#94a3b8"}}>Sin datos</div>}
+    {filas.map(([k,n])=><div key={k} style={{marginBottom:"6px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:"12px",color:"#475569"}}>
+        <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"70%"}}>{k}</span>
+        <b style={{color:"#1e293b"}}>{n.toLocaleString("es")}</b>
+      </div>
+      <div style={{height:"4px",background:"#f1f5f9",borderRadius:"2px",marginTop:"2px"}}>
+        <div style={{height:"100%",background:"#9333ea",width:`${(n/tot)*100}%`,borderRadius:"2px"}}/>
+      </div>
+    </div>)}
+  </div>;
+}
+
 /* ── App ─────────────────────────────────────────────────── */
 export default function App(){
   const [players,setPlayers] = useState([]);
@@ -6559,6 +6672,7 @@ export default function App(){
   const [error,setError]     = useState(null);
   const [isFirstLoad,setIsFirstLoad] = useState(true);
   const [showCalidad,setShowCalidad] = useState(false);
+  const [showAnalytics,setShowAnalytics] = useState(false);
   const [mobileSearchOpen,setMobileSearchOpen] = useState(false);
   const [showLanding,setShowLanding] = useState(()=>{
     try{return !localStorage.getItem("bfdb_accepted");}catch{return true;}
@@ -6654,6 +6768,29 @@ export default function App(){
     });
     return ()=>subscription.unsubscribe();
   },[]);
+
+  // Analytics propio: 1 fila en `visitas` por cambio de tab. session_id persiste
+  // en localStorage; se renueva si no hay actividad en 30 min.
+  useEffect(()=>{
+    if(!tab)return;
+    try{
+      const now=Date.now();
+      let sid=null,last=0;
+      try{sid=localStorage.getItem("bf_sid");last=parseInt(localStorage.getItem("bf_sid_ts")||"0",10);}catch{}
+      if(!sid||now-last>30*60*1000){
+        sid=Math.random().toString(36).slice(2,10)+now.toString(36);
+        try{localStorage.setItem("bf_sid",sid);}catch{}
+      }
+      try{localStorage.setItem("bf_sid_ts",String(now));}catch{}
+      supabase.from("visitas").insert({
+        path:String(tab).slice(0,500),
+        referrer:(document.referrer||"").slice(0,2000)||null,
+        user_agent:(navigator.userAgent||"").slice(0,500)||null,
+        session_id:sid,
+        id_usuario:user?.id||null
+      }).then(()=>{},()=>{});
+    }catch{/* silent */}
+  },[tab,user?.id]);
 
   const isFav=(tipo,idRef)=>favoritos.some(f=>f.tipo===tipo&&f.id_referencia===idRef);
   const toggleFav=async(tipo,idRef)=>{
@@ -7010,6 +7147,9 @@ export default function App(){
         setPlayers={setPlayers} setEquipos={setEquipos} setLigas={setLigas} setCoaches={setCoaches} setTempCoach={setTempCoach}/>
     </Suspense>;
   }
+  if(showAnalytics){
+    return <AnalyticsPanel onClose={()=>setShowAnalytics(false)}/>;
+  }
   if(showResetPass) return <ResetPasswordModal onSave={handleSaveNewPassword} onCancel={()=>{setShowResetPass(false);setResetErr("");setResetInfo("");}} loading={resetLoading} error={resetErr} info={resetInfo}/>;
   if(showLogin) return <LoginModal onLogin={handleLogin} onGoogleLogin={handleGoogleLogin} onForgot={handleForgotPassword} onClose={()=>{setShowLogin(false);setLoginErr("");setLoginInfo("");setLoginMode("login");}} loading={loginLoading} error={loginErr} info={loginInfo} mode={loginMode} setMode={(m)=>{setLoginMode(m);setLoginErr("");setLoginInfo("");}}/>;
 
@@ -7073,6 +7213,9 @@ export default function App(){
               <div style={{height:"1px",background:"#334155",margin:"6px 0"}}/>
               {isAdmin&&<button onClick={()=>{setShowCalidad(true);setMenuOpen(false);}} style={{display:"flex",alignItems:"center",gap:"10px",width:"100%",background:"transparent",color:"#cbd5e1",border:"none",borderRadius:"8px",padding:"10px 14px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>
                 <span style={{fontSize:"16px"}}>🩺</span>Calidad de datos
+              </button>}
+              {isAdmin&&<button onClick={()=>{setShowAnalytics(true);setMenuOpen(false);}} style={{display:"flex",alignItems:"center",gap:"10px",width:"100%",background:"transparent",color:"#cbd5e1",border:"none",borderRadius:"8px",padding:"10px 14px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>
+                <span style={{fontSize:"16px"}}>📊</span>Analytics
               </button>}
               <button onClick={()=>{setShowLanding(true);setMenuOpen(false);}} style={{display:"flex",alignItems:"center",gap:"10px",width:"100%",background:"transparent",color:"#cbd5e1",border:"none",borderRadius:"8px",padding:"10px 14px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>
                 <span style={{fontSize:"16px"}}>ℹ️</span>Información
