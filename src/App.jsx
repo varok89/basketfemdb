@@ -1705,7 +1705,7 @@ function FaseFinal({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlayer}){
   const sortN=arr=>arr.slice().sort((a,b)=>(bpos(a)-bpos(b))||num(a)-num(b)||(new Date(a.fecha_hora)-new Date(b.fecha_hora))||a.id-b.id);
   const esGrupo=p=>/\bgrupo\b|\bgroup\b|fase de grupos/i.test(nt(p))&&!/#\d+/.test(nt(p));
   const esRegular=p=>/regular season|temporada regular|liga regular|jornada/i.test(nt(p));
-  const esPlayIn=p=>/play\s*-?\s*in/i.test(nt(p));
+  const esPlayIn=p=>/play\s*-?\s*in|qualification\s+to\s+quarter/i.test(nt(p));
   const esPrevia=p=>!esPlayIn(p)&&/qualifier|fase previa|previa|clasificatoria|preliminar/i.test(nt(p));
   const es3er=p=>/3er|tercer|bronce|3rd\s*place|third\s*place/i.test(nt(p));
   const esClasif=p=>!es3er(p)&&!esPrevia(p)&&!esPlayIn(p)&&/clasificaci|classification|placement|puestos/i.test(nt(p));
