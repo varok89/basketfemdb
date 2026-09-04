@@ -6551,7 +6551,7 @@ function AnalyticsPanel({onClose}){
       const desde=new Date(Date.now()-dias*24*3600*1000).toISOString();
       // Traemos todas las filas de la ventana y agregamos en cliente (barato hasta ~50k filas)
       const {data:rows,error}=await supabase.from("visitas")
-        .select("created_at,path,session_id,id_usuario,referrer,user_agent")
+        .select("created_at,path,session_id,id_usuario,referrer,user_agent,pais,ciudad")
         .gte("created_at",desde)
         .order("created_at",{ascending:false})
         .limit(50000);
@@ -6559,14 +6559,27 @@ function AnalyticsPanel({onClose}){
       if(error){setErr(error.message);setLoading(false);return;}
       const BOT=/bot|spider|crawler|preview|headless|lighthouse|slurp|facebookexternalhit|pingdom|uptime/i;
       const clean=(rows||[]).filter(r=>!r.user_agent||!BOT.test(r.user_agent));
-      const byDay={},byPath={},byRef={},sesDay={};
+      const byDay={},byPath={},byRef={},sesDay={},byPais={},byCiudad={},byDisp={},byBrow={};
       let anon=0,auth=0;
+      const detectaDisp=ua=>/Mobi|Android|iPhone|iPad|iPod/i.test(ua)?"📱 Móvil":/Tablet|iPad/i.test(ua)?"🔲 Tablet":"🖥️ Desktop";
+      const detectaBrow=ua=>{
+        if(/Edg\//.test(ua))return"Edge";
+        if(/Chrome\//.test(ua)&&!/Chromium/.test(ua))return"Chrome";
+        if(/Firefox\//.test(ua))return"Firefox";
+        if(/Safari\//.test(ua)&&!/Chrome\//.test(ua))return"Safari";
+        if(/OPR\//.test(ua))return"Opera";
+        return"Otro";
+      };
       for(const r of clean){
         const d=new Date(r.created_at).toISOString().slice(0,10);
         byDay[d]=(byDay[d]||0)+1;
         byPath[r.path]=(byPath[r.path]||0)+1;
         const ref=(r.referrer||"").replace(/^https?:\/\/(www\.)?/,"").split("/")[0]||"(directo)";
         byRef[ref]=(byRef[ref]||0)+1;
+        const pais=r.pais||"(?)";
+        byPais[pais]=(byPais[pais]||0)+1;
+        if(r.ciudad){const k=`${r.ciudad}${r.pais?" · "+r.pais:""}`;byCiudad[k]=(byCiudad[k]||0)+1;}
+        if(r.user_agent){byDisp[detectaDisp(r.user_agent)]=(byDisp[detectaDisp(r.user_agent)]||0)+1;byBrow[detectaBrow(r.user_agent)]=(byBrow[detectaBrow(r.user_agent)]||0)+1;}
         if(!sesDay[d])sesDay[d]=new Set();
         sesDay[d].add(r.session_id);
         if(r.id_usuario)auth++;else anon++;
@@ -6577,8 +6590,12 @@ function AnalyticsPanel({onClose}){
       const serieSesiones=dayKeys.map(d=>sesDay[d]?sesDay[d].size:0);
       const topPaths=Object.entries(byPath).sort((a,b)=>b[1]-a[1]).slice(0,15);
       const topRefs=Object.entries(byRef).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      const topPais=Object.entries(byPais).sort((a,b)=>b[1]-a[1]).slice(0,15);
+      const topCiudad=Object.entries(byCiudad).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      const topDisp=Object.entries(byDisp).sort((a,b)=>b[1]-a[1]);
+      const topBrow=Object.entries(byBrow).sort((a,b)=>b[1]-a[1]);
       const totalSes=new Set(clean.map(r=>r.session_id)).size;
-      setData({total:clean.length,brutas:rows?.length||0,ses:totalSes,anon,auth,dayKeys,serieVisitas,serieSesiones,topPaths,topRefs});
+      setData({total:clean.length,brutas:rows?.length||0,ses:totalSes,anon,auth,dayKeys,serieVisitas,serieSesiones,topPaths,topRefs,topPais,topCiudad,topDisp,topBrow});
       setLoading(false);
     })();
     return ()=>{cancel=true;};
@@ -6619,9 +6636,13 @@ function AnalyticsPanel({onClose}){
               )}
             </svg>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px"}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:"16px"}}>
             <TablaTop titulo="Top páginas" filas={data.topPaths}/>
+            <TablaTop titulo="Top países" filas={data.topPais}/>
+            <TablaTop titulo="Top ciudades" filas={data.topCiudad}/>
             <TablaTop titulo="Top referrers" filas={data.topRefs}/>
+            <TablaTop titulo="Dispositivo" filas={data.topDisp}/>
+            <TablaTop titulo="Navegador" filas={data.topBrow}/>
           </div>
         </>}
       </div>
@@ -6782,13 +6803,16 @@ export default function App(){
         try{localStorage.setItem("bf_sid",sid);}catch{}
       }
       try{localStorage.setItem("bf_sid_ts",String(now));}catch{}
-      supabase.from("visitas").insert({
-        path:String(tab).slice(0,500),
-        referrer:(document.referrer||"").slice(0,2000)||null,
-        user_agent:(navigator.userAgent||"").slice(0,500)||null,
-        session_id:sid,
-        id_usuario:user?.id||null
-      }).then(()=>{},()=>{});
+      // /api/track añade país/ciudad desde headers x-vercel-ip-*. Si falla, fallback a INSERT directo.
+      const payload={path:String(tab).slice(0,500),referrer:(document.referrer||"").slice(0,2000)||null,session_id:sid,id_usuario:user?.id||null};
+      fetch("/api/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),keepalive:true})
+        .then(r=>{ if(!r.ok) throw 0; })
+        .catch(()=>{
+          supabase.from("visitas").insert({
+            ...payload,
+            user_agent:(navigator.userAgent||"").slice(0,500)||null
+          }).then(()=>{},()=>{});
+        });
     }catch{/* silent */}
   },[tab,user?.id]);
 
