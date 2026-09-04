@@ -1695,7 +1695,90 @@ function BracketCard({title,children}){
   );
 }
 
+// Bracket estilo quiniela para el Mundial FIBA (formato con QQF).
+// Copia la estructura visual de BasketnetaView: 4 columnas (Play-In, Cuartos,
+// Semis, Final+Bronce) con líneas horizontales/verticales conectando pares.
+function BracketMundialFIBA({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlayer}){
+  const byNum=useMemo(()=>{
+    const m={};
+    for(const p of psLiga){const mt=(p.notas||"").match(/#(\d+)/);if(mt)m[parseInt(mt[1],10)]=p;}
+    return m;
+  },[psLiga]);
+  const slot=(n,cap)=>{const p=byNum[n];return p?<KOBox p={p} equipoMap={equipoMap} caption={cap} onOpen={onOpenPartido}/>:<div style={{width:150,flexShrink:0}}><div style={{background:"#fff",border:"1px dashed #cbd5e1",borderRadius:10,padding:"14px 6px",textAlign:"center",fontSize:11,color:"#94a3b8"}}>—</div>{cap&&<div style={{fontSize:9,color:"#94a3b8",textAlign:"center",marginTop:2,fontWeight:700}}>{cap}</div>}</div>;};
+  // Orden cross (igual que la quiniela): SF33 arriba = QF29+QF32, SF34 abajo = QF30+QF31
+  const playins=[27,26,28,25];
+  const qfs=[29,32,30,31];
+  const sfs=[33,34];
+  const line="#cbd5e1";
+  const MATCH_H=64,GAP_UNIT=20;
+  const bracketH=4*MATCH_H+3*GAP_UNIT;
+  const colCommon={display:"flex",flexDirection:"column",justifyContent:"space-around",alignItems:"center",height:bracketH+"px",position:"relative"};
+  const Hdr=({txt})=><div style={{fontSize:10,fontWeight:800,color:"#94a3b8",letterSpacing:"1px",position:"absolute",top:-18,left:0,right:0,textAlign:"center"}}>{txt}</div>;
+  return(
+    <BracketCard title="Cuadro final">
+      <div style={{overflowX:"auto",paddingTop:22,paddingBottom:6}}>
+        <div style={{display:"flex",alignItems:"stretch",minWidth:820}}>
+          {/* Play-In */}
+          <div style={colCommon}>
+            <Hdr txt="PLAY-IN"/>
+            {playins.map(n=>(
+              <div key={n} style={{position:"relative"}}>
+                {slot(n,"#"+n)}
+                <div style={{position:"absolute",right:-20,top:"50%",width:20,height:2,background:line}}/>
+              </div>
+            ))}
+          </div>
+          {/* Cuartos */}
+          <div style={{...colCommon,marginLeft:20}}>
+            <Hdr txt="CUARTOS"/>
+            {[0,1].map(pi=>(
+              <div key={pi} style={{display:"flex",flexDirection:"column",justifyContent:"space-around",alignItems:"center",height:(bracketH/2-GAP_UNIT/2)+"px",position:"relative"}}>
+                <div style={{position:"relative"}}>{slot(qfs[pi*2],"Cuartos #"+qfs[pi*2])}</div>
+                <div style={{position:"relative"}}>{slot(qfs[pi*2+1],"Cuartos #"+qfs[pi*2+1])}</div>
+                <div style={{position:"absolute",right:-12,top:"calc(50% - "+(MATCH_H/2)+"px)",bottom:"calc(50% - "+(MATCH_H/2)+"px)",width:2,background:line}}/>
+                <div style={{position:"absolute",right:-12,top:MATCH_H/2,width:12,height:2,background:line}}/>
+                <div style={{position:"absolute",right:-12,bottom:MATCH_H/2,width:12,height:2,background:line}}/>
+                <div style={{position:"absolute",right:-24,top:"50%",width:12,height:2,background:line}}/>
+              </div>
+            ))}
+          </div>
+          {/* Semis */}
+          <div style={{...colCommon,marginLeft:24}}>
+            <Hdr txt="SEMIS"/>
+            <div style={{display:"flex",flexDirection:"column",justifyContent:"space-around",alignItems:"center",height:bracketH+"px",position:"relative"}}>
+              {sfs.map(n=>(
+                <div key={n} style={{position:"relative"}}>
+                  {slot(n,"Semifinal #"+n)}
+                  <div style={{position:"absolute",right:-12,top:"50%",width:12,height:2,background:line}}/>
+                </div>
+              ))}
+              <div style={{position:"absolute",right:-12,top:"25%",bottom:"25%",width:2,background:line}}/>
+              <div style={{position:"absolute",right:-24,top:"50%",width:12,height:2,background:line}}/>
+            </div>
+          </div>
+          {/* Final + 3er puesto */}
+          <div style={{...colCommon,marginLeft:24,justifyContent:"center",gap:18}}>
+            <Hdr txt="FINAL"/>
+            {slot(36,"🏆 Final")}
+            <div style={{fontSize:9,fontWeight:800,color:"#f59e0b",letterSpacing:"1px"}}>🥉 3ER PUESTO</div>
+            {slot(35,"3er puesto")}
+            {mvpPlayer&&(<div onClick={()=>onGoToPlayer&&onGoToPlayer(mvpPlayer.id_jugadora)} style={{display:"flex",flexDirection:"column",alignItems:"center",cursor:onGoToPlayer?"pointer":"default",gap:2,marginTop:6}}>
+              <Avatar photo={mvpPlayer.foto} name={mvpPlayer.nombre} size={40} fontSize={13}/>
+              <span style={{fontSize:11,fontWeight:700,color:"#1e293b",whiteSpace:"nowrap",maxWidth:150,overflow:"hidden",textOverflow:"ellipsis"}}>{mvpPlayer.nombre}</span>
+              <span style={{fontSize:9,fontWeight:800,color:"#b45309",letterSpacing:"0.5px"}}>🏅 MVP</span>
+            </div>)}
+          </div>
+        </div>
+      </div>
+    </BracketCard>
+  );
+}
+
 function FaseFinal({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlayer}){
+  // Formato Mundial FIBA (con Qualification to Quarter-Finals): bracket dedicado
+  // que reproduce el layout de la quiniela.
+  const esFormatoMundial=useMemo(()=>psLiga.some(p=>/qualification\s+to\s+quarter/i.test(p.notas||"")),[psLiga]);
+  if(esFormatoMundial)return <BracketMundialFIBA psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido} mvpPlayer={mvpPlayer} onGoToPlayer={onGoToPlayer}/>;
   // El cuadro se arma POR RONDAS leyendo la nota (espanol o ingles) y ordenando por #N,
   // asi vale para 8, 16 o cualquier tamano. Play-In y fase previa van en tarjetas aparte.
   const nt=p=>(p&&p.notas)||"";
