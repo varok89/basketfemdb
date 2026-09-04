@@ -6787,13 +6787,13 @@ function AnalyticsPanel({onClose}){
       }
       const topPaths=Object.entries(byPath).sort((a,b)=>b[1]-a[1]);
       const topRefs=Object.entries(byRef).sort((a,b)=>b[1]-a[1]);
-      const iso2flag=c=>c&&/^[A-Z]{2}$/.test(c)?String.fromCodePoint(...c.split("").map(x=>0x1F1E6+x.charCodeAt(0)-65)):"";
       const paisName=(()=>{try{return new Intl.DisplayNames(["es"],{type:"region"});}catch{return null;}})();
-      const nomPais=c=>{ if(!c||c==="(?)")return "(desconocido)"; const n=paisName?paisName.of(c):null; return `${iso2flag(c)} ${n||c}`.trim(); };
+      // Convention: key con prefijo "flag:XX|" que TablaTop reconoce y renderiza como <img>.
+      const nomPais=c=>{ if(!c||c==="(?)")return "(desconocido)"; const n=paisName?paisName.of(c):null; return `flag:${c.toLowerCase()}|${n||c}`; };
       const topPais=Object.entries(byPais).sort((a,b)=>b[1]-a[1]).map(([c,n])=>[nomPais(c),n]);
       const topCiudad=Object.entries(byCiudad).sort((a,b)=>b[1]-a[1]).map(([k,n])=>{
         const m=/^(.+) · ([A-Z]{2})$/.exec(k);
-        return m?[`${iso2flag(m[2])} ${m[1]}`,n]:[k,n];
+        return m?[`flag:${m[2].toLowerCase()}|${m[1]}`,n]:[k,n];
       });
       const topDisp=Object.entries(byDisp).sort((a,b)=>b[1]-a[1]);
       const topBrow=Object.entries(byBrow).sort((a,b)=>b[1]-a[1]);
@@ -6873,15 +6873,20 @@ function TablaTop({titulo,filas,limite=10}){
     <div style={{fontSize:"13px",fontWeight:700,color:"#475569",marginBottom:"10px"}}>{titulo}</div>
     {filas.length===0&&<div style={{fontSize:"12px",color:"#94a3b8"}}>Sin datos</div>}
     <div style={{maxHeight:expand?"340px":"none",overflowY:expand?"auto":"visible"}}>
-      {visibles.map(([k,n])=><div key={k} style={{marginBottom:"6px"}}>
+      {visibles.map(([k,n])=>{
+        const fm=/^flag:([a-z]{2})\|(.*)$/.exec(k);
+        return <div key={k} style={{marginBottom:"6px"}}>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:"12px",color:"#475569"}}>
-          <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"70%"}}>{k}</span>
+          <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"70%",display:"inline-flex",alignItems:"center",gap:"6px"}}>
+            {fm&&<img src={`https://flagcdn.com/w20/${fm[1]}.png`} alt={fm[1]} style={{width:16,height:12,borderRadius:2,flexShrink:0}}/>}
+            <span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{fm?fm[2]:k}</span>
+          </span>
           <b style={{color:"#1e293b"}}>{n.toLocaleString("es")}</b>
         </div>
         <div style={{height:"4px",background:"#f1f5f9",borderRadius:"2px",marginTop:"2px"}}>
           <div style={{height:"100%",background:"#9333ea",width:`${(n/tot)*100}%`,borderRadius:"2px"}}/>
         </div>
-      </div>)}
+      </div>;})}
     </div>
     {filas.length>limite&&<button onClick={()=>setExpand(v=>!v)} style={{marginTop:"8px",width:"100%",padding:"7px",border:"1.5px solid #e2e8f0",borderRadius:"8px",background:"#f8fafc",color:"#475569",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
       {expand?"↑ Ver menos":`↓ Ver todo (${restantes} más)`}
