@@ -6590,8 +6590,14 @@ function AnalyticsPanel({onClose}){
       const serieSesiones=dayKeys.map(d=>sesDay[d]?sesDay[d].size:0);
       const topPaths=Object.entries(byPath).sort((a,b)=>b[1]-a[1]).slice(0,15);
       const topRefs=Object.entries(byRef).sort((a,b)=>b[1]-a[1]).slice(0,10);
-      const topPais=Object.entries(byPais).sort((a,b)=>b[1]-a[1]).slice(0,15);
-      const topCiudad=Object.entries(byCiudad).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      const iso2flag=c=>c&&/^[A-Z]{2}$/.test(c)?String.fromCodePoint(...c.split("").map(x=>0x1F1E6+x.charCodeAt(0)-65)):"";
+      const paisName=(()=>{try{return new Intl.DisplayNames(["es"],{type:"region"});}catch{return null;}})();
+      const nomPais=c=>{ if(!c||c==="(?)")return "(desconocido)"; const n=paisName?paisName.of(c):null; return `${iso2flag(c)} ${n||c}`.trim(); };
+      const topPais=Object.entries(byPais).sort((a,b)=>b[1]-a[1]).slice(0,15).map(([c,n])=>[nomPais(c),n]);
+      const topCiudad=Object.entries(byCiudad).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([k,n])=>{
+        const m=/^(.+) · ([A-Z]{2})$/.exec(k);
+        return m?[`${iso2flag(m[2])} ${m[1]}`,n]:[k,n];
+      });
       const topDisp=Object.entries(byDisp).sort((a,b)=>b[1]-a[1]);
       const topBrow=Object.entries(byBrow).sort((a,b)=>b[1]-a[1]);
       const totalSes=new Set(clean.map(r=>r.session_id)).size;
