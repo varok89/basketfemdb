@@ -5466,45 +5466,89 @@ function PrivacidadView({onBack}){
 }
 
 /* ── LoginModal ─────────────────────────────────────────── */
-function LoginModal({onLogin,onGoogleLogin,onClose,loading,error,mode,setMode}){
+function LoginModal({onLogin,onGoogleLogin,onForgot,onClose,loading,error,info,mode,setMode}){
   const [email,setEmail]=useState("");
   const [pass,setPass]=useState("");
   const isReg=mode==="register";
+  const isForgot=mode==="forgot";
+  const submit=()=>{ if(isForgot) onForgot(email); else onLogin(email,pass); };
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}
       onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
       <div style={{background:"#1e293b",borderRadius:"20px",padding:"32px",width:"340px",boxShadow:"0 20px 60px rgba(0,0,0,0.5)"}}>
         <div style={{textAlign:"center",marginBottom:"24px"}}>
           <div style={{fontSize:"32px",marginBottom:"8px"}}>🏀</div>
-          <div style={{fontWeight:800,fontSize:"18px",color:"#f1f5f9"}}>{isReg?"Crear cuenta":"Iniciar sesión"}</div>
-          <div style={{fontSize:"12px",color:"#94a3b8",marginTop:"4px"}}>Guarda tus jugadoras y equipos favoritos</div>
+          <div style={{fontWeight:800,fontSize:"18px",color:"#f1f5f9"}}>{isForgot?"Recuperar contraseña":isReg?"Crear cuenta":"Iniciar sesión"}</div>
+          <div style={{fontSize:"12px",color:"#94a3b8",marginTop:"4px"}}>{isForgot?"Te enviaremos un email para restablecerla":"Guarda tus jugadoras y equipos favoritos"}</div>
         </div>
-        <button onClick={onGoogleLogin}
-          style={{width:"100%",background:"#fff",color:"#1e293b",border:"none",borderRadius:"10px",padding:"11px",fontWeight:700,fontSize:"14px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",marginBottom:"16px"}}>
-          <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-          Continuar con Google
-        </button>
-        <div style={{display:"flex",alignItems:"center",gap:"12px",margin:"16px 0"}}>
-          <div style={{flex:1,height:"1px",background:"#334155"}}/><span style={{color:"#64748b",fontSize:"12px"}}>o</span><div style={{flex:1,height:"1px",background:"#334155"}}/>
-        </div>
+        {!isForgot&&<>
+          <button onClick={onGoogleLogin}
+            style={{width:"100%",background:"#fff",color:"#1e293b",border:"none",borderRadius:"10px",padding:"11px",fontWeight:700,fontSize:"14px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",marginBottom:"16px"}}>
+            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+            Continuar con Google
+          </button>
+          <div style={{display:"flex",alignItems:"center",gap:"12px",margin:"16px 0"}}>
+            <div style={{flex:1,height:"1px",background:"#334155"}}/><span style={{color:"#64748b",fontSize:"12px"}}>o</span><div style={{flex:1,height:"1px",background:"#334155"}}/>
+          </div>
+        </>}
         <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
           <input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}
             style={{background:"#0f172a",border:"1.5px solid #334155",borderRadius:"10px",padding:"10px 14px",fontSize:"14px",color:"#f1f5f9",outline:"none"}}
-            onKeyDown={e=>e.key==="Enter"&&onLogin(email,pass)}/>
-          <input type="password" placeholder="Contraseña" value={pass} onChange={e=>setPass(e.target.value)}
+            onKeyDown={e=>e.key==="Enter"&&submit()}/>
+          {!isForgot&&<input type="password" placeholder="Contraseña" value={pass} onChange={e=>setPass(e.target.value)}
             style={{background:"#0f172a",border:"1.5px solid #334155",borderRadius:"10px",padding:"10px 14px",fontSize:"14px",color:"#f1f5f9",outline:"none"}}
-            onKeyDown={e=>e.key==="Enter"&&onLogin(email,pass)}/>
+            onKeyDown={e=>e.key==="Enter"&&submit()}/>}
           {error&&<div style={{color:"#f87171",fontSize:"12px",textAlign:"center"}}>{error}</div>}
-          <button onClick={()=>onLogin(email,pass)} disabled={loading}
+          {info&&<div style={{color:"#4ade80",fontSize:"12px",textAlign:"center"}}>{info}</div>}
+          <button onClick={submit} disabled={loading}
             style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"11px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>
-            {loading?(isReg?"Creando...":"Entrando..."):(isReg?"Crear cuenta":"Entrar")}
+            {loading?"...":(isForgot?"Enviar email":isReg?"Crear cuenta":"Entrar")}
           </button>
         </div>
+        {!isReg&&!isForgot&&<div style={{textAlign:"center",marginTop:"12px",fontSize:"12px"}}>
+          <span onClick={()=>setMode("forgot")} style={{color:"#a78bfa",cursor:"pointer",fontWeight:600}}>¿Olvidaste tu contraseña?</span>
+        </div>}
         <div style={{textAlign:"center",marginTop:"16px",fontSize:"12px",color:"#94a3b8"}}>
-          {isReg?"¿Ya tienes cuenta? ":"¿No tienes cuenta? "}
-          <span onClick={()=>setMode(isReg?"login":"register")} style={{color:"#a78bfa",cursor:"pointer",fontWeight:700}}>{isReg?"Inicia sesión":"Regístrate"}</span>
+          {isForgot?<span onClick={()=>setMode("login")} style={{color:"#a78bfa",cursor:"pointer",fontWeight:700}}>← Volver</span>:
+           isReg?<>¿Ya tienes cuenta? <span onClick={()=>setMode("login")} style={{color:"#a78bfa",cursor:"pointer",fontWeight:700}}>Inicia sesión</span></>:
+                 <>¿No tienes cuenta? <span onClick={()=>setMode("register")} style={{color:"#a78bfa",cursor:"pointer",fontWeight:700}}>Regístrate</span></>}
         </div>
         <div style={{textAlign:"center",marginTop:"12px"}}><a href="/privacidad" target="_blank" style={{fontSize:"11px",color:"#64748b",textDecoration:"none"}}>Política de privacidad</a></div>
+      </div>
+    </div>
+  );
+}
+
+/* ── ResetPasswordModal ────────────────────────────────── */
+function ResetPasswordModal({onSave,onCancel,loading,error,info}){
+  const [pass,setPass]=useState("");
+  const [pass2,setPass2]=useState("");
+  const submit=()=>{
+    if(pass.length<6){alert("Mínimo 6 caracteres");return;}
+    if(pass!==pass2){alert("Las contraseñas no coinciden");return;}
+    onSave(pass);
+  };
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{background:"#1e293b",borderRadius:"20px",padding:"32px",width:"340px",boxShadow:"0 20px 60px rgba(0,0,0,0.5)"}}>
+        <div style={{textAlign:"center",marginBottom:"24px"}}>
+          <div style={{fontSize:"32px",marginBottom:"8px"}}>🔑</div>
+          <div style={{fontWeight:800,fontSize:"18px",color:"#f1f5f9"}}>Nueva contraseña</div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
+          <input type="password" placeholder="Nueva contraseña" value={pass} onChange={e=>setPass(e.target.value)}
+            style={{background:"#0f172a",border:"1.5px solid #334155",borderRadius:"10px",padding:"10px 14px",fontSize:"14px",color:"#f1f5f9",outline:"none"}}/>
+          <input type="password" placeholder="Repetir contraseña" value={pass2} onChange={e=>setPass2(e.target.value)}
+            style={{background:"#0f172a",border:"1.5px solid #334155",borderRadius:"10px",padding:"10px 14px",fontSize:"14px",color:"#f1f5f9",outline:"none"}}
+            onKeyDown={e=>e.key==="Enter"&&submit()}/>
+          {error&&<div style={{color:"#f87171",fontSize:"12px",textAlign:"center"}}>{error}</div>}
+          {info&&<div style={{color:"#4ade80",fontSize:"12px",textAlign:"center"}}>{info}</div>}
+          <button onClick={submit} disabled={loading}
+            style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"11px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>
+            {loading?"Guardando...":"Guardar contraseña"}
+          </button>
+          <button onClick={onCancel} style={{background:"transparent",color:"#94a3b8",border:"none",fontSize:"12px",cursor:"pointer"}}>Cancelar</button>
+        </div>
       </div>
     </div>
   );
@@ -6539,7 +6583,12 @@ export default function App(){
   const [showLogin,setShowLogin]   = useState(false);
   const [loginErr,setLoginErr]     = useState("");
   const [loginLoading,setLoginLoading] = useState(false);
-  const [loginMode,setLoginMode]   = useState("login"); // login | register
+  const [loginMode,setLoginMode]   = useState("login"); // login | register | forgot
+  const [loginInfo,setLoginInfo]   = useState("");
+  const [showResetPass,setShowResetPass] = useState(false);
+  const [resetErr,setResetErr]     = useState("");
+  const [resetInfo,setResetInfo]   = useState("");
+  const [resetLoading,setResetLoading] = useState(false);
   const [showUserMenu,setShowUserMenu] = useState(false);
   const [menuOpen,setMenuOpen] = useState(false);
   const [showPrivacidad,setShowPrivacidad] = useState(false);
@@ -6570,7 +6619,10 @@ export default function App(){
       }else{setIsAdmin(false);setFavoritos([]);setNotificaciones([]);setNotifCount(0);initLogros(null);}
     };
     supabase.auth.getSession().then(({data:{session}})=>setupUser(session));
-    const {data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>setupUser(session));
+    const {data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
+      if(event==="PASSWORD_RECOVERY"){ setShowResetPass(true); setResetErr(""); setResetInfo(""); }
+      setupUser(session);
+    });
     return ()=>subscription.unsubscribe();
   },[]);
 
@@ -6612,6 +6664,24 @@ export default function App(){
   const handleGoogleLogin=async()=>{
     const {error}=await supabase.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin}});
     if(error)setLoginErr(error.message);
+  };
+  const handleForgotPassword=async(email)=>{
+    if(!email||!email.includes("@")){setLoginErr("Email no válido");return;}
+    setLoginLoading(true);setLoginErr("");setLoginInfo("");
+    const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin});
+    setLoginLoading(false);
+    if(error) setLoginErr(error.message);
+    else setLoginInfo("Email enviado. Revisa tu bandeja y sigue el enlace.");
+  };
+  const handleSaveNewPassword=async(password)=>{
+    setResetLoading(true);setResetErr("");setResetInfo("");
+    const {error}=await supabase.auth.updateUser({password});
+    setResetLoading(false);
+    if(error) setResetErr(error.message);
+    else {
+      setResetInfo("Contraseña actualizada");
+      setTimeout(()=>{setShowResetPass(false);setResetInfo("");},1500);
+    }
   };
   const handleLogout=async()=>{await supabase.auth.signOut();setUser(null);setIsAdmin(false);setFavoritos([]);initLogros(null);};
 
@@ -6911,7 +6981,8 @@ export default function App(){
         setPlayers={setPlayers} setEquipos={setEquipos} setLigas={setLigas} setCoaches={setCoaches} setTempCoach={setTempCoach}/>
     </Suspense>;
   }
-  if(showLogin) return <LoginModal onLogin={handleLogin} onGoogleLogin={handleGoogleLogin} onClose={()=>{setShowLogin(false);setLoginErr("");setLoginMode("login");}} loading={loginLoading} error={loginErr} mode={loginMode} setMode={setLoginMode}/>;
+  if(showResetPass) return <ResetPasswordModal onSave={handleSaveNewPassword} onCancel={()=>{setShowResetPass(false);setResetErr("");setResetInfo("");}} loading={resetLoading} error={resetErr} info={resetInfo}/>;
+  if(showLogin) return <LoginModal onLogin={handleLogin} onGoogleLogin={handleGoogleLogin} onForgot={handleForgotPassword} onClose={()=>{setShowLogin(false);setLoginErr("");setLoginInfo("");setLoginMode("login");}} loading={loginLoading} error={loginErr} info={loginInfo} mode={loginMode} setMode={(m)=>{setLoginMode(m);setLoginErr("");setLoginInfo("");}}/>;
 
   if(loading) return(
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f1f5f9",fontFamily:"system-ui,sans-serif"}}>
