@@ -1095,7 +1095,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           <button onClick={onClose} style={{background:"none",border:"none",fontSize:"22px",color:"#94a3b8",cursor:"pointer"}}>×</button>
         </div>
         <div style={{padding:"0 24px 12px",borderBottom:"1px solid #f1f5f9"}}>
-          <div style={{display:"flex",gap:"4px",marginBottom:"8px"}}>
+          <div style={{display:"flex",gap:"4px",marginBottom:"8px",flexWrap:"wrap"}}>
             {CAL_GROUPS.map(function(g,gi){
               var active=g.items.some(function(t){return t.key===tab;});
               var totalCount=g.items.reduce(function(a,t){return a+t.count;},0);
