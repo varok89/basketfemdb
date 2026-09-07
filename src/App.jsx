@@ -6402,11 +6402,14 @@ function VerPrediccionesModal({target,equipos,onClose}){
   const [data,setData]=useState(null);
   const [err,setErr]=useState("");
   const [jugMap,setJugMap]=useState({}); // id_jugadora -> {nombre, id_equipo}
+  const [res,setRes]=useState({grupos:{},bracket:{},bola:{}});
 
   useEffect(()=>{(async()=>{
     const {data:d,error}=await supabase.rpc("ver_predicciones_mundial",{target_user:target.user_id});
     if(error){setErr(error.message);return;}
     setData(d);
+    const {data:r}=await supabase.rpc("quiniela_resultados_actuales");
+    if(r)setRes(r);
     if(d?.cerrado&&Array.isArray(d.bola)){
       const ids=Array.from(new Set(d.bola.flatMap(b=>b.respuesta_ids||[])));
       if(ids.length){
@@ -6449,6 +6452,14 @@ function VerPrediccionesModal({target,equipos,onClose}){
 
   const preguntaLabel={campeon:"🏆 Campeón",mvp:"⭐ MVP",top_scorer:"🎯 Máxima anotadora",joven:"🌱 Mejor joven",quinteto:"🖐️ Quinteto ideal",t3pct:"🏹 Mejor % T3",robos:"🥷 Más robos"};
 
+  // Marca borde verde (acierto) / rojo (fallo) / neutro (sin resultado aún)
+  const marcar=(pick,correctList)=>{
+    if(!correctList||correctList.length===0)return {};
+    const arr=Array.isArray(correctList)?correctList:[correctList];
+    const ok=pick!=null&&arr.includes(pick);
+    return {border:`2px solid ${ok?"#22c55e":"#ef4444"}`,background:ok?"#f0fdf4":"#fef2f2"};
+  };
+
   return(
     <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.7)",zIndex:200,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"20px",overflowY:"auto"}}>
       <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:"14px",maxWidth:"760px",width:"100%",padding:"18px",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
@@ -6478,8 +6489,10 @@ function VerPrediccionesModal({target,equipos,onClose}){
                   {[1,2,3,4].map(pos=>{
                     const s=bnBySlot[`grupo_${g}_${pos}`];
                     const bgPos={1:"#dcfce7",2:"#fef3c7",3:"#fef3c7",4:"#fee2e2"}[pos];
+                    const correcto=res.grupos&&res.grupos[`grupo_${g}_${pos}`];
+                    const mk=correcto?marcar(s?.id_equipo,[correcto]):null;
                     return(
-                      <div key={pos} style={{display:"flex",alignItems:"center",gap:"6px",padding:"3px 6px",background:bgPos,borderRadius:"6px",marginBottom:"3px",fontSize:"12px"}}>
+                      <div key={pos} style={{display:"flex",alignItems:"center",gap:"6px",padding:"3px 6px",background:mk?mk.background:bgPos,border:mk?mk.border:"2px solid transparent",borderRadius:"6px",marginBottom:"3px",fontSize:"12px"}}>
                         <b style={{width:"16px",color:"#334155"}}>{pos}º</b>
                         {s?<div style={{display:"flex",alignItems:"center",gap:"5px",overflow:"hidden"}}>{flag(escDe(s.id_equipo))}<span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.nombre||s.id_equipo}</span></div>:<span style={{color:"#94a3b8"}}>—</span>}
                       </div>
@@ -6495,8 +6508,10 @@ function VerPrediccionesModal({target,equipos,onClose}){
                   ["qf_29","Cuartos #29"],["qf_30","Cuartos #30"],["qf_31","Cuartos #31"],["qf_32","Cuartos #32"],
                   ["sf_33","Semi #33"],["sf_34","Semi #34"],["br_35","3er puesto"],["final_36","🏆 Final"]].map(([slot,lab])=>{
                     const s=bnBySlot[slot];
+                    const correcto=res.bracket&&res.bracket[slot];
+                    const mk=correcto?marcar(s?.id_equipo,[correcto]):null;
                     return(
-                      <div key={slot} style={{display:"flex",alignItems:"center",gap:"6px",padding:"4px 6px",background:slot==="final_36"?"#fef3c7":"#f8fafc",borderRadius:"6px"}}>
+                      <div key={slot} style={{display:"flex",alignItems:"center",gap:"6px",padding:"4px 6px",background:mk?mk.background:(slot==="final_36"?"#fef3c7":"#f8fafc"),border:mk?mk.border:"2px solid transparent",borderRadius:"6px"}}>
                         <span style={{fontSize:"10px",color:"#64748b",fontWeight:700,minWidth:"78px"}}>{lab}</span>
                         {s?teamPill(s.id_equipo):<span style={{color:"#94a3b8",fontSize:"11px"}}>—</span>}
                       </div>
@@ -6512,12 +6527,17 @@ function VerPrediccionesModal({target,equipos,onClose}){
             <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
               {["campeon","mvp","top_scorer","joven","quinteto","t3pct","robos"].map(pid=>{
                 const ids=boByPreg[pid]||[];
+                const correctList=res.bola&&res.bola[pid];
                 return(
                   <div key={pid} style={{border:"1px solid #e2e8f0",borderRadius:"8px",padding:"8px 10px"}}>
                     <div style={{fontSize:"11px",fontWeight:700,color:"#64748b",marginBottom:"5px"}}>{preguntaLabel[pid]}</div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>
                       {ids.length===0&&<span style={{fontSize:"12px",color:"#94a3b8"}}>—</span>}
-                      {pid==="campeon"?ids.map(id=><span key={id}>{teamPill(id)}</span>):ids.map(id=><span key={id}>{jugPill(id)}</span>)}
+                      {ids.map(id=>{
+                        const mk=correctList?marcar(id,correctList):null;
+                        const inner=pid==="campeon"?teamPill(id):jugPill(id);
+                        return <span key={id} style={mk?{...mk,borderRadius:"8px",padding:"2px",display:"inline-block"}:undefined}>{inner}</span>;
+                      })}
                     </div>
                   </div>
                 );
