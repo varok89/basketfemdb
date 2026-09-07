@@ -5,6 +5,20 @@ import { COUNTRY_CODES, countryCode, flagEmoji, NO_COUNTRY_FLAGS, checkIdGaps, F
 function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach,onReload,isAdmin,setPlayers,setEquipos,setLigas,setCoaches,setTempCoach}){
   var tabState=useState("incompletas");
   var tab=tabState[0];var setTab=tabState[1];
+  // ── Estado del sistema (pestaña Ops) ──
+  var [estadoData,setEstadoData]=useState(null);
+  var [estadoBusy,setEstadoBusy]=useState(false);
+  var [estadoErr,setEstadoErr]=useState("");
+  async function cargarEstado(){
+    setEstadoBusy(true);setEstadoErr("");
+    try{
+      var r=await fetch("/api/estado-sistema");
+      var j=await r.json();
+      if(!r.ok)throw new Error(j.error||"error");
+      setEstadoData(j);
+    }catch(e){setEstadoErr(e.message);}
+    setEstadoBusy(false);
+  }
   // ── Scraper FIBA (rellena boxscores desde el play-by-play vía Edge Function) ──
   var scLigaState=useState("");var scLiga=scLigaState[0];var setScLiga=scLigaState[1];
   // Carreras ESPN por equipo (NCAA + WNBA)
@@ -1064,6 +1078,8 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       {key:"feb-fichas",label:"Fichas FEB",count:febPend||0},
       {key:"carreras",label:"🎓 Carreras ESPN",count:0},
       {key:"lotes",label:"Alta por lotes",count:0},
+    ]},{title:"🩺 Ops",items:[
+      {key:"estado",label:"Estado sistema",count:0},
     ]}]:[]),
   ];
   var CAL_TABS=CAL_GROUPS.flatMap(g=>g.items);
@@ -1936,6 +1952,116 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               )}
             </div>
           )}
+          {tab==="estado"&&(function(){
+            var d=estadoData;
+            function fmtDate(v){if(!v)return"—";var dt=new Date(typeof v==="number"?(v<1e12?v*1000:v):v);return dt.toLocaleString("es-ES",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});}
+            function fmtSize(b){if(!b)return"—";if(b<1024)return b+" B";if(b<1048576)return(b/1024).toFixed(1)+" KB";if(b<1073741824)return(b/1048576).toFixed(1)+" MB";return(b/1073741824).toFixed(2)+" GB";}
+            function since(v){if(!v)return"";var dt=new Date(typeof v==="number"?(v<1e12?v*1000:v):v);var s=(Date.now()-dt.getTime())/1000;if(s<60)return"hace "+Math.round(s)+"s";if(s<3600)return"hace "+Math.round(s/60)+" min";if(s<86400)return"hace "+Math.round(s/3600)+" h";return"hace "+Math.round(s/86400)+" d";}
+            var card={background:"#fff",border:"1px solid #e2e8f0",borderRadius:"14px",padding:"14px"};
+            var h={fontWeight:800,fontSize:"12px",color:"#1e293b",margin:"0 0 10px",display:"flex",alignItems:"center",justifyContent:"space-between"};
+            var kv={fontSize:"12px",color:"#475569",display:"flex",justifyContent:"space-between",padding:"3px 0"};
+            var dot=function(c){return{display:"inline-block",width:8,height:8,borderRadius:"50%",background:c,marginRight:6};};
+            function pill(txt,color){return<span style={{background:color+"20",color:color,fontSize:"10px",fontWeight:700,padding:"2px 7px",borderRadius:"10px"}}>{txt}</span>;}
+            function block(title,body,link){return(
+              <div style={card}>
+                <div style={h}><span>{title}</span>{link&&<a href={link} target="_blank" rel="noopener" style={{fontSize:"10px",color:"#9333ea",textDecoration:"none",fontWeight:700}}>abrir ↗</a>}</div>
+                {body}
+              </div>
+            );}
+            return(
+              <div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}}>
+                  <p style={{color:"#64748b",fontSize:"12px",margin:0}}>Uptime, cron pings, backup en Backblaze, deploys y visitas. {d&&<span style={{color:"#94a3b8"}}>· actualizado {fmtDate(d.ts)}</span>}</p>
+                  <button onClick={cargarEstado} disabled={estadoBusy} style={{background:estadoBusy?"#cbd5e1":"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"12px",cursor:estadoBusy?"default":"pointer"}}>{estadoBusy?"⏳ Cargando…":"🔄 Refrescar"}</button>
+                </div>
+                {estadoErr&&<div style={{color:"#dc2626",fontSize:"12px",marginBottom:"10px"}}>❌ {estadoErr}</div>}
+                {!d&&!estadoBusy&&<div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8",fontSize:"13px"}}>Pulsa <b>Refrescar</b> para consultar el estado.</div>}
+                {d&&(
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
+                    {/* Uptime */}
+                    {block("🌐 Uptime",d.uptime.error?<div style={{color:"#dc2626",fontSize:"11px"}}>{d.uptime.error}</div>:(
+                      <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
+                        {(d.uptime.monitors||[]).map(function(m,i){var up=m.status===2;return(
+                          <div key={i}>
+                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"4px"}}>
+                              <div style={{fontSize:"12px",fontWeight:700,color:"#1e293b"}}><span style={dot(up?"#22c55e":"#ef4444")}/>{m.name}</div>
+                              {pill(up?"UP":"DOWN",up?"#22c55e":"#ef4444")}
+                            </div>
+                            <div style={kv}><span>24h · 7d · 30d</span><span style={{fontFamily:"monospace"}}>{(m.uptime||[]).map(function(x){return(parseFloat(x)||0).toFixed(2);}).join(" · ")}%</span></div>
+                            {m.response_ms&&<div style={kv}><span>Respuesta</span><span>{m.response_ms} ms</span></div>}
+                            {m.last_log&&<div style={{fontSize:"10px",color:"#94a3b8",marginTop:"4px"}}>Último evento: {m.last_log.type===2?"UP":"DOWN"} · {fmtDate(m.last_log.datetime)}{m.last_log.reason?" · "+m.last_log.reason:""}</div>}
+                          </div>
+                        );})}
+                        {!(d.uptime.monitors||[]).length&&<div style={{fontSize:"11px",color:"#94a3b8"}}>Sin monitors</div>}
+                      </div>
+                    ),"https://dashboard.uptimerobot.com/")}
+                    {/* Cron */}
+                    {block("⏰ Cron pings",d.cron.error?<div style={{color:"#dc2626",fontSize:"11px"}}>{d.cron.error}</div>:(
+                      <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+                        {(d.cron.checks||[]).map(function(c,i){
+                          var col=c.status==="up"?"#22c55e":c.status==="late"?"#f59e0b":c.status==="down"?"#ef4444":"#94a3b8";
+                          return(
+                            <div key={i}>
+                              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                                <div style={{fontSize:"12px",fontWeight:700,color:"#1e293b"}}><span style={dot(col)}/>{c.name}</div>
+                                {pill(c.status.toUpperCase(),col)}
+                              </div>
+                              <div style={{fontSize:"10px",color:"#94a3b8",marginLeft:"14px"}}>Últ. ping {since(c.last_ping)} · {c.schedule}</div>
+                            </div>
+                          );
+                        })}
+                        {!(d.cron.checks||[]).length&&<div style={{fontSize:"11px",color:"#94a3b8"}}>Sin checks</div>}
+                      </div>
+                    ),"https://healthchecks.io/checks/")}
+                    {/* Backup */}
+                    {block("💾 Backup (Backblaze B2)",d.backup.error?<div style={{color:"#dc2626",fontSize:"11px"}}>{d.backup.error}</div>:(function(){
+                      var last=d.backup.last;var stale=last?(Date.now()-last.ts)/86400000>8:true;
+                      return(
+                        <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"4px"}}>
+                            <div style={{fontSize:"12px",fontWeight:700,color:"#1e293b"}}><span style={dot(stale?"#f59e0b":"#22c55e")}/>{last?since(last.ts):"sin backups"}</div>
+                            {pill(stale?"REVISAR":"OK",stale?"#f59e0b":"#22c55e")}
+                          </div>
+                          {last&&<div style={{fontSize:"10px",color:"#94a3b8",wordBreak:"break-all"}}>{last.name}</div>}
+                          <div style={kv}><span>Backups guardados</span><span>{d.backup.total}</span></div>
+                          <div style={kv}><span>Tamaño total</span><span>{fmtSize(d.backup.total_size)}</span></div>
+                          {last&&<div style={kv}><span>Último tamaño</span><span>{fmtSize(last.size)}</span></div>}
+                        </div>
+                      );
+                    })(),"https://backupdrill.com/console/")}
+                    {/* Vercel */}
+                    {block("🚀 Vercel",d.vercel.error?<div style={{color:"#dc2626",fontSize:"11px"}}>{d.vercel.error}</div>:(
+                      <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+                        {(d.vercel.deploys||[]).slice(0,5).map(function(dep,i){
+                          var col=dep.state==="READY"?"#22c55e":dep.state==="ERROR"?"#ef4444":dep.state==="BUILDING"?"#3b82f6":"#94a3b8";
+                          return(
+                            <div key={i} style={{fontSize:"11px",borderBottom:i<4?"1px solid #f1f5f9":"none",paddingBottom:"5px"}}>
+                              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                                <span style={{fontWeight:700,color:col}}>{dep.state}{dep.target==="production"?" ·prod":""}</span>
+                                <span style={{color:"#94a3b8",fontSize:"10px"}}>{fmtDate(dep.created)}</span>
+                              </div>
+                              {dep.commit&&<div style={{color:"#475569",fontSize:"10px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{dep.commit}</div>}
+                            </div>
+                          );
+                        })}
+                        {!(d.vercel.deploys||[]).length&&<div style={{fontSize:"11px",color:"#94a3b8"}}>Sin deploys</div>}
+                      </div>
+                    ),"https://vercel.com/dashboard")}
+                    {/* Tracking / visitas */}
+                    <div style={{...card,gridColumn:"1 / -1"}}>
+                      <div style={h}><span>📊 App · visitas</span></div>
+                      {d.app.error?<div style={{color:"#dc2626",fontSize:"11px"}}>{d.app.error}</div>:(
+                        <div style={{display:"flex",gap:"20px"}}>
+                          <div><div style={{fontSize:"20px",fontWeight:800,color:"#9333ea"}}>{d.app.visitas_24h}</div><div style={{fontSize:"11px",color:"#94a3b8"}}>últimas 24h</div></div>
+                          <div><div style={{fontSize:"20px",fontWeight:800,color:"#9333ea"}}>{d.app.visitas_7d}</div><div style={{fontSize:"11px",color:"#94a3b8"}}>últimos 7 días</div></div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </div>
       {dupDelTarget&&(
