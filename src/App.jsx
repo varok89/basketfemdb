@@ -7267,7 +7267,7 @@ export default function App(){
         fetchAll("equipos",{order:"id_equipo"}),
         fetchAll("ligas",{order:"id_liga"}),
         fetchAll("dos_ultimas_temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.neq("id_liga","L020")}),
-        fetchAll("partidos",{order:"fecha_hora",select:"id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas,es_live,periodo,id_ext,fuente,bracket_pos,link,url_stats",filter:q=>q.neq("id_liga","L020").gte("temporada",String(new Date().getFullYear()-2))}),
+        fetchAll("partidos",{order:"fecha_hora",select:"id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas,es_live,periodo,parciales,id_ext,fuente,bracket_pos,link,url_stats",filter:q=>q.neq("id_liga","L020").gte("temporada",String(new Date().getFullYear()-2))}),
       ]);
       if(rJ.error)throw rJ.error;if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rT.error)throw rT.error;
       const sbp={};
@@ -7372,7 +7372,7 @@ export default function App(){
       try{
         const {data}=await fetchAll("partidos",{
           order:"fecha_hora",
-          select:"id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas,es_live,periodo,id_ext,fuente,bracket_pos,link,url_stats",
+          select:"id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas,es_live,periodo,parciales,id_ext,fuente,bracket_pos,link,url_stats",
           filter:q=>q.neq("id_liga","L020").lt("temporada",String(new Date().getFullYear()-2))
         });
         let merged=[];
