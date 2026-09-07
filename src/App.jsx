@@ -6661,11 +6661,12 @@ function QuinielaView({user,equipos,onAbrirPerfil,isAdmin}){
       {verUser&&<VerPrediccionesModal target={verUser} equipos={equipos} onClose={()=>setVerUser(null)}/>}
 
       {tab==="ranking"&&(
-        <div style={{background:"#fff",borderRadius:"12px",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
-          <div style={{padding:"12px 14px",background:"#faf5ff",fontSize:"12px",color:"#6b21a8",borderBottom:"1px solid #e9d5ff"}}>
+        <div style={{background:"#fff",borderRadius:"12px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+          <div style={{padding:"12px 14px",background:"#faf5ff",fontSize:"12px",color:"#6b21a8",borderBottom:"1px solid #e9d5ff",borderRadius:"12px 12px 0 0"}}>
             🕒 El ranking mostrará puntos cuando termine el Mundial. Ahora muestra cuántas predicciones ha guardado cada usuario.
           </div>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:"14px"}}>
+          <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
+          <table style={{width:"100%",minWidth:"520px",borderCollapse:"collapse",fontSize:"14px"}}>
             <thead style={{background:"#f8fafc"}}>
               <tr>
                 <th style={{padding:"10px 14px",textAlign:"left",fontSize:"11px",color:"#64748b",fontWeight:700}}>#</th>
@@ -6708,6 +6709,7 @@ function QuinielaView({user,equipos,onAbrirPerfil,isAdmin}){
               );})}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>
