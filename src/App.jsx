@@ -3175,6 +3175,7 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
       <style>{`
         html[data-bfdb-fichajes-theme="dark"]{background:#0f172a;}
         html[data-bfdb-fichajes-theme="dark"] body{background:#0f172a;}
+        html[data-bfdb-fichajes-theme="dark"] .bfdb-app-root{background:#0f172a !important;}
         .bfdb-fichajes{--fx-text:#1e293b;--fx-muted:#94a3b8;--fx-label:#475569;--fx-card:#fff;--fx-border:#e2e8f0;--fx-pill:#fff7ed;--fx-shadow:0 1px 6px rgba(0,0,0,0.07);--fx-shadow-hover:0 4px 16px rgba(249,115,22,0.15);--fx-brand:#9333ea;}
         html[data-bfdb-fichajes-theme="dark"] .bfdb-fichajes{--fx-text:#f1f5f9;--fx-muted:#94a3b8;--fx-label:#cbd5e1;--fx-card:#1e293b;--fx-border:#334155;--fx-pill:#292524;--fx-shadow:0 1px 6px rgba(0,0,0,0.4);--fx-shadow-hover:0 4px 16px rgba(147,51,234,0.35);--fx-brand:#c084fc;}
       `}</style>
@@ -7541,7 +7542,7 @@ export default function App(){
         .bfdb-status-dropdown > div:first-child, .bfdb-nac-dropdown > div:first-child { min-width: 0 !important; font-size: 12px !important; padding: 8px 8px !important; }
       }
     `}</style>
-    <div style={{minHeight:"100vh",background:"#f1f5f9",fontFamily:"system-ui,-apple-system,sans-serif",overflowX:"hidden"}}>
+    <div className="bfdb-app-root" style={{minHeight:"100vh",background:"#f1f5f9",fontFamily:"system-ui,-apple-system,sans-serif",overflowX:"hidden"}}>
       <div style={{background:"#0f172a",color:"#fff",padding:"0 20px",position:"sticky",top:0,zIndex:10,boxShadow:"0 2px 16px rgba(0,0,0,0.4)"}}>
         <div className="bfdb-header-inner" style={{maxWidth:"880px",margin:"0 auto",display:"flex",alignItems:"center",gap:"8px",height:"56px"}}>
           {/* ☰ Hamburguesa */}
