@@ -25,6 +25,17 @@ if (!document.getElementById("bfdb-styles")) {
       0%,100% { transform: scaleX(1); opacity: 0.3; }
       40%,70%  { transform: scaleX(0.5); opacity: 0.1; }
     }
+    @keyframes bfdb-shimmer {
+      0% { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+    .bfdb-skel {
+      background: linear-gradient(90deg, var(--fx-hover) 0%, var(--fx-border2) 50%, var(--fx-hover) 100%);
+      background-size: 800px 100%;
+      animation: bfdb-shimmer 1.4s linear infinite;
+      border-radius: 8px;
+      display: inline-block;
+    }
   `;
   document.head.appendChild(s);
 }
@@ -6696,8 +6707,24 @@ export default function App(){
   if(showLogin) return <LoginModal onLogin={handleLogin} onGoogleLogin={handleGoogleLogin} onForgot={handleForgotPassword} onClose={()=>{setShowLogin(false);setLoginErr("");setLoginInfo("");setLoginMode("login");}} loading={loginLoading} error={loginErr} info={loginInfo} mode={loginMode} setMode={(m)=>{setLoginMode(m);setLoginErr("");setLoginInfo("");}}/>;
 
   if(loading) return(
-    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--fx-hover)",fontFamily:"system-ui,sans-serif"}}>
-      <div style={{textAlign:"center",color:"var(--fx-muted2)"}}><div style={{display:"inline-block",animation:"bounce 0.7s infinite"}}><span style={{fontSize:"52px",lineHeight:1}}>🏀</span></div><div style={{width:"40px",height:"6px",background:"#cbd5e1",borderRadius:"50%",margin:"4px auto 0",animation:"shadow 0.7s infinite"}}></div><div style={{fontWeight:700,fontSize:"16px",color:"#9333ea",marginTop:"14px"}}>La Basketneta</div><div style={{fontSize:"13px",marginTop:"4px"}}>Cargando datos...</div></div>
+    <div className="bfdb-app-root" style={{minHeight:"100vh",background:"var(--fx-hover)",color:"var(--fx-text)",fontFamily:"system-ui,-apple-system,sans-serif"}}>
+      <div style={{background:"#0f172a",height:"56px",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 16px rgba(0,0,0,0.4)"}}>
+        <img src="/icon-home.png" alt="La Basketneta" style={{height:"36px",objectFit:"contain"}}/>
+      </div>
+      <div style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
+        <div className="bfdb-skel" style={{width:"220px",height:"22px",marginBottom:"8px"}}/>
+        <div className="bfdb-skel" style={{width:"140px",height:"14px",marginBottom:"18px",display:"block"}}/>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:"12px"}}>
+          {Array.from({length:12}).map((_,i)=>(
+            <div key={i} style={{background:"var(--fx-card)",borderRadius:"14px",padding:"12px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",display:"flex",flexDirection:"column",gap:"8px",alignItems:"center"}}>
+              <div className="bfdb-skel" style={{width:"56px",height:"56px",borderRadius:"50%"}}/>
+              <div className="bfdb-skel" style={{width:"80%",height:"12px"}}/>
+              <div className="bfdb-skel" style={{width:"60%",height:"10px"}}/>
+              <div className="bfdb-skel" style={{width:"90%",height:"22px",borderRadius:"6px",marginTop:"4px"}}/>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 
