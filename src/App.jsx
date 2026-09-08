@@ -2961,6 +2961,7 @@ function FibaRow({entry,onApply,onPlaceholder,showActions}){
 function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach,fullscreen,onClose}){
   const [q,setQ]=useState("");
   const [open,setOpen]=useState(false);
+  const [selectedIdx,setSelectedIdx]=useState(0);
   const ref=useRef();
   const inputRef=useRef();
   useEffect(()=>{
@@ -2986,6 +2987,41 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
 
   const go=(fn)=>{fn();setQ("");setOpen(false);if(fullscreen&&onClose)onClose();};
 
+  // Aplana los resultados en una lista lineal para navegar con teclado.
+  const flatItems=useMemo(()=>{
+    if(!results)return [];
+    const cap=fullscreen?8:6;
+    const list=[];
+    results.jugadoras.slice(0,cap).forEach(p=>list.push({action:()=>onGoToPlayer(p.id_jugadora)}));
+    results.equipos.slice(0,fullscreen?8:4).forEach(e=>list.push({action:()=>onGoToTeam(e.id_equipo)}));
+    results.ligas.slice(0,fullscreen?8:3).forEach(l=>list.push({action:()=>onGoToLeague(l.id_liga)}));
+    results.coaches.slice(0,fullscreen?8:3).forEach(c=>list.push({action:()=>onGoToCoach(c.id_coach)}));
+    return list;
+  },[results,fullscreen,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach]);
+  useEffect(()=>{setSelectedIdx(0);},[q]);
+
+  const onKeyNav=e=>{
+    if(e.key==="Escape"){onClose?onClose():(setQ(""),setOpen(false));return;}
+    if(!flatItems.length)return;
+    if(e.key==="ArrowDown"){e.preventDefault();setSelectedIdx(i=>(i+1)%flatItems.length);}
+    else if(e.key==="ArrowUp"){e.preventDefault();setSelectedIdx(i=>(i-1+flatItems.length)%flatItems.length);}
+    else if(e.key==="Enter"){e.preventDefault();go(flatItems[selectedIdx].action);}
+  };
+  const hlBg="rgba(147,51,234,0.25)";
+  // Devuelve el índice global de un item dado su grupo y posición (para pintar el highlight).
+  const idxOf=(grupo,pos)=>{
+    const cap=fullscreen?8:6;
+    const capE=fullscreen?8:4, capL=fullscreen?8:3, capC=fullscreen?8:3;
+    const nJ=Math.min(results?.jugadoras?.length||0,cap);
+    const nE=Math.min(results?.equipos?.length||0,capE);
+    const nL=Math.min(results?.ligas?.length||0,capL);
+    if(grupo==="j")return pos;
+    if(grupo==="e")return nJ+pos;
+    if(grupo==="l")return nJ+nE+pos;
+    if(grupo==="c")return nJ+nE+nL+pos;
+    return -1;
+  };
+
   if(fullscreen){
     return(
       <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"#0f172a",zIndex:500,display:"flex",flexDirection:"column"}}>
@@ -2994,7 +3030,7 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
             <span style={{fontSize:"14px",color:"var(--fx-muted2)"}}>🔍</span>
             <input ref={inputRef} value={q} onChange={e=>{setQ(e.target.value);setOpen(true);}}
               placeholder="Buscar jugadoras, equipos, ligas..." style={{background:"transparent",border:"none",outline:"none",color:"#fff",fontSize:"15px",width:"100%"}}
-              onKeyDown={e=>{if(e.key==="Escape"){onClose&&onClose();}}}/>
+              onKeyDown={onKeyNav}/>
             {q&&<button onClick={()=>setQ("")} style={{background:"none",border:"none",color:"var(--fx-muted)",cursor:"pointer",fontSize:"16px",lineHeight:1,padding:0}}>×</button>}
           </div>
           <button onClick={onClose} style={{background:"none",border:"none",color:"#fff",fontSize:"14px",fontWeight:700,cursor:"pointer",padding:"4px 8px"}}>Cancelar</button>
@@ -3003,27 +3039,27 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
           {results&&total>0?(<>
             {results.jugadoras.length>0&&(<>
               <div style={{padding:"10px 16px 6px",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>👩‍🏀 Jugadoras ({results.jugadoras.length})</div>
-              {results.jugadoras.slice(0,8).map(p=>(
-                <div key={p.id_jugadora} onClick={()=>go(()=>onGoToPlayer(p.id_jugadora))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b"}}>{p.nombre}</div>
-              ))}
+              {results.jugadoras.slice(0,8).map((p,i)=>{const sel=selectedIdx===idxOf("j",i);return(
+                <div key={p.id_jugadora} onClick={()=>go(()=>onGoToPlayer(p.id_jugadora))} onMouseEnter={()=>setSelectedIdx(idxOf("j",i))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b",background:sel?hlBg:"transparent"}}>{p.nombre}</div>
+              );})}
             </>)}
             {results.equipos.length>0&&(<>
               <div style={{padding:"10px 16px 6px",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>🏟️ Equipos ({results.equipos.length})</div>
-              {results.equipos.slice(0,8).map(e=>(
-                <div key={e.id_equipo} onClick={()=>go(()=>onGoToTeam(e.id_equipo))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b"}}>{e.nombre}</div>
-              ))}
+              {results.equipos.slice(0,8).map((e,i)=>{const sel=selectedIdx===idxOf("e",i);return(
+                <div key={e.id_equipo} onClick={()=>go(()=>onGoToTeam(e.id_equipo))} onMouseEnter={()=>setSelectedIdx(idxOf("e",i))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b",background:sel?hlBg:"transparent"}}>{e.nombre}</div>
+              );})}
             </>)}
             {results.ligas.length>0&&(<>
               <div style={{padding:"10px 16px 6px",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>🏆 Ligas ({results.ligas.length})</div>
-              {results.ligas.slice(0,8).map(l=>(
-                <div key={l.id_liga} onClick={()=>go(()=>onGoToLeague(l.id_liga))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b"}}>{l.nombre}</div>
-              ))}
+              {results.ligas.slice(0,8).map((l,i)=>{const sel=selectedIdx===idxOf("l",i);return(
+                <div key={l.id_liga} onClick={()=>go(()=>onGoToLeague(l.id_liga))} onMouseEnter={()=>setSelectedIdx(idxOf("l",i))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b",background:sel?hlBg:"transparent"}}>{l.nombre}</div>
+              );})}
             </>)}
             {results.coaches.length>0&&(<>
               <div style={{padding:"10px 16px 6px",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>📋 Cuerpo técnico ({results.coaches.length})</div>
-              {results.coaches.slice(0,8).map(c=>(
-                <div key={c.id_coach} onClick={()=>go(()=>onGoToCoach(c.id_coach))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b"}}>{c.nombre}</div>
-              ))}
+              {results.coaches.slice(0,8).map((c,i)=>{const sel=selectedIdx===idxOf("c",i);return(
+                <div key={c.id_coach} onClick={()=>go(()=>onGoToCoach(c.id_coach))} onMouseEnter={()=>setSelectedIdx(idxOf("c",i))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b",background:sel?hlBg:"transparent"}}>{c.nombre}</div>
+              );})}
             </>)}
           </>):q.length>=2?(
             <div style={{textAlign:"center",padding:"40px 20px",color:"var(--fx-muted)",fontSize:"14px"}}>Sin resultados</div>
@@ -3040,8 +3076,8 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
       <div style={{display:"flex",alignItems:"center",gap:"6px",background:"rgba(255,255,255,0.08)",border:"1.5px solid rgba(255,255,255,0.12)",borderRadius:"10px",padding:"5px 10px"}}>
         <span style={{fontSize:"13px",color:"var(--fx-muted2)"}}>🔍</span>
         <input value={q} onChange={e=>{setQ(e.target.value);setOpen(true);}} onFocus={()=>q.length>=2&&setOpen(true)}
-          placeholder="Buscar..." style={{background:"transparent",border:"none",outline:"none",color:"#fff",fontSize:"13px",width:"160px"}}
-          onKeyDown={e=>{if(e.key==="Escape"){setQ("");setOpen(false);}}}/>
+          placeholder="Buscar (Ctrl+K)..." style={{background:"transparent",border:"none",outline:"none",color:"#fff",fontSize:"13px",width:"160px"}}
+          onKeyDown={onKeyNav}/>
         {q&&<button onClick={()=>{setQ("");setOpen(false);}} style={{background:"none",border:"none",color:"var(--fx-muted)",cursor:"pointer",fontSize:"14px",lineHeight:1,padding:0}}>×</button>}
       </div>
       {open&&results&&total>0&&(
@@ -6124,6 +6160,16 @@ export default function App(){
   const [showCalidad,setShowCalidad] = useState(false);
   const [showAnalytics,setShowAnalytics] = useState(false);
   const [mobileSearchOpen,setMobileSearchOpen] = useState(false);
+  useEffect(()=>{
+    const h=e=>{
+      if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){
+        e.preventDefault();
+        setMobileSearchOpen(o=>!o);
+      }
+    };
+    window.addEventListener("keydown",h);
+    return()=>window.removeEventListener("keydown",h);
+  },[]);
   const [showLanding,setShowLanding] = useState(()=>{
     try{return !localStorage.getItem("bfdb_accepted");}catch{return true;}
   });
@@ -6685,7 +6731,7 @@ export default function App(){
       /* Logos/escudos/fotos con fondo transparente sobre tema oscuro:
          les damos un fondo blanco sutil para que no se pierdan.
          Las fotos reales cubren el fondo, asi que no se afectan. */
-      html[data-bfdb-tema="dark"] .bfdb-app-root img{background:#fff !important;}
+      html[data-bfdb-tema="dark"] .bfdb-app-root img:not([src*="flagcdn"]):not([src*="flagpedia"]):not([src*="flagsapi"]){background:#fff !important;}
       html[data-bfdb-tema="dark"] .bfdb-logo img{background:transparent !important;}
     `}</style>
     <div className="bfdb-app-root" style={{minHeight:"100vh",background:"var(--fx-hover)",color:"var(--fx-text)",fontFamily:"system-ui,-apple-system,sans-serif",overflowX:"hidden"}}>
