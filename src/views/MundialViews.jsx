@@ -537,7 +537,7 @@ function VerPrediccionesModal({target,equipos,onClose}){
         </div>
 
         {err&&<div style={{background:"#fef2f2",color:"#991b1b",padding:"10px",borderRadius:"8px",fontSize:"12px"}}>{err}</div>}
-        {!data&&!err&&<div style={{padding:"30px",textAlign:"center",color:"var(--fx-muted2)"}}>Cargando…</div>}
+        {!data&&!err&&<div style={{padding:"12px",display:"flex",flexDirection:"column",gap:"8px"}}>{Array.from({length:6}).map((_,i)=><div key={i} className="bfdb-skel" style={{width:"100%",height:"36px",borderRadius:"6px"}}/>)}</div>}
         {data&&!data.cerrado&&<div style={{background:"#fef3c7",color:"#92400e",padding:"12px",borderRadius:"8px",fontSize:"12px"}}>La quiniela aún no está cerrada — solo podrás ver las predicciones de otros cuando empiece el primer partido.</div>}
 
         {data?.cerrado&&(<>

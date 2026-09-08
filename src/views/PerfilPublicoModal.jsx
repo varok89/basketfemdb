@@ -35,7 +35,7 @@ export default function PerfilPublicoModal({alias, onClose}){
         </div>
 
         {err && <div style={{padding:"30px",textAlign:"center",color:"#ef4444",fontSize:"13px"}}>{err}</div>}
-        {!data && !err && <div style={{padding:"30px",textAlign:"center",color: "var(--fx-muted2)"}}>Cargando…</div>}
+        {!data && !err && <div style={{padding:"12px",display:"flex",flexDirection:"column",gap:"8px"}}>{Array.from({length:5}).map((_,i)=><div key={i} className="bfdb-skel" style={{width:"100%",height:"40px",borderRadius:"8px"}}/>)}</div>}
 
         {data && (
           <>

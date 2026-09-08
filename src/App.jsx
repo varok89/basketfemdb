@@ -3419,7 +3419,7 @@ function StatsJugadora({idJugadora,equipos,ligas,equiposNombres,onOpenPartido}){
     return ()=>{cancel=true;};
   },[idJugadora]);
 
-  if(rows===null)return <div style={{textAlign:"center",padding:"40px",color:"var(--fx-muted2)",fontSize:"14px"}}>Cargando estadísticas…</div>;
+  if(rows===null)return <div style={{padding:"20px"}}>{Array.from({length:6}).map((_,i)=><div key={i} className="bfdb-skel" style={{width:"100%",height:"36px",borderRadius:"6px",marginBottom:"8px",display:"block"}}/>)}</div>;
   if(rows.length===0)return <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"40px",textAlign:"center",color:"var(--fx-muted2)",fontSize:"14px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>Aún no hay estadísticas de partido para esta jugadora.</div>;
 
   const N=v=>{if(typeof v==="string"&&v.indexOf(":")>=0){const p=v.split(":");return (parseInt(p[0],10)||0)+(parseInt(p[1],10)||0)/60;}return Number(v)||0;};
@@ -6180,6 +6180,34 @@ function TablaTop({titulo,filas,limite=10}){
   </div>;
 }
 
+/* Skeleton reutilizable para loading de vistas y Suspense fallbacks */
+function GridSkel({n=12,cards=true}){
+  return(
+    <div style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
+      <div className="bfdb-skel" style={{width:"220px",height:"22px",marginBottom:"8px"}}/>
+      <div className="bfdb-skel" style={{width:"140px",height:"14px",marginBottom:"18px",display:"block"}}/>
+      {cards?(
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:"12px"}}>
+          {Array.from({length:n}).map((_,i)=>(
+            <div key={i} style={{background:"var(--fx-card)",borderRadius:"14px",padding:"12px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",display:"flex",flexDirection:"column",gap:"8px",alignItems:"center"}}>
+              <div className="bfdb-skel" style={{width:"56px",height:"56px",borderRadius:"50%"}}/>
+              <div className="bfdb-skel" style={{width:"80%",height:"12px"}}/>
+              <div className="bfdb-skel" style={{width:"60%",height:"10px"}}/>
+              <div className="bfdb-skel" style={{width:"90%",height:"22px",borderRadius:"6px",marginTop:"4px"}}/>
+            </div>
+          ))}
+        </div>
+      ):(
+        <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
+          {Array.from({length:n}).map((_,i)=>(
+            <div key={i} className="bfdb-skel" style={{width:"100%",height:"48px",borderRadius:"10px"}}/>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── App ─────────────────────────────────────────────────── */
 export default function App(){
   const [players,setPlayers] = useState([]);
@@ -6692,7 +6720,7 @@ export default function App(){
 
   if(showLanding) return <Landing onEnter={handleEnter} players={players} equipos={equipos} ligas={ligas} coaches={coaches} tempCoach={tempCoach} palmares={palmares} regExtra={regExtra}/>;
   if(showCalidad){
-    return <Suspense fallback={<div style={{padding:"40px",textAlign:"center",color:"var(--fx-muted2)"}}>Cargando panel de calidad…</div>}>
+    return <Suspense fallback={<GridSkel n={8} cards={false}/>}>
       <CalidadModal players={players} equipos={equipos} ligas={ligas} coaches={coaches}
         tempCoach={tempCoach} palmares={palmares} isAdmin={isAdmin}
         onClose={()=>setShowCalidad(false)} onGoToPlayer={goToPlayer}
@@ -6879,16 +6907,16 @@ export default function App(){
         </div>      </div>
       <div style={{paddingTop:"8px"}}>
         {showPerfil&&user&&<PerfilView user={user} favoritos={favoritos} onClose={()=>setShowPerfil(false)} onLogout={()=>{handleLogout();setShowPerfil(false);}}/>}
-        {showPrivacidad&&<Suspense fallback={<div style={{padding:"40px",textAlign:"center",color:"var(--fx-muted2)"}}>Cargando…</div>}><PrivacidadView onBack={()=>{setShowPrivacidad(false);window.history.back();}}/></Suspense>}
+        {showPrivacidad&&<Suspense fallback={<GridSkel n={6} cards={false}/>}><PrivacidadView onBack={()=>{setShowPrivacidad(false);window.history.back();}}/></Suspense>}
         {!showPrivacidad&&!showPerfil&&tab==="favoritos"&&user&&<FavoritosView players={players} equipos={equipos} ligas={ligas} partidos={partidos} favoritos={favoritos} user={user} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToPartido={goToPartido} isFavFn={isFav} onToggleFav={toggleFav}/>}
         {!showPrivacidad&&!showPerfil&&tab==="home"&&<HomeView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToTab={t=>setTab(t)} equiposNombres={equiposNombres} user={user} favoritos={favoritos} onGoToLeague={goToLeague}/>}
         {!showPrivacidad&&!showPerfil&&tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setPlayers={setPlayers} setTempCoach={setTempCoach} onGoToPartido={goToPartido} regExtra={regExtra} isFavFn={isFav} onToggleFav={toggleFav}/>}
         {!showPerfil&&tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setEquipos={setEquipos} setEquiposNombres={setEquiposNombres} setPlayers={setPlayers} setPalmares={setPalmares} regExtra={regExtra} onGoToPartido={goToPartido} isFavFn={isFav} onToggleFav={toggleFav}/>}
         {!showPerfil&&tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} coaches={coaches} tempCoach={tempCoach} partidos={partidos} onGoToClasificacion={(ligaId,temporada)=>{setOpenClasiKey(`${ligaId}|${temporada||""}`);setTab("partidos");scrollTop();}} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setLigas={setLigas} regExtra={regExtra} isFavFn={isFav} onToggleFav={toggleFav}/>}
-        {!showPrivacidad&&!showPerfil&&tab==="ranking_fiba"&&<Suspense fallback={<div style={{padding:"40px",textAlign:"center",color:"var(--fx-muted2)"}}>Cargando…</div>}><RankingFibaView equipos={equipos} isAdmin={isAdmin} onGoToTeam={(id)=>goToTeam(id,null,{tab:"ranking_fiba",label:"Ranking FIBA"})} onReload={loadAll}/></Suspense>}
+        {!showPrivacidad&&!showPerfil&&tab==="ranking_fiba"&&<Suspense fallback={<GridSkel n={12} cards={false}/>}><RankingFibaView equipos={equipos} isAdmin={isAdmin} onGoToTeam={(id)=>goToTeam(id,null,{tab:"ranking_fiba",label:"Ranking FIBA"})} onReload={loadAll}/></Suspense>}
         {!showPrivacidad&&!showPerfil&&tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setCoaches={setCoaches} setTempCoach={setTempCoach} equiposNombres={equiposNombres} regExtra={regExtra}/>}
         {!showPrivacidad&&!showPerfil&&tab==="quiniela"&&(user
-          ?<Suspense fallback={<div style={{padding:"40px",textAlign:"center",color:"var(--fx-muted2)"}}>Cargando quiniela…</div>}><QuinielaView user={user} equipos={equipos} onAbrirPerfil={setVerPerfilAlias} isAdmin={isAdmin}/></Suspense>
+          ?<Suspense fallback={<GridSkel n={8} cards={false}/>}><QuinielaView user={user} equipos={equipos} onAbrirPerfil={setVerPerfilAlias} isAdmin={isAdmin}/></Suspense>
           :<div style={{maxWidth:"420px",margin:"48px auto",padding:"24px",background:"var(--fx-card)",borderRadius:"16px",textAlign:"center",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
             <div style={{fontSize:"38px",marginBottom:"8px"}}>🎯</div>
             <h3 style={{margin:"0 0 6px",color:"var(--fx-text)",fontSize:"18px",fontWeight:800}}>Quiniela · Mundial 2026</h3>
