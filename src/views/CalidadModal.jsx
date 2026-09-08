@@ -1921,7 +1921,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                         style={{display:"flex",alignItems:"center",gap:"12px",padding:"8px 14px",background: "var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)",cursor:"pointer"}}
                         onMouseEnter={function(e){e.currentTarget.style.background="#fff7ed";}}
                         onMouseLeave={function(e){e.currentTarget.style.background="#f8fafc";}}>
-                        <img src={p.foto} alt="" style={{width:34,height:34,borderRadius:"50%",objectFit:"cover",flexShrink:0,background:"#e2e8f0"}}/>
+                        <img loading="lazy" decoding="async" src={p.foto} alt="" style={{width:34,height:34,borderRadius:"50%",objectFit:"cover",flexShrink:0,background:"#e2e8f0"}}/>
                         <div style={{minWidth:0}}>
                           <div style={{fontWeight:700,fontSize:"14px",color: "var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
                           <div style={{fontSize:"11px",color: "var(--fx-muted2)",fontFamily:"monospace"}}>{p.id_jugadora}</div>
@@ -1940,7 +1940,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                         style={{display:"flex",alignItems:"center",gap:"12px",padding:"8px 14px",background: "var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)",cursor:"pointer"}}
                         onMouseEnter={function(e){e.currentTarget.style.background="#fff7ed";}}
                         onMouseLeave={function(e){e.currentTarget.style.background="#f8fafc";}}>
-                        <img src={c.foto} alt="" style={{width:34,height:34,borderRadius:"50%",objectFit:"cover",flexShrink:0,background:"#e2e8f0"}}/>
+                        <img loading="lazy" decoding="async" src={c.foto} alt="" style={{width:34,height:34,borderRadius:"50%",objectFit:"cover",flexShrink:0,background:"#e2e8f0"}}/>
                         <div style={{minWidth:0}}>
                           <div style={{fontWeight:700,fontSize:"14px",color: "var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.nombre}</div>
                           <div style={{fontSize:"11px",color: "var(--fx-muted2)",fontFamily:"monospace"}}>{c.id_coach}</div>

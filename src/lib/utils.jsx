@@ -216,7 +216,7 @@ export function FibaRow({entry,onApply,onPlaceholder,showActions}){
   );
   return(
     <div style={{display:"flex",gap:"10px",padding:"8px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0",alignItems:"center"}}>
-      <img src={p.foto} alt="" width={40} height={40} style={{borderRadius:"6px",objectFit:"cover",background:"#e2e8f0"}}
+      <img loading="lazy" decoding="async" src={p.foto} alt="" width={40} height={40} style={{borderRadius:"6px",objectFit:"cover",background:"#e2e8f0"}}
         onError={function(e){e.currentTarget.style.opacity=0.3;}}/>
       <div style={{flex:1,minWidth:0}}>
         <div style={{fontWeight:700,fontSize:"13px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>
@@ -236,7 +236,7 @@ export function FibaRow({entry,onApply,onPlaceholder,showActions}){
           </>
         ):<div style={{color:"#94a3b8"}}>sin candidato</div>}
       </div>
-      {fotoUrl&&<img src={fotoUrl} alt="" width={40} height={40} style={{borderRadius:"6px",objectFit:"cover"}} onError={function(e){e.currentTarget.style.opacity=0.3;}}/>}
+      {fotoUrl&&<img loading="lazy" decoding="async" src={fotoUrl} alt="" width={40} height={40} style={{borderRadius:"6px",objectFit:"cover"}} onError={function(e){e.currentTarget.style.opacity=0.3;}}/>}
       {showActions&&(
         <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
           <button onClick={onApply} style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:"6px",padding:"5px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>Aplicar</button>

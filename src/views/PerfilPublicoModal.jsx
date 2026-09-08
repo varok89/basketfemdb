@@ -41,7 +41,7 @@ export default function PerfilPublicoModal({alias, onClose}){
           <>
             <div style={{padding:"22px 20px",textAlign:"center",background:"linear-gradient(180deg,#faf5ff,#fff)"}}>
               {url
-                ? <img src={url} alt="" style={{width:"96px",height:"96px",borderRadius:"50%",objectFit:"cover",border:"3px solid #9333ea"}}/>
+                ? <img loading="lazy" decoding="async" src={url} alt="" style={{width:"96px",height:"96px",borderRadius:"50%",objectFit:"cover",border:"3px solid #9333ea"}}/>
                 : preset
                   ? <div style={{width:"96px",height:"96px",borderRadius:"50%",background:preset.bg,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:"46px",border:"3px solid #9333ea"}}>{preset.e}</div>
                   : <div style={{width:"96px",height:"96px",borderRadius:"50%",background:"#e2e8f0",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:"40px",color: "var(--fx-muted)",border:"3px solid #cbd5e1"}}>👤</div>}

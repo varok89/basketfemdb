@@ -105,7 +105,7 @@ export default function RankingFibaView({ equipos, isAdmin, onGoToTeam, onReload
             <div key={e.id_equipo} onClick={() => onGoToTeam && onGoToTeam(e.id_equipo)} style={ROW_STYLE}>
               <div style={{ textAlign: "center", fontSize: "16px", fontWeight: 800, color: e.fiba_rank <= 3 ? "#9333ea" : "var(--fx-text)" }}>{e.fiba_rank}</div>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                {e.escudo && <img src={e.escudo} alt="" style={{ width: "28px", height: "20px", objectFit: "cover", borderRadius: "3px", boxShadow: "0 0 0 1px var(--fx-border)" }} />}
+                {e.escudo && <img loading="lazy" decoding="async" src={e.escudo} alt="" style={{ width: "28px", height: "20px", objectFit: "cover", borderRadius: "3px", boxShadow: "0 0 0 1px var(--fx-border)" }} />}
                 <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--fx-text)" }}>{e.nombre}</div>
               </div>
               <div style={{ textAlign: "right", fontSize: "14px", fontWeight: 700, color: "var(--fx-text)" }}>{Number(e.fiba_puntos).toFixed(1)}</div>

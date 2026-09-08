@@ -6,6 +6,7 @@ const CalidadModal = lazy(() => import("./views/CalidadModal"));
 const RankingFibaView = lazy(() => import("./views/RankingFibaView"));
 const LogrosModal  = lazy(() => import("./views/LogrosModal"));
 const PerfilPublicoModal = lazy(() => import("./views/PerfilPublicoModal"));
+const PrivacidadView = lazy(() => import("./views/PrivacidadView"));
 
 /* inject bounce keyframe once */
 if (!document.getElementById("bfdb-styles")) {
@@ -378,14 +379,14 @@ function countryFlagEmoji(nombrePais) {
 function FlagImg({ country }) {
   if (!country) return null;
   const norm = country.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
-  if (norm === "europa" || norm === "europe" || norm === "eu") return <img src="https://flagcdn.com/20x15/eu.png" width={20} height={15} alt="Europa" title={country} style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",flexShrink:0,marginRight:"4px"}}/>;
+  if (norm === "europa" || norm === "europe" || norm === "eu") return <img loading="lazy" decoding="async" src="https://flagcdn.com/20x15/eu.png" width={20} height={15} alt="Europa" title={country} style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",flexShrink:0,marginRight:"4px"}}/>;
   if (norm === "mundo" || norm === "world" || norm === "international" || norm === "internacional") return <span title={country} style={{fontSize:"14px",lineHeight:1,marginRight:"4px",verticalAlign:"middle"}}>🌍</span>;
   if (norm === "americas" || norm === "america" || norm === "amerique") return <span title={country} style={{fontSize:"14px",lineHeight:1,marginRight:"4px",verticalAlign:"middle"}}>🌎</span>;
   if (norm.includes("afric")) return <span title={country} style={{fontSize:"14px",lineHeight:1,marginRight:"4px",verticalAlign:"middle"}}>🌍</span>;
   if (norm === "asia" || norm === "oceania" || norm === "oceanía") return <span title={country} style={{fontSize:"14px",lineHeight:1,marginRight:"4px",verticalAlign:"middle"}}>🌏</span>;
   const code = countryCode(country);
   if (!code) return null;
-  return <img src={`https://flagpedia.net/data/flags/w160/${code}.webp`} width={20} height={13} alt={country} title={country}
+  return <img loading="lazy" decoding="async" src={`https://flagpedia.net/data/flags/w160/${code}.webp`} width={20} height={13} alt={country} title={country}
     style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",flexShrink:0,marginRight:"4px"}}/>;
 }
 
@@ -404,7 +405,7 @@ function MultiFlag({ countries, width=20, height=13 }) {
     <span title={list.join(" / ")} style={{display:"inline-flex",width,height,borderRadius:"2px",overflow:"hidden",verticalAlign:"middle",flexShrink:0,marginRight:"4px"}}>
       {codes.map((code,i)=>(
         <span key={i} style={{width:stripeW,height,overflow:"hidden",position:"relative",flexShrink:0}}>
-          <img src={`https://flagpedia.net/data/flags/w160/${code}.webp`} alt={list[i]}
+          <img loading="lazy" decoding="async" src={`https://flagpedia.net/data/flags/w160/${code}.webp`} alt={list[i]}
             style={{position:"absolute",left:-i*stripeW,top:0,width,height,objectFit:"cover"}}/>
         </span>
       ))}
@@ -476,13 +477,13 @@ function TeamBadge({team,size=44}){
   const {bg}=teamColors(team?.nombre||"");
   const ini=teamInitials(team?.nombre||"");
   const fs=size<36?9:size<50?12:16;
-  if(team?.escudo) return <img src={team.escudo} alt={team.nombre} style={{width:size,height:size,borderRadius:"8px",objectFit:"contain",flexShrink:0,border:"1px solid var(--fx-border)",background:"var(--fx-card)",boxSizing:"border-box"}} onError={e=>e.target.style.display="none"}/>;  return <div style={{width:size,height:size,borderRadius:"50%",background:bg,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:fs,flexShrink:0,boxShadow:"0 2px 6px rgba(0,0,0,0.2)"}}>{ini}</div>;
+  if(team?.escudo) return <img loading="lazy" decoding="async" src={team.escudo} alt={team.nombre} style={{width:size,height:size,borderRadius:"8px",objectFit:"contain",flexShrink:0,border:"1px solid var(--fx-border)",background:"var(--fx-card)",boxSizing:"border-box"}} onError={e=>e.target.style.display="none"}/>;  return <div style={{width:size,height:size,borderRadius:"50%",background:bg,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:fs,flexShrink:0,boxShadow:"0 2px 6px rgba(0,0,0,0.2)"}}>{ini}</div>;
 }
 
 function LeagueBadge({liga,size=60}){
   const [bg,color]=TIPO_COLORS[liga?.tipo]||["#f1f5f9","#475569"];
   const fs=size<40?10:size<60?14:18;
-  if(liga?.logo) return <img src={liga.logo} alt={liga.nombre} style={{width:size,height:size,objectFit:"contain",flexShrink:0,borderRadius:"10px"}} onError={e=>e.target.style.display="none"}/>;
+  if(liga?.logo) return <img loading="lazy" decoding="async" src={liga.logo} alt={liga.nombre} style={{width:size,height:size,objectFit:"contain",flexShrink:0,borderRadius:"10px"}} onError={e=>e.target.style.display="none"}/>;
   return <div style={{width:size,height:size,borderRadius:"10px",background:bg,display:"flex",alignItems:"center",justifyContent:"center",color,fontWeight:800,fontSize:fs,flexShrink:0,textAlign:"center",padding:"4px"}}>{liga?.nombre?.split(" ").map(w=>w[0]).slice(0,3).join("")||"?"}</div>;
 }
 
@@ -512,7 +513,7 @@ function Avatar({photo,name,size=48,fontSize=18,fallecida=false,onPhotoClick=nul
   // onPhotoClick es opt-in: solo se activa el cursor/clic donde se pase explícitamente
   // (ficha individual de jugadora/entrenador), no en miniaturas de listados/búsqueda.
   const clickProps=onPhotoClick&&photo?{onClick:()=>onPhotoClick(photo),style:{cursor:"pointer"}}:{};
-  if(photo) return <div {...clickProps} style={{...clickProps.style,position:"relative",display:"inline-flex",flexShrink:0}}><img src={photo} alt={name} style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"2px solid #e2e8f0",filter:fallecida?"grayscale(60%)":"none"}} onError={handleError}/>{ribbon}</div>;
+  if(photo) return <div {...clickProps} style={{...clickProps.style,position:"relative",display:"inline-flex",flexShrink:0}}><img loading="lazy" decoding="async" src={photo} alt={name} style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"2px solid #e2e8f0",filter:fallecida?"grayscale(60%)":"none"}} onError={handleError}/>{ribbon}</div>;
   return <div style={{position:"relative",display:"inline-flex",flexShrink:0}}><div style={{width:size,height:size,borderRadius:"50%",background:"linear-gradient(135deg,#9333ea,#c084fc)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"#fff",fontWeight:800,fontSize,letterSpacing:"-0.5px"}}>{ini}</div>{ribbon}</div>;
 }
 
@@ -566,7 +567,7 @@ function PhotoPicker({value,onChange}){
     <div style={{marginBottom:"8px"}}>
       <label style={{display:"block",fontSize:"12px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Foto</label>
       <div style={{display:"flex",alignItems:"flex-start",gap:"14px"}}>
-        {value?<img src={value} alt="" style={{width:56,height:56,borderRadius:"50%",objectFit:"cover",border:"3px solid #c084fc",flexShrink:0}}/>
+        {value?<img loading="lazy" decoding="async" src={value} alt="" style={{width:56,height:56,borderRadius:"50%",objectFit:"cover",border:"3px solid #c084fc",flexShrink:0}}/>
           :<div style={{width:56,height:56,borderRadius:"50%",background:"var(--fx-hover)",border:"2px dashed #cbd5e1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",flexShrink:0}}>🖼️</div>}
         <div style={{flex:1}}>
           <div style={{display:"flex",gap:"6px",marginBottom:"8px"}}>
@@ -587,7 +588,7 @@ function EscudoPicker({value,onChange}){
     <div style={{marginBottom:"8px"}}>
       <label style={{display:"block",fontSize:"12px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Escudo</label>
       <div style={{display:"flex",alignItems:"flex-start",gap:"14px"}}>
-        {value?<img src={value} alt="" style={{width:56,height:56,borderRadius:"8px",objectFit:"contain",border:"1.5px solid var(--fx-border)",flexShrink:0,background:"var(--fx-card)"}} onError={e=>e.target.style.display="none"}/>
+        {value?<img loading="lazy" decoding="async" src={value} alt="" style={{width:56,height:56,borderRadius:"8px",objectFit:"contain",border:"1.5px solid var(--fx-border)",flexShrink:0,background:"var(--fx-card)"}} onError={e=>e.target.style.display="none"}/>
           :<div style={{width:56,height:56,borderRadius:"8px",background:"var(--fx-hover)",border:"2px dashed #cbd5e1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",flexShrink:0}}>🛡️</div>}
         <div style={{flex:1}}>
           <div style={{display:"flex",gap:"6px",marginBottom:"8px"}}>
@@ -707,7 +708,7 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
   const clickSort=k=>{if(sortK===k)setSortD(d=>d==="desc"?"asc":"desc");else{setSortK(k);setSortD(k==="nombre"?"asc":"desc");}};
   const th={padding:"7px 5px",fontSize:"10px",fontWeight:700,color:"var(--fx-muted2)",whiteSpace:"nowrap",cursor:"pointer",borderBottom:"2px solid #f1f5f9",userSelect:"none"};
   const td={padding:"7px 5px",fontSize:"12px",color:"#334155",textAlign:"center",whiteSpace:"nowrap",borderBottom:"1px solid #f8fafc"};
-  const Esc=({e})=>e&&e.escudo?<img src={e.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>:null;
+  const Esc=({e})=>e&&e.escudo?<img loading="lazy" decoding="async" src={e.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>:null;
   const tabBtn=(k,content)=><button key={k} onClick={()=>setTab(k)} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:"5px",padding:"9px 6px",borderRadius:"10px",border:"none",cursor:"pointer",fontWeight:700,fontSize:"12px",background:tab===k?"#9333ea":"#f1f5f9",color:tab===k?"#fff":"#64748b",minWidth:0}}>{content}</button>;
 
   return(
@@ -731,7 +732,7 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
             <tr key={i} onClick={()=>onGoToPlayer&&onGoToPlayer(r.id_jugadora)} style={{cursor:onGoToPlayer?"pointer":"default",background:tab==="ambos"?bg:"transparent",borderLeft:r.titular?"4px solid #9333ea":"4px solid transparent"}}>
               <td style={{...td,textAlign:"left",fontWeight:600,maxWidth:"180px"}}>
                 <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
-                  {foto?<img src={foto} alt="" style={{width:28,height:28,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"1px solid var(--fx-border2)"}} onError={e=>{e.target.style.visibility="hidden";}}/>:<div style={{width:28,height:28,borderRadius:"50%",background:"var(--fx-hover)",flexShrink:0}}/>}
+                  {foto?<img loading="lazy" decoding="async" src={foto} alt="" style={{width:28,height:28,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"1px solid var(--fx-border2)"}} onError={e=>{e.target.style.visibility="hidden";}}/>:<div style={{width:28,height:28,borderRadius:"50%",background:"var(--fx-hover)",flexShrink:0}}/>}
                   <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nom}</span>
                 </div>
               </td>
@@ -820,7 +821,7 @@ function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,
     return(
       <div style={{flex:1,minWidth:0}}>
         <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"12px",flexDirection:side==="right"?"row-reverse":"row"}}>
-          {equipo?.escudo&&<img src={equipo.escudo} alt="" style={{width:32,height:32,objectFit:"contain"}}/>}
+          {equipo?.escudo&&<img loading="lazy" decoding="async" src={equipo.escudo} alt="" style={{width:32,height:32,objectFit:"contain"}}/>}
           <span style={{fontWeight:700,fontSize:"14px",color:"var(--fx-text)",textAlign:side==="right"?"right":"left"}}>{equipo?.nombre||"—"}</span>
         </div>
         {roster.length===0?<p style={{fontSize:"12px",color:"var(--fx-muted2)",textAlign:"center"}}>Sin jugadoras en BD</p>:(
@@ -855,7 +856,7 @@ function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,
       {/* Cabecera del partido */}
       <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"20px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"16px"}}>
         {liga&&<div onClick={()=>onGoToLeague&&onGoToLeague(liga.id_liga)} style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"14px",cursor:onGoToLeague?"pointer":"default"}}>
-          {liga.logo&&<img src={liga.logo} alt="" style={{width:20,height:20,objectFit:"contain"}}/>}
+          {liga.logo&&<img loading="lazy" decoding="async" src={liga.logo} alt="" style={{width:20,height:20,objectFit:"contain"}}/>}
           <span style={{fontWeight:700,fontSize:"13px",color:"#9333ea",textDecoration:onGoToLeague?"underline":"none"}}>{liga.nombre}</span>
         </div>}
         <div style={{fontSize:"12px",color:"var(--fx-muted2)",marginBottom:"16px",fontWeight:600}}>
@@ -868,7 +869,7 @@ function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,
           <div onClick={()=>onGoToTeam&&onGoToTeam(partido.id_equipo_local,partido.temporada)}
             style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"6px",cursor:onGoToTeam?"pointer":"default",flex:1}}>
             {local?.escudo
-              ?<img src={local.escudo} alt={local?.nombre} title={local?.nombre} style={{width:56,height:56,objectFit:"contain"}}/>
+              ?<img loading="lazy" decoding="async" src={local.escudo} alt={local?.nombre} title={local?.nombre} style={{width:56,height:56,objectFit:"contain"}}/>
               :<div style={{width:56,height:56,borderRadius:"50%",background:"#e9d5ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",fontWeight:800,color:"#9333ea"}}>{(local?.nombre||"L").slice(0,1)}</div>}
             <span style={{fontSize:"11px",fontWeight:600,color:"var(--fx-muted)",textAlign:"center",maxWidth:"80px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{local?.nombre||"—"}</span>
           </div>
@@ -882,7 +883,7 @@ function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,
           <div onClick={()=>onGoToTeam&&onGoToTeam(partido.id_equipo_visitante,partido.temporada)}
             style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"6px",cursor:onGoToTeam?"pointer":"default",flex:1}}>
             {visit?.escudo
-              ?<img src={visit.escudo} alt={visit?.nombre} title={visit?.nombre} style={{width:56,height:56,objectFit:"contain"}}/>
+              ?<img loading="lazy" decoding="async" src={visit.escudo} alt={visit?.nombre} title={visit?.nombre} style={{width:56,height:56,objectFit:"contain"}}/>
               :<div style={{width:56,height:56,borderRadius:"50%",background:"#e9d5ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",fontWeight:800,color:"#9333ea"}}>{(visit?.nombre||"V").slice(0,1)}</div>}
             <span style={{fontSize:"11px",fontWeight:600,color:"var(--fx-muted)",textAlign:"center",maxWidth:"80px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{visit?.nombre||"—"}</span>
           </div>
@@ -1270,7 +1271,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                 </div>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px"}}>
                   <div style={{display:"flex",alignItems:"center",gap:"7px",flex:1,minWidth:"80px"}}>
-                    {local?.escudo&&<img src={local.escudo} alt="" style={{width:28,height:28,objectFit:"contain",flexShrink:0}}/>}
+                    {local?.escudo&&<img loading="lazy" decoding="async" src={local.escudo} alt="" style={{width:28,height:28,objectFit:"contain",flexShrink:0}}/>}
                     <span style={{fontWeight:700,fontSize:"12px",color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{local?.nombre||"—"}</span>
                   </div>
                   <div style={{flexShrink:0,textAlign:"center",minWidth:"52px"}}>
@@ -1280,7 +1281,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:"7px",flex:1,minWidth:"80px",justifyContent:"flex-end",textAlign:"right"}}>
                     <span style={{fontWeight:700,fontSize:"12px",color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{visit?.nombre||"—"}</span>
-                    {visit?.escudo&&<img src={visit.escudo} alt="" style={{width:28,height:28,objectFit:"contain",flexShrink:0}}/>}
+                    {visit?.escudo&&<img loading="lazy" decoding="async" src={visit.escudo} alt="" style={{width:28,height:28,objectFit:"contain",flexShrink:0}}/>}
                   </div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"10px",flexWrap:"wrap"}}>
@@ -1300,7 +1301,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
               {/* Cabecera de la liga: clicable para expandir/contraer */}
               <div onClick={()=>setExpandedLigas(prev=>({...prev,[grupoKey]:!expanded}))}
                 style={{display:"flex",alignItems:"center",gap:"10px",padding:"14px 16px",cursor:"pointer",userSelect:"none",background:expanded?"#faf5ff":"#fff"}}>
-                {ligaMap[ligaId]?.logo&&<img src={ligaMap[ligaId].logo} alt="" style={{width:24,height:24,objectFit:"contain",flexShrink:0}}/>}
+                {ligaMap[ligaId]?.logo&&<img loading="lazy" decoding="async" src={ligaMap[ligaId].logo} alt="" style={{width:24,height:24,objectFit:"contain",flexShrink:0}}/>}
                 <span style={{fontWeight:700,fontSize:"14px",color:"#9333ea",flex:1}}>{ligaMap[ligaId]?.nombre||"Sin liga"}{temporada?` - ${temporada}`:""}</span>
                 {hayEnJuego&&<span style={{width:10,height:10,borderRadius:"50%",background:"#ef4444",flexShrink:0,boxShadow:"0 0 0 3px rgba(239,68,68,0.2)",display:"inline-block"}}/>}
                 {(ps.some(p=>p.notas&&/^Group [A-Z]/i.test(p.notas)&&p.id_equipo_local&&p.id_equipo_visitante)||(ligaMap[ligaId]?.tipo==="liga"&&ps.some(p=>p.id_equipo_local&&p.id_equipo_visitante))||(ligaMap[ligaId]?.tipo!=="liga"&&ps.some(p=>/#\d+/.test(p.notas||"")||/^octavos/i.test(p.notas||""))))&&(
@@ -2124,7 +2125,7 @@ function WNBATabla({filas, equipoMap, onGoToTeam, mostrarGB}){
               <tr key={e.id} style={{borderTop:"1px solid var(--fx-border2)",cursor:onGoToTeam?"pointer":"default"}} onClick={()=>onGoToTeam&&onGoToTeam(e.id)}>
                 <td style={{padding:"8px",borderLeft:"4px solid "+(enPlayoff?"#16a34a":"transparent"),fontWeight:700,color:"var(--fx-label)"}}>{seed}</td>
                 <td style={{padding:"8px 6px",color:"var(--fx-text)",fontWeight:600,display:"flex",alignItems:"center",gap:"8px"}}>
-                  {eq.escudo&&<img src={eq.escudo} alt="" style={{width:22,height:22,objectFit:"contain"}} onError={ev=>{ev.currentTarget.style.display="none";}}/>}
+                  {eq.escudo&&<img loading="lazy" decoding="async" src={eq.escudo} alt="" style={{width:22,height:22,objectFit:"contain"}} onError={ev=>{ev.currentTarget.style.display="none";}}/>}
                   <span>{eq.nombre||e.id}</span>
                 </td>
                 <td style={{padding:"8px 6px",textAlign:"center",color:"var(--fx-muted)"}}>{e.pj}</td>
@@ -2203,7 +2204,7 @@ function WNBABracketAuto({globalRanked, playoffPartidos, equipoMap, onOpenPartid
     const eA=equipoMap[ta]||{}, eB=equipoMap[tb]||{};
     const row=(id,eq,m,win,seed)=>(
       <div style={{display:"flex",alignItems:"center",gap:"6px",padding:"6px 8px",background:win?"#faf5ff":"transparent"}}>
-        {eq.escudo?<img src={eq.escudo} alt="" style={{width:20,height:20,objectFit:"contain",flexShrink:0}} onError={e=>{e.currentTarget.style.display="none";}}/>:<div style={{width:20,height:20,flexShrink:0}}/>}
+        {eq.escudo?<img loading="lazy" decoding="async" src={eq.escudo} alt="" style={{width:20,height:20,objectFit:"contain",flexShrink:0}} onError={e=>{e.currentTarget.style.display="none";}}/>:<div style={{width:20,height:20,flexShrink:0}}/>}
         <span style={{flex:1,fontSize:"12px",fontWeight:win?800:600,color:win?"#7c3aed":"#334155",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{seed?`(${seed}) `:""}{eq.nombre||id}</span>
         <span style={{fontSize:"14px",fontWeight:win?800:600,color:win?"#7c3aed":"#64748b",fontVariantNumeric:"tabular-nums"}}>{m}</span>
       </div>
@@ -2231,8 +2232,8 @@ function WNBABracketAuto({globalRanked, playoffPartidos, equipoMap, onOpenPartid
     return(
       <BracketCol key={key} label={`(${s1}) vs (${s2})`}>
         <div style={{background:"var(--fx-hover)",border:"1px dashed #cbd5e1",borderRadius:"10px",padding:"10px",width:"150px",fontSize:"11px",color:"var(--fx-muted)",display:"flex",flexDirection:"column",gap:"4px"}}>
-          <div style={{display:"flex",alignItems:"center",gap:"6px"}}>{eqA?.escudo&&<img src={eqA.escudo} alt="" style={{width:16,height:16,objectFit:"contain"}} onError={e=>{e.currentTarget.style.display="none";}}/>}<span>({s1}) {eqA?.nombre||"—"}</span></div>
-          <div style={{display:"flex",alignItems:"center",gap:"6px"}}>{eqB?.escudo&&<img src={eqB.escudo} alt="" style={{width:16,height:16,objectFit:"contain"}} onError={e=>{e.currentTarget.style.display="none";}}/>}<span>({s2}) {eqB?.nombre||"—"}</span></div>
+          <div style={{display:"flex",alignItems:"center",gap:"6px"}}>{eqA?.escudo&&<img loading="lazy" decoding="async" src={eqA.escudo} alt="" style={{width:16,height:16,objectFit:"contain"}} onError={e=>{e.currentTarget.style.display="none";}}/>}<span>({s1}) {eqA?.nombre||"—"}</span></div>
+          <div style={{display:"flex",alignItems:"center",gap:"6px"}}>{eqB?.escudo&&<img loading="lazy" decoding="async" src={eqB.escudo} alt="" style={{width:16,height:16,objectFit:"contain"}} onError={e=>{e.currentTarget.style.display="none";}}/>}<span>({s2}) {eqB?.nombre||"—"}</span></div>
         </div>
       </BracketCol>
     );
@@ -2636,7 +2637,7 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
                       <td style={{padding:"10px 12px",fontWeight:700,color:zonaDesc?"#ef4444":zonaAsc?"#16a34a":zonaPOAsc?"#2563eb":zonaPO&&modoLiga?"#9333ea":"#94a3b8"}}>{i+1}</td>
                       <td style={{padding:"10px 12px"}}>
                         <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                          {team?.escudo&&<img src={team.escudo} alt="" style={{width:22,height:22,objectFit:"contain"}}/>}
+                          {team?.escudo&&<img loading="lazy" decoding="async" src={team.escudo} alt="" style={{width:22,height:22,objectFit:"contain"}}/>}
                           <span style={{fontWeight:600,color:"var(--fx-text)",whiteSpace:"nowrap"}}>{team?.nombre||eq.id}</span>
                         </div>
                       </td>
@@ -2837,13 +2838,13 @@ function SeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
 
 const STATUS_BADGE = {
   cantera: null,
-  europea: <span title="Jugadora europea" style={{background:"#eff6ff",color:"#1d4ed8",border:"1.5px solid #bfdbfe",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap",display:"inline-flex",alignItems:"center"}}><img src="https://flagcdn.com/20x15/eu.png" width={16} height={12} alt="EU" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",marginRight:"3px"}}/>Europea</span>,
+  europea: <span title="Jugadora europea" style={{background:"#eff6ff",color:"#1d4ed8",border:"1.5px solid #bfdbfe",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap",display:"inline-flex",alignItems:"center"}}><img loading="lazy" decoding="async" src="https://flagcdn.com/20x15/eu.png" width={16} height={12} alt="EU" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",marginRight:"3px"}}/>Europea</span>,
   acp:     <span title="Acuerdo de Cotonú" style={{background:"#fefce8",color:"#a16207",border:"1.5px solid #fde68a",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap"}}>🤝 ACP</span>,
   extra:   <span title="Extracomunitaria" style={{background:"var(--fx-hover)",color:"var(--fx-muted)",border:"1.5px solid #cbd5e1",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap"}}>🌍 Extra</span>,
 };
 const STATUS_BADGE_LG = {
   cantera: null,
-  europea: <span title="Jugadora europea" style={{background:"#eff6ff",color:"#1d4ed8",border:"1.5px solid #bfdbfe",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap",display:"inline-flex",alignItems:"center"}}><img src="https://flagcdn.com/20x15/eu.png" width={16} height={12} alt="EU" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",marginRight:"3px"}}/>Europea</span>,
+  europea: <span title="Jugadora europea" style={{background:"#eff6ff",color:"#1d4ed8",border:"1.5px solid #bfdbfe",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap",display:"inline-flex",alignItems:"center"}}><img loading="lazy" decoding="async" src="https://flagcdn.com/20x15/eu.png" width={16} height={12} alt="EU" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",marginRight:"3px"}}/>Europea</span>,
   acp:     <span title="Acuerdo de Cotonú" style={{background:"#fefce8",color:"#a16207",border:"1.5px solid #fde68a",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🤝 Cotonú</span>,
   extra:   <span title="Extracomunitaria" style={{background:"var(--fx-hover)",color:"var(--fx-muted)",border:"1.5px solid #cbd5e1",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🌍 Extra</span>,
 };
@@ -2852,7 +2853,7 @@ const ACP_BADGE = STATUS_BADGE.acp;
 /* ── StatusDropdown ─────────────────────────────────────── */
 const STATUS_OPTIONS = [
   {value:"cantera", label:"Nacional (España)", icon:<FlagImg country="España"/>},
-  {value:"europea", label:"Europea",  icon:<img src="https://flagcdn.com/20x15/eu.png" width={16} height={12} alt="EU" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",marginRight:"4px"}}/>},
+  {value:"europea", label:"Europea",  icon:<img loading="lazy" decoding="async" src="https://flagcdn.com/20x15/eu.png" width={16} height={12} alt="EU" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",marginRight:"4px"}}/>},
   {value:"acp",     label:"ACP / Cotonú", icon:<span style={{marginRight:"4px"}}>🤝</span>},
   {value:"extra",   label:"Extracomunitaria", icon:<span style={{marginRight:"4px"}}>🌍</span>},
 ];
@@ -2911,7 +2912,7 @@ function FibaRow({entry,onApply,onPlaceholder,showActions}){
   );
   return(
     <div style={{display:"flex",gap:"10px",padding:"8px",background:"var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)",alignItems:"center"}}>
-      <img src={p.foto} alt="" width={40} height={40} style={{borderRadius:"6px",objectFit:"cover",background:"#e2e8f0"}}
+      <img loading="lazy" decoding="async" src={p.foto} alt="" width={40} height={40} style={{borderRadius:"6px",objectFit:"cover",background:"#e2e8f0"}}
         onError={function(e){e.currentTarget.style.opacity=0.3;}}/>
       <div style={{flex:1,minWidth:0}}>
         <div style={{fontWeight:700,fontSize:"13px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>
@@ -2931,7 +2932,7 @@ function FibaRow({entry,onApply,onPlaceholder,showActions}){
           </>
         ):<div style={{color:"var(--fx-muted2)"}}>sin candidato</div>}
       </div>
-      {fotoUrl&&<img src={fotoUrl} alt="" width={40} height={40} style={{borderRadius:"6px",objectFit:"cover"}} onError={function(e){e.currentTarget.style.opacity=0.3;}}/>}
+      {fotoUrl&&<img loading="lazy" decoding="async" src={fotoUrl} alt="" width={40} height={40} style={{borderRadius:"6px",objectFit:"cover"}} onError={function(e){e.currentTarget.style.opacity=0.3;}}/>}
       {showActions&&(
         <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
           <button onClick={onApply} style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:"6px",padding:"5px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>Aplicar</button>
@@ -3168,7 +3169,7 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
       <div style={{marginBottom:"16px"}}>
         <h2 style={{fontWeight:800,fontSize:"20px",color:"var(--fx-text)",margin:"0 0 4px",display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}>
           ✍️ Últimos fichajes
-          {filterLiga!=="ALL"&&(()=>{const ligaSel=ligaMap[filterLiga];return ligaSel?<span style={{fontWeight:800,fontSize:"20px",color:"var(--fx-text)",display:"flex",alignItems:"center",gap:"6px"}}>de {ligaSel.nombre}{ligaSel.escudo&&<img src={ligaSel.escudo} alt={ligaSel.nombre} style={{width:"22px",height:"22px",objectFit:"contain",borderRadius:"4px"}}/>}</span>:null;})()}
+          {filterLiga!=="ALL"&&(()=>{const ligaSel=ligaMap[filterLiga];return ligaSel?<span style={{fontWeight:800,fontSize:"20px",color:"var(--fx-text)",display:"flex",alignItems:"center",gap:"6px"}}>de {ligaSel.nombre}{ligaSel.escudo&&<img loading="lazy" decoding="async" src={ligaSel.escudo} alt={ligaSel.nombre} style={{width:"22px",height:"22px",objectFit:"contain",borderRadius:"4px"}}/>}</span>:null;})()}
         </h2>
         <p style={{fontSize:"13px",color:"var(--fx-muted)",margin:"0 0 12px"}}>Temporada {currentSeason} · {fichajesFiltrados.length} movimiento{fichajesFiltrados.length!==1?"s":""}</p>
         {ligasEnFichajes.length>1&&<select value={filterLiga} onChange={e=>{setFilterLiga(e.target.value);setFilterEquipo("ALL");setVisibleCount(10);}} style={{border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"7px 12px",fontSize:"13px",color:"var(--fx-label)",background:"var(--fx-card)",outline:"none",width:"100%",maxWidth:"320px"}}>
@@ -3370,9 +3371,9 @@ function StatsJugadora({idJugadora,equipos,ligas,equiposNombres,onOpenPartido}){
     const e=tData(idEq,temp);
     return(
       <div key={idEq} style={{display:"flex",flexDirection:"column",gap:"12px",borderLeft:varios?"3px solid #ddd6fe":"none",paddingLeft:varios?"12px":"0"}}>
-        {varios&&(<div style={{display:"flex",alignItems:"center",gap:"8px"}}>{e&&e.escudo&&<img src={e.escudo} alt="" style={{width:26,height:26,objectFit:"contain"}}/>}<span style={{fontWeight:800,fontSize:"15px",color:"var(--fx-text)"}}>{e.nombre}</span></div>)}
+        {varios&&(<div style={{display:"flex",alignItems:"center",gap:"8px"}}>{e&&e.escudo&&<img loading="lazy" decoding="async" src={e.escudo} alt="" style={{width:26,height:26,objectFit:"contain"}}/>}<span style={{fontWeight:800,fontSize:"15px",color:"var(--fx-text)"}}>{e.nombre}</span></div>)}
         <div style={{background:"var(--fx-card)",borderRadius:"18px",padding:"18px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
-          <div style={{fontSize:"12px",fontWeight:700,color:"#9333ea",marginBottom:"12px",display:"flex",alignItems:"center",gap:"6px"}}>{!varios&&e&&e.escudo&&<img src={e.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>}PROMEDIOS · {temp}{!varios?` · ${e.nombre}`:""}</div>
+          <div style={{fontSize:"12px",fontWeight:700,color:"#9333ea",marginBottom:"12px",display:"flex",alignItems:"center",gap:"6px"}}>{!varios&&e&&e.escudo&&<img loading="lazy" decoding="async" src={e.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>}PROMEDIOS · {temp}{!varios?` · ${e.nombre}`:""}</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(58px,1fr))",gap:"8px"}}>
             {cards.map(([l,v])=>(<div key={l} style={{textAlign:"center",background:"#faf5ff",borderRadius:"12px",padding:"10px 4px"}}><div style={{fontSize:"18px",fontWeight:800,color:"var(--fx-text)"}}>{v}</div><div style={{fontSize:"10px",color:"var(--fx-muted2)",fontWeight:600}}>{l}</div></div>))}
           </div>
@@ -3999,7 +4000,7 @@ function NombreHistoricoForm({initial,onSave,onCancel,saving}){
     <Fld label="URL Escudo (opcional)">
       <div style={{display:"flex",gap:"10px",alignItems:"center"}}>
         <input style={{...inp,flex:1}} value={f.escudo||""} onChange={set("escudo")} placeholder="https://..."/>
-        {f.escudo&&<img src={f.escudo} alt="" style={{width:40,height:40,objectFit:"contain",borderRadius:"8px",border:"1px solid var(--fx-border)",flexShrink:0}} onError={e=>e.target.style.display="none"}/>}
+        {f.escudo&&<img loading="lazy" decoding="async" src={f.escudo} alt="" style={{width:40,height:40,objectFit:"contain",borderRadius:"8px",border:"1px solid var(--fx-border)",flexShrink:0}} onError={e=>e.target.style.display="none"}/>}
       </div>
     </Fld>
     <div style={{fontSize:"12px",color:"var(--fx-muted2)"}}>Define el rango de temporadas en que el equipo usó este nombre y escudo. Deja "fin" vacío si sigue siendo el nombre actual.</div>
@@ -4086,7 +4087,7 @@ function CalendarioEquipo({idEquipo,temporada,equipos,ligas,equiposNombres,onGoT
       <div key={g.id} onClick={()=>onGoToPartido&&onGoToPartido(g.id)} style={{display:"flex",alignItems:"center",gap:"10px",padding:"9px 4px",borderBottom:"1px solid #f8fafc",cursor:"pointer"}}>
         <span style={{fontSize:"11px",color:"var(--fx-muted2)",width:"62px",flexShrink:0}}>{fmt(g.fecha_hora)}</span>
         <span title={local?"Local":"Visitante"} style={{fontSize:"12px",flexShrink:0}}>{local?"🏠":"✈️"}</span>
-        {rv.escudo&&<img src={rv.escudo} alt="" style={{width:20,height:20,objectFit:"contain",flexShrink:0}}/>}
+        {rv.escudo&&<img loading="lazy" decoding="async" src={rv.escudo} alt="" style={{width:20,height:20,objectFit:"contain",flexShrink:0}}/>}
         <span style={{fontSize:"13px",color:"#334155",fontWeight:600,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{rv.nombre}</span>
         {jugado
           ?<span style={{fontSize:"12px",fontWeight:800,color:win?"#16a34a":"#dc2626",flexShrink:0}}>{win?"V":"D"} {pf}-{pc}</span>
@@ -4102,11 +4103,11 @@ function CalendarioEquipo({idEquipo,temporada,equipos,ligas,equiposNombres,onGoT
             <div style={{fontSize:"11px",fontWeight:700,color:"#9333ea",textTransform:"uppercase",letterSpacing:"0.04em",marginBottom:"5px"}}>Próximo partido{prox.notas?` · ${prox.notas}`:""}</div>
             <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:liga?"5px":0}}>
               <span style={{fontSize:"12px"}}>{local?"🏠":"✈️"}</span>
-              {rv.escudo&&<img src={rv.escudo} alt="" style={{width:24,height:24,objectFit:"contain"}}/>}
+              {rv.escudo&&<img loading="lazy" decoding="async" src={rv.escudo} alt="" style={{width:24,height:24,objectFit:"contain"}}/>}
               <span style={{fontSize:"15px",fontWeight:800,color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{rv.nombre}</span>
             </div>
             {liga&&<div onClick={e=>{e.stopPropagation();onGoToLeague&&onGoToLeague(liga.id_liga);}} style={{display:"inline-flex",alignItems:"center",gap:"5px",cursor:"pointer"}}>
-              {liga.logo&&<img src={liga.logo} alt="" style={{width:16,height:16,objectFit:"contain"}}/>}
+              {liga.logo&&<img loading="lazy" decoding="async" src={liga.logo} alt="" style={{width:16,height:16,objectFit:"contain"}}/>}
               <span style={{fontSize:"12px",fontWeight:600,color:"#3b82f6",textDecoration:"underline",textDecorationColor:"#bfdbfe"}}>{liga.nombre}</span>
             </div>}
           </div>
@@ -4573,7 +4574,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
               {nombres.map(n=>(
                 <div key={n.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)"}}>
                   <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-                    {n.escudo&&<img src={n.escudo} alt="" style={{width:32,height:32,objectFit:"contain",borderRadius:"6px",border:"1px solid var(--fx-border)",flexShrink:0}} onError={e=>e.target.style.display="none"}/>}
+                    {n.escudo&&<img loading="lazy" decoding="async" src={n.escudo} alt="" style={{width:32,height:32,objectFit:"contain",borderRadius:"6px",border:"1px solid var(--fx-border)",flexShrink:0}} onError={e=>e.target.style.display="none"}/>}
                     <div>
                       <div style={{fontWeight:700,fontSize:"14px",color:"var(--fx-text)"}}>{n.nombre}</div>
                       <div style={{fontSize:"12px",color:"var(--fx-muted2)"}}>{n.temporada_inicio}{n.temporada_fin?` → ${n.temporada_fin}`:" → actualidad"}</div>
@@ -5455,11 +5456,11 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
     const d=p.fecha_hora?new Date(p.fecha_hora):null;
     return(
       <div onClick={()=>onGoToPartido(p)} style={{display:"flex",alignItems:"center",gap:"4px",padding:"4px 0",cursor:"pointer",fontSize:"12px"}} title={`${tL.nombre||"?"} vs ${tV.nombre||"?"}`}>
-        {tL.escudo?<img src={tL.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>:<span style={{width:18,textAlign:"center"}}>•</span>}
+        {tL.escudo?<img loading="lazy" decoding="async" src={tL.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>:<span style={{width:18,textAlign:"center"}}>•</span>}
         <span style={{fontWeight:played&&Number(p.resultado_local)>Number(p.resultado_visitante)?700:400,color:"var(--fx-text)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}/>
         <span style={{fontWeight:700,color:"#7c3aed",fontSize:"12px",flexShrink:0}}>{played?`${p.resultado_local}-${p.resultado_visitante}`:d?`${d.getDate()}/${d.getMonth()+1}`:"-"}</span>
         <span style={{fontWeight:played&&Number(p.resultado_visitante)>Number(p.resultado_local)?700:400,color:"var(--fx-text)",flex:1}}/>
-        {tV.escudo?<img src={tV.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>:<span style={{width:18,textAlign:"center"}}>•</span>}
+        {tV.escudo?<img loading="lazy" decoding="async" src={tV.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>:<span style={{width:18,textAlign:"center"}}>•</span>}
       </div>
     );
   };
@@ -5502,7 +5503,7 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
       {(filtro==="todo"||filtro==="equipo")&&eqCards.map(({eq,comps,ultPartido,proxPartido,ultFichaje})=>(
         <div key={eq.id_equipo} style={{background:"var(--fx-card)",borderRadius:"16px",padding:"16px",border:"1px solid var(--fx-border)",marginBottom:"16px"}}>
           <div onClick={()=>onGoToTeam(eq.id_equipo)} style={{display:"flex",alignItems:"center",gap:"12px",cursor:"pointer",marginBottom:"12px"}}>
-            {eq.escudo?<img src={eq.escudo} alt="" style={{width:44,height:44,objectFit:"contain"}}/>:<div style={{width:44,height:44,borderRadius:"10px",background:"var(--fx-hover)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px"}}>🏟️</div>}
+            {eq.escudo?<img loading="lazy" decoding="async" src={eq.escudo} alt="" style={{width:44,height:44,objectFit:"contain"}}/>:<div style={{width:44,height:44,borderRadius:"10px",background:"var(--fx-hover)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px"}}>🏟️</div>}
             <div style={{flex:1}}>
               <div style={{fontWeight:800,fontSize:"16px",color:"var(--fx-text)"}}>{eq.nombre}</div>
               <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginTop:"4px"}}>
@@ -5552,7 +5553,7 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
               {clasi.slice(0,16).map((r,i)=>{const eq=equipoMap[r.id];return(
                 <div key={r.id} style={{display:"flex",alignItems:"center",gap:"6px",padding:"3px 4px",fontSize:"11px"}}>
                   <span style={{width:"16px",fontWeight:700,color:"var(--fx-muted2)",textAlign:"right"}}>{i+1}</span>
-                  {eq?.escudo?<img src={eq.escudo} alt="" title={eq.nombre} style={{width:16,height:16,objectFit:"contain"}}/>:<span style={{width:16,textAlign:"center",fontSize:"8px"}}>•</span>}
+                  {eq?.escudo?<img loading="lazy" decoding="async" src={eq.escudo} alt="" title={eq.nombre} style={{width:16,height:16,objectFit:"contain"}}/>:<span style={{width:16,textAlign:"center",fontSize:"8px"}}>•</span>}
                   <span style={{fontWeight:700,color:"#16a34a",width:"24px",textAlign:"center"}}>{r.v}</span>
                   <span style={{fontWeight:700,color:"#ef4444",width:"24px",textAlign:"center"}}>{r.d}</span>
                 </div>
@@ -5561,27 +5562,6 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
           </div>}
         </div>
       ))}
-    </div>
-  );
-}
-
-/* ── PrivacidadView ─────────────────────────────────────── */
-function PrivacidadView({onBack}){
-  return(
-    <div style={{maxWidth:"720px",margin:"0 auto",padding:"24px 20px"}}>
-      <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"13px",cursor:"pointer",padding:"0 0 16px",display:"flex",alignItems:"center",gap:"4px"}}>{"← Volver"}</button>
-      <h1 style={{fontWeight:800,fontSize:"24px",color:"var(--fx-text)",margin:"0 0 8px"}}>{"Política de Privacidad"}</h1>
-      <p style={{fontSize:"13px",color:"var(--fx-muted2)",margin:"0 0 24px"}}>{"Última actualización: julio 2026"}</p>
-      <div style={{display:"flex",flexDirection:"column",gap:"20px",fontSize:"14px",color:"var(--fx-label)",lineHeight:"1.7"}}>
-        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"var(--fx-text)",margin:"0 0 8px"}}>{"1. Quién somos"}</h2><p style={{margin:0}}>{"La Basketneta (labasketneta.app) es una aplicación web dedicada a la recopilación y visualización de estadísticas de baloncesto femenino. Es un proyecto independiente sin ánimo de lucro."}</p></div>
-        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"var(--fx-text)",margin:"0 0 8px"}}>{"2. Qué datos recogemos"}</h2><p style={{margin:0}}>{"Cuando creas una cuenta o inicias sesión con Google, recogemos únicamente: tu dirección de correo electrónico, tu nombre y foto de perfil (si inicias sesión con Google), y tus selecciones de favoritos (jugadoras, equipos y ligas). No recogemos datos de navegación, ubicación, ni ningún otro tipo de información personal."}</p></div>
-        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"var(--fx-text)",margin:"0 0 8px"}}>{"3. Para qué usamos tus datos"}</h2><p style={{margin:0}}>{"Permitirte iniciar sesión, guardar y mostrar tus favoritos, y personalizar tu página de inicio con información relevante."}</p></div>
-        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"var(--fx-text)",margin:"0 0 8px"}}>{"4. Con quién compartimos tus datos"}</h2><p style={{margin:0}}>{"No compartimos, vendemos ni cedemos tus datos personales a terceros bajo ninguna circunstancia. Tus datos se almacenan de forma segura en Supabase (infraestructura en la Unión Europea)."}</p></div>
-        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"var(--fx-text)",margin:"0 0 8px"}}>{"5. Cuánto tiempo conservamos tus datos"}</h2><p style={{margin:0}}>{"Tus datos se conservan mientras mantengas tu cuenta activa. Puedes solicitar la eliminación de tu cuenta y todos los datos asociados en cualquier momento contactando con nosotros."}</p></div>
-        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"var(--fx-text)",margin:"0 0 8px"}}>{"6. Tus derechos"}</h2><p style={{margin:0}}>{"De acuerdo con el Reglamento General de Protección de Datos (RGPD), tienes derecho a acceder a tus datos personales, rectificar datos inexactos, solicitar la eliminación de tus datos y retirar tu consentimiento en cualquier momento."}</p></div>
-        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"var(--fx-text)",margin:"0 0 8px"}}>{"7. Seguridad"}</h2><p style={{margin:0}}>{"Utilizamos medidas de seguridad estándar de la industria para proteger tus datos, incluyendo cifrado en tránsito (HTTPS), autenticación segura y políticas de acceso a nivel de fila (Row Level Security) en la base de datos."}</p></div>
-        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"var(--fx-text)",margin:"0 0 8px"}}>{"8. Contacto"}</h2><p style={{margin:0}}>{"Los datos mostrados en esta aplicación son de carácter público y han sido obtenidos de fuentes oficiales como webs de federaciones deportivas. Esta plataforma no tiene ánimo de lucro y su uso es exclusivamente informativo. Si eres jugadora, entrenadora o representante de algún club y deseas solicitar la modificación o eliminación de tus datos, o para cualquier consulta relacionada con tu privacidad, contacta con nosotros en: "}<a href="mailto:labasketneta@gmail.com" style={{color:"#9333ea",fontWeight:600}}>{"labasketneta@gmail.com"}</a></p></div>
-      </div>
     </div>
   );
 }
@@ -5695,7 +5675,7 @@ function UserAvatar({avatar,googleUrl,nombre,size=64}){
   const url=avatar&&!avatar.startsWith("preset:")?avatar:(!avatar?googleUrl:null);
   const style={width:size,height:size,borderRadius:"50%",flexShrink:0};
   if(preset) return <div style={{...style,background:preset.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.55}}>{preset.e}</div>;
-  if(url) return <img src={url} alt="" style={{...style,objectFit:"cover"}}/>;
+  if(url) return <img loading="lazy" decoding="async" src={url} alt="" style={{...style,objectFit:"cover"}}/>;
   const inicial=(nombre||"?")[0]?.toUpperCase()||"?";
   return <div style={{...style,background:"linear-gradient(135deg,#9333ea,#c084fc)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:size*0.4,fontWeight:800}}>{inicial}</div>;
 }
@@ -5928,7 +5908,7 @@ function FlagSelect({value,options,onChange,disabled,placeholder,size}){
   const nq=norm(q);
   const filtered=nq?options.filter(o=>norm(o.label).includes(nq)):options;
   const flag=url=>url
-    ?<img src={url} alt="" style={{width:fw,height:fh,objectFit:"contain",flexShrink:0}}/>
+    ?<img loading="lazy" decoding="async" src={url} alt="" style={{width:fw,height:fh,objectFit:"contain",flexShrink:0}}/>
     :<span style={{width:fw,height:fh,background:"#e2e8f0",borderRadius:2,flexShrink:0}}/>;
   const toggle=()=>{if(disabled)return;setOpen(o=>{const nv=!o;if(nv)setQ("");return nv;});};
   return(
@@ -6273,7 +6253,7 @@ function BasketnetaView({user,equipos,cierre}){
           const flagImg=id=>{
             const url=escDe(id);
             if(!url) return <span style={{width:16,height:12,background:"#e2e8f0",borderRadius:2,flexShrink:0}}/>;
-            return <img src={url} alt="" style={{width:16,height:12,objectFit:"contain",flexShrink:0}}/>;
+            return <img loading="lazy" decoding="async" src={url} alt="" style={{width:16,height:12,objectFit:"contain",flexShrink:0}}/>;
           };
           const teamLabel=id=>(
             <>
@@ -6437,7 +6417,7 @@ function VerPrediccionesModal({target,equipos,onClose}){
   const escDe=id=>eqEsc[id];
 
   const flag=url=>url
-    ?<img src={url} alt="" style={{width:16,height:12,objectFit:"contain",flexShrink:0}}/>
+    ?<img loading="lazy" decoding="async" src={url} alt="" style={{width:16,height:12,objectFit:"contain",flexShrink:0}}/>
     :<span style={{width:16,height:12,background:"#e2e8f0",borderRadius:2,flexShrink:0,display:"inline-block"}}/>;
 
   const teamPill=id=>id?(
@@ -6955,7 +6935,7 @@ function TablaTop({titulo,filas,limite=10}){
         return <div key={k} style={{marginBottom:"6px"}}>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:"12px",color:"var(--fx-label)"}}>
           <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"70%",display:"inline-flex",alignItems:"center",gap:"6px"}}>
-            {fm&&<img src={`https://flagcdn.com/w20/${fm[1]}.png`} alt={fm[1]} style={{width:16,height:12,borderRadius:2,flexShrink:0}}/>}
+            {fm&&<img loading="lazy" decoding="async" src={`https://flagcdn.com/w20/${fm[1]}.png`} alt={fm[1]} style={{width:16,height:12,borderRadius:2,flexShrink:0}}/>}
             <span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{fm?fm[2]:k}</span>
           </span>
           <b style={{color:"var(--fx-text)"}}>{n.toLocaleString("es")}</b>
@@ -7644,7 +7624,7 @@ export default function App(){
         </div>      </div>
       <div style={{paddingTop:"8px"}}>
         {showPerfil&&user&&<PerfilView user={user} favoritos={favoritos} onClose={()=>setShowPerfil(false)} onLogout={()=>{handleLogout();setShowPerfil(false);}}/>}
-        {showPrivacidad&&<PrivacidadView onBack={()=>{setShowPrivacidad(false);window.history.back();}}/>}
+        {showPrivacidad&&<Suspense fallback={<div style={{padding:"40px",textAlign:"center",color:"var(--fx-muted2)"}}>Cargando…</div>}><PrivacidadView onBack={()=>{setShowPrivacidad(false);window.history.back();}}/></Suspense>}
         {!showPrivacidad&&!showPerfil&&tab==="favoritos"&&user&&<FavoritosView players={players} equipos={equipos} ligas={ligas} partidos={partidos} favoritos={favoritos} user={user} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToPartido={goToPartido} isFavFn={isFav} onToggleFav={toggleFav}/>}
         {!showPrivacidad&&!showPerfil&&tab==="home"&&<HomeView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToTab={t=>setTab(t)} equiposNombres={equiposNombres}/>}
         {!showPrivacidad&&!showPerfil&&tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setPlayers={setPlayers} setTempCoach={setTempCoach} onGoToPartido={goToPartido} regExtra={regExtra} isFavFn={isFav} onToggleFav={toggleFav}/>}
