@@ -6790,8 +6790,8 @@ export default function App(){
       /* Logos/escudos/fotos con fondo transparente sobre tema oscuro:
          les damos un fondo blanco sutil para que no se pierdan.
          Las fotos reales cubren el fondo, asi que no se afectan. */
-      html[data-bfdb-tema="dark"] .bfdb-app-root img:not([src*="flagcdn"]):not([src*="flagpedia"]):not([src*="flagsapi"]){background:#fff !important;}
-      html[data-bfdb-tema="dark"] .bfdb-logo img{background:transparent !important;}
+      html[data-bfdb-tema="dark"] .bfdb-app-root img:not([src*="flagcdn"]):not([src*="flagpedia"]):not([src*="flagsapi"]):not([src*="icon-home"]){background:#fff !important;}
+      html[data-bfdb-tema="dark"] .bfdb-app-root .bfdb-logo img{background:transparent !important;}
     `}</style>
     <div className="bfdb-app-root" style={{minHeight:"100vh",background:"var(--fx-hover)",color:"var(--fx-text)",fontFamily:"system-ui,-apple-system,sans-serif",overflowX:"hidden"}}>
       <div style={{background:"#0f172a",color:"#fff",padding:"0 20px",position:"sticky",top:0,zIndex:10,boxShadow:"0 2px 16px rgba(0,0,0,0.4)"}}>
