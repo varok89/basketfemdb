@@ -6688,7 +6688,7 @@ export default function App(){
       html[data-bfdb-tema="dark"] .bfdb-app-root img{background:#fff !important;}
       html[data-bfdb-tema="dark"] .bfdb-logo img{background:transparent !important;}
     `}</style>
-    <div className="bfdb-app-root" style={{minHeight:"100vh",background:"var(--fx-hover)",fontFamily:"system-ui,-apple-system,sans-serif",overflowX:"hidden"}}>
+    <div className="bfdb-app-root" style={{minHeight:"100vh",background:"var(--fx-hover)",color:"var(--fx-text)",fontFamily:"system-ui,-apple-system,sans-serif",overflowX:"hidden"}}>
       <div style={{background:"#0f172a",color:"#fff",padding:"0 20px",position:"sticky",top:0,zIndex:10,boxShadow:"0 2px 16px rgba(0,0,0,0.4)"}}>
         <div className="bfdb-header-inner" style={{maxWidth:"880px",margin:"0 auto",display:"flex",alignItems:"center",gap:"8px",height:"56px"}}>
           {/* ☰ Hamburguesa */}

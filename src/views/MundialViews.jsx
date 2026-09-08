@@ -495,7 +495,7 @@ function VerPrediccionesModal({target,equipos,onClose}){
     :<span style={{width:16,height:12,background:"#e2e8f0",borderRadius:2,flexShrink:0,display:"inline-block"}}/>;
 
   const teamPill=id=>id?(
-    <span style={{display:"inline-flex",alignItems:"center",gap:"5px",background:"var(--fx-hover)",border:"1px solid var(--fx-border)",borderRadius:"6px",padding:"3px 7px",fontSize:"12px",fontWeight:600}}>
+    <span style={{display:"inline-flex",alignItems:"center",gap:"5px",background:"var(--fx-hover)",color:"var(--fx-text)",border:"1px solid var(--fx-border)",borderRadius:"6px",padding:"3px 7px",fontSize:"12px",fontWeight:600}}>
       {flag(escDe(id))}<span>{eqIdx[id]||id}</span>
     </span>
   ):<span style={{fontSize:"12px",color:"var(--fx-muted2)"}}>—</span>;
@@ -504,7 +504,7 @@ function VerPrediccionesModal({target,equipos,onClose}){
     const j=jugMap[id];
     if(!j) return <span style={{fontSize:"12px",color:"var(--fx-muted2)"}}>{id}</span>;
     return(
-      <span style={{display:"inline-flex",alignItems:"center",gap:"5px",background:"var(--fx-hover)",border:"1px solid var(--fx-border)",borderRadius:"6px",padding:"3px 7px",fontSize:"12px",fontWeight:600}}>
+      <span style={{display:"inline-flex",alignItems:"center",gap:"5px",background:"var(--fx-hover)",color:"var(--fx-text)",border:"1px solid var(--fx-border)",borderRadius:"6px",padding:"3px 7px",fontSize:"12px",fontWeight:600}}>
         {flag(escDe(j.id_equipo))}<span>{j.nombre}</span>
       </span>
     );
@@ -519,7 +519,7 @@ function VerPrediccionesModal({target,equipos,onClose}){
     if(!correctList||correctList.length===0)return {};
     const arr=Array.isArray(correctList)?correctList:[correctList];
     const ok=pick!=null&&arr.includes(pick);
-    return {border:`2px solid ${ok?"#22c55e":"#ef4444"}`,background:ok?"#f0fdf4":"#fef2f2"};
+    return {border:`2px solid ${ok?"#22c55e":"#ef4444"}`,background:ok?"rgba(34,197,94,0.12)":"rgba(239,68,68,0.12)"};
   };
 
   return(
