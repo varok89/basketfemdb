@@ -4655,11 +4655,9 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
                           <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginTop:"2px",display:"flex",alignItems:"center"}}>{eq.ciudad?`${eq.ciudad} · `:""}<FlagImg country={eq.pais||""}/>{eq.pais||""}</div>
                         </div>
                       </div>
-                      <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
-                        <span style={{background:light,color:tc,fontSize:"11px",fontWeight:700,padding:"3px 10px",borderRadius:"20px"}}>{uniq} jugadora{uniq!==1?"s":""}</span>
-                        {latestY&&<span style={{background:"var(--fx-hover)",color:"var(--fx-label)",fontSize:"11px",fontWeight:600,padding:"3px 10px",borderRadius:"20px"}}>{latestY}</span>}
-                        {eq.año_fundacion&&<span style={{background:"#fff7ed",color:"#c2410c",fontSize:"11px",fontWeight:600,padding:"3px 10px",borderRadius:"20px"}}>Est. {eq.año_fundacion}</span>}
-                      </div>
+                      {eq.año_fundacion&&<div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
+                        <span style={{background:"#fff7ed",color:"#c2410c",fontSize:"11px",fontWeight:600,padding:"3px 10px",borderRadius:"20px"}}>Est. {eq.año_fundacion}</span>
+                      </div>}
                     </div>
                   );
                 })}
