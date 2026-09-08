@@ -3558,11 +3558,22 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   const updPlayer=async f=>{
     setSaving(true);
     const payload={nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,fecha_fallecimiento:f.fecha_fallecimiento||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null,id_espn:f.id_espn?.trim()||null,fiba_person_id:f.fiba_person_id?.trim()||null,id_feb:f.id_feb?.trim()||null};
-    const timeout=new Promise((_,r)=>setTimeout(()=>r(new Error("Timeout guardando (15s). Reintenta.")),15000));
-    try{const{error}=await Promise.race([supabase.from("jugadoras").update(payload).eq("id_jugadora",selId),timeout]);
+    const timeout=new Promise((_,r)=>setTimeout(()=>r(new Error("Timeout guardando (8s). Reintenta.")),8000));
+    try{
+      // Refresca la sesion si el token esta al caer para evitar colgar el update
+      const {data:{session}}=await supabase.auth.getSession();
+      if(session&&session.expires_at&&session.expires_at*1000-Date.now()<120000){
+        await supabase.auth.refreshSession();
+      }
+      const {data,error}=await Promise.race([
+        supabase.from("jugadoras").update(payload).eq("id_jugadora",selId).select().maybeSingle(),
+        timeout
+      ]);
       if(error)throw error;
+      if(!data)throw new Error("La fila no se actualizo (posible RLS o sesion invalida). Recarga y vuelve a intentar.");
       setPlayers(prev=>prev.map(p=>p.id_jugadora!==selId?p:{...p,...payload}));
-      setModal(null);}catch(e){alert("Error: "+e.message);}
+      setModal(null);
+    }catch(e){alert("Error: "+e.message);}
     finally{setSaving(false);}
   };
   const delPlayer=async()=>{
