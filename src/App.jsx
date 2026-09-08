@@ -7554,6 +7554,10 @@ export default function App(){
       }
       html[data-bfdb-tema="dark"]{background:#0f172a;}
       html[data-bfdb-tema="dark"] body{background:#0f172a;}
+      /* Logos/escudos/fotos con fondo transparente sobre tema oscuro:
+         les damos un fondo blanco sutil para que no se pierdan.
+         Las fotos reales cubren el fondo, asi que no se afectan. */
+      html[data-bfdb-tema="dark"] .bfdb-app-root img{background:#fff;}
     `}</style>
     <div className="bfdb-app-root" style={{minHeight:"100vh",background:"var(--fx-hover)",fontFamily:"system-ui,-apple-system,sans-serif",overflowX:"hidden"}}>
       <div style={{background:"#0f172a",color:"#fff",padding:"0 20px",position:"sticky",top:0,zIndex:10,boxShadow:"0 2px 16px rgba(0,0,0,0.4)"}}>
