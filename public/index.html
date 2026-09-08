@@ -24,6 +24,15 @@
 
   <title>La Basketneta</title>
 
+  <!-- Aplica tema oscuro antes de que React monte para que el skeleton respete la preferencia -->
+  <script>
+    try {
+      if (localStorage.getItem('bfdb-tema') === 'oscuro') {
+        document.documentElement.setAttribute('data-bfdb-tema', 'dark');
+      }
+    } catch (e) {}
+  </script>
+
   <!-- Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
