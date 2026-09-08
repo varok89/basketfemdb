@@ -5505,12 +5505,15 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
     return{player:p,lastBox,rivalEq,partido};
   }).filter(Boolean);
 
+  const esAmistoso=p=>/amistosos?/i.test(ligaMap[p.id_liga]?.nombre||"");
   // ── Datos de equipos ──
   const eqCards=favEquipos.map(eid=>{
     const eq=equipoMap[eid];if(!eq)return null;
     const comps=[...new Set((partidos||[]).filter(p=>(p.id_equipo_local===eid||p.id_equipo_visitante===eid)&&p.temporada===currentSeason).map(p=>p.id_liga))].map(lid=>ligaMap[lid]).filter(l=>l&&!/amistosos?/i.test(l.nombre||""));
-    const ultPartido=(partidos||[]).filter(p=>(p.id_equipo_local===eid||p.id_equipo_visitante===eid)&&p.resultado_local!=null).sort((a,b)=>new Date(b.fecha_hora)-new Date(a.fecha_hora))[0];
-    const proxPartido=(partidos||[]).filter(p=>(p.id_equipo_local===eid||p.id_equipo_visitante===eid)&&p.resultado_local==null&&p.fecha_hora&&new Date(p.fecha_hora)>hoy).sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora))[0];
+    const ults=(partidos||[]).filter(p=>(p.id_equipo_local===eid||p.id_equipo_visitante===eid)&&p.resultado_local!=null).sort((a,b)=>new Date(b.fecha_hora)-new Date(a.fecha_hora));
+    const proxs=(partidos||[]).filter(p=>(p.id_equipo_local===eid||p.id_equipo_visitante===eid)&&p.resultado_local==null&&p.fecha_hora&&new Date(p.fecha_hora)>hoy).sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
+    const ultPartido=ults.find(p=>!esAmistoso(p))||ults[0];
+    const proxPartido=proxs.find(p=>!esAmistoso(p))||proxs[0];
     const ultFichaje=players.flatMap(pl=>(pl.seasons||[]).filter(ss=>ss.id_equipo===eid).map(ss=>({player:pl,...ss}))).sort((a,b)=>{
       const ta=(a.temporada||"").replace("-",".");const tb=(b.temporada||"").replace("-",".");
       if(ta!==tb)return tb.localeCompare(ta);
@@ -5586,15 +5589,23 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
       {/* ── JUGADORAS ── */}
       {(filtro==="todo"||filtro==="jugadora")&&jugCards.map(({player:p,lastBox,rivalEq,partido})=>{
         const liga=partido?ligaMap[partido.id_liga]:null;
-        const resultado=partido?(partido.id_equipo_local===lastBox?.id_equipo?`${partido.resultado_local}-${partido.resultado_visitante}`:`${partido.resultado_visitante}-${partido.resultado_local}`):null;
+        const propioLocal=partido&&lastBox&&partido.id_equipo_local===lastBox.id_equipo;
+        const [propioSc,rivalSc]=partido?(propioLocal?[partido.resultado_local,partido.resultado_visitante]:[partido.resultado_visitante,partido.resultado_local]):[null,null];
+        const gano=propioSc!=null&&rivalSc!=null&&Number(propioSc)>Number(rivalSc);
+        const icono=propioSc==null?"":(gano?"🟢":"🔴");
         return(
         <div key={p.id_jugadora} style={{background:"var(--fx-card)",borderRadius:"16px",padding:"16px",border:"1px solid var(--fx-border)",marginBottom:"16px"}}>
           <div onClick={()=>onGoToPlayer(p.id_jugadora)} style={{display:"flex",alignItems:"center",gap:"14px",cursor:"pointer",marginBottom:lastBox?"12px":"0"}}>
             <Avatar photo={p.foto} name={p.nombre} size={52} fontSize={18}/>
-            <div style={{flex:1}}>
+            <div style={{flex:1,minWidth:0}}>
               <div style={{fontWeight:800,fontSize:"16px",color:"var(--fx-text)"}}>{p.nombre}</div>
-              {rivalEq&&<div style={{fontSize:"13px",color:"var(--fx-label)",fontWeight:600}}>vs {rivalEq.nombre}{resultado?" · "+resultado:""}</div>}
-              {liga&&<div style={{fontSize:"11px",color:"#9333ea",fontWeight:600}}>{liga.nombre}</div>}
+              {rivalEq&&<div style={{fontSize:"12px",color:"var(--fx-muted)",fontWeight:600,marginTop:"2px",display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
+                {icono&&<span>{icono}</span>}
+                {propioSc!=null&&<span style={{color:"var(--fx-text)",fontWeight:800}}>{propioSc}-{rivalSc}</span>}
+                <span>vs {rivalEq.nombre}</span>
+                {liga&&<span style={{color:"var(--fx-muted2)"}}>· {liga.nombre}</span>}
+                {partido?.fecha_hora&&<span style={{color:"var(--fx-muted2)"}}>· {fmtDay(partido.fecha_hora)}</span>}
+              </div>}
             </div>
           </div>
           {lastBox&&<div style={{display:"flex",gap:"8px",flexWrap:"wrap"}}>
