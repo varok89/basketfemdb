@@ -35,5 +35,35 @@
     }
   ],
   "categories": ["sports", "utilities"],
-  "screenshots": []
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Quiniela",
+      "short_name": "Quiniela",
+      "description": "Tus predicciones del Mundial",
+      "url": "/quiniela",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Ranking FIBA",
+      "short_name": "Ranking",
+      "description": "Ranking mundial de selecciones",
+      "url": "/ranking_fiba",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Ver partidos",
+      "short_name": "Partidos",
+      "description": "Calendario y resultados",
+      "url": "/partidos",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Fichajes",
+      "short_name": "Fichajes",
+      "description": "Ultimos movimientos de mercado",
+      "url": "/",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
 }
