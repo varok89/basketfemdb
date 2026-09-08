@@ -1086,22 +1086,22 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
 
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
-      <div style={{background:"#fff",borderRadius:"20px",width:"600px",maxWidth:"100%",maxHeight:"88vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+      <div style={{background: "var(--fx-card)",borderRadius:"20px",width:"600px",maxWidth:"100%",maxHeight:"88vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"24px 24px 16px"}}>
           <div>
-            <h2 style={{fontWeight:800,fontSize:"18px",color:"#1e293b",margin:0}}>🩺 Calidad de datos</h2>
-            <p style={{fontSize:"12px",color:"#94a3b8",margin:"4px 0 0"}}>Revisión de integridad de la base de datos</p>
+            <h2 style={{fontWeight:800,fontSize:"18px",color: "var(--fx-text)",margin:0}}>🩺 Calidad de datos</h2>
+            <p style={{fontSize:"12px",color: "var(--fx-muted2)",margin:"4px 0 0"}}>Revisión de integridad de la base de datos</p>
           </div>
-          <button onClick={onClose} style={{background:"none",border:"none",fontSize:"22px",color:"#94a3b8",cursor:"pointer"}}>×</button>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:"22px",color: "var(--fx-muted2)",cursor:"pointer"}}>×</button>
         </div>
-        <div style={{padding:"0 24px 12px",borderBottom:"1px solid #f1f5f9"}}>
+        <div style={{padding:"0 24px 12px",borderBottom:"1px solid var(--fx-border2)"}}>
           <div style={{display:"flex",gap:"4px",marginBottom:"8px",flexWrap:"wrap"}}>
             {CAL_GROUPS.map(function(g,gi){
               var active=g.items.some(function(t){return t.key===tab;});
               var totalCount=g.items.reduce(function(a,t){return a+t.count;},0);
               return(
                 <button key={gi} onClick={function(){setTab(g.items[0].key);}}
-                  style={{background:active?"#9333ea":"#f8fafc",color:active?"#fff":"#64748b",border:active?"none":"1.5px solid #e2e8f0",borderRadius:"10px",padding:"7px 14px",cursor:"pointer",fontSize:"12px",fontWeight:700,whiteSpace:"nowrap"}}>
+                  style={{background:active?"#9333ea":"#f8fafc",color:active?"#fff":"#64748b",border:active?"none":"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"7px 14px",cursor:"pointer",fontSize:"12px",fontWeight:700,whiteSpace:"nowrap"}}>
                   {g.title}
                   {totalCount>0&&<span style={{display:"inline-block",marginLeft:"4px",background:active?"rgba(255,255,255,0.3)":"#ef4444",color:"#fff",borderRadius:"10px",padding:"0 5px",fontSize:"9px"}}>{totalCount}</span>}
                 </button>
@@ -1121,42 +1121,42 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
         <div style={{flex:1,overflowY:"auto",padding:"16px 24px 24px"}}>
           {tab==="scraper"&&(
             <div>
-              <p style={{color:"#64748b",fontSize:"13px",marginBottom:"14px"}}>Carga boxscores (estadísticas por jugadora) y parciales por cuarto de una competición FIBA leyendo directamente los datos oficiales del site. Puede crear también los partidos que falten con su fase y resultado. Solo procesa partidos que <b>ya tienen resultado</b>; las jugadoras deben existir ya en sus temporadas. Si tarda mucho o se corta, vuelve a pulsar: continúa donde lo dejó.</p>
+              <p style={{color: "var(--fx-muted)",fontSize:"13px",marginBottom:"14px"}}>Carga boxscores (estadísticas por jugadora) y parciales por cuarto de una competición FIBA leyendo directamente los datos oficiales del site. Puede crear también los partidos que falten con su fase y resultado. Solo procesa partidos que <b>ya tienen resultado</b>; las jugadoras deben existir ya en sus temporadas. Si tarda mucho o se corta, vuelve a pulsar: continúa donde lo dejó.</p>
               <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
-                <label style={{fontSize:"12px",fontWeight:700,color:"#475569"}}>Liga
-                  <select value={scLiga} onChange={function(e){onScLiga(e.target.value);}} style={{width:"100%",marginTop:"4px",padding:"9px 10px",borderRadius:"10px",border:"1px solid #e2e8f0",fontSize:"13px",background:"#fff"}}>
+                <label style={{fontSize:"12px",fontWeight:700,color: "var(--fx-label)"}}>Liga
+                  <select value={scLiga} onChange={function(e){onScLiga(e.target.value);}} style={{width:"100%",marginTop:"4px",padding:"9px 10px",borderRadius:"10px",border:"1px solid var(--fx-border)",fontSize:"13px",background: "var(--fx-card)"}}>
                     <option value="">— elige liga —</option>
                     {ligas.slice().sort(function(a,b){return (a.nombre||"").localeCompare(b.nombre||"");}).map(function(l){return <option key={l.id_liga} value={l.id_liga}>{l.nombre} ({l.id_liga})</option>;})}
                   </select>
                 </label>
-                <label style={{fontSize:"12px",fontWeight:700,color:"#475569"}}>Temporada
-                  <input value={scTemp} onChange={function(e){onScTemp(e.target.value);}} placeholder="2026  ·  ó  2025-26" style={{width:"100%",marginTop:"4px",padding:"9px 10px",borderRadius:"10px",border:"1px solid #e2e8f0",fontSize:"13px",boxSizing:"border-box"}}/>
+                <label style={{fontSize:"12px",fontWeight:700,color: "var(--fx-label)"}}>Temporada
+                  <input value={scTemp} onChange={function(e){onScTemp(e.target.value);}} placeholder="2026  ·  ó  2025-26" style={{width:"100%",marginTop:"4px",padding:"9px 10px",borderRadius:"10px",border:"1px solid var(--fx-border)",fontSize:"13px",boxSizing:"border-box"}}/>
                 </label>
-                <label style={{fontSize:"12px",fontWeight:700,color:"#475569"}}>Slug del evento FIBA
-                  <input value={scSlug} onChange={function(e){setScSlug(e.target.value);}} placeholder="fiba-u17-womens-basketball-world-cup-2026" style={{width:"100%",marginTop:"4px",padding:"9px 10px",borderRadius:"10px",border:"1px solid #e2e8f0",fontSize:"13px",boxSizing:"border-box",fontFamily:"monospace"}}/>
-                  <span style={{display:"block",fontWeight:400,color:"#94a3b8",fontSize:"11px",marginTop:"3px"}}>Se rellena solo si la liga tiene plantilla guardada (y puedes editarlo). Es el trozo de la URL de FIBA: fiba.basketball/en/events/<b>este-trozo</b>/games</span>
+                <label style={{fontSize:"12px",fontWeight:700,color: "var(--fx-label)"}}>Slug del evento FIBA
+                  <input value={scSlug} onChange={function(e){setScSlug(e.target.value);}} placeholder="fiba-u17-womens-basketball-world-cup-2026" style={{width:"100%",marginTop:"4px",padding:"9px 10px",borderRadius:"10px",border:"1px solid var(--fx-border)",fontSize:"13px",boxSizing:"border-box",fontFamily:"monospace"}}/>
+                  <span style={{display:"block",fontWeight:400,color: "var(--fx-muted2)",fontSize:"11px",marginTop:"3px"}}>Se rellena solo si la liga tiene plantilla guardada (y puedes editarlo). Es el trozo de la URL de FIBA: fiba.basketball/en/events/<b>este-trozo</b>/games</span>
                 </label>
-                <label style={{display:"flex",alignItems:"center",gap:"8px",fontSize:"13px",color:"#475569",cursor:"pointer"}}>
+                <label style={{display:"flex",alignItems:"center",gap:"8px",fontSize:"13px",color: "var(--fx-label)",cursor:"pointer"}}>
                   <input type="checkbox" checked={scDry} onChange={function(e){setScDry(e.target.checked);}}/> Prueba (dry-run): no escribe nada, solo informa de lo que haría
                 </label>
-                <label style={{display:"flex",alignItems:"center",gap:"8px",fontSize:"13px",color:"#475569",cursor:"pointer"}}>
+                <label style={{display:"flex",alignItems:"center",gap:"8px",fontSize:"13px",color: "var(--fx-label)",cursor:"pointer"}}>
                   <input type="checkbox" checked={scCrear} onChange={function(e){setScCrear(e.target.checked);}}/> Crear también los partidos que falten (los baja de la lista del evento y mapea equipos por nombre)
                 </label>
-                <label style={{display:"flex",alignItems:"center",gap:"8px",fontSize:"13px",color:"#475569",cursor:"pointer"}}>
+                <label style={{display:"flex",alignItems:"center",gap:"8px",fontSize:"13px",color: "var(--fx-label)",cursor:"pointer"}}>
                   <input type="checkbox" checked={scForce} onChange={function(e){setScForce(e.target.checked);}}/> Force: reescribir boxscores que ya existen (borra y vuelve a cargar las filas del partido)
                 </label>
                 <button onClick={runScraper} disabled={scBusy||!scLiga||!scSlug.trim()} style={{background:scBusy||!scLiga||!scSlug.trim()?"#cbd5e1":(scDry?"#0f172a":"#9333ea"),color:"#fff",border:"none",borderRadius:"10px",padding:"11px 20px",fontWeight:700,fontSize:"13px",cursor:scBusy||!scLiga||!scSlug.trim()?"default":"pointer"}}>{scBusy?"Scrapeando… (puede tardar)":(scDry?"▶ Probar":"⬇️ Scrapear boxscores")}</button>
               </div>
               {scRes&&(
-                <div style={{marginTop:"16px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:"12px",padding:"14px"}}>
+                <div style={{marginTop:"16px",background: "var(--fx-hover)",border:"1px solid var(--fx-border)",borderRadius:"12px",padding:"14px"}}>
                   {scRes.error?<div style={{color:"#ef4444",fontSize:"13px"}}>❌ {scRes.error}</div>:(
                     <div style={{fontSize:"13px",color:"#334155"}}>
                       <div style={{fontWeight:700,marginBottom:"4px"}}>{scRes.dry?"🔎 Prueba · ":"✅ "}Partidos: {scRes.partidos}{scRes.creados>0?` · Creados: ${scRes.creados}`:""}{scRes.notas_rellenadas>0?` · Notas: ${scRes.notas_rellenadas}`:""}{scRes.parciales_escritos>0?` · Parciales: ${scRes.parciales_escritos}`:""} · Hechos: {scRes.hechos} · Saltados: {scRes.saltados} · Filas: {scRes.filas}{scRes.via_global>0?` · Global: ${scRes.via_global}`:""}{scRes.plantilla_altas>0?` · Altas plantilla: ${scRes.plantilla_altas}`:""}</div>
-                      {scRes.progreso&&<div style={{fontSize:"12px",color:"#64748b",marginBottom:"4px"}}>{scBusy?"⏳ Procesando por lotes… ":"Lotes completados: "}{scRes.progreso}{scRes.dry?" (en Prueba solo se procesa el primer lote)":""}</div>}
+                      {scRes.progreso&&<div style={{fontSize:"12px",color: "var(--fx-muted)",marginBottom:"4px"}}>{scBusy?"⏳ Procesando por lotes… ":"Lotes completados: "}{scRes.progreso}{scRes.dry?" (en Prueba solo se procesa el primer lote)":""}</div>}
                       {scRes.colisiones&&scRes.colisiones.length>0&&<div style={{marginTop:"8px",color:"#dc2626",fontSize:"12px"}}><b>Colisiones ({scRes.colisiones.length})</b> — dos jugadoras del acta apuntan a la misma ficha, ese partido no se guardó: {scRes.colisiones.join("  ·  ")}</div>}
                       {scRes.sin_mapear_equipos&&scRes.sin_mapear_equipos.length>0&&<div style={{marginTop:"8px",color:"#dc2626",fontSize:"12px"}}><b>Equipos sin mapear ({scRes.sin_mapear_equipos.length})</b> — no se creó ese partido; revisa el nombre del equipo: {scRes.sin_mapear_equipos.join("  ·  ")}</div>}
                       {scRes.creados_detalle&&scRes.creados_detalle.length>0&&<div style={{marginTop:"8px",fontSize:"12px",color:"#0f766e"}}><b>Partidos {scRes.dry?"a crear":"creados"} ({scRes.creados_detalle.length}):</b><ul style={{margin:"4px 0 0",paddingLeft:"18px",maxHeight:"140px",overflowY:"auto"}}>{scRes.creados_detalle.map(function(d,i){return <li key={i} style={{marginBottom:"2px"}}>{d}</li>;})}</ul></div>}
-                      {scRes.mensaje&&<div style={{color:"#64748b"}}>{scRes.mensaje}</div>}
+                      {scRes.mensaje&&<div style={{color: "var(--fx-muted)"}}>{scRes.mensaje}</div>}
                       {scRes.sin_mapear&&scRes.sin_mapear.length>0&&(function(){
                         // Las entradas vienen como "idPartido EQUIPO Nombre": agrupamos por jugadora
                         var m={};
@@ -1164,7 +1164,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                         var ks=Object.keys(m).sort();
                         return <div style={{marginTop:"8px",color:"#b45309",fontSize:"12px"}}><b>Jugadoras sin mapear ({ks.length})</b> — crea o corrige su ficha y vuelve a lanzar: {ks.map(function(k){return k+(m[k]>1?" ("+m[k]+" partidos)":"");}).join("  ·  ")}</div>;
                       })()}
-                      {scRes.detalles&&scRes.detalles.length>0&&<ul style={{margin:"8px 0 0",paddingLeft:"18px",maxHeight:"200px",overflowY:"auto"}}>{scRes.detalles.map(function(d,i){return <li key={i} style={{fontSize:"12px",color:"#64748b",marginBottom:"2px"}}>{d}</li>;})}</ul>}
+                      {scRes.detalles&&scRes.detalles.length>0&&<ul style={{margin:"8px 0 0",paddingLeft:"18px",maxHeight:"200px",overflowY:"auto"}}>{scRes.detalles.map(function(d,i){return <li key={i} style={{fontSize:"12px",color: "var(--fx-muted)",marginBottom:"2px"}}>{d}</li>;})}</ul>}
                     </div>
                   )}
                 </div>
@@ -1173,25 +1173,25 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           )}
           {tab==="feb-fichas"&&(
             <div>
-              <p style={{color:"#64748b",fontSize:"13px",marginBottom:"14px"}}>Rellena <b>fecha_nac, altura, posición y nacionalidad</b> de jugadoras que tienen <code>id_feb</code> pero les faltan datos, scrapeando su ficha oficial en baloncestoenvivo.feb.es. Cada lote agrupa por partido para optimizar créditos de ScraperAPI.</p>
+              <p style={{color: "var(--fx-muted)",fontSize:"13px",marginBottom:"14px"}}>Rellena <b>fecha_nac, altura, posición y nacionalidad</b> de jugadoras que tienen <code>id_feb</code> pero les faltan datos, scrapeando su ficha oficial en baloncestoenvivo.feb.es. Cada lote agrupa por partido para optimizar créditos de ScraperAPI.</p>
               <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:"10px",padding:"10px 12px",marginBottom:"12px",fontSize:"12px",color:"#9a3412"}}>
                 📊 <b>{febPend==null?"…":febPend}</b> jugadoras pendientes con <code>id_feb</code> y sin <code>fecha_nac</code>.
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
-                <label style={{fontSize:"12px",fontWeight:700,color:"#475569"}}>Jugadoras por lote
-                  <input type="number" min="1" max="50" value={febLimit} onChange={function(e){setFebLimit(parseInt(e.target.value)||5);}} style={{width:"100%",marginTop:"4px",padding:"9px 10px",borderRadius:"10px",border:"1px solid #e2e8f0",fontSize:"13px",boxSizing:"border-box"}}/>
-                  <span style={{display:"block",fontWeight:400,color:"#94a3b8",fontSize:"11px",marginTop:"3px"}}>Cada lote hace 1 scrape por partido compartido + 1 por ficha (~2 créditos ScraperAPI por jugadora)</span>
+                <label style={{fontSize:"12px",fontWeight:700,color: "var(--fx-label)"}}>Jugadoras por lote
+                  <input type="number" min="1" max="50" value={febLimit} onChange={function(e){setFebLimit(parseInt(e.target.value)||5);}} style={{width:"100%",marginTop:"4px",padding:"9px 10px",borderRadius:"10px",border:"1px solid var(--fx-border)",fontSize:"13px",boxSizing:"border-box"}}/>
+                  <span style={{display:"block",fontWeight:400,color: "var(--fx-muted2)",fontSize:"11px",marginTop:"3px"}}>Cada lote hace 1 scrape por partido compartido + 1 por ficha (~2 créditos ScraperAPI por jugadora)</span>
                 </label>
-                <label style={{display:"flex",alignItems:"center",gap:"8px",fontSize:"13px",color:"#475569",cursor:"pointer"}}>
+                <label style={{display:"flex",alignItems:"center",gap:"8px",fontSize:"13px",color: "var(--fx-label)",cursor:"pointer"}}>
                   <input type="checkbox" checked={febDry} onChange={function(e){setFebDry(e.target.checked);}}/> Prueba (dry-run): no escribe, solo informa
                 </label>
-                <label style={{display:"flex",alignItems:"center",gap:"8px",fontSize:"13px",color:"#475569",cursor:"pointer"}}>
+                <label style={{display:"flex",alignItems:"center",gap:"8px",fontSize:"13px",color: "var(--fx-label)",cursor:"pointer"}}>
                   <input type="checkbox" checked={febLoop} onChange={function(e){setFebLoop(e.target.checked);}}/> Loop: repetir hasta procesar todas las pendientes
                 </label>
                 <button onClick={runFebEnriq} disabled={febBusy} style={{background:febBusy?"#cbd5e1":(febDry?"#0f172a":"#9333ea"),color:"#fff",border:"none",borderRadius:"10px",padding:"11px 20px",fontWeight:700,fontSize:"13px",cursor:febBusy?"default":"pointer"}}>{febBusy?"Enriqueciendo…":(febDry?"▶ Probar":"⬇️ Enriquecer fichas")}</button>
               </div>
               {febRes&&(
-                <div style={{marginTop:"16px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:"12px",padding:"14px"}}>
+                <div style={{marginTop:"16px",background: "var(--fx-hover)",border:"1px solid var(--fx-border)",borderRadius:"12px",padding:"14px"}}>
                   {febRes.error?<div style={{color:"#ef4444",fontSize:"13px"}}>❌ {febRes.error}</div>:(
                     <div style={{fontSize:"13px",color:"#334155"}}>
                       <div style={{fontWeight:700,marginBottom:"4px"}}>{febDry?"🔎 Prueba · ":"✅ "}Candidatas: {febRes.candidatas} · Partidos scrapeados: {febRes.partidos_scrapeados} · Actualizadas: {febRes.fichas_actualizadas}{febRes.iter>1?` · Lotes: ${febRes.iter}`:""}</div>
@@ -1205,18 +1205,18 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           )}
           {tab==="carreras"&&(
             <div style={{padding:"16px"}}>
-              <h3 style={{fontWeight:800,fontSize:"15px",color:"#1e293b",margin:"0 0 4px"}}>🎓 Carreras ESPN por roster</h3>
-              <p style={{fontSize:"12px",color:"#64748b",margin:"0 0 12px"}}>Selecciona un equipo NCAA o WNBA. Analiza su roster, auto-mapea id_espn faltantes y carga las carreras completas de todas sus jugadoras.</p>
+              <h3 style={{fontWeight:800,fontSize:"15px",color: "var(--fx-text)",margin:"0 0 4px"}}>🎓 Carreras ESPN por roster</h3>
+              <p style={{fontSize:"12px",color: "var(--fx-muted)",margin:"0 0 12px"}}>Selecciona un equipo NCAA o WNBA. Analiza su roster, auto-mapea id_espn faltantes y carga las carreras completas de todas sus jugadoras.</p>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 100px",gap:"8px",marginBottom:"12px"}}>
-                <select value={carrLiga} onChange={e=>setCarrLiga(e.target.value)} style={{padding:"8px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px"}}>
+                <select value={carrLiga} onChange={e=>setCarrLiga(e.target.value)} style={{padding:"8px",borderRadius:"8px",border:"1.5px solid var(--fx-border)",fontSize:"13px"}}>
                   <option value="L020">NCAA (L020)</option>
                   <option value="L006">WNBA (L006)</option>
                 </select>
-                <select value={carrEquipoId} onChange={e=>setCarrEquipoId(e.target.value)} style={{padding:"8px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px"}}>
+                <select value={carrEquipoId} onChange={e=>setCarrEquipoId(e.target.value)} style={{padding:"8px",borderRadius:"8px",border:"1.5px solid var(--fx-border)",fontSize:"13px"}}>
                   <option value="">Equipo...</option>
                   {carrEquiposLiga.map(function(e){return <option key={e.id_equipo} value={e.id_equipo}>{e.nombre}</option>;})}
                 </select>
-                <input value={carrTemp} onChange={e=>setCarrTemp(e.target.value)} placeholder="2025-26" style={{padding:"8px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px"}}/>
+                <input value={carrTemp} onChange={e=>setCarrTemp(e.target.value)} placeholder="2025-26" style={{padding:"8px",borderRadius:"8px",border:"1.5px solid var(--fx-border)",fontSize:"13px"}}/>
               </div>
               <div style={{display:"flex",gap:"8px",marginBottom:"12px",flexWrap:"wrap"}}>
                 <button onClick={carrAnalizar} disabled={!!carrBusy||!carrEquipoId} style={{background:"#2563eb",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy||!carrEquipoId?0.5:1}}>{carrBusy==="info"?"Analizando...":"🔍 Analizar roster"}</button>
@@ -1231,15 +1231,15 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                   <button onClick={ligaAnalizar} disabled={!!carrBusy||!carrEquiposLiga.length} style={{background:"#7c3aed",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy||!carrEquiposLiga.length?0.5:1}}>{carrBusy==="liga_info"?"Analizando...":"🔍 Analizar TODA la liga"}</button>
                   {ligaInfo&&<button onClick={ligaCrearYMapear} disabled={!!carrBusy} style={{background:"#0ea5e9",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="liga_crear"?"Creando...":"➕ Crear/mapear todo"}</button>}
                   {ligaInfo&&<button onClick={ligaCargarCarreras} disabled={!!carrBusy} style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="liga_cargar"?"Cargando...":"🚀 Cargar TODAS las carreras"}</button>}
-                  {ligaInfo&&<label style={{display:"flex",alignItems:"center",gap:"5px",fontSize:"11px",color:"#475569",cursor:"pointer",background:"#fff",border:"1px solid #e2e8f0",borderRadius:"8px",padding:"7px 10px"}}>
+                  {ligaInfo&&<label style={{display:"flex",alignItems:"center",gap:"5px",fontSize:"11px",color: "var(--fx-label)",cursor:"pointer",background: "var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"8px",padding:"7px 10px"}}>
                     <input type="checkbox" checked={skipCargadas} onChange={e=>setSkipCargadas(e.target.checked)}/>
                     Saltar ya cargadas
                   </label>}
                 </div>
-                {ligaProgress.total>0&&<div style={{marginTop:"6px",fontSize:"11px",color:"#64748b"}}>{ligaProgress.paso} · {ligaProgress.done}/{ligaProgress.total}</div>}
-                {ligaInfo&&<div style={{marginTop:"8px",maxHeight:"200px",overflowY:"auto",fontSize:"11px",background:"#fff",border:"1px solid #e9d5ff",borderRadius:"8px"}}>
+                {ligaProgress.total>0&&<div style={{marginTop:"6px",fontSize:"11px",color: "var(--fx-muted)"}}>{ligaProgress.paso} · {ligaProgress.done}/{ligaProgress.total}</div>}
+                {ligaInfo&&<div style={{marginTop:"8px",maxHeight:"200px",overflowY:"auto",fontSize:"11px",background: "var(--fx-card)",border:"1px solid #e9d5ff",borderRadius:"8px"}}>
                   <table style={{width:"100%",borderCollapse:"collapse"}}>
-                    <thead><tr style={{background:"#f5f3ff",color:"#64748b",fontSize:"10px"}}>
+                    <thead><tr style={{background:"#f5f3ff",color: "var(--fx-muted)",fontSize:"10px"}}>
                       <th style={{padding:"4px 6px",textAlign:"left"}}>Equipo</th>
                       <th style={{padding:"4px 6px"}}>BD</th>
                       <th style={{padding:"4px 6px"}}>ESPN</th>
@@ -1251,19 +1251,19 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                       {ligaInfo.map((e,i)=>{
                         const nFaltan=e.solo_en_espn_obj?.length||0;
                         return[
-                          <tr key={i} style={{borderTop:"1px solid #f1f5f9"}}>
-                            <td style={{padding:"4px 6px",color:"#1e293b",fontWeight:600}}>{e.equipo}</td>
-                            <td style={{padding:"4px 6px",textAlign:"center",color:"#64748b"}}>{e.bd_total}</td>
-                            <td style={{padding:"4px 6px",textAlign:"center",color:"#64748b"}}>{e.espn_total}</td>
+                          <tr key={i} style={{borderTop:"1px solid var(--fx-border2)"}}>
+                            <td style={{padding:"4px 6px",color: "var(--fx-text)",fontWeight:600}}>{e.equipo}</td>
+                            <td style={{padding:"4px 6px",textAlign:"center",color: "var(--fx-muted)"}}>{e.bd_total}</td>
+                            <td style={{padding:"4px 6px",textAlign:"center",color: "var(--fx-muted)"}}>{e.espn_total}</td>
                             <td style={{padding:"4px 6px",textAlign:"center",color:e.mapeados?"#f59e0b":"#94a3b8",fontWeight:e.mapeados?700:400}}>{e.mapeados||0}</td>
                             <td style={{padding:"4px 6px",textAlign:"center",color:nFaltan?"#0ea5e9":"#94a3b8",fontWeight:nFaltan?700:400}}>{nFaltan}</td>
                             <td style={{padding:"4px 6px",textAlign:"center",fontSize:"10px",color:e.error?"#ef4444":e.creadas!=null?"#16a34a":"#94a3b8"}}>{e.error?"❌ "+e.error:e.creadas!=null?"✅ "+e.creadas+"+"+e.adjuntadas:"—"}</td>
                           </tr>,
-                          nFaltan>0&&<tr key={i+"-d"}><td colSpan={6} style={{padding:"2px 8px 6px 20px",background:"#fafafa",fontSize:"10px",color:"#475569"}}>
+                          nFaltan>0&&<tr key={i+"-d"}><td colSpan={6} style={{padding:"2px 8px 6px 20px",background:"#fafafa",fontSize:"10px",color: "var(--fx-label)"}}>
                             <div style={{fontWeight:700,color:"#0ea5e9",marginBottom:"2px"}}>Faltan en BD:</div>
                             {e.solo_en_espn_obj.map((s,k)=><span key={k} style={{display:"inline-block",marginRight:"10px"}}>
                               <a href={"https://www.espn.com/wnba/player/_/id/"+s.id} target="_blank" rel="noreferrer" style={{color:"#0ea5e9",textDecoration:"none"}}>{s.nombre}</a>
-                              <span style={{color:"#94a3b8"}}> ({s.id})</span>
+                              <span style={{color: "var(--fx-muted2)"}}> ({s.id})</span>
                             </span>)}
                           </td></tr>
                         ];
@@ -1273,19 +1273,19 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                 </div>}
               </div>
               {carrInfo&&(carrInfo.error?<div style={{background:"#fef2f2",border:"1px solid #fecaca",color:"#dc2626",padding:"10px",borderRadius:"10px",fontSize:"13px"}}>❌ {carrInfo.error}</div>:
-                <div style={{background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"12px",marginBottom:"12px"}}>
+                <div style={{background: "var(--fx-hover)",border:"1px solid var(--fx-border)",borderRadius:"10px",padding:"12px",marginBottom:"12px"}}>
                   <div style={{fontSize:"13px",marginBottom:"8px"}}><b>{carrInfo.equipo}</b> · BD: {carrInfo.bd_total} · ESPN: {carrInfo.espn_total} · Ya con id_espn: {carrInfo.ya_con_espn} · A mapear: {carrInfo.mapeados}</div>
                   {carrInfo.roster&&carrInfo.roster.length>0&&<div style={{maxHeight:"180px",overflowY:"auto",fontSize:"12px"}}>
-                    {carrInfo.roster.map(function(r,i){return <div key={i} style={{padding:"3px 0",borderBottom:"1px solid #f1f5f9",display:"flex",justifyContent:"space-between",gap:"8px"}}><span>{r.id_espn?"🟢":(r.espn_match?"🟡":"⚪")} {r.nombre}</span><span style={{color:"#94a3b8",fontFamily:"monospace",fontSize:"11px"}}>{r.id_espn||r.espn_match?.id||"—"}</span></div>;})}
+                    {carrInfo.roster.map(function(r,i){return <div key={i} style={{padding:"3px 0",borderBottom:"1px solid var(--fx-border2)",display:"flex",justifyContent:"space-between",gap:"8px"}}><span>{r.id_espn?"🟢":(r.espn_match?"🟡":"⚪")} {r.nombre}</span><span style={{color: "var(--fx-muted2)",fontFamily:"monospace",fontSize:"11px"}}>{r.id_espn||r.espn_match?.id||"—"}</span></div>;})}
                   </div>}
                   {carrInfo.sin_match_bd?.length>0&&<div style={{marginTop:"8px",fontSize:"12px",color:"#dc2626"}}>⚠️ Sin match en ESPN ({carrInfo.sin_match_bd.length}): {carrInfo.sin_match_bd.join(", ")}</div>}
-                  {carrInfo.solo_en_espn?.length>0&&<details style={{marginTop:"8px"}}><summary style={{fontSize:"12px",color:"#64748b",cursor:"pointer"}}>ESPN tiene {carrInfo.solo_en_espn.length} no en BD</summary><div style={{fontSize:"11px",color:"#475569",maxHeight:"120px",overflowY:"auto"}}>{carrInfo.solo_en_espn.map(function(s,i){return <div key={i}>{s}</div>;})}</div></details>}
+                  {carrInfo.solo_en_espn?.length>0&&<details style={{marginTop:"8px"}}><summary style={{fontSize:"12px",color: "var(--fx-muted)",cursor:"pointer"}}>ESPN tiene {carrInfo.solo_en_espn.length} no en BD</summary><div style={{fontSize:"11px",color: "var(--fx-label)",maxHeight:"120px",overflowY:"auto"}}>{carrInfo.solo_en_espn.map(function(s,i){return <div key={i}>{s}</div>;})}</div></details>}
                 </div>
               )}
-              {carrLog.length>0&&<div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"12px"}}>
-                <div style={{fontSize:"12px",fontWeight:700,color:"#64748b",marginBottom:"8px"}}>Progreso ({carrLog.length}/{carrInfo?.roster?.filter(function(r){return r.id_espn||r.espn_match;}).length||0})</div>
+              {carrLog.length>0&&<div style={{background: "var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"10px",padding:"12px"}}>
+                <div style={{fontSize:"12px",fontWeight:700,color: "var(--fx-muted)",marginBottom:"8px"}}>Progreso ({carrLog.length}/{carrInfo?.roster?.filter(function(r){return r.id_espn||r.espn_match;}).length||0})</div>
                 <div style={{maxHeight:"260px",overflowY:"auto",fontSize:"12px"}}>
-                  {carrLog.map(function(l,i){return <div key={i} style={{padding:"3px 0",display:"flex",justifyContent:"space-between",gap:"8px"}}><span>{l.jugadora}</span><span style={{color:"#475569",fontSize:"11px"}}>{l.estado}</span></div>;})}
+                  {carrLog.map(function(l,i){return <div key={i} style={{padding:"3px 0",display:"flex",justifyContent:"space-between",gap:"8px"}}><span>{l.jugadora}</span><span style={{color: "var(--fx-label)",fontSize:"11px"}}>{l.estado}</span></div>;})}
                 </div>
               </div>}
             </div>
@@ -1294,45 +1294,45 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
             <div style={{padding:"16px"}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"10px",marginBottom:"14px"}}>
                 <div>
-                  <label style={{fontSize:"11px",fontWeight:700,color:"#64748b",marginBottom:"4px",display:"block"}}>EQUIPO</label>
-                  <select value={lotEquipo} onChange={e=>setLotEquipo(e.target.value)} style={{width:"100%",padding:"8px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px"}}>
+                  <label style={{fontSize:"11px",fontWeight:700,color: "var(--fx-muted)",marginBottom:"4px",display:"block"}}>EQUIPO</label>
+                  <select value={lotEquipo} onChange={e=>setLotEquipo(e.target.value)} style={{width:"100%",padding:"8px",borderRadius:"8px",border:"1.5px solid var(--fx-border)",fontSize:"13px"}}>
                     <option value="">Seleccionar...</option>
                     {equipos.sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"")).map(e=><option key={e.id_equipo} value={e.id_equipo}>{e.nombre}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{fontSize:"11px",fontWeight:700,color:"#64748b",marginBottom:"4px",display:"block"}}>LIGA</label>
-                  <select value={lotLiga} onChange={e=>setLotLiga(e.target.value)} style={{width:"100%",padding:"8px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px"}}>
+                  <label style={{fontSize:"11px",fontWeight:700,color: "var(--fx-muted)",marginBottom:"4px",display:"block"}}>LIGA</label>
+                  <select value={lotLiga} onChange={e=>setLotLiga(e.target.value)} style={{width:"100%",padding:"8px",borderRadius:"8px",border:"1.5px solid var(--fx-border)",fontSize:"13px"}}>
                     <option value="">Seleccionar...</option>
                     {ligas.sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"")).map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{fontSize:"11px",fontWeight:700,color:"#64748b",marginBottom:"4px",display:"block"}}>TEMPORADA</label>
-                  <input value={lotTemp} onChange={e=>setLotTemp(e.target.value)} placeholder="2025-26" style={{width:"100%",padding:"8px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px",boxSizing:"border-box"}}/>
+                  <label style={{fontSize:"11px",fontWeight:700,color: "var(--fx-muted)",marginBottom:"4px",display:"block"}}>TEMPORADA</label>
+                  <input value={lotTemp} onChange={e=>setLotTemp(e.target.value)} placeholder="2025-26" style={{width:"100%",padding:"8px",borderRadius:"8px",border:"1.5px solid var(--fx-border)",fontSize:"13px",boxSizing:"border-box"}}/>
                 </div>
               </div>
               <div style={{marginBottom:"14px"}}>
-                <label style={{fontSize:"11px",fontWeight:700,color:"#64748b",marginBottom:"4px",display:"block"}}>JUGADORAS (una por línea)</label>
-                <textarea value={lotTexto} onChange={e=>setLotTexto(e.target.value)} rows={12} placeholder={"Lauren Betts\nKiki Rice\nGabriela Jaquez\n..."} style={{width:"100%",padding:"10px",borderRadius:"8px",border:"1.5px solid #e2e8f0",fontSize:"13px",fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
+                <label style={{fontSize:"11px",fontWeight:700,color: "var(--fx-muted)",marginBottom:"4px",display:"block"}}>JUGADORAS (una por línea)</label>
+                <textarea value={lotTexto} onChange={e=>setLotTexto(e.target.value)} rows={12} placeholder={"Lauren Betts\nKiki Rice\nGabriela Jaquez\n..."} style={{width:"100%",padding:"10px",borderRadius:"8px",border:"1.5px solid var(--fx-border)",fontSize:"13px",fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}/>
               </div>
               <button onClick={runLotes} disabled={lotBusy} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"10px 24px",fontWeight:700,fontSize:"14px",cursor:"pointer",opacity:lotBusy?0.5:1}}>
                 {lotBusy?"Procesando...":"Procesar lista"}
               </button>
-              {lotRes&&<div style={{marginTop:"16px",background:"#f8fafc",borderRadius:"12px",padding:"14px",border:"1px solid #e2e8f0"}}>
+              {lotRes&&<div style={{marginTop:"16px",background: "var(--fx-hover)",borderRadius:"12px",padding:"14px",border:"1px solid var(--fx-border)"}}>
                 {lotRes.error?<div style={{color:"#ef4444",fontWeight:700}}>{lotRes.error}</div>:<>
                   <div style={{fontSize:"13px",marginBottom:"8px"}}><strong>{lotRes.total}</strong> nombres procesados</div>
                   {lotRes.anadidas.length>0&&<div style={{marginBottom:"8px"}}>
                     <div style={{fontSize:"12px",fontWeight:700,color:"#16a34a",marginBottom:"4px"}}>✅ Añadidas ({lotRes.anadidas.length}):</div>
-                    {lotRes.anadidas.map((n,i)=><div key={i} style={{fontSize:"12px",color:"#475569",paddingLeft:"12px"}}>{n}</div>)}
+                    {lotRes.anadidas.map((n,i)=><div key={i} style={{fontSize:"12px",color: "var(--fx-label)",paddingLeft:"12px"}}>{n}</div>)}
                   </div>}
                   {lotRes.yaEstaban.length>0&&<div style={{marginBottom:"8px"}}>
                     <div style={{fontSize:"12px",fontWeight:700,color:"#f59e0b",marginBottom:"4px"}}>⚠️ Ya estaban ({lotRes.yaEstaban.length}):</div>
-                    {lotRes.yaEstaban.map((n,i)=><div key={i} style={{fontSize:"12px",color:"#475569",paddingLeft:"12px"}}>{n}</div>)}
+                    {lotRes.yaEstaban.map((n,i)=><div key={i} style={{fontSize:"12px",color: "var(--fx-label)",paddingLeft:"12px"}}>{n}</div>)}
                   </div>}
                   {lotRes.noEncontradas.length>0&&<div>
                     <div style={{fontSize:"12px",fontWeight:700,color:"#ef4444",marginBottom:"4px"}}>❌ No encontradas ({lotRes.noEncontradas.length}):</div>
-                    {lotRes.noEncontradas.map((n,i)=><div key={i} style={{fontSize:"12px",color:"#475569",paddingLeft:"12px"}}>{n}</div>)}
+                    {lotRes.noEncontradas.map((n,i)=><div key={i} style={{fontSize:"12px",color: "var(--fx-label)",paddingLeft:"12px"}}>{n}</div>)}
                   </div>}
                 </>}
               </div>}
@@ -1340,8 +1340,8 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           )}
           {tab==="lleno_fiba"&&(
             <div style={{padding:"4px"}}>
-              <p style={{color:"#64748b",fontSize:"13px",marginBottom:"14px"}}>
-                Consulta la ficha oficial FIBA de cada jugadora con <code style={{background:"#f1f5f9",padding:"1px 5px",borderRadius:"4px",fontSize:"11px"}}>fiba_person_id</code> guardado y compara <b>fecha de nacimiento</b> con la BD. Los cambios se aplican y quedan revertibles. La nacionalidad se muestra solo como aviso.
+              <p style={{color: "var(--fx-muted)",fontSize:"13px",marginBottom:"14px"}}>
+                Consulta la ficha oficial FIBA de cada jugadora con <code style={{background: "var(--fx-hover)",padding:"1px 5px",borderRadius:"4px",fontSize:"11px"}}>fiba_person_id</code> guardado y compara <b>fecha de nacimiento</b> con la BD. Los cambios se aplican y quedan revertibles. La nacionalidad se muestra solo como aviso.
               </p>
               {!llenoResults&&(
                 <div style={{display:"flex",gap:"10px",flexWrap:"wrap",alignItems:"center"}}>
@@ -1365,7 +1365,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                       Con diferencias: <b>{llenoResults.conDiff.length}</b> · Sin cambios: <b>{llenoResults.sinDiff.length}</b> · Errores: <b>{llenoResults.errores.length}</b>
                     </div>
                     <button onClick={function(){setLlenoResults(null);setLlenoApplyRes(null);}}
-                      style={{marginLeft:"auto",background:"transparent",color:"#94a3b8",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"6px 12px",cursor:"pointer",fontSize:"12px"}}>
+                      style={{marginLeft:"auto",background:"transparent",color: "var(--fx-muted2)",border:"1px solid var(--fx-border)",borderRadius:"10px",padding:"6px 12px",cursor:"pointer",fontSize:"12px"}}>
                       Reset
                     </button>
                   </div>
@@ -1378,14 +1378,14 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                         style={{background:llenoApplying?"#cbd5e1":(llenoConfirmKey==="all"?"#dc2626":"#16a34a"),color:"#fff",border:"none",borderRadius:"10px",padding:"11px 20px",fontWeight:700,fontSize:"14px",cursor:llenoApplying?"default":"pointer"}}>
                         {llenoApplying?"Aplicando…":(llenoConfirmKey==="all"?`⚠️ Pulsa otra vez para confirmar (${llenoResults.conDiff.length})`:`✅ Aplicar todas (${llenoResults.conDiff.length})`)}
                       </button>
-                      {llenoConfirmKey==="all"&&!llenoApplying&&<button onClick={function(){setLlenoConfirmKey(null);}} style={{background:"transparent",color:"#94a3b8",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"11px 16px",cursor:"pointer",fontSize:"12px"}}>Cancelar</button>}
+                      {llenoConfirmKey==="all"&&!llenoApplying&&<button onClick={function(){setLlenoConfirmKey(null);}} style={{background:"transparent",color: "var(--fx-muted2)",border:"1px solid var(--fx-border)",borderRadius:"10px",padding:"11px 16px",cursor:"pointer",fontSize:"12px"}}>Cancelar</button>}
                     </div>
                   )}
                   <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
                     {llenoResults.conDiff.map(function(e){
                       const cambios=Object.keys(e.diffs);
                       return(
-                        <div key={e.p.id_jugadora} style={{padding:"10px 12px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0"}}>
+                        <div key={e.p.id_jugadora} style={{padding:"10px 12px",background: "var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)"}}>
                           <div style={{display:"flex",gap:"10px",alignItems:"center",marginBottom:"6px"}}>
                             <div style={{flex:1,fontWeight:700,fontSize:"13px"}}>{e.p.nombre}</div>
                             <button onClick={function(){applyLlenoBatch([e]);}} disabled={llenoApplying}
@@ -1409,7 +1409,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                       );
                     })}
                     {llenoResults.conDiff.length===0&&(
-                      <div style={{textAlign:"center",padding:"30px 0",color:"#94a3b8"}}>✅ Ninguna jugadora tiene datos distintos de FIBA.</div>
+                      <div style={{textAlign:"center",padding:"30px 0",color: "var(--fx-muted2)"}}>✅ Ninguna jugadora tiene datos distintos de FIBA.</div>
                     )}
                   </div>
                   {llenoApplyRes&&(
@@ -1419,8 +1419,8 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                   )}
                   {llenoResults.errores.length>0&&(
                     <details style={{marginTop:"12px"}}>
-                      <summary style={{fontSize:"12px",color:"#94a3b8",cursor:"pointer"}}>⚠️ Errores ({llenoResults.errores.length})</summary>
-                      <div style={{maxHeight:"120px",overflowY:"auto",fontSize:"11px",color:"#64748b",marginTop:"4px"}}>
+                      <summary style={{fontSize:"12px",color: "var(--fx-muted2)",cursor:"pointer"}}>⚠️ Errores ({llenoResults.errores.length})</summary>
+                      <div style={{maxHeight:"120px",overflowY:"auto",fontSize:"11px",color: "var(--fx-muted)",marginTop:"4px"}}>
                         {llenoResults.errores.map(function(er,i){return <div key={i}>{er.p.nombre}: {er.err}</div>;})}
                       </div>
                     </details>
@@ -1431,7 +1431,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           )}
           {tab==="fotos_fiba"&&(
             <div style={{padding:"4px"}}>
-              <p style={{color:"#64748b",fontSize:"13px",marginBottom:"14px"}}>
+              <p style={{color: "var(--fx-muted)",fontSize:"13px",marginBottom:"14px"}}>
                 Busca fotos oficiales en FIBA para las jugadoras cuya foto guardada es de <b>proballers.com</b> (el 100% de esas URLs devuelve 404). Solo se procesan jugadoras con <b>fecha de nacimiento y nacionalidad</b> en la ficha — imprescindibles para el matching seguro.
               </p>
               {!fibaResults&&(
@@ -1459,14 +1459,14 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                       </button>
                     );})}
                     <button onClick={function(){setFibaResults(null);setFibaApplyRes(null);}}
-                      style={{marginLeft:"auto",background:"transparent",color:"#94a3b8",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"7px 14px",cursor:"pointer",fontSize:"12px"}}>
+                      style={{marginLeft:"auto",background:"transparent",color: "var(--fx-muted2)",border:"1px solid var(--fx-border)",borderRadius:"10px",padding:"7px 14px",cursor:"pointer",fontSize:"12px"}}>
                       Reset
                     </button>
                   </div>
                   {fibaSubTab==="altos"&&(
                     <div>
                       {fibaResults.altos.length===0?
-                        <div style={{textAlign:"center",padding:"30px 0",color:"#94a3b8"}}>Sin candidatas de confianza alta.</div>:
+                        <div style={{textAlign:"center",padding:"30px 0",color: "var(--fx-muted2)"}}>Sin candidatas de confianza alta.</div>:
                         <>
                           <div style={{display:"flex",gap:"8px",marginBottom:"14px",alignItems:"center"}}>
                             <button onClick={function(){
@@ -1476,13 +1476,13 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                               style={{background:fibaApplying?"#cbd5e1":(fibaConfirmKey==="altos"?"#dc2626":"#16a34a"),color:"#fff",border:"none",borderRadius:"10px",padding:"11px 20px",fontWeight:700,fontSize:"14px",cursor:fibaApplying?"default":"pointer"}}>
                               {fibaApplying?"Aplicando…":(fibaConfirmKey==="altos"?`⚠️ Pulsa otra vez para confirmar (${fibaResults.altos.length})`:`✅ Aplicar todas (${fibaResults.altos.length})`)}
                             </button>
-                            {fibaConfirmKey==="altos"&&!fibaApplying&&<button onClick={function(){setFibaConfirmKey(null);}} style={{background:"transparent",color:"#94a3b8",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"11px 16px",cursor:"pointer",fontSize:"12px"}}>Cancelar</button>}
+                            {fibaConfirmKey==="altos"&&!fibaApplying&&<button onClick={function(){setFibaConfirmKey(null);}} style={{background:"transparent",color: "var(--fx-muted2)",border:"1px solid var(--fx-border)",borderRadius:"10px",padding:"11px 16px",cursor:"pointer",fontSize:"12px"}}>Cancelar</button>}
                           </div>
                           <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
                             {fibaResults.altos.slice(0,15).map(function(e){return(
                               <FibaRow key={e.p.id_jugadora} entry={e} onApply={function(){applyFibaBatch([e]);}} showActions={false}/>
                             );})}
-                            {fibaResults.altos.length>15&&<div style={{fontSize:"12px",color:"#94a3b8",padding:"6px"}}>… y {fibaResults.altos.length-15} más (todas se aplican con el botón).</div>}
+                            {fibaResults.altos.length>15&&<div style={{fontSize:"12px",color: "var(--fx-muted2)",padding:"6px"}}>… y {fibaResults.altos.length-15} más (todas se aplican con el botón).</div>}
                           </div>
                         </>
                       }
@@ -1491,7 +1491,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                   {fibaSubTab==="medios"&&(
                     <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
                       {fibaResults.medios.length===0?
-                        <div style={{textAlign:"center",padding:"30px 0",color:"#94a3b8"}}>Sin candidatas para revisar.</div>:
+                        <div style={{textAlign:"center",padding:"30px 0",color: "var(--fx-muted2)"}}>Sin candidatas para revisar.</div>:
                         fibaResults.medios.map(function(e){return(
                           <FibaRow key={e.p.id_jugadora} entry={e}
                             onApply={function(){applyFibaBatch([e]);}}
@@ -1504,7 +1504,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                   {fibaSubTab==="bajos"&&(
                     <div>
                       {fibaResults.bajos.length===0?
-                        <div style={{textAlign:"center",padding:"30px 0",color:"#94a3b8"}}>✅ Todas tienen algún match.</div>:
+                        <div style={{textAlign:"center",padding:"30px 0",color: "var(--fx-muted2)"}}>✅ Todas tienen algún match.</div>:
                         <>
                           <div style={{display:"flex",gap:"8px",marginBottom:"14px",alignItems:"center",flexWrap:"wrap"}}>
                             <button onClick={function(){
@@ -1514,15 +1514,15 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                               style={{background:fibaApplying?"#cbd5e1":(fibaConfirmKey==="bajos_ph"?"#dc2626":"#64748b"),color:"#fff",border:"none",borderRadius:"10px",padding:"10px 16px",fontWeight:700,fontSize:"13px",cursor:fibaApplying?"default":"pointer"}}>
                               {fibaApplying?"Aplicando…":(fibaConfirmKey==="bajos_ph"?`⚠️ Pulsa otra vez para confirmar (${fibaResults.bajos.length})`:`👤 Poner placeholder a todas (${fibaResults.bajos.length})`)}
                             </button>
-                            {fibaConfirmKey==="bajos_ph"&&!fibaApplying&&<button onClick={function(){setFibaConfirmKey(null);}} style={{background:"transparent",color:"#94a3b8",border:"1px solid #e2e8f0",borderRadius:"10px",padding:"10px 14px",cursor:"pointer",fontSize:"12px"}}>Cancelar</button>}
-                            <span style={{fontSize:"11px",color:"#94a3b8"}}>Marca todas las jugadoras sin match con el placeholder oficial (empty-face). Reversible desde "↩ Revertir último lote".</span>
+                            {fibaConfirmKey==="bajos_ph"&&!fibaApplying&&<button onClick={function(){setFibaConfirmKey(null);}} style={{background:"transparent",color: "var(--fx-muted2)",border:"1px solid var(--fx-border)",borderRadius:"10px",padding:"10px 14px",cursor:"pointer",fontSize:"12px"}}>Cancelar</button>}
+                            <span style={{fontSize:"11px",color: "var(--fx-muted2)"}}>Marca todas las jugadoras sin match con el placeholder oficial (empty-face). Reversible desde "↩ Revertir último lote".</span>
                           </div>
                           <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
                             {fibaResults.bajos.map(function(e){return(
-                              <div key={e.p.id_jugadora} style={{display:"flex",alignItems:"center",gap:"10px",padding:"10px 12px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0"}}>
+                              <div key={e.p.id_jugadora} style={{display:"flex",alignItems:"center",gap:"10px",padding:"10px 12px",background: "var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)"}}>
                                 <div style={{flex:1,minWidth:0}}>
                                   <div style={{fontWeight:700,fontSize:"13px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{e.p.nombre}</div>
-                                  <div style={{fontSize:"11px",color:"#94a3b8"}}>{e.p.nacionalidad} · {e.p.fecha_nac}</div>
+                                  <div style={{fontSize:"11px",color: "var(--fx-muted2)"}}>{e.p.nacionalidad} · {e.p.fecha_nac}</div>
                                 </div>
                                 <button onClick={function(){applyPlaceholderToEntries([e]);}} disabled={fibaApplying}
                                   style={{background:"#64748b",color:"#fff",border:"none",borderRadius:"8px",padding:"6px 10px",fontSize:"11px",fontWeight:700,cursor:fibaApplying?"default":"pointer"}}>
@@ -1546,8 +1546,8 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                   )}
                   {fibaResults.errores?.length>0&&(
                     <details style={{marginTop:"12px"}}>
-                      <summary style={{fontSize:"12px",color:"#94a3b8",cursor:"pointer"}}>⚠️ Errores durante el escaneo ({fibaResults.errores.length})</summary>
-                      <div style={{maxHeight:"120px",overflowY:"auto",fontSize:"11px",color:"#64748b",marginTop:"4px"}}>
+                      <summary style={{fontSize:"12px",color: "var(--fx-muted2)",cursor:"pointer"}}>⚠️ Errores durante el escaneo ({fibaResults.errores.length})</summary>
+                      <div style={{maxHeight:"120px",overflowY:"auto",fontSize:"11px",color: "var(--fx-muted)",marginTop:"4px"}}>
                         {fibaResults.errores.map(function(er,i){return <div key={i}>{er.p.nombre}: {er.err}</div>;})}
                       </div>
                     </details>
@@ -1589,20 +1589,20 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               {(function(){
                 var list=issueFilter?incompletas[subTab].filter(function(item){return item.issues.indexOf(issueFilter)>=0;}):incompletas[subTab];
                 return list.length===0?
-                <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><div style={{fontSize:"36px"}}>✅</div><p>{issueFilter?"No hay coincidencias para este filtro":"Todas las fichas completas"}</p></div>:
+                <div style={{textAlign:"center",padding:"40px 0",color: "var(--fx-muted2)"}}><div style={{fontSize:"36px"}}>✅</div><p>{issueFilter?"No hay coincidencias para este filtro":"Todas las fichas completas"}</p></div>:
                 <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
                   {list.map(function(item){
                     var icon={jugadoras:"👩‍🏀",equipos:"🏟️",ligas:"🏆",coaches:"📋"}[item.tipo];
                     return(
                     <div key={item.tipo+item.id} onClick={function(){item.onGo&&item.onGo(item.id);onClose();}}
-                      style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0",cursor:"pointer",gap:"10px"}}
+                      style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background: "var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)",cursor:"pointer",gap:"10px"}}
                       onMouseEnter={function(e){e.currentTarget.style.background="#fff7ed";}}
                       onMouseLeave={function(e){e.currentTarget.style.background="#f8fafc";}}>
                       <div style={{display:"flex",alignItems:"center",gap:"10px",minWidth:0}}>
                         <span style={{fontSize:"16px",flexShrink:0}}>{icon}</span>
                         <div style={{minWidth:0}}>
-                          <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.nombre}</div>
-                          <div style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{item.id}</div>
+                          <div style={{fontWeight:700,fontSize:"14px",color: "var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.nombre}</div>
+                          <div style={{fontSize:"11px",color: "var(--fx-muted2)",fontFamily:"monospace"}}>{item.id}</div>
                         </div>
                       </div>
                       <div style={{display:"flex",gap:"4px",flexWrap:"wrap",justifyContent:"flex-end",maxWidth:"50%",flexShrink:0}}>
@@ -1615,7 +1615,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
             </div>
           )}
           {tab==="duplicadas"&&((duplicadas||[]).length===0?
-            <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><div style={{fontSize:"36px"}}>✅</div><p>No hay temporadas duplicadas</p></div>:
+            <div style={{textAlign:"center",padding:"40px 0",color: "var(--fx-muted2)"}}><div style={{fontSize:"36px"}}>✅</div><p>No hay temporadas duplicadas</p></div>:
             <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
               {(duplicadas||[]).map(function(group,i){
                 var sorted=[].concat(group).sort(function(a,b){return a.id-b.id;});
@@ -1645,23 +1645,23 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               {!dupCheckInfo.checked&&!dupCheckInfo.checking&&(
                 <div style={{textAlign:"center",padding:"40px 0"}}>
                   <div style={{fontSize:"36px",marginBottom:"10px"}}>🔍</div>
-                  <p style={{color:"#64748b",fontSize:"13px",marginBottom:"14px"}}>Busca jugadoras, equipos, ligas y técnicos con nombres parecidos que puedan estar duplicados.</p>
+                  <p style={{color: "var(--fx-muted)",fontSize:"13px",marginBottom:"14px"}}>Busca jugadoras, equipos, ligas y técnicos con nombres parecidos que puedan estar duplicados.</p>
                   <button onClick={checkNameDupes} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"10px 20px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>Buscar duplicados</button>
                 </div>
               )}
               {dupCheckInfo.checking&&(
                 <div style={{textAlign:"center",padding:"40px 0"}}>
                   <div style={{fontSize:"36px",marginBottom:"10px"}}>⏳</div>
-                  <p style={{color:"#64748b",fontSize:"13px"}}>Analizando nombres…</p>
+                  <p style={{color: "var(--fx-muted)",fontSize:"13px"}}>Analizando nombres…</p>
                 </div>
               )}
               {dupCheckInfo.checked&&!dupCheckInfo.checking&&(
                 totalNameDupes===0?
-                <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><div style={{fontSize:"36px"}}>✅</div><p>No se han detectado posibles duplicados</p></div>:
+                <div style={{textAlign:"center",padding:"40px 0",color: "var(--fx-muted2)"}}><div style={{fontSize:"36px"}}>✅</div><p>No se han detectado posibles duplicados</p></div>:
                 <div>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
-                    <p style={{color:"#64748b",fontSize:"13px",margin:0}}>{totalNameDupes} grupo{totalNameDupes!==1?"s":""} sospechoso{totalNameDupes!==1?"s":""}</p>
-                    <button onClick={checkNameDupes} style={{background:"#fff",color:"#9333ea",border:"1.5px solid #9333ea",borderRadius:"8px",padding:"5px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>↻ Repetir</button>
+                    <p style={{color: "var(--fx-muted)",fontSize:"13px",margin:0}}>{totalNameDupes} grupo{totalNameDupes!==1?"s":""} sospechoso{totalNameDupes!==1?"s":""}</p>
+                    <button onClick={checkNameDupes} style={{background: "var(--fx-card)",color:"#9333ea",border:"1.5px solid #9333ea",borderRadius:"8px",padding:"5px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>↻ Repetir</button>
                   </div>
                   <div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
                     {["jugadoras","equipos","ligas","coaches"].map(function(tipo){
@@ -1684,7 +1684,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                                 🔗 Fusionar
                               </button>}
                               <button onClick={function(){ignoreGroup(tipo,group);}} title="Marcar como falso positivo"
-                                style={{background:"#fff",border:"1.5px solid #cbd5e1",borderRadius:"8px",padding:"3px 10px",fontSize:"11px",fontWeight:700,color:"#64748b",cursor:"pointer"}}>
+                                style={{background: "var(--fx-card)",border:"1.5px solid #cbd5e1",borderRadius:"8px",padding:"3px 10px",fontSize:"11px",fontWeight:700,color: "var(--fx-muted)",cursor:"pointer"}}>
                                 ✓ No es duplicado
                               </button>
                             </div>
@@ -1697,10 +1697,10 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                             <div key={ii} style={{padding:"12px 14px",borderBottom:ii<group.items.length-1?"1px solid #f8fafc":"none"}}>
                               <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"10px"}}>
                                 <div onClick={function(){onGoMap[tipo]&&onGoMap[tipo](it[idKeyMap[tipo]]);onClose();}} style={{cursor:"pointer",flex:1,minWidth:0}}>
-                                  <div style={{fontSize:"14px",fontWeight:700,color:"#1e293b"}}>{it.nombre} <span style={{fontSize:"11px",color:"#9333ea",fontWeight:700}}>Ver →</span></div>
-                                  <div style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace",marginTop:"2px"}}>{it[idKeyMap[tipo]]}</div>
+                                  <div style={{fontSize:"14px",fontWeight:700,color: "var(--fx-text)"}}>{it.nombre} <span style={{fontSize:"11px",color:"#9333ea",fontWeight:700}}>Ver →</span></div>
+                                  <div style={{fontSize:"11px",color: "var(--fx-muted2)",fontFamily:"monospace",marginTop:"2px"}}>{it[idKeyMap[tipo]]}</div>
                                   {tipo==="jugadoras"&&(
-                                    <div style={{display:"flex",gap:"10px",flexWrap:"wrap",marginTop:"6px",fontSize:"12px",color:"#475569"}}>
+                                    <div style={{display:"flex",gap:"10px",flexWrap:"wrap",marginTop:"6px",fontSize:"12px",color: "var(--fx-label)"}}>
                                       {it.posicion&&<span>🏀 {it.posicion}</span>}
                                       {it.altura_cm&&<span>📏 {it.altura_cm} cm</span>}
                                       {it.fecha_nac&&<span>🎂 {it.fecha_nac}</span>}
@@ -1708,15 +1708,15 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                                     </div>
                                   )}
                                   {tipo==="jugadoras"&&(
-                                    <div style={{fontSize:"12px",color:"#64748b",marginTop:"4px"}}>
+                                    <div style={{fontSize:"12px",color: "var(--fx-muted)",marginTop:"4px"}}>
                                       {seasons?seasons.length:0} temporada{seasons&&seasons.length!==1?"s":""}{lastSeason?" · última: "+lastSeason.temporada+(eqNombre?" en "+eqNombre:""):""}
                                     </div>
                                   )}
                                   {(tipo==="equipos"||tipo==="ligas")&&(it.pais||it.ciudad)&&(
-                                    <div style={{fontSize:"12px",color:"#64748b",marginTop:"4px"}}>{it.pais}{it.ciudad?" · "+it.ciudad:""}</div>
+                                    <div style={{fontSize:"12px",color: "var(--fx-muted)",marginTop:"4px"}}>{it.pais}{it.ciudad?" · "+it.ciudad:""}</div>
                                   )}
                                   {tipo==="coaches"&&(it.nacionalidad||it.fecha_nac)&&(
-                                    <div style={{fontSize:"12px",color:"#64748b",marginTop:"4px"}}>{it.nacionalidad}{it.fecha_nac?" · "+it.fecha_nac:""}</div>
+                                    <div style={{fontSize:"12px",color: "var(--fx-muted)",marginTop:"4px"}}>{it.nacionalidad}{it.fecha_nac?" · "+it.fecha_nac:""}</div>
                                   )}
                                 </div>
                                 {isAdmin&&<button onClick={function(){setDupDelTarget({tipo:tipo,id:it[idKeyMap[tipo]],nombre:it.nombre});}} title="Eliminar esta ficha"
@@ -1734,9 +1734,9 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           )}
           {mergeTarget&&(
             <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}} onClick={e=>{if(e.target===e.currentTarget)setMergeTarget(null);}}>
-              <div style={{background:"#fff",borderRadius:"16px",padding:"24px",maxWidth:"400px",width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
-                <h3 style={{fontWeight:800,fontSize:"16px",color:"#1e293b",margin:"0 0 8px"}}>🔗 Fusionar registros</h3>
-                <p style={{fontSize:"13px",color:"#64748b",margin:"0 0 16px"}}>Elige cuál conservar. Los datos del otro se moverán a este y se eliminará el duplicado.</p>
+              <div style={{background: "var(--fx-card)",borderRadius:"16px",padding:"24px",maxWidth:"400px",width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+                <h3 style={{fontWeight:800,fontSize:"16px",color: "var(--fx-text)",margin:"0 0 8px"}}>🔗 Fusionar registros</h3>
+                <p style={{fontSize:"13px",color: "var(--fx-muted)",margin:"0 0 16px"}}>Elige cuál conservar. Los datos del otro se moverán a este y se eliminará el duplicado.</p>
                 <div style={{display:"flex",flexDirection:"column",gap:"8px",marginBottom:"16px"}}>
                   {mergeTarget.items.map(function(it,i){
                     var idKey={jugadoras:"id_jugadora",equipos:"id_equipo",ligas:"id_liga",coaches:"id_coach"}[mergeTarget.tipo];
@@ -1744,15 +1744,15 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                     var seasons=it.seasons||[];
                     return(
                       <div key={i} onClick={function(){setMergeTarget(Object.assign({},mergeTarget,{keepIdx:i}));}}
-                        style={{border:selected?"2px solid #9333ea":"1.5px solid #e2e8f0",borderRadius:"12px",padding:"12px",cursor:"pointer",background:selected?"#faf5ff":"#fff"}}>
+                        style={{border:selected?"2px solid #9333ea":"1.5px solid var(--fx-border)",borderRadius:"12px",padding:"12px",cursor:"pointer",background:selected?"#faf5ff":"#fff"}}>
                         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                           <div>
-                            <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{it.nombre}</div>
-                            <div style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{it[idKey]}</div>
+                            <div style={{fontWeight:700,fontSize:"14px",color: "var(--fx-text)"}}>{it.nombre}</div>
+                            <div style={{fontSize:"11px",color: "var(--fx-muted2)",fontFamily:"monospace"}}>{it[idKey]}</div>
                           </div>
                           {selected&&<span style={{background:"#9333ea",color:"#fff",fontSize:"10px",fontWeight:800,padding:"2px 8px",borderRadius:"10px"}}>CONSERVAR</span>}
                         </div>
-                        {mergeTarget.tipo==="jugadoras"&&<div style={{fontSize:"11px",color:"#64748b",marginTop:"4px"}}>
+                        {mergeTarget.tipo==="jugadoras"&&<div style={{fontSize:"11px",color: "var(--fx-muted)",marginTop:"4px"}}>
                           {it.posicion&&<span>{it.posicion} · </span>}
                           {it.nacionalidad&&<span>{it.nacionalidad} · </span>}
                           {seasons.length} temporada{seasons.length!==1?"s":""}
@@ -1763,7 +1763,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                   })}
                 </div>
                 <div style={{display:"flex",gap:"8px"}}>
-                  <button onClick={function(){setMergeTarget(null);}} style={{flex:1,background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"10px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#64748b"}}>Cancelar</button>
+                  <button onClick={function(){setMergeTarget(null);}} style={{flex:1,background: "var(--fx-hover)",border:"none",borderRadius:"10px",padding:"10px",fontWeight:700,fontSize:"13px",cursor:"pointer",color: "var(--fx-muted)"}}>Cancelar</button>
                   <button onClick={doMerge} disabled={mergeTarget.keepIdx==null||merging}
                     style={{flex:1,background:mergeTarget.keepIdx!=null?"#2563eb":"#cbd5e1",color:"#fff",border:"none",borderRadius:"10px",padding:"10px",fontWeight:700,fontSize:"13px",cursor:mergeTarget.keepIdx!=null?"pointer":"not-allowed",opacity:merging?0.5:1}}>
                     {merging?"Fusionando...":"Fusionar"}
@@ -1777,16 +1777,16 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               {Object.entries(huecos||{}).map(function(entry){
                 var tabla=entry[0];var info=entry[1];
                 return(
-                <div key={tabla} style={{background:"#f8fafc",borderRadius:"12px",padding:"14px",border:"1px solid #e2e8f0"}}>
+                <div key={tabla} style={{background: "var(--fx-hover)",borderRadius:"12px",padding:"14px",border:"1px solid var(--fx-border)"}}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"8px"}}>
-                    <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b",textTransform:"capitalize"}}>{tabla.replace("_"," ")}</span>
+                    <span style={{fontWeight:700,fontSize:"14px",color: "var(--fx-text)",textTransform:"capitalize"}}>{tabla.replace("_"," ")}</span>
                     <span style={{background:info.total>0?"#dbeafe":"#dcfce7",color:info.total>0?"#1d4ed8":"#16a34a",borderRadius:"8px",padding:"2px 10px",fontSize:"12px",fontWeight:700}}>
                       {info.total>0?info.total+" huecos":"Sin huecos"}
                     </span>
                   </div>
-                  <div style={{fontSize:"13px",color:"#475569"}}>Próximo ID libre: <b style={{color:"#9333ea"}}>{info.nextFree}</b></div>
-                  {info.gaps.length>0&&<div style={{marginTop:"6px",fontSize:"11px",color:"#94a3b8"}}>Huecos: {info.gaps.join(", ")}{info.total>15?" …":""}</div>}
-                  <div style={{marginTop:"4px",fontSize:"11px",color:"#94a3b8"}}>Siguiente al más alto: <b style={{color:"#64748b"}}>{info.nextAfterMax}</b></div>
+                  <div style={{fontSize:"13px",color: "var(--fx-label)"}}>Próximo ID libre: <b style={{color:"#9333ea"}}>{info.nextFree}</b></div>
+                  {info.gaps.length>0&&<div style={{marginTop:"6px",fontSize:"11px",color: "var(--fx-muted2)"}}>Huecos: {info.gaps.join(", ")}{info.total>15?" …":""}</div>}
+                  <div style={{marginTop:"4px",fontSize:"11px",color: "var(--fx-muted2)"}}>Siguiente al más alto: <b style={{color: "var(--fx-muted)"}}>{info.nextAfterMax}</b></div>
                 </div>
                 );
               })}
@@ -1797,14 +1797,14 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               {!brokenInfo.checked&&!brokenInfo.checking&&(
                 <div style={{textAlign:"center",padding:"40px 0"}}>
                   <div style={{fontSize:"36px",marginBottom:"10px"}}>🖼️</div>
-                  <p style={{color:"#64748b",fontSize:"13px",marginBottom:"14px"}}>Comprueba si los escudos de equipos y ligas cargan correctamente desde tu navegador.</p>
+                  <p style={{color: "var(--fx-muted)",fontSize:"13px",marginBottom:"14px"}}>Comprueba si los escudos de equipos y ligas cargan correctamente desde tu navegador.</p>
                   <button onClick={checkBrokenEscudos} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"10px 20px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>Comprobar escudos</button>
                 </div>
               )}
               {brokenInfo.checking&&(
                 <div style={{textAlign:"center",padding:"40px 0"}}>
                   <div style={{fontSize:"36px",marginBottom:"10px"}}>⏳</div>
-                  <p style={{color:"#64748b",fontSize:"13px"}}>Comprobando {brokenInfo.progress} de {brokenInfo.total}…</p>
+                  <p style={{color: "var(--fx-muted)",fontSize:"13px"}}>Comprobando {brokenInfo.progress} de {brokenInfo.total}…</p>
                   <div style={{width:"100%",maxWidth:"260px",height:"6px",background:"#e2e8f0",borderRadius:"4px",margin:"10px auto 0",overflow:"hidden"}}>
                     <div style={{height:"100%",background:"#9333ea",width:(brokenInfo.total?Math.round(brokenInfo.progress/brokenInfo.total*100):0)+"%",transition:"width 0.2s"}}/>
                   </div>
@@ -1812,25 +1812,25 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               )}
               {brokenInfo.checked&&!brokenInfo.checking&&(
                 brokenInfo.broken.length===0?
-                <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><div style={{fontSize:"36px"}}>✅</div><p>Todos los escudos cargan correctamente ({brokenInfo.total} comprobados)</p></div>:
+                <div style={{textAlign:"center",padding:"40px 0",color: "var(--fx-muted2)"}}><div style={{fontSize:"36px"}}>✅</div><p>Todos los escudos cargan correctamente ({brokenInfo.total} comprobados)</p></div>:
                 <div>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
-                    <p style={{color:"#64748b",fontSize:"13px",margin:0}}>{brokenInfo.broken.length} de {brokenInfo.total} escudos rotos</p>
-                    <button onClick={checkBrokenEscudos} style={{background:"#fff",color:"#9333ea",border:"1.5px solid #9333ea",borderRadius:"8px",padding:"5px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>↻ Repetir</button>
+                    <p style={{color: "var(--fx-muted)",fontSize:"13px",margin:0}}>{brokenInfo.broken.length} de {brokenInfo.total} escudos rotos</p>
+                    <button onClick={checkBrokenEscudos} style={{background: "var(--fx-card)",color:"#9333ea",border:"1.5px solid #9333ea",borderRadius:"8px",padding:"5px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>↻ Repetir</button>
                   </div>
                   <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
                     {brokenInfo.broken.map(function(item){
                       var icon=item.tipo==="equipos"?"🏟️":"🏆";
                       return(
                       <div key={item.tipo+item.id} onClick={function(){item.onGo&&item.onGo(item.id);onClose();}}
-                        style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0",cursor:"pointer",gap:"10px"}}
+                        style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background: "var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)",cursor:"pointer",gap:"10px"}}
                         onMouseEnter={function(e){e.currentTarget.style.background="#fff7ed";}}
                         onMouseLeave={function(e){e.currentTarget.style.background="#f8fafc";}}>
                         <div style={{display:"flex",alignItems:"center",gap:"10px",minWidth:0}}>
                           <span style={{fontSize:"16px",flexShrink:0}}>{icon}</span>
                           <div style={{minWidth:0}}>
-                            <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.nombre}</div>
-                            <div style={{fontSize:"10px",color:"#94a3b8",fontFamily:"monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"260px"}}>{item.url}</div>
+                            <div style={{fontWeight:700,fontSize:"14px",color: "var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.nombre}</div>
+                            <div style={{fontSize:"10px",color: "var(--fx-muted2)",fontFamily:"monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"260px"}}>{item.url}</div>
                           </div>
                         </div>
                         <span style={{background:"#fee2e2",color:"#ef4444",borderRadius:"8px",padding:"2px 8px",fontSize:"10px",fontWeight:700,flexShrink:0}}>Roto</span>
@@ -1844,25 +1844,25 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           {tab==="nacionalidades"&&(
             <div>
               {nacInfo.sinBandera.length===0&&nacInfo.variantes.length===0&&nacInfo.nacDup.length===0?(
-                <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><div style={{fontSize:"36px"}}>✅</div><p>Todas las nacionalidades tienen bandera y no hay duplicados</p></div>
+                <div style={{textAlign:"center",padding:"40px 0",color: "var(--fx-muted2)"}}><div style={{fontSize:"36px"}}>✅</div><p>Todas las nacionalidades tienen bandera y no hay duplicados</p></div>
               ):(
                 <div style={{display:"flex",flexDirection:"column",gap:"18px"}}>
                   <div>
-                    <h3 style={{fontWeight:800,fontSize:"13px",color:"#1e293b",margin:"0 0 8px"}}>🏳️ Países sin bandera ({nacInfo.sinBandera.length})</h3>
-                    {nacInfo.sinBandera.length===0?<p style={{color:"#94a3b8",fontSize:"12px",margin:0}}>Ninguno.</p>:(
+                    <h3 style={{fontWeight:800,fontSize:"13px",color: "var(--fx-text)",margin:"0 0 8px"}}>🏳️ Países sin bandera ({nacInfo.sinBandera.length})</h3>
+                    {nacInfo.sinBandera.length===0?<p style={{color: "var(--fx-muted2)",fontSize:"12px",margin:0}}>Ninguno.</p>:(
                       <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
                         {nacInfo.sinBandera.map(function(item){return(
-                          <div key={item.valor} style={{padding:"10px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0"}}>
+                          <div key={item.valor} style={{padding:"10px 14px",background: "var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)"}}>
                             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"10px"}}>
-                              <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>"{item.valor}"</span>
+                              <span style={{fontWeight:700,fontSize:"14px",color: "var(--fx-text)"}}>"{item.valor}"</span>
                               <span style={{background:"#fee2e2",color:"#ef4444",borderRadius:"8px",padding:"2px 8px",fontSize:"10px",fontWeight:700,flexShrink:0}}>{item.count} jugadora{item.count!==1?"s":""}</span>
                             </div>
                             <div style={{display:"flex",flexWrap:"wrap",gap:"6px",marginTop:"6px"}}>
                               {item.players.map(function(p){return(
                                 <button key={p.id_jugadora} onClick={function(){onGoToPlayer&&onGoToPlayer(p.id_jugadora);onClose();}}
-                                  style={{background:"#fff",color:"#9333ea",border:"1px solid #e9d5ff",borderRadius:"8px",padding:"3px 8px",fontSize:"11px",fontWeight:600,cursor:"pointer"}}>{p.nombre}</button>
+                                  style={{background: "var(--fx-card)",color:"#9333ea",border:"1px solid #e9d5ff",borderRadius:"8px",padding:"3px 8px",fontSize:"11px",fontWeight:600,cursor:"pointer"}}>{p.nombre}</button>
                               );})}
-                              {item.count>item.players.length&&<span style={{fontSize:"11px",color:"#94a3b8",alignSelf:"center"}}>+{item.count-item.players.length} más</span>}
+                              {item.count>item.players.length&&<span style={{fontSize:"11px",color: "var(--fx-muted2)",alignSelf:"center"}}>+{item.count-item.players.length} más</span>}
                             </div>
                           </div>
                         );})}
@@ -1870,16 +1870,16 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                     )}
                   </div>
                   <div>
-                    <h3 style={{fontWeight:800,fontSize:"13px",color:"#1e293b",margin:"0 0 8px"}}>🔀 Variantes del mismo país ({nacInfo.variantes.length})</h3>
-                    <p style={{color:"#94a3b8",fontSize:"11px",margin:"0 0 8px"}}>Distintas grafías en la base de datos que resuelven a la misma bandera. Ojo: algunas son intencionadas (p. ej. "Islas Vírgenes de EE.UU.").</p>
-                    {nacInfo.variantes.length===0?<p style={{color:"#94a3b8",fontSize:"12px",margin:0}}>Ninguna.</p>:(
+                    <h3 style={{fontWeight:800,fontSize:"13px",color: "var(--fx-text)",margin:"0 0 8px"}}>🔀 Variantes del mismo país ({nacInfo.variantes.length})</h3>
+                    <p style={{color: "var(--fx-muted2)",fontSize:"11px",margin:"0 0 8px"}}>Distintas grafías en la base de datos que resuelven a la misma bandera. Ojo: algunas son intencionadas (p. ej. "Islas Vírgenes de EE.UU.").</p>
+                    {nacInfo.variantes.length===0?<p style={{color: "var(--fx-muted2)",fontSize:"12px",margin:0}}>Ninguna.</p>:(
                       <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
                         {nacInfo.variantes.map(function(item){return(
-                          <div key={item.code} style={{display:"flex",alignItems:"center",gap:"10px",padding:"10px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0"}}>
+                          <div key={item.code} style={{display:"flex",alignItems:"center",gap:"10px",padding:"10px 14px",background: "var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)"}}>
                             <span style={{fontSize:"18px",flexShrink:0}}>{flagEmoji(item.code)}</span>
-                            <div style={{fontSize:"13px",color:"#1e293b",minWidth:0}}>
+                            <div style={{fontSize:"13px",color: "var(--fx-text)",minWidth:0}}>
                               {item.variantes.map(function(v,i){return(
-                                <span key={v.valor}>{i>0&&<span style={{color:"#cbd5e1"}}> · </span>}<b>"{v.valor}"</b> <span style={{color:"#94a3b8",fontSize:"11px"}}>({v.count})</span></span>
+                                <span key={v.valor}>{i>0&&<span style={{color:"#cbd5e1"}}> · </span>}<b>"{v.valor}"</b> <span style={{color: "var(--fx-muted2)",fontSize:"11px"}}>({v.count})</span></span>
                               );})}
                             </div>
                           </div>
@@ -1888,16 +1888,16 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                     )}
                   </div>
                   <div>
-                    <h3 style={{fontWeight:800,fontSize:"13px",color:"#1e293b",margin:"0 0 8px"}}>👯 Jugadoras con nacionalidad repetida ({nacInfo.nacDup.length})</h3>
-                    {nacInfo.nacDup.length===0?<p style={{color:"#94a3b8",fontSize:"12px",margin:0}}>Ninguna.</p>:(
+                    <h3 style={{fontWeight:800,fontSize:"13px",color: "var(--fx-text)",margin:"0 0 8px"}}>👯 Jugadoras con nacionalidad repetida ({nacInfo.nacDup.length})</h3>
+                    {nacInfo.nacDup.length===0?<p style={{color: "var(--fx-muted2)",fontSize:"12px",margin:0}}>Ninguna.</p>:(
                       <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
                         {nacInfo.nacDup.map(function(p){return(
                           <div key={p.id_jugadora} onClick={function(){onGoToPlayer&&onGoToPlayer(p.id_jugadora);onClose();}}
-                            style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0",cursor:"pointer",gap:"10px"}}
+                            style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background: "var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)",cursor:"pointer",gap:"10px"}}
                             onMouseEnter={function(e){e.currentTarget.style.background="#fff7ed";}}
                             onMouseLeave={function(e){e.currentTarget.style.background="#f8fafc";}}>
-                            <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</span>
-                            <span style={{fontSize:"11px",color:"#94a3b8",flexShrink:0}}>"{p.nacionalidad}" + "{p.nacionalidad2}"</span>
+                            <span style={{fontWeight:700,fontSize:"14px",color: "var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</span>
+                            <span style={{fontSize:"11px",color: "var(--fx-muted2)",flexShrink:0}}>"{p.nacionalidad}" + "{p.nacionalidad2}"</span>
                           </div>
                         );})}
                       </div>
@@ -1909,22 +1909,22 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           )}
           {tab==="fotos"&&(
             (fotosPlaceholder.jug.length+fotosPlaceholder.tec.length)===0?
-            <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}><div style={{fontSize:"36px"}}>✅</div><p>Ninguna ficha usa la foto por defecto</p></div>:
+            <div style={{textAlign:"center",padding:"40px 0",color: "var(--fx-muted2)"}}><div style={{fontSize:"36px"}}>✅</div><p>Ninguna ficha usa la foto por defecto</p></div>:
             <div style={{display:"flex",flexDirection:"column",gap:"16px"}}>
-              <p style={{fontSize:"12px",color:"#94a3b8",margin:0}}>Fichas cuya foto sigue siendo la silueta por defecto. Pulsa para abrir la ficha y cambiarla.</p>
+              <p style={{fontSize:"12px",color: "var(--fx-muted2)",margin:0}}>Fichas cuya foto sigue siendo la silueta por defecto. Pulsa para abrir la ficha y cambiarla.</p>
               {fotosPlaceholder.jug.length>0&&(
                 <div>
-                  <h3 style={{fontWeight:800,fontSize:"13px",color:"#1e293b",margin:"0 0 8px"}}>👩‍🏀 Jugadoras ({fotosPlaceholder.jug.length})</h3>
+                  <h3 style={{fontWeight:800,fontSize:"13px",color: "var(--fx-text)",margin:"0 0 8px"}}>👩‍🏀 Jugadoras ({fotosPlaceholder.jug.length})</h3>
                   <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
                     {fotosPlaceholder.jug.map(function(p){return(
                       <div key={p.id_jugadora} onClick={function(){onGoToPlayer&&onGoToPlayer(p.id_jugadora);onClose();}}
-                        style={{display:"flex",alignItems:"center",gap:"12px",padding:"8px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0",cursor:"pointer"}}
+                        style={{display:"flex",alignItems:"center",gap:"12px",padding:"8px 14px",background: "var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)",cursor:"pointer"}}
                         onMouseEnter={function(e){e.currentTarget.style.background="#fff7ed";}}
                         onMouseLeave={function(e){e.currentTarget.style.background="#f8fafc";}}>
                         <img src={p.foto} alt="" style={{width:34,height:34,borderRadius:"50%",objectFit:"cover",flexShrink:0,background:"#e2e8f0"}}/>
                         <div style={{minWidth:0}}>
-                          <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
-                          <div style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{p.id_jugadora}</div>
+                          <div style={{fontWeight:700,fontSize:"14px",color: "var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
+                          <div style={{fontSize:"11px",color: "var(--fx-muted2)",fontFamily:"monospace"}}>{p.id_jugadora}</div>
                         </div>
                       </div>
                     );})}
@@ -1933,17 +1933,17 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               )}
               {fotosPlaceholder.tec.length>0&&(
                 <div>
-                  <h3 style={{fontWeight:800,fontSize:"13px",color:"#1e293b",margin:"0 0 8px"}}>📋 Cuerpo técnico ({fotosPlaceholder.tec.length})</h3>
+                  <h3 style={{fontWeight:800,fontSize:"13px",color: "var(--fx-text)",margin:"0 0 8px"}}>📋 Cuerpo técnico ({fotosPlaceholder.tec.length})</h3>
                   <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
                     {fotosPlaceholder.tec.map(function(c){return(
                       <div key={c.id_coach} onClick={function(){onGoToCoach&&onGoToCoach(c.id_coach);onClose();}}
-                        style={{display:"flex",alignItems:"center",gap:"12px",padding:"8px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0",cursor:"pointer"}}
+                        style={{display:"flex",alignItems:"center",gap:"12px",padding:"8px 14px",background: "var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)",cursor:"pointer"}}
                         onMouseEnter={function(e){e.currentTarget.style.background="#fff7ed";}}
                         onMouseLeave={function(e){e.currentTarget.style.background="#f8fafc";}}>
                         <img src={c.foto} alt="" style={{width:34,height:34,borderRadius:"50%",objectFit:"cover",flexShrink:0,background:"#e2e8f0"}}/>
                         <div style={{minWidth:0}}>
-                          <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.nombre}</div>
-                          <div style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{c.id_coach}</div>
+                          <div style={{fontWeight:700,fontSize:"14px",color: "var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.nombre}</div>
+                          <div style={{fontSize:"11px",color: "var(--fx-muted2)",fontFamily:"monospace"}}>{c.id_coach}</div>
                         </div>
                       </div>
                     );})}
@@ -1957,9 +1957,9 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
             function fmtDate(v){if(!v)return"—";var dt=new Date(typeof v==="number"?(v<1e12?v*1000:v):v);return dt.toLocaleString("es-ES",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});}
             function fmtSize(b){if(!b)return"—";if(b<1024)return b+" B";if(b<1048576)return(b/1024).toFixed(1)+" KB";if(b<1073741824)return(b/1048576).toFixed(1)+" MB";return(b/1073741824).toFixed(2)+" GB";}
             function since(v){if(!v)return"";var dt=new Date(typeof v==="number"?(v<1e12?v*1000:v):v);var s=(Date.now()-dt.getTime())/1000;if(s<60)return"hace "+Math.round(s)+"s";if(s<3600)return"hace "+Math.round(s/60)+" min";if(s<86400)return"hace "+Math.round(s/3600)+" h";return"hace "+Math.round(s/86400)+" d";}
-            var card={background:"#fff",border:"1px solid #e2e8f0",borderRadius:"14px",padding:"14px"};
-            var h={fontWeight:800,fontSize:"12px",color:"#1e293b",margin:"0 0 10px",display:"flex",alignItems:"center",justifyContent:"space-between"};
-            var kv={fontSize:"12px",color:"#475569",display:"flex",justifyContent:"space-between",padding:"3px 0"};
+            var card={background: "var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"14px",padding:"14px"};
+            var h={fontWeight:800,fontSize:"12px",color: "var(--fx-text)",margin:"0 0 10px",display:"flex",alignItems:"center",justifyContent:"space-between"};
+            var kv={fontSize:"12px",color: "var(--fx-label)",display:"flex",justifyContent:"space-between",padding:"3px 0"};
             var dot=function(c){return{display:"inline-block",width:8,height:8,borderRadius:"50%",background:c,marginRight:6};};
             function pill(txt,color){return<span style={{background:color+"20",color:color,fontSize:"10px",fontWeight:700,padding:"2px 7px",borderRadius:"10px"}}>{txt}</span>;}
             function block(title,body,link){return(
@@ -1971,11 +1971,11 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
             return(
               <div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}}>
-                  <p style={{color:"#64748b",fontSize:"12px",margin:0}}>Uptime, cron pings, backup en Backblaze, deploys y visitas. {d&&<span style={{color:"#94a3b8"}}>· actualizado {fmtDate(d.ts)}</span>}</p>
+                  <p style={{color: "var(--fx-muted)",fontSize:"12px",margin:0}}>Uptime, cron pings, backup en Backblaze, deploys y visitas. {d&&<span style={{color: "var(--fx-muted2)"}}>· actualizado {fmtDate(d.ts)}</span>}</p>
                   <button onClick={cargarEstado} disabled={estadoBusy} style={{background:estadoBusy?"#cbd5e1":"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"12px",cursor:estadoBusy?"default":"pointer"}}>{estadoBusy?"⏳ Cargando…":"🔄 Refrescar"}</button>
                 </div>
                 {estadoErr&&<div style={{color:"#dc2626",fontSize:"12px",marginBottom:"10px"}}>❌ {estadoErr}</div>}
-                {!d&&!estadoBusy&&<div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8",fontSize:"13px"}}>Pulsa <b>Refrescar</b> para consultar el estado.</div>}
+                {!d&&!estadoBusy&&<div style={{textAlign:"center",padding:"40px 0",color: "var(--fx-muted2)",fontSize:"13px"}}>Pulsa <b>Refrescar</b> para consultar el estado.</div>}
                 {d&&(
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
                     {/* Uptime */}
@@ -1984,15 +1984,15 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                         {(d.uptime.monitors||[]).map(function(m,i){var up=m.status===2;return(
                           <div key={i}>
                             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"4px"}}>
-                              <div style={{fontSize:"12px",fontWeight:700,color:"#1e293b"}}><span style={dot(up?"#22c55e":"#ef4444")}/>{m.name}</div>
+                              <div style={{fontSize:"12px",fontWeight:700,color: "var(--fx-text)"}}><span style={dot(up?"#22c55e":"#ef4444")}/>{m.name}</div>
                               {pill(up?"UP":"DOWN",up?"#22c55e":"#ef4444")}
                             </div>
                             <div style={kv}><span>24h · 7d · 30d</span><span style={{fontFamily:"monospace"}}>{(m.uptime||[]).map(function(x){return(parseFloat(x)||0).toFixed(2);}).join(" · ")}%</span></div>
                             {m.response_ms&&<div style={kv}><span>Respuesta</span><span>{m.response_ms} ms</span></div>}
-                            {m.last_log&&<div style={{fontSize:"10px",color:"#94a3b8",marginTop:"4px"}}>Último evento: {m.last_log.type===2?"UP":"DOWN"} · {fmtDate(m.last_log.datetime)}{m.last_log.reason?" · "+m.last_log.reason:""}</div>}
+                            {m.last_log&&<div style={{fontSize:"10px",color: "var(--fx-muted2)",marginTop:"4px"}}>Último evento: {m.last_log.type===2?"UP":"DOWN"} · {fmtDate(m.last_log.datetime)}{m.last_log.reason?" · "+m.last_log.reason:""}</div>}
                           </div>
                         );})}
-                        {!(d.uptime.monitors||[]).length&&<div style={{fontSize:"11px",color:"#94a3b8"}}>Sin monitors</div>}
+                        {!(d.uptime.monitors||[]).length&&<div style={{fontSize:"11px",color: "var(--fx-muted2)"}}>Sin monitors</div>}
                       </div>
                     ),"https://dashboard.uptimerobot.com/")}
                     {/* Cron */}
@@ -2003,14 +2003,14 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                           return(
                             <div key={i}>
                               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                                <div style={{fontSize:"12px",fontWeight:700,color:"#1e293b"}}><span style={dot(col)}/>{c.name}</div>
+                                <div style={{fontSize:"12px",fontWeight:700,color: "var(--fx-text)"}}><span style={dot(col)}/>{c.name}</div>
                                 {pill(c.status.toUpperCase(),col)}
                               </div>
-                              <div style={{fontSize:"10px",color:"#94a3b8",marginLeft:"14px"}}>Últ. ping {since(c.last_ping)} · {c.schedule}</div>
+                              <div style={{fontSize:"10px",color: "var(--fx-muted2)",marginLeft:"14px"}}>Últ. ping {since(c.last_ping)} · {c.schedule}</div>
                             </div>
                           );
                         })}
-                        {!(d.cron.checks||[]).length&&<div style={{fontSize:"11px",color:"#94a3b8"}}>Sin checks</div>}
+                        {!(d.cron.checks||[]).length&&<div style={{fontSize:"11px",color: "var(--fx-muted2)"}}>Sin checks</div>}
                       </div>
                     ),"https://healthchecks.io/checks/")}
                     {/* Backup */}
@@ -2019,10 +2019,10 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                       return(
                         <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"4px"}}>
-                            <div style={{fontSize:"12px",fontWeight:700,color:"#1e293b"}}><span style={dot(stale?"#f59e0b":"#22c55e")}/>{last?since(last.ts):"sin backups"}</div>
+                            <div style={{fontSize:"12px",fontWeight:700,color: "var(--fx-text)"}}><span style={dot(stale?"#f59e0b":"#22c55e")}/>{last?since(last.ts):"sin backups"}</div>
                             {pill(stale?"REVISAR":"OK",stale?"#f59e0b":"#22c55e")}
                           </div>
-                          {last&&<div style={{fontSize:"10px",color:"#94a3b8",wordBreak:"break-all"}}>{last.name}</div>}
+                          {last&&<div style={{fontSize:"10px",color: "var(--fx-muted2)",wordBreak:"break-all"}}>{last.name}</div>}
                           <div style={kv}><span>Backups guardados</span><span>{d.backup.total}</span></div>
                           <div style={kv}><span>Tamaño total</span><span>{fmtSize(d.backup.total_size)}</span></div>
                           {last&&<div style={kv}><span>Último tamaño</span><span>{fmtSize(last.size)}</span></div>}
@@ -2035,16 +2035,16 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                         {(d.vercel.deploys||[]).slice(0,5).map(function(dep,i){
                           var col=dep.state==="READY"?"#22c55e":dep.state==="ERROR"?"#ef4444":dep.state==="BUILDING"?"#3b82f6":"#94a3b8";
                           return(
-                            <div key={i} style={{fontSize:"11px",borderBottom:i<4?"1px solid #f1f5f9":"none",paddingBottom:"5px"}}>
+                            <div key={i} style={{fontSize:"11px",borderBottom:i<4?"1px solid var(--fx-border2)":"none",paddingBottom:"5px"}}>
                               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                                 <span style={{fontWeight:700,color:col}}>{dep.state}{dep.target==="production"?" ·prod":""}</span>
-                                <span style={{color:"#94a3b8",fontSize:"10px"}}>{fmtDate(dep.created)}</span>
+                                <span style={{color: "var(--fx-muted2)",fontSize:"10px"}}>{fmtDate(dep.created)}</span>
                               </div>
-                              {dep.commit&&<div style={{color:"#475569",fontSize:"10px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{dep.commit}</div>}
+                              {dep.commit&&<div style={{color: "var(--fx-label)",fontSize:"10px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{dep.commit}</div>}
                             </div>
                           );
                         })}
-                        {!(d.vercel.deploys||[]).length&&<div style={{fontSize:"11px",color:"#94a3b8"}}>Sin deploys</div>}
+                        {!(d.vercel.deploys||[]).length&&<div style={{fontSize:"11px",color: "var(--fx-muted2)"}}>Sin deploys</div>}
                       </div>
                     ),"https://vercel.com/dashboard")}
                     {/* Tracking / visitas */}
@@ -2052,8 +2052,8 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                       <div style={h}><span>📊 App · visitas</span></div>
                       {d.app.error?<div style={{color:"#dc2626",fontSize:"11px"}}>{d.app.error}</div>:(
                         <div style={{display:"flex",gap:"20px"}}>
-                          <div><div style={{fontSize:"20px",fontWeight:800,color:"#9333ea"}}>{d.app.visitas_24h}</div><div style={{fontSize:"11px",color:"#94a3b8"}}>últimas 24h</div></div>
-                          <div><div style={{fontSize:"20px",fontWeight:800,color:"#9333ea"}}>{d.app.visitas_7d}</div><div style={{fontSize:"11px",color:"#94a3b8"}}>últimos 7 días</div></div>
+                          <div><div style={{fontSize:"20px",fontWeight:800,color:"#9333ea"}}>{d.app.visitas_24h}</div><div style={{fontSize:"11px",color: "var(--fx-muted2)"}}>últimas 24h</div></div>
+                          <div><div style={{fontSize:"20px",fontWeight:800,color:"#9333ea"}}>{d.app.visitas_7d}</div><div style={{fontSize:"11px",color: "var(--fx-muted2)"}}>últimos 7 días</div></div>
                         </div>
                       )}
                     </div>
@@ -2066,13 +2066,13 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       </div>
       {dupDelTarget&&(
         <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.5)",zIndex:600,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
-          <div style={{background:"#fff",borderRadius:"16px",padding:"24px",maxWidth:"360px",width:"100%"}}>
-            <h3 style={{fontWeight:800,fontSize:"16px",color:"#1e293b",margin:"0 0 8px"}}>¿Eliminar ficha?</h3>
-            <p style={{fontSize:"13px",color:"#64748b",margin:"0 0 18px"}}>
+          <div style={{background: "var(--fx-card)",borderRadius:"16px",padding:"24px",maxWidth:"360px",width:"100%"}}>
+            <h3 style={{fontWeight:800,fontSize:"16px",color: "var(--fx-text)",margin:"0 0 8px"}}>¿Eliminar ficha?</h3>
+            <p style={{fontSize:"13px",color: "var(--fx-muted)",margin:"0 0 18px"}}>
               Se eliminará <b>{dupDelTarget.nombre}</b> ({dupDelTarget.id}) y todas sus temporadas asociadas. Esta acción no se puede deshacer.
             </p>
             <div style={{display:"flex",gap:"8px",justifyContent:"flex-end"}}>
-              <button onClick={function(){setDupDelTarget(null);}} style={{background:"#f1f5f9",color:"#475569",border:"none",borderRadius:"8px",padding:"8px 16px",fontWeight:600,cursor:"pointer",fontSize:"13px"}}>Cancelar</button>
+              <button onClick={function(){setDupDelTarget(null);}} style={{background: "var(--fx-hover)",color: "var(--fx-label)",border:"none",borderRadius:"8px",padding:"8px 16px",fontWeight:600,cursor:"pointer",fontSize:"13px"}}>Cancelar</button>
               <button onClick={function(){deleteDupItem(dupDelTarget.tipo,dupDelTarget.id);}} style={{background:"#ef4444",color:"#fff",border:"none",borderRadius:"8px",padding:"8px 16px",fontWeight:700,cursor:"pointer",fontSize:"13px"}}>Eliminar</button>
             </div>
           </div>

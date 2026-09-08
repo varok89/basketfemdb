@@ -3769,10 +3769,10 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
                     return(
                       <div key={(isCoach?"c":"p")+s.id} style={{display:"flex",gap:"16px",alignItems:"flex-start",paddingLeft:"32px",position:"relative"}}>
                         <div style={{position:"absolute",left:"6px",top:"14px",width:"12px",height:"12px",borderRadius:"50%",background:dotColor,border:"3px solid #fff",boxShadow:`0 0 0 2px ${dotColor}`}}/>
-                        <div style={{flex:1,background:isCoach?"#eff6ff":"#f8fafc",borderRadius:"12px",padding:"12px 14px",border:`1.5px solid ${isCoach?"#bfdbfe":"#e2e8f0"}`,cursor:"pointer"}}
+                        <div style={{flex:1,background:isCoach?"#eff6ff":"var(--fx-hover)",borderRadius:"12px",padding:"12px 14px",border:`1.5px solid ${isCoach?"#bfdbfe":"var(--fx-border)"}`,cursor:"pointer"}}
                           onClick={()=>onGoToTeam(s.id_equipo,s.temporada,{tab:"jugadoras",id:selected?.id_jugadora,label:selected?.nombre})}
                           onMouseEnter={e=>{e.currentTarget.style.background=isCoach?"#dbeafe":"#fff7ed";e.currentTarget.style.borderColor=isCoach?"#93c5fd":"#c084fc";}}
-                          onMouseLeave={e=>{e.currentTarget.style.background=isCoach?"#eff6ff":"#f8fafc";e.currentTarget.style.borderColor=isCoach?"#bfdbfe":"#e2e8f0";}}>
+                          onMouseLeave={e=>{e.currentTarget.style.background=isCoach?"#eff6ff":"var(--fx-hover)";e.currentTarget.style.borderColor=isCoach?"#bfdbfe":"var(--fx-border)";}}>
                           <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
                             <TeamBadge team={eq} size={30}/>
                             <div>
@@ -3939,7 +3939,7 @@ function TeamForm({initial,onSave,onCancel,saving}){
       <Fld label='FEB'><input style={inp} value={f.id_ext||''} onChange={set('id_ext')} placeholder='981303'/></Fld>
     </div>
     <div style={{display:'flex',gap:'10px',justifyContent:'flex-end',marginTop:'8px'}}>
-      <button onClick={onCancel} style={{background:'#f1f5f9',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:600,cursor:'pointer'}}>Cancelar</button>
+      <button onClick={onCancel} style={{background:'var(--fx-hover)',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:600,cursor:'pointer'}}>Cancelar</button>
       <button onClick={()=>onSave(f)} disabled={saving||!f.nombre} style={{background:'#9333ea',color:'#fff',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:700,cursor:'pointer'}}>{saving?'Guardando...':'Guardar'}</button>
     </div>
   </div>);
@@ -3957,7 +3957,7 @@ function PalmaresForm({initial,ligas,onSave,onCancel,saving}){
     </select></Fld>
     <Fld label='Temporada *'><input style={inp} value={f.temporada||''} onChange={set('temporada')} placeholder='2024-25'/></Fld>
     <div style={{display:'flex',gap:'10px',justifyContent:'flex-end',marginTop:'8px'}}>
-      <button onClick={onCancel} style={{background:'#f1f5f9',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:600,cursor:'pointer'}}>Cancelar</button>
+      <button onClick={onCancel} style={{background:'var(--fx-hover)',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:600,cursor:'pointer'}}>Cancelar</button>
       <button onClick={()=>onSave(f)} disabled={saving||!f.id_liga||!f.temporada} style={{background:'#9333ea',color:'#fff',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:700,cursor:'pointer'}}>{saving?'Guardando...':'Guardar'}</button>
     </div>
   </div>);
@@ -4700,7 +4700,7 @@ function LeagueForm({initial,onSave,onCancel,saving}){
     </select></Fld>
     <Fld label='URL Logo'><input style={inp} value={f.logo||''} onChange={set('logo')} placeholder='https://...'/></Fld>
     <div style={{display:'flex',gap:'10px',justifyContent:'flex-end',marginTop:'8px'}}>
-      <button onClick={onCancel} style={{background:'#f1f5f9',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:600,cursor:'pointer'}}>Cancelar</button>
+      <button onClick={onCancel} style={{background:'var(--fx-hover)',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:600,cursor:'pointer'}}>Cancelar</button>
       <button onClick={()=>onSave(f)} disabled={saving||!f.nombre} style={{background:'#9333ea',color:'#fff',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:700,cursor:'pointer'}}>{saving?'Guardando...':'Guardar'}</button>
     </div>
   </div>);
@@ -4720,8 +4720,8 @@ function CoachForm({initial,players,onSave,onCancel,saving}){
     <Fld label='Fecha nacimiento'><input style={inp} type='date' value={f.fecha_nac||''} onChange={set('fecha_nac')}/></Fld>
     <Fld label='Foto (URL)'>
       <div style={{display:'flex',gap:'8px',marginBottom:'6px'}}>
-        <button type="button" onClick={()=>setF(p=>({...p,foto:"https://static.flashscore.com/res/image/empty-face-woman-share.gif"}))} style={{background:'#f1f5f9',color:'#475569',border:'none',borderRadius:'8px',padding:'5px 12px',fontSize:'12px',cursor:'pointer',fontWeight:600}}>🖼️ Default ♀</button>
-        <button type="button" onClick={()=>setF(p=>({...p,foto:"https://static.flashscore.com/res/image/empty-face-man-share.gif"}))} style={{background:'#f1f5f9',color:'#475569',border:'none',borderRadius:'8px',padding:'5px 12px',fontSize:'12px',cursor:'pointer',fontWeight:600}}>🖼️ Default ♂</button>
+        <button type="button" onClick={()=>setF(p=>({...p,foto:"https://static.flashscore.com/res/image/empty-face-woman-share.gif"}))} style={{background:'var(--fx-hover)',color:'var(--fx-label)',border:'none',borderRadius:'8px',padding:'5px 12px',fontSize:'12px',cursor:'pointer',fontWeight:600}}>🖼️ Default ♀</button>
+        <button type="button" onClick={()=>setF(p=>({...p,foto:"https://static.flashscore.com/res/image/empty-face-man-share.gif"}))} style={{background:'var(--fx-hover)',color:'var(--fx-label)',border:'none',borderRadius:'8px',padding:'5px 12px',fontSize:'12px',cursor:'pointer',fontWeight:600}}>🖼️ Default ♂</button>
       </div>
       <input style={inp} value={f.foto||''} onChange={set('foto')} placeholder='https://...'/>
     </Fld>
@@ -4730,7 +4730,7 @@ function CoachForm({initial,players,onSave,onCancel,saving}){
       {(players||[]).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es')).map(p=><option key={p.id_jugadora} value={p.id_jugadora}>{p.nombre}</option>)}
     </select></Fld>
     <div style={{display:'flex',gap:'10px',justifyContent:'flex-end',marginTop:'8px'}}>
-      <button onClick={onCancel} style={{background:'#f1f5f9',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:600,cursor:'pointer'}}>Cancelar</button>
+      <button onClick={onCancel} style={{background:'var(--fx-hover)',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:600,cursor:'pointer'}}>Cancelar</button>
       <button onClick={()=>onSave(f)} disabled={saving||!f.nombre} style={{background:'#9333ea',color:'#fff',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:700,cursor:'pointer'}}>{saving?'Guardando...':'Guardar'}</button>
     </div>
   </div>);
@@ -4755,7 +4755,7 @@ function CoachSeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
       <Fld label='Orden'><input style={inp} type='number' value={f.orden||0} onChange={set('orden')} placeholder='0'/></Fld>
     </div>
     <div style={{display:'flex',gap:'10px',justifyContent:'flex-end',marginTop:'8px'}}>
-      <button onClick={onCancel} style={{background:'#f1f5f9',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:600,cursor:'pointer'}}>Cancelar</button>
+      <button onClick={onCancel} style={{background:'var(--fx-hover)',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:600,cursor:'pointer'}}>Cancelar</button>
       <button onClick={()=>onSave(f)} disabled={saving||!f.id_equipo||!f.id_liga||!f.temporada} style={{background:'#9333ea',color:'#fff',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:700,cursor:'pointer'}}>{saving?'Guardando...':'Guardar'}</button>
     </div>
   </div>);

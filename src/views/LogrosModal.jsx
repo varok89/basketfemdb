@@ -22,23 +22,23 @@ export default function LogrosModal({onClose}){
 
   return (
     <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"16px",fontFamily:"system-ui,sans-serif"}}>
-      <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:"18px",maxWidth:"720px",width:"100%",maxHeight:"92vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.4)"}}>
-        <div style={{padding:"18px 20px",borderBottom:"1px solid #e2e8f0",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,background:"#fff",zIndex:1}}>
+      <div onClick={e=>e.stopPropagation()} style={{background: "var(--fx-card)",borderRadius:"18px",maxWidth:"720px",width:"100%",maxHeight:"92vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.4)"}}>
+        <div style={{padding:"18px 20px",borderBottom:"1px solid var(--fx-border)",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,background: "var(--fx-card)",zIndex:1}}>
           <div>
-            <div style={{fontSize:"18px",fontWeight:800,color:"#1e293b"}}>🏆 Mis logros</div>
-            <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px"}}>{conseguidos} / {total} · {pct}%</div>
+            <div style={{fontSize:"18px",fontWeight:800,color: "var(--fx-text)"}}>🏆 Mis logros</div>
+            <div style={{fontSize:"12px",color: "var(--fx-muted)",marginTop:"2px"}}>{conseguidos} / {total} · {pct}%</div>
           </div>
-          <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:"22px",cursor:"pointer",color:"#94a3b8"}}>×</button>
+          <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:"22px",cursor:"pointer",color: "var(--fx-muted2)"}}>×</button>
         </div>
 
         <div style={{padding:"14px 20px 24px"}}>
-          <div style={{background:"#f1f5f9",borderRadius:"999px",height:"8px",overflow:"hidden",marginBottom:"20px"}}>
+          <div style={{background: "var(--fx-hover)",borderRadius:"999px",height:"8px",overflow:"hidden",marginBottom:"20px"}}>
             <div style={{width:`${pct}%`,height:"100%",background:"linear-gradient(90deg,#c084fc,#f59e0b,#fde047)"}}/>
           </div>
 
           {grupos.map(([cat,items])=>(
             <div key={cat} style={{marginBottom:"22px"}}>
-              <div style={{fontSize:"12px",fontWeight:800,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:"10px"}}>{CATEGORIAS[cat]?.titulo||cat}</div>
+              <div style={{fontSize:"12px",fontWeight:800,color: "var(--fx-muted)",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:"10px"}}>{CATEGORIAS[cat]?.titulo||cat}</div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:"10px"}}>
                 {items.map(l=>(
                   <MedallaCard key={l.slug} logro={l} conseguido={desbloq.has(l.slug)} size={84} showDesc/>

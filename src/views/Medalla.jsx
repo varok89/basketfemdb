@@ -83,10 +83,10 @@ export function MedallaCard({ logro, conseguido = true, size = 84, showDesc = fa
   const nameMargin = dense ? "3px" : "4px";
   return (
     <div title={conseguido ? logro.desc : logro.pista}
-      style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:"12px",padding:pad,textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap}}>
+      style={{background: "var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"12px",padding:pad,textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap}}>
       <Medalla slug={logro.slug} cat={logro.cat} emoji={logro.emoji} size={size} locked={!conseguido}/>
       <div style={{fontSize:nameFont,fontWeight:700,color:conseguido?"#1e293b":"#94a3b8",marginTop:nameMargin,lineHeight:1.2}}>{logro.nombre}</div>
-      {showDesc && <div style={{fontSize:"10px",color:"#94a3b8",lineHeight:1.25}}>{conseguido?logro.desc:logro.pista}</div>}
+      {showDesc && <div style={{fontSize:"10px",color: "var(--fx-muted2)",lineHeight:1.25}}>{conseguido?logro.desc:logro.pista}</div>}
     </div>
   );
 }
