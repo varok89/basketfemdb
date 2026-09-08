@@ -5508,7 +5508,7 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
   // ── Datos de equipos ──
   const eqCards=favEquipos.map(eid=>{
     const eq=equipoMap[eid];if(!eq)return null;
-    const comps=[...new Set((partidos||[]).filter(p=>(p.id_equipo_local===eid||p.id_equipo_visitante===eid)&&p.temporada===currentSeason).map(p=>p.id_liga))].map(lid=>ligaMap[lid]).filter(Boolean);
+    const comps=[...new Set((partidos||[]).filter(p=>(p.id_equipo_local===eid||p.id_equipo_visitante===eid)&&p.temporada===currentSeason).map(p=>p.id_liga))].map(lid=>ligaMap[lid]).filter(l=>l&&!/amistosos?/i.test(l.nombre||""));
     const ultPartido=(partidos||[]).filter(p=>(p.id_equipo_local===eid||p.id_equipo_visitante===eid)&&p.resultado_local!=null).sort((a,b)=>new Date(b.fecha_hora)-new Date(a.fecha_hora))[0];
     const proxPartido=(partidos||[]).filter(p=>(p.id_equipo_local===eid||p.id_equipo_visitante===eid)&&p.resultado_local==null&&p.fecha_hora&&new Date(p.fecha_hora)>hoy).sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora))[0];
     const ultFichaje=players.flatMap(pl=>(pl.seasons||[]).filter(ss=>ss.id_equipo===eid).map(ss=>({player:pl,...ss}))).sort((a,b)=>{
