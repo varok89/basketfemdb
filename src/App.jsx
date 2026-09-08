@@ -5547,17 +5547,29 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
     return{liga,ultJornada,proxJornada,clasi};
   }).filter(Boolean);
 
-  const MiniPartido=({p,showLiga})=>{
+  const fmtDay=iso=>{if(!iso)return "";const d=new Date(iso);return d.toLocaleDateString("es",{day:"numeric",month:"short"}).replace(".","");};
+  const MiniPartido=({p,hideMeta,highlightEq})=>{
     const tL=equipoMap[p.id_equipo_local]||{},tV=equipoMap[p.id_equipo_visitante]||{};
     const played=p.resultado_local!=null;
     const d=p.fecha_hora?new Date(p.fecha_hora):null;
+    const winL=played&&Number(p.resultado_local)>Number(p.resultado_visitante);
+    const winV=played&&Number(p.resultado_visitante)>Number(p.resultado_local);
+    const boldL=highlightEq?p.id_equipo_local===highlightEq:winL;
+    const boldV=highlightEq?p.id_equipo_visitante===highlightEq:winV;
+    const nameStyle=bold=>({fontSize:"11px",fontWeight:bold?700:500,color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"});
+    const flag=url=>url?<img loading="lazy" decoding="async" src={url} alt="" style={{width:18,height:18,objectFit:"contain",flexShrink:0}}/>:<span style={{width:18,textAlign:"center",flexShrink:0}}>•</span>;
+    const center=hideMeta?"":(played?`${p.resultado_local}-${p.resultado_visitante}`:d?fmtDay(d):"—");
     return(
-      <div onClick={()=>onGoToPartido(p)} style={{display:"flex",alignItems:"center",gap:"4px",padding:"4px 0",cursor:"pointer",fontSize:"12px"}} title={`${tL.nombre||"?"} vs ${tV.nombre||"?"}`}>
-        {tL.escudo?<img loading="lazy" decoding="async" src={tL.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>:<span style={{width:18,textAlign:"center"}}>•</span>}
-        <span style={{fontWeight:played&&Number(p.resultado_local)>Number(p.resultado_visitante)?700:400,color:"var(--fx-text)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}/>
-        <span style={{fontWeight:700,color:"#7c3aed",fontSize:"12px",flexShrink:0}}>{played?`${p.resultado_local}-${p.resultado_visitante}`:d?`${d.getDate()}/${d.getMonth()+1}`:"-"}</span>
-        <span style={{fontWeight:played&&Number(p.resultado_visitante)>Number(p.resultado_local)?700:400,color:"var(--fx-text)",flex:1}}/>
-        {tV.escudo?<img loading="lazy" decoding="async" src={tV.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>:<span style={{width:18,textAlign:"center"}}>•</span>}
+      <div onClick={()=>onGoToPartido(p)} style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",alignItems:"center",gap:"6px",padding:"4px 2px",cursor:"pointer"}} title={`${tL.nombre||"?"} vs ${tV.nombre||"?"}`}>
+        <div style={{display:"flex",alignItems:"center",gap:"5px",minWidth:0,justifyContent:"flex-end"}}>
+          <span style={nameStyle(boldL)}>{tL.nombre||"—"}</span>
+          {flag(tL.escudo)}
+        </div>
+        <span style={{fontWeight:700,color:"#7c3aed",fontSize:"12px",whiteSpace:"nowrap",padding:"0 4px",minWidth:"36px",textAlign:"center"}}>{center}</span>
+        <div style={{display:"flex",alignItems:"center",gap:"5px",minWidth:0}}>
+          {flag(tV.escudo)}
+          <span style={nameStyle(boldV)}>{tV.nombre||"—"}</span>
+        </div>
       </div>
     );
   };
@@ -5608,16 +5620,18 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
               </div>
             </div>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px",marginBottom:ultFichaje?"12px":"0"}}>
-            <div>
-              <div style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",marginBottom:"6px"}}>ÚLTIMO PARTIDO</div>
-              {ultPartido?<><div style={{fontSize:"10px",color:"#9333ea",fontWeight:600,marginBottom:"2px"}}>{ligaMap[ultPartido.id_liga]?.nombre||""}</div><MiniPartido p={ultPartido}/></>:<div style={{fontSize:"12px",color:"#cbd5e1"}}>—</div>}
-            </div>
-            <div>
-              <div style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",marginBottom:"6px"}}>PRÓXIMO PARTIDO</div>
-              {proxPartido?<><div style={{fontSize:"10px",color:"#9333ea",fontWeight:600,marginBottom:"2px"}}>{ligaMap[proxPartido.id_liga]?.nombre||""}</div><MiniPartido p={proxPartido}/></>:<div style={{fontSize:"12px",color:"#cbd5e1"}}>—</div>}
-            </div>
-          </div>
+          {(ultPartido||proxPartido)&&<div style={{display:"grid",gridTemplateColumns:ultPartido&&proxPartido?"1fr 1fr":"1fr",gap:"12px",marginBottom:ultFichaje?"12px":"0"}}>
+            {ultPartido&&<div>
+              <div style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",marginBottom:"6px"}}>ÚLTIMO PARTIDO · {fmtDay(ultPartido.fecha_hora)}</div>
+              <div style={{fontSize:"10px",color:"#9333ea",fontWeight:600,marginBottom:"2px"}}>{ligaMap[ultPartido.id_liga]?.nombre||""}</div>
+              <MiniPartido p={ultPartido} highlightEq={eq.id_equipo}/>
+            </div>}
+            {proxPartido&&<div>
+              <div style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",marginBottom:"6px"}}>PRÓXIMO PARTIDO · {fmtDay(proxPartido.fecha_hora)}</div>
+              <div style={{fontSize:"10px",color:"#9333ea",fontWeight:600,marginBottom:"2px"}}>{ligaMap[proxPartido.id_liga]?.nombre||""}</div>
+              <MiniPartido p={proxPartido} hideMeta highlightEq={eq.id_equipo}/>
+            </div>}
+          </div>}
           {ultFichaje&&<div style={{borderTop:"1px solid var(--fx-border2)",paddingTop:"10px"}}>
             <div style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",marginBottom:"4px"}}>ÚLTIMO FICHAJE</div>
             <div onClick={()=>onGoToPlayer(ultFichaje.id_jugadora)} style={{display:"flex",alignItems:"center",gap:"8px",cursor:"pointer"}}>
@@ -5632,18 +5646,16 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
       {(filtro==="todo"||filtro==="liga")&&ligaCards.map(({liga,ultJornada,proxJornada,clasi})=>(
         <div key={liga.id_liga} style={{background:"var(--fx-card)",borderRadius:"16px",padding:"16px",border:"1px solid var(--fx-border)",marginBottom:"16px"}}>
           <div onClick={()=>onGoToLeague(liga.id_liga)} style={{fontWeight:800,fontSize:"16px",color:"var(--fx-text)",cursor:"pointer",marginBottom:"12px"}}>{liga.nombre}</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px",marginBottom:"12px"}}>
-            <div>
-              <div style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",marginBottom:"6px"}}>ÚLTIMA JORNADA</div>
+          {(ultJornada.length>0||proxJornada.length>0)&&<div style={{display:"grid",gridTemplateColumns:ultJornada.length&&proxJornada.length?"1fr 1fr":"1fr",gap:"12px",marginBottom:"12px"}}>
+            {ultJornada.length>0&&<div>
+              <div style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",marginBottom:"6px"}}>ÚLTIMA JORNADA · {fmtDay(ultJornada[0].fecha_hora)}</div>
               {ultJornada.slice(0,7).map(p=><MiniPartido key={p.id} p={p}/>)}
-              {!ultJornada.length&&<div style={{fontSize:"12px",color:"#cbd5e1"}}>—</div>}
-            </div>
-            <div>
-              <div style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",marginBottom:"6px"}}>PRÓXIMA JORNADA</div>
-              {proxJornada.slice(0,7).map(p=><MiniPartido key={p.id} p={p}/>)}
-              {!proxJornada.length&&<div style={{fontSize:"12px",color:"#cbd5e1"}}>—</div>}
-            </div>
-          </div>
+            </div>}
+            {proxJornada.length>0&&<div>
+              <div style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",marginBottom:"6px"}}>PRÓXIMA JORNADA · {fmtDay(proxJornada[0].fecha_hora)}</div>
+              {proxJornada.slice(0,7).map(p=><MiniPartido key={p.id} p={p} hideMeta/>)}
+            </div>}
+          </div>}
           {clasi.length>0&&<div>
             <div style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",marginBottom:"6px"}}>CLASIFICACIÓN</div>
             <div style={{display:"flex",flexDirection:"column",gap:"2px"}}>
