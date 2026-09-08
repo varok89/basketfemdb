@@ -86,7 +86,7 @@ const TIPO_COLORS = {
 const calcAge = (d, fechaFin) => d ? Math.floor(((fechaFin?new Date(fechaFin):new Date())-new Date(d))/(365.25*24*3600*1000)) : null;
 
 const CHIP_STYLES = {
-  neutral: {background:"#f1f5f9", color:"#475569", fontWeight:600},
+  neutral: {background:"var(--fx-hover)", color:"var(--fx-label)", fontWeight:600},
   fiba:    {background:"#f5f3ff", color:"#7c3aed", border:"1px solid #ddd6fe", fontWeight:700},
   venue:   {background:"#eff6ff", color:"#2563eb", fontWeight:600},
   year:    {background:"#fff7ed", color:"#c2410c", fontWeight:700},
@@ -476,7 +476,7 @@ function TeamBadge({team,size=44}){
   const {bg}=teamColors(team?.nombre||"");
   const ini=teamInitials(team?.nombre||"");
   const fs=size<36?9:size<50?12:16;
-  if(team?.escudo) return <img src={team.escudo} alt={team.nombre} style={{width:size,height:size,borderRadius:"8px",objectFit:"contain",flexShrink:0,border:"1px solid #e2e8f0",background:"#fff",boxSizing:"border-box"}} onError={e=>e.target.style.display="none"}/>;  return <div style={{width:size,height:size,borderRadius:"50%",background:bg,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:fs,flexShrink:0,boxShadow:"0 2px 6px rgba(0,0,0,0.2)"}}>{ini}</div>;
+  if(team?.escudo) return <img src={team.escudo} alt={team.nombre} style={{width:size,height:size,borderRadius:"8px",objectFit:"contain",flexShrink:0,border:"1px solid var(--fx-border)",background:"var(--fx-card)",boxSizing:"border-box"}} onError={e=>e.target.style.display="none"}/>;  return <div style={{width:size,height:size,borderRadius:"50%",background:bg,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:fs,flexShrink:0,boxShadow:"0 2px 6px rgba(0,0,0,0.2)"}}>{ini}</div>;
 }
 
 function LeagueBadge({liga,size=60}){
@@ -503,7 +503,7 @@ function Avatar({photo,name,size=48,fontSize=18,fallecida=false,onPhotoClick=nul
   // no dibujado a mano: es una silueta rellenable, a diferencia del de trazo usado antes.
   const ribbonSize=Math.max(18,size*0.4);
   const ribbon=fallecida&&(
-    <div title="Fallecida" style={{position:"absolute",bottom:-2,right:-2,width:ribbonSize,height:ribbonSize,borderRadius:"50%",background:"#fff",border:"1.5px solid #e2e8f0",display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <div title="Fallecida" style={{position:"absolute",bottom:-2,right:-2,width:ribbonSize,height:ribbonSize,borderRadius:"50%",background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",display:"flex",alignItems:"center",justifyContent:"center"}}>
       <svg width={ribbonSize*0.58} height={ribbonSize*0.58} viewBox="0 0 384 512" fill="#0f0f0f">
         <path d="M235.1 0c33.4 0 64.5 17.4 81.9 45.9 1.2 2 13 21.3 35.3 57.8 21.1 34.5 18.3 78.5-7 110L278.3 297.7 364.5 406c5.5 6.9 4.4 16.9-2.5 22.5l-80 64c-6.9 5.5-17 4.4-22.5-2.5L38.6 213.8C13.3 182.3 10.5 138.3 31.6 103.8 54 67.2 65.7 47.9 67 45.9 84.4 17.4 115.4 0 148.9 0l86.3 0zM192 189.2l48.6-61.2-97.3 0 48.6 61.2zM75 336.2l86.2 107.8-36.8 46c-5.5 6.9-15.6 8-22.5 2.5l-80-64c-6.9-5.5-8-15.6-2.5-22.5L75 336.2z"/>
       </svg>
@@ -529,16 +529,16 @@ function PhotoLightbox({photo,onClose}){
 /* ── Estilos ─────────────────────────────────────────────── */
 const POS_C={"Base":["#dbeafe","#1d4ed8"],"Escolta":["#dcfce7","#15803d"],"Alero":["#fef9c3","#a16207"],"Ala-Pívot":["#ffedd5","#c2410c"],"Pívot":["#fee2e2","#b91c1c"]};
 const posStyle=p=>{const [bg,color]=POS_C[p]||["#f1f5f9","#475569"];return{background:bg,color,fontSize:"11px",fontWeight:700,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"};};
-const inp={width:"100%",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"14px",color:"#1e293b",outline:"none",boxSizing:"border-box",background:"#fff"};
+const inp={width:"100%",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"14px",color:"var(--fx-text)",outline:"none",boxSizing:"border-box",background:"var(--fx-card)"};
 
-function Fld({label,children}){return <div style={{marginBottom:"14px"}}><label style={{display:"block",fontSize:"12px",fontWeight:700,color:"#64748b",marginBottom:"6px",textTransform:"uppercase",letterSpacing:"0.5px"}}>{label}</label>{children}</div>;}
+function Fld({label,children}){return <div style={{marginBottom:"14px"}}><label style={{display:"block",fontSize:"12px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"6px",textTransform:"uppercase",letterSpacing:"0.5px"}}>{label}</label>{children}</div>;}
 
 function Modal({title,onClose,children}){return(
   <div style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
-    <div style={{background:"#fff",borderRadius:"20px",boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"100%",maxWidth:"500px",maxHeight:"92vh",overflowY:"auto"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"20px 24px",borderBottom:"1px solid #e2e8f0"}}>
-        <h2 style={{fontWeight:700,fontSize:"18px",color:"#1e293b",margin:0}}>{title}</h2>
-        <button onClick={onClose} style={{background:"none",border:"none",fontSize:"26px",color:"#94a3b8",cursor:"pointer",lineHeight:1}}>×</button>
+    <div style={{background:"var(--fx-card)",borderRadius:"20px",boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"100%",maxWidth:"500px",maxHeight:"92vh",overflowY:"auto"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"20px 24px",borderBottom:"1px solid var(--fx-border)"}}>
+        <h2 style={{fontWeight:700,fontSize:"18px",color:"var(--fx-text)",margin:0}}>{title}</h2>
+        <button onClick={onClose} style={{background:"none",border:"none",fontSize:"26px",color:"var(--fx-muted2)",cursor:"pointer",lineHeight:1}}>×</button>
       </div>
       <div style={{padding:"24px"}}>{children}</div>
     </div>
@@ -547,12 +547,12 @@ function Modal({title,onClose,children}){return(
 
 function ConfirmDel({msg,onCancel,onConfirm}){return(
   <div style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
-    <div style={{background:"#fff",borderRadius:"20px",padding:"28px",maxWidth:"360px",width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+    <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"28px",maxWidth:"360px",width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
       <div style={{fontSize:"40px",marginBottom:"12px"}}>⚠️</div>
-      <h3 style={{fontWeight:700,fontSize:"18px",color:"#1e293b",margin:"0 0 10px"}}>¿Eliminar?</h3>
-      <p style={{color:"#64748b",fontSize:"14px",margin:"0 0 22px"}}>{msg}</p>
+      <h3 style={{fontWeight:700,fontSize:"18px",color:"var(--fx-text)",margin:"0 0 10px"}}>¿Eliminar?</h3>
+      <p style={{color:"var(--fx-muted)",fontSize:"14px",margin:"0 0 22px"}}>{msg}</p>
       <div style={{display:"flex",gap:"10px"}}>
-        <button onClick={onCancel} style={{flex:1,border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"11px",color:"#64748b",background:"#fff",cursor:"pointer",fontWeight:600}}>Cancelar</button>
+        <button onClick={onCancel} style={{flex:1,border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"11px",color:"var(--fx-muted)",background:"var(--fx-card)",cursor:"pointer",fontWeight:600}}>Cancelar</button>
         <button onClick={onConfirm} style={{flex:1,background:"#ef4444",color:"#fff",border:"none",borderRadius:"10px",padding:"11px",cursor:"pointer",fontWeight:700}}>Eliminar</button>
       </div>
     </div>
@@ -561,17 +561,17 @@ function ConfirmDel({msg,onCancel,onConfirm}){return(
 
 function PhotoPicker({value,onChange}){
   const [mode,setMode]=useState("url");
-  const inp={width:"100%",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 12px",fontSize:"13px",outline:"none",boxSizing:"border-box"};
+  const inp={width:"100%",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"8px 12px",fontSize:"13px",outline:"none",boxSizing:"border-box"};
   return(
     <div style={{marginBottom:"8px"}}>
-      <label style={{display:"block",fontSize:"12px",fontWeight:700,color:"#64748b",marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Foto</label>
+      <label style={{display:"block",fontSize:"12px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Foto</label>
       <div style={{display:"flex",alignItems:"flex-start",gap:"14px"}}>
         {value?<img src={value} alt="" style={{width:56,height:56,borderRadius:"50%",objectFit:"cover",border:"3px solid #c084fc",flexShrink:0}}/>
-          :<div style={{width:56,height:56,borderRadius:"50%",background:"#f1f5f9",border:"2px dashed #cbd5e1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",flexShrink:0}}>🖼️</div>}
+          :<div style={{width:56,height:56,borderRadius:"50%",background:"var(--fx-hover)",border:"2px dashed #cbd5e1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",flexShrink:0}}>🖼️</div>}
         <div style={{flex:1}}>
           <div style={{display:"flex",gap:"6px",marginBottom:"8px"}}>
             <button type="button" onClick={()=>setMode("url")} style={{background:mode==="url"?"#9333ea":"#f1f5f9",color:mode==="url"?"#fff":"#475569",border:"none",borderRadius:"8px",padding:"5px 12px",fontSize:"12px",cursor:"pointer",fontWeight:600}}>URL</button>
-            <button type="button" onClick={()=>{onChange("https://static.flashscore.com/res/image/empty-face-woman-share.gif");setMode("url");}} style={{background:"#f1f5f9",color:"#475569",border:"none",borderRadius:"8px",padding:"5px 12px",fontSize:"12px",cursor:"pointer",fontWeight:600}}>🖼️ Default</button>
+            <button type="button" onClick={()=>{onChange("https://static.flashscore.com/res/image/empty-face-woman-share.gif");setMode("url");}} style={{background:"var(--fx-hover)",color:"var(--fx-label)",border:"none",borderRadius:"8px",padding:"5px 12px",fontSize:"12px",cursor:"pointer",fontWeight:600}}>🖼️ Default</button>
             {value&&<button type="button" onClick={()=>onChange(null)} style={{background:"none",border:"none",fontSize:"11px",color:"#ef4444",cursor:"pointer",marginLeft:"auto"}}>Eliminar</button>}
           </div>
           {mode==="url"&&<input style={inp} value={value&&!value.startsWith("data:")?value:""} onChange={e=>onChange(e.target.value||null)} placeholder="https://ejemplo.com/foto.jpg"/>}
@@ -582,16 +582,16 @@ function PhotoPicker({value,onChange}){
 }
 
 function EscudoPicker({value,onChange}){
-  const inp={width:"100%",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 12px",fontSize:"13px",outline:"none",boxSizing:"border-box"};
+  const inp={width:"100%",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"8px 12px",fontSize:"13px",outline:"none",boxSizing:"border-box"};
   return(
     <div style={{marginBottom:"8px"}}>
-      <label style={{display:"block",fontSize:"12px",fontWeight:700,color:"#64748b",marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Escudo</label>
+      <label style={{display:"block",fontSize:"12px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Escudo</label>
       <div style={{display:"flex",alignItems:"flex-start",gap:"14px"}}>
-        {value?<img src={value} alt="" style={{width:56,height:56,borderRadius:"8px",objectFit:"contain",border:"1.5px solid #e2e8f0",flexShrink:0,background:"#fff"}} onError={e=>e.target.style.display="none"}/>
-          :<div style={{width:56,height:56,borderRadius:"8px",background:"#f1f5f9",border:"2px dashed #cbd5e1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",flexShrink:0}}>🛡️</div>}
+        {value?<img src={value} alt="" style={{width:56,height:56,borderRadius:"8px",objectFit:"contain",border:"1.5px solid var(--fx-border)",flexShrink:0,background:"var(--fx-card)"}} onError={e=>e.target.style.display="none"}/>
+          :<div style={{width:56,height:56,borderRadius:"8px",background:"var(--fx-hover)",border:"2px dashed #cbd5e1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",flexShrink:0}}>🛡️</div>}
         <div style={{flex:1}}>
           <div style={{display:"flex",gap:"6px",marginBottom:"8px"}}>
-            <button type="button" onClick={()=>onChange("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5paClUbICyOfUdZW-l6ZpDux6XhXG3HmDkw&s")} style={{background:"#f1f5f9",color:"#475569",border:"none",borderRadius:"8px",padding:"5px 12px",fontSize:"12px",cursor:"pointer",fontWeight:600}}>🛡️ Default</button>
+            <button type="button" onClick={()=>onChange("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5paClUbICyOfUdZW-l6ZpDux6XhXG3HmDkw&s")} style={{background:"var(--fx-hover)",color:"var(--fx-label)",border:"none",borderRadius:"8px",padding:"5px 12px",fontSize:"12px",cursor:"pointer",fontWeight:600}}>🛡️ Default</button>
             {value&&<button type="button" onClick={()=>onChange(null)} style={{background:"none",border:"none",fontSize:"11px",color:"#ef4444",cursor:"pointer",marginLeft:"auto"}}>Eliminar</button>}
           </div>
           <input style={inp} value={value||""} onChange={e=>onChange(e.target.value||null)} placeholder="https://ejemplo.com/escudo.png"/>
@@ -605,12 +605,12 @@ function EscudoPicker({value,onChange}){
 // Fld definido fuera del componente para evitar que React desmonte/remonte
 // los inputs al redefiniria en cada render (causaba pérdida de foco al escribir).
 function PartidoFld({label,children}){
-  return <div style={{marginBottom:"10px"}}><label style={{display:"block",fontSize:"11px",fontWeight:700,color:"#64748b",marginBottom:"5px",textTransform:"uppercase",letterSpacing:"0.5px"}}>{label}</label>{children}</div>;
+  return <div style={{marginBottom:"10px"}}><label style={{display:"block",fontSize:"11px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"5px",textTransform:"uppercase",letterSpacing:"0.5px"}}>{label}</label>{children}</div>;
 }
 
 function PartidoForm({initial,equipos,ligas,onSave,onCancel,saving}){
-  const inp={width:"100%",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",outline:"none",boxSizing:"border-box"};
-  const inpNum={border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"16px",fontWeight:700,outline:"none",boxSizing:"border-box",width:"80px",textAlign:"center"};
+  const inp={width:"100%",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",outline:"none",boxSizing:"border-box"};
+  const inpNum={border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"16px",fontWeight:700,outline:"none",boxSizing:"border-box",width:"80px",textAlign:"center"};
   const [f,setF]=useState({id_liga:"",temporada:"",id_equipo_local:"",id_equipo_visitante:"",fecha_hora:"",link:"",url_stats:"",notas:"",resultado_local:"",resultado_visitante:"",...(initial||{})});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
   const Fld=PartidoFld;
@@ -621,8 +621,8 @@ function PartidoForm({initial,equipos,ligas,onSave,onCancel,saving}){
   const localNombre=equipos.find(e=>e.id_equipo===f.id_equipo_local)?.nombre||"Local";
   const visitNombre=equipos.find(e=>e.id_equipo===f.id_equipo_visitante)?.nombre||"Visitante";
   return(
-    <div style={{background:"#fff",borderRadius:"20px",padding:"22px",boxShadow:"0 2px 12px rgba(0,0,0,0.1)",maxWidth:"500px",margin:"0 auto"}}>
-      <h2 style={{fontWeight:800,fontSize:"18px",color:"#1e293b",marginTop:0,marginBottom:"18px"}}>{initial?.id?"Editar partido":"Nuevo partido"}</h2>
+    <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"22px",boxShadow:"0 2px 12px rgba(0,0,0,0.1)",maxWidth:"500px",margin:"0 auto"}}>
+      <h2 style={{fontWeight:800,fontSize:"18px",color:"var(--fx-text)",marginTop:0,marginBottom:"18px"}}>{initial?.id?"Editar partido":"Nuevo partido"}</h2>
       <Fld label="Liga">
         <select style={inp} value={f.id_liga} onChange={set("id_liga")}>
           <option value="">— Selecciona liga —</option>
@@ -650,12 +650,12 @@ function PartidoForm({initial,equipos,ligas,onSave,onCancel,saving}){
       <Fld label="Resultado (dejar vacío si no ha acabado)">
         <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
           <div style={{textAlign:"center",flex:1}}>
-            <div style={{fontSize:"11px",color:"#64748b",marginBottom:"4px",fontWeight:600}}>{localNombre}</div>
+            <div style={{fontSize:"11px",color:"var(--fx-muted)",marginBottom:"4px",fontWeight:600}}>{localNombre}</div>
             <input style={inpNum} type="number" min="0" value={f.resultado_local??""} onChange={e=>setF(p=>({...p,resultado_local:e.target.value===""?null:Number(e.target.value)}))} placeholder="—"/>
           </div>
           <span style={{fontWeight:800,fontSize:"20px",color:"#9333ea"}}>-</span>
           <div style={{textAlign:"center",flex:1}}>
-            <div style={{fontSize:"11px",color:"#64748b",marginBottom:"4px",fontWeight:600}}>{visitNombre}</div>
+            <div style={{fontSize:"11px",color:"var(--fx-muted)",marginBottom:"4px",fontWeight:600}}>{visitNombre}</div>
             <input style={inpNum} type="number" min="0" value={f.resultado_visitante??""} onChange={e=>setF(p=>({...p,resultado_visitante:e.target.value===""?null:Number(e.target.value)}))} placeholder="—"/>
           </div>
         </div>
@@ -674,7 +674,7 @@ function PartidoForm({initial,equipos,ligas,onSave,onCancel,saving}){
           style={{flex:1,background:"#9333ea",color:"#fff",border:"none",borderRadius:"12px",padding:"12px",fontWeight:700,fontSize:"14px",cursor:"pointer",opacity:(saving||!f.id_equipo_local||!f.id_equipo_visitante||!f.fecha_hora)?0.5:1}}>
           {saving?"Guardando...":"Guardar"}
         </button>
-        <button onClick={onCancel} style={{flex:1,background:"#f1f5f9",color:"#475569",border:"none",borderRadius:"12px",padding:"12px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>Cancelar</button>
+        <button onClick={onCancel} style={{flex:1,background:"var(--fx-hover)",color:"var(--fx-label)",border:"none",borderRadius:"12px",padding:"12px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>Cancelar</button>
       </div>
     </div>
   );
@@ -705,14 +705,14 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
     const d=N(a[sortK])-N(b[sortK]); return sortD==="asc"?d:-d;
   });
   const clickSort=k=>{if(sortK===k)setSortD(d=>d==="desc"?"asc":"desc");else{setSortK(k);setSortD(k==="nombre"?"asc":"desc");}};
-  const th={padding:"7px 5px",fontSize:"10px",fontWeight:700,color:"#94a3b8",whiteSpace:"nowrap",cursor:"pointer",borderBottom:"2px solid #f1f5f9",userSelect:"none"};
+  const th={padding:"7px 5px",fontSize:"10px",fontWeight:700,color:"var(--fx-muted2)",whiteSpace:"nowrap",cursor:"pointer",borderBottom:"2px solid #f1f5f9",userSelect:"none"};
   const td={padding:"7px 5px",fontSize:"12px",color:"#334155",textAlign:"center",whiteSpace:"nowrap",borderBottom:"1px solid #f8fafc"};
   const Esc=({e})=>e&&e.escudo?<img src={e.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>:null;
   const tabBtn=(k,content)=><button key={k} onClick={()=>setTab(k)} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:"5px",padding:"9px 6px",borderRadius:"10px",border:"none",cursor:"pointer",fontWeight:700,fontSize:"12px",background:tab===k?"#9333ea":"#f1f5f9",color:tab===k?"#fff":"#64748b",minWidth:0}}>{content}</button>;
 
   return(
-    <div style={{background:"#fff",borderRadius:"20px",padding:"16px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",overflowX:"auto"}}>
-      <h2 style={{fontWeight:800,fontSize:"16px",color:"#1e293b",margin:"0 0 12px"}}>Estadísticas</h2>
+    <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"16px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",overflowX:"auto"}}>
+      <h2 style={{fontWeight:800,fontSize:"16px",color:"var(--fx-text)",margin:"0 0 12px"}}>Estadísticas</h2>
       <div style={{display:"flex",gap:"8px",marginBottom:"14px"}}>
         {tabBtn("ambos",<><Esc e={local}/><Esc e={visit}/></>)}
         {tabBtn("local",<><Esc e={local}/><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{local&&local.nombre}</span></>)}
@@ -731,7 +731,7 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
             <tr key={i} onClick={()=>onGoToPlayer&&onGoToPlayer(r.id_jugadora)} style={{cursor:onGoToPlayer?"pointer":"default",background:tab==="ambos"?bg:"transparent",borderLeft:r.titular?"4px solid #9333ea":"4px solid transparent"}}>
               <td style={{...td,textAlign:"left",fontWeight:600,maxWidth:"180px"}}>
                 <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
-                  {foto?<img src={foto} alt="" style={{width:28,height:28,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"1px solid #f1f5f9"}} onError={e=>{e.target.style.visibility="hidden";}}/>:<div style={{width:28,height:28,borderRadius:"50%",background:"#f1f5f9",flexShrink:0}}/>}
+                  {foto?<img src={foto} alt="" style={{width:28,height:28,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:"1px solid var(--fx-border2)"}} onError={e=>{e.target.style.visibility="hidden";}}/>:<div style={{width:28,height:28,borderRadius:"50%",background:"var(--fx-hover)",flexShrink:0}}/>}
                   <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nom}</span>
                 </div>
               </td>
@@ -802,11 +802,11 @@ function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,
     const fuera=roster.filter(p=>noConvocadas.has(p.id_jugadora));
     const fila=(p,esConvocada)=>(
       <div key={p.id_jugadora} onClick={()=>onGoToPlayer&&onGoToPlayer(p.id_jugadora)}
-        style={{display:"flex",alignItems:"center",gap:"8px",padding:"6px 0",borderBottom:"1px solid #f1f5f9",flexDirection:side==="right"?"row-reverse":"row",cursor:onGoToPlayer?"pointer":"default",opacity:esConvocada?1:0.45}}>
+        style={{display:"flex",alignItems:"center",gap:"8px",padding:"6px 0",borderBottom:"1px solid var(--fx-border2)",flexDirection:side==="right"?"row-reverse":"row",cursor:onGoToPlayer?"pointer":"default",opacity:esConvocada?1:0.45}}>
         <Avatar photo={p.foto} name={p.nombre} size={28} fontSize={10} fallecida={!!p.fecha_fallecimiento}/>
         <div style={{flex:1,minWidth:0,textAlign:side==="right"?"right":"left"}}>
           <div style={{fontSize:"12px",fontWeight:600,color:onGoToPlayer?"#9333ea":"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:esConvocada?"none":"line-through"}}>{p.nombre}</div>
-          <div style={{fontSize:"10px",color:"#94a3b8"}}>{p.posicion||""}</div>
+          <div style={{fontSize:"10px",color:"var(--fx-muted2)"}}>{p.posicion||""}</div>
         </div>
         {isAdmin&&onToggleConvocatoria&&(
           <button title={esConvocada?"Quitar de la convocatoria de este partido":"Devolver a la convocatoria"}
@@ -821,16 +821,16 @@ function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,
       <div style={{flex:1,minWidth:0}}>
         <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"12px",flexDirection:side==="right"?"row-reverse":"row"}}>
           {equipo?.escudo&&<img src={equipo.escudo} alt="" style={{width:32,height:32,objectFit:"contain"}}/>}
-          <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b",textAlign:side==="right"?"right":"left"}}>{equipo?.nombre||"—"}</span>
+          <span style={{fontWeight:700,fontSize:"14px",color:"var(--fx-text)",textAlign:side==="right"?"right":"left"}}>{equipo?.nombre||"—"}</span>
         </div>
-        {roster.length===0?<p style={{fontSize:"12px",color:"#94a3b8",textAlign:"center"}}>Sin jugadoras en BD</p>:(
+        {roster.length===0?<p style={{fontSize:"12px",color:"var(--fx-muted2)",textAlign:"center"}}>Sin jugadoras en BD</p>:(
           <>
             {convocadas.map(p=>fila(p,true))}
             {/* Las no convocadas solo las ve el admin (atenuadas, con + para devolverlas);
                 para el público simplemente no aparecen en el partido. */}
             {isAdmin&&fuera.length>0&&(
               <>
-                <div style={{fontSize:"10px",fontWeight:800,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.5px",margin:"10px 0 2px",textAlign:side==="right"?"right":"left"}}>No convocadas (solo admin)</div>
+                <div style={{fontSize:"10px",fontWeight:800,color:"var(--fx-muted2)",textTransform:"uppercase",letterSpacing:"0.5px",margin:"10px 0 2px",textAlign:side==="right"?"right":"left"}}>No convocadas (solo admin)</div>
                 {fuera.map(p=>fila(p,false))}
               </>
             )}
@@ -848,19 +848,19 @@ function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,
         <div style={{display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}>
           {partido.link&&<a href={partido.link} target="_blank" rel="noopener noreferrer" style={{background:"#7c3aed",color:"#fff",borderRadius:"20px",padding:"7px 16px",fontSize:"12px",fontWeight:700,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"5px"}}>▶ Ver partido</a>}
           {partido.url_stats&&<a href={partido.url_stats} target="_blank" rel="noopener noreferrer" style={{background:"#0f172a",color:"#fff",borderRadius:"20px",padding:"7px 16px",fontSize:"12px",fontWeight:700,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"5px"}}>📊 Stats FIBA</a>}
-          {isAdmin&&onEdit&&<button onClick={onEdit} style={{background:"#f1f5f9",color:"#475569",border:"none",borderRadius:"20px",padding:"7px 16px",fontSize:"12px",fontWeight:700,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:"5px"}}>✏️ Editar</button>}
+          {isAdmin&&onEdit&&<button onClick={onEdit} style={{background:"var(--fx-hover)",color:"var(--fx-label)",border:"none",borderRadius:"20px",padding:"7px 16px",fontSize:"12px",fontWeight:700,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:"5px"}}>✏️ Editar</button>}
         </div>
       </div>
 
       {/* Cabecera del partido */}
-      <div style={{background:"#fff",borderRadius:"20px",padding:"20px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"16px"}}>
+      <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"20px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"16px"}}>
         {liga&&<div onClick={()=>onGoToLeague&&onGoToLeague(liga.id_liga)} style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"14px",cursor:onGoToLeague?"pointer":"default"}}>
           {liga.logo&&<img src={liga.logo} alt="" style={{width:20,height:20,objectFit:"contain"}}/>}
           <span style={{fontWeight:700,fontSize:"13px",color:"#9333ea",textDecoration:onGoToLeague?"underline":"none"}}>{liga.nombre}</span>
         </div>}
-        <div style={{fontSize:"12px",color:"#94a3b8",marginBottom:"16px",fontWeight:600}}>
+        <div style={{fontSize:"12px",color:"var(--fx-muted2)",marginBottom:"16px",fontWeight:600}}>
           {fmtDt(partido.fecha_hora)}{pasado&&!tieneResultado&&<span style={{marginLeft:"8px",color:"#f59e0b",fontWeight:700}}>Finalizado</span>}
-          {partido.notas&&<span style={{marginLeft:"8px",color:"#475569"}}>· {partido.notas}</span>}
+          {partido.notas&&<span style={{marginLeft:"8px",color:"var(--fx-label)"}}>· {partido.notas}</span>}
         </div>
 
         {/* Marcador compacto: escudo — resultado/vs — escudo */}
@@ -870,11 +870,11 @@ function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,
             {local?.escudo
               ?<img src={local.escudo} alt={local?.nombre} title={local?.nombre} style={{width:56,height:56,objectFit:"contain"}}/>
               :<div style={{width:56,height:56,borderRadius:"50%",background:"#e9d5ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",fontWeight:800,color:"#9333ea"}}>{(local?.nombre||"L").slice(0,1)}</div>}
-            <span style={{fontSize:"11px",fontWeight:600,color:"#64748b",textAlign:"center",maxWidth:"80px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{local?.nombre||"—"}</span>
+            <span style={{fontSize:"11px",fontWeight:600,color:"var(--fx-muted)",textAlign:"center",maxWidth:"80px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{local?.nombre||"—"}</span>
           </div>
           <div style={{flexShrink:0,textAlign:"center",minWidth:"70px"}}>
             {tieneResultado?(
-              <div style={{fontWeight:800,fontSize:"32px",color:"#1e293b",letterSpacing:"3px"}}>{partido.resultado_local}<span style={{color:"#94a3b8",margin:"0 4px"}}>–</span>{partido.resultado_visitante}</div>
+              <div style={{fontWeight:800,fontSize:"32px",color:"var(--fx-text)",letterSpacing:"3px"}}>{partido.resultado_local}<span style={{color:"var(--fx-muted2)",margin:"0 4px"}}>–</span>{partido.resultado_visitante}</div>
             ):(
               <span style={{fontWeight:800,fontSize:"22px",color:"#9333ea"}}>vs</span>
             )}
@@ -884,14 +884,14 @@ function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,
             {visit?.escudo
               ?<img src={visit.escudo} alt={visit?.nombre} title={visit?.nombre} style={{width:56,height:56,objectFit:"contain"}}/>
               :<div style={{width:56,height:56,borderRadius:"50%",background:"#e9d5ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",fontWeight:800,color:"#9333ea"}}>{(visit?.nombre||"V").slice(0,1)}</div>}
-            <span style={{fontSize:"11px",fontWeight:600,color:"#64748b",textAlign:"center",maxWidth:"80px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{visit?.nombre||"—"}</span>
+            <span style={{fontSize:"11px",fontWeight:600,color:"var(--fx-muted)",textAlign:"center",maxWidth:"80px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{visit?.nombre||"—"}</span>
           </div>
         </div>
         {partido.parciales&&partido.parciales.local&&(
           <div style={{marginTop:"14px",overflowX:"auto"}}>
             <table style={{margin:"0 auto",borderCollapse:"collapse",fontSize:"12px",fontVariantNumeric:"tabular-nums"}}>
               <thead>
-                <tr style={{color:"#94a3b8",fontWeight:700}}>
+                <tr style={{color:"var(--fx-muted2)",fontWeight:700}}>
                   <td style={{padding:"3px 10px"}}></td>
                   {partido.parciales.local.map((_,i)=><td key={i} style={{padding:"3px 10px",textAlign:"center"}}>Q{i+1}</td>)}
                   {partido.parciales.prorroga&&<td style={{padding:"3px 10px",textAlign:"center"}}>PR</td>}
@@ -899,7 +899,7 @@ function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,
               </thead>
               <tbody>
                 {[["local",local],["visitante",visit]].map(([lado,team],fila)=>(
-                  <tr key={lado} style={{borderTop:"1px solid #f1f5f9",color:"#475569"}}>
+                  <tr key={lado} style={{borderTop:"1px solid var(--fx-border2)",color:"var(--fx-label)"}}>
                     <td style={{padding:"3px 10px",fontWeight:700,maxWidth:"110px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{team?.nombre||"—"}</td>
                     {partido.parciales[lado].map((q,i)=><td key={i} style={{padding:"3px 10px",textAlign:"center"}}>{q}</td>)}
                     {partido.parciales.prorroga&&<td style={{padding:"3px 10px",textAlign:"center",fontWeight:700,color:"#9333ea"}}>{partido.parciales.prorroga[fila]}</td>}
@@ -1136,29 +1136,29 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
     <div style={{maxWidth:"700px",margin:"0 auto",padding:"16px",fontFamily:"system-ui,sans-serif"}}>
     {fibaModal&&(
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
-        <div style={{background:"#fff",borderRadius:"20px",padding:"24px",width:"100%",maxWidth:"400px",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
-          <div style={{fontWeight:800,fontSize:"16px",color:"#1e293b",marginBottom:"4px"}}>⚡ Activar seguimiento FIBA live</div>
+        <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"24px",width:"100%",maxWidth:"400px",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+          <div style={{fontWeight:800,fontSize:"16px",color:"var(--fx-text)",marginBottom:"4px"}}>⚡ Activar seguimiento FIBA live</div>
           {fibaModal.global?(
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"16px"}}>
               <div>
-                <div style={{fontSize:"12px",fontWeight:600,color:"#475569",marginBottom:"4px"}}>Liga</div>
-                <select value={fibaModal.ligaId} onChange={e=>setFibaModal(m=>({...m,ligaId:e.target.value}))} style={{width:"100%",padding:"9px 10px",borderRadius:"10px",border:"1.5px solid #e2e8f0",fontSize:"13px"}}>
+                <div style={{fontSize:"12px",fontWeight:600,color:"var(--fx-label)",marginBottom:"4px"}}>Liga</div>
+                <select value={fibaModal.ligaId} onChange={e=>setFibaModal(m=>({...m,ligaId:e.target.value}))} style={{width:"100%",padding:"9px 10px",borderRadius:"10px",border:"1.5px solid var(--fx-border)",fontSize:"13px"}}>
                   <option value="">Seleccionar...</option>
                   {ligas.map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}</option>)}
                 </select>
               </div>
               <div>
-                <div style={{fontSize:"12px",fontWeight:600,color:"#475569",marginBottom:"4px"}}>Temporada</div>
-                <input value={fibaModal.temporada} onChange={e=>setFibaModal(m=>({...m,temporada:e.target.value}))} placeholder="2026" style={{width:"100%",padding:"9px 10px",borderRadius:"10px",border:"1.5px solid #e2e8f0",fontSize:"13px",boxSizing:"border-box"}}/>
+                <div style={{fontSize:"12px",fontWeight:600,color:"var(--fx-label)",marginBottom:"4px"}}>Temporada</div>
+                <input value={fibaModal.temporada} onChange={e=>setFibaModal(m=>({...m,temporada:e.target.value}))} placeholder="2026" style={{width:"100%",padding:"9px 10px",borderRadius:"10px",border:"1.5px solid var(--fx-border)",fontSize:"13px",boxSizing:"border-box"}}/>
               </div>
             </div>
           ):(
-            <div style={{fontSize:"12px",color:"#64748b",marginBottom:"16px"}}>{fibaModal.ligaId} · {fibaModal.temporada}</div>
+            <div style={{fontSize:"12px",color:"var(--fx-muted)",marginBottom:"16px"}}>{fibaModal.ligaId} · {fibaModal.temporada}</div>
           )}
           <div style={{marginBottom:"16px"}}>
-            <div style={{fontSize:"12px",fontWeight:600,color:"#475569",marginBottom:"4px"}}>Slug de FIBA</div>
-            <input value={fibaSlug} onChange={e=>setFibaSlug(e.target.value)} placeholder="fiba-u18-womens-eurobasket-2026" style={{width:"100%",padding:"10px 12px",borderRadius:"10px",border:"1.5px solid #e2e8f0",fontSize:"13px",boxSizing:"border-box"}}/>
-            <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>URL: fiba.basketball/en/events/<b>SLUG</b>/games · Fechas detectadas automáticamente</div>
+            <div style={{fontSize:"12px",fontWeight:600,color:"var(--fx-label)",marginBottom:"4px"}}>Slug de FIBA</div>
+            <input value={fibaSlug} onChange={e=>setFibaSlug(e.target.value)} placeholder="fiba-u18-womens-eurobasket-2026" style={{width:"100%",padding:"10px 12px",borderRadius:"10px",border:"1.5px solid var(--fx-border)",fontSize:"13px",boxSizing:"border-box"}}/>
+            <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginTop:"4px"}}>URL: fiba.basketball/en/events/<b>SLUG</b>/games · Fechas detectadas automáticamente</div>
           </div>
           {fibaMensaje&&<div style={{fontSize:"13px",color:fibaMensaje.startsWith("✅")?"#059669":"#ef4444",marginBottom:"12px",fontWeight:600}}>{fibaMensaje}</div>}
           {fibaResultado&&<div style={{background:"#f0fdf4",borderRadius:"10px",padding:"12px",marginBottom:"12px",fontSize:"12px",color:"#166534"}}>
@@ -1170,7 +1170,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
             {fibaResultado.sin_mapear?.length>0&&<div style={{color:"#b45309",marginTop:"4px"}}>⚠️ Sin mapear: {fibaResultado.sin_mapear.join(", ")}</div>}
           </div>}
           <div style={{display:"flex",gap:"10px"}}>
-            <button onClick={()=>{setFibaModal(null);setFibaResultado(null);}} style={{flex:1,padding:"10px",borderRadius:"12px",border:"1.5px solid #e2e8f0",background:"#f8fafc",fontWeight:600,fontSize:"13px",cursor:"pointer"}}>Cerrar</button>
+            <button onClick={()=>{setFibaModal(null);setFibaResultado(null);}} style={{flex:1,padding:"10px",borderRadius:"12px",border:"1.5px solid var(--fx-border)",background:"var(--fx-hover)",fontWeight:600,fontSize:"13px",cursor:"pointer"}}>Cerrar</button>
             {!fibaResultado&&<><button onClick={()=>fibaActivar("crear_evento")} disabled={fibaGuardando} style={{flex:1,padding:"10px",borderRadius:"12px",border:"none",background:"#059669",color:"#fff",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:fibaGuardando?0.6:1}}>{fibaGuardando?"Cargando...":"Activar"}</button><button onClick={()=>fibaActivar("desde_standings")} disabled={fibaGuardando} title="Carga bracket y clasificaciones desde la página standings de FIBA" style={{flex:1,padding:"10px",borderRadius:"12px",border:"none",background:"#7c3aed",color:"#fff",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:fibaGuardando?0.6:1}}>{fibaGuardando?"Cargando...":"📊 Standings"}</button></>}
           </div>
         </div>
@@ -1185,7 +1185,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
       </div>
 
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"20px",flexWrap:"wrap",gap:"10px"}}>
-        <h1 style={{fontWeight:800,fontSize:"22px",color:"#1e293b",margin:0}}>📺 Ver partidos</h1>
+        <h1 style={{fontWeight:800,fontSize:"22px",color:"var(--fx-text)",margin:0}}>📺 Ver partidos</h1>
         <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
           <button onClick={refetchPartidos} disabled={refrescando} title="Actualizar" style={{background:"#f5f3ff",color:"#7c3aed",border:"1.5px solid #ddd6fe",borderRadius:"12px",padding:"9px 14px",fontWeight:700,fontSize:"13px",cursor:refrescando?"wait":"pointer"}}>{refrescando?"⏳":"🔄"}{hayLive&&<span style={{marginLeft:"6px",width:8,height:8,borderRadius:"50%",background:"#ef4444",display:"inline-block",verticalAlign:"middle",boxShadow:"0 0 0 3px rgba(239,68,68,0.2)"}}/>}</button>
           {isAdmin&&<button onClick={()=>{setFibaSlug("");setFibaMensaje("");setFibaResultado(null);setFibaModal({ligaId:filtroLiga||"",temporada:"",global:true});}} style={{background:"#ecfdf5",color:"#059669",border:"1.5px solid #6ee7b7",borderRadius:"12px",padding:"9px 18px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>⚡ FIBA Live</button>}
@@ -1195,12 +1195,12 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
 
       <div style={{display:"flex",gap:"10px",marginBottom:"16px",flexWrap:"wrap"}}>
         <select value={filtroLiga} onChange={e=>{setFiltroLiga(e.target.value);setFiltroEquipo("");}}
-          style={{flex:"1 1 180px",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}}>
+          style={{flex:"1 1 180px",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:"var(--fx-label)",background:"var(--fx-card)",outline:"none"}}>
           <option value="">Todas las ligas</option>
           {ligasConPartidos.map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}</option>)}
         </select>
         <select value={filtroEquipo} onChange={e=>setFiltroEquipo(e.target.value)}
-          style={{flex:"1 1 180px",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}}>
+          style={{flex:"1 1 180px",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:"var(--fx-label)",background:"var(--fx-card)",outline:"none"}}>
           <option value="">Todos los equipos</option>
           {equiposConPartidos.map(e=><option key={e.id_equipo} value={e.id_equipo}>{e.nombre}</option>)}
         </select>
@@ -1208,7 +1208,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
       </div>
 
       {sorted.length===0?(
-        <div style={{textAlign:"center",padding:"60px 20px",color:"#94a3b8"}}>
+        <div style={{textAlign:"center",padding:"60px 20px",color:"var(--fx-muted2)"}}>
           <div style={{fontSize:"48px",marginBottom:"12px"}}>📺</div>
           <div style={{fontWeight:600,fontSize:"16px"}}>No hay partidos programados</div>
           {isAdmin&&<div style={{fontSize:"13px",marginTop:"6px"}}>Pulsa "+ Partido" para añadir el primero</div>}
@@ -1256,30 +1256,30 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
             const tieneResultado=p.resultado_local!=null&&p.resultado_visitante!=null;
             const estado=getPartidoEstado(p);
             const esPrimeroDestacado=p.id===scrollTargetId;
-            const borderStyle=estado==="en_juego"?"2px solid #ef4444":tieneResultado?"1.5px solid #e2e8f0":"1.5px solid #e9d5ff";
+            const borderStyle=estado==="en_juego"?"2px solid #ef4444":tieneResultado?"1.5px solid var(--fx-border)":"1.5px solid #e9d5ff";
             const animStyle=estado==="en_juego"?{animation:"partidoPulse 2s infinite"}:{};
             return(
               <div ref={esPrimeroDestacado?scrollRef:null}
                 onClick={()=>abrirFicha(p)}
-                style={{background:"#fff",borderRadius:"14px",padding:"14px",boxShadow:estado==="en_juego"?"0 2px 12px rgba(239,68,68,0.15)":"0 1px 4px rgba(0,0,0,0.06)",border:borderStyle,cursor:"pointer",...animStyle}}>
+                style={{background:"var(--fx-card)",borderRadius:"14px",padding:"14px",boxShadow:estado==="en_juego"?"0 2px 12px rgba(239,68,68,0.15)":"0 1px 4px rgba(0,0,0,0.06)",border:borderStyle,cursor:"pointer",...animStyle}}>
                 <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px",flexWrap:"wrap"}}>
                   {estado==="en_juego"&&<span style={{background:"#ef4444",color:"#fff",borderRadius:"20px",padding:"2px 10px",fontSize:"11px",fontWeight:800,letterSpacing:"0.5px"}}>🔴 EN JUEGO{p.es_live&&p.periodo?` · P${p.periodo}`:""}</span>}
                   {estado==="proximo"&&<span style={{background:"#f59e0b",color:"#fff",borderRadius:"20px",padding:"2px 10px",fontSize:"11px",fontWeight:700}}>🟡 HOY</span>}
-                  <span style={{fontSize:"11px",color:"#94a3b8",fontWeight:600}}>{fmtDt(p.fecha_hora)}</span>
-                  {p.notas&&<span style={{fontSize:"11px",color:"#64748b"}}>· {p.notas}</span>}
+                  <span style={{fontSize:"11px",color:"var(--fx-muted2)",fontWeight:600}}>{fmtDt(p.fecha_hora)}</span>
+                  {p.notas&&<span style={{fontSize:"11px",color:"var(--fx-muted)"}}>· {p.notas}</span>}
                 </div>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px"}}>
                   <div style={{display:"flex",alignItems:"center",gap:"7px",flex:1,minWidth:"80px"}}>
                     {local?.escudo&&<img src={local.escudo} alt="" style={{width:28,height:28,objectFit:"contain",flexShrink:0}}/>}
-                    <span style={{fontWeight:700,fontSize:"12px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{local?.nombre||"—"}</span>
+                    <span style={{fontWeight:700,fontSize:"12px",color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{local?.nombre||"—"}</span>
                   </div>
                   <div style={{flexShrink:0,textAlign:"center",minWidth:"52px"}}>
                     {tieneResultado
-                      ?<span style={{fontWeight:800,fontSize:"16px",color:"#1e293b"}}>{p.resultado_local}–{p.resultado_visitante}</span>
+                      ?<span style={{fontWeight:800,fontSize:"16px",color:"var(--fx-text)"}}>{p.resultado_local}–{p.resultado_visitante}</span>
                       :<span style={{fontWeight:800,fontSize:"13px",color:estado==="en_juego"?"#ef4444":"#9333ea"}}>vs</span>}
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:"7px",flex:1,minWidth:"80px",justifyContent:"flex-end",textAlign:"right"}}>
-                    <span style={{fontWeight:700,fontSize:"12px",color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{visit?.nombre||"—"}</span>
+                    <span style={{fontWeight:700,fontSize:"12px",color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{visit?.nombre||"—"}</span>
                     {visit?.escudo&&<img src={visit.escudo} alt="" style={{width:28,height:28,objectFit:"contain",flexShrink:0}}/>}
                   </div>
                 </div>
@@ -1287,7 +1287,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                   {p.link&&<a href={p.link} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{background:"#7c3aed",color:"#fff",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,textDecoration:"none"}}>▶ Ver</a>}
                   {p.url_stats&&<a href={p.url_stats} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{background:"#0f172a",color:"#fff",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,textDecoration:"none"}}>📊 Stats</a>}
                   {isAdmin&&<>
-                    <button onClick={e=>{e.stopPropagation();setModal(p);}} style={{background:"#f1f5f9",border:"none",borderRadius:"20px",padding:"4px 10px",fontSize:"11px",fontWeight:600,cursor:"pointer",color:"#475569"}}>✏️</button>
+                    <button onClick={e=>{e.stopPropagation();setModal(p);}} style={{background:"var(--fx-hover)",border:"none",borderRadius:"20px",padding:"4px 10px",fontSize:"11px",fontWeight:600,cursor:"pointer",color:"var(--fx-label)"}}>✏️</button>
                     <button onClick={e=>{e.stopPropagation();del(p.id);}} style={{background:"#fee2e2",border:"none",borderRadius:"20px",padding:"4px 10px",fontSize:"11px",fontWeight:600,cursor:"pointer",color:"#ef4444"}}>🗑️</button>
                   </>}
                 </div>
@@ -1296,7 +1296,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
           };
 
           return(
-            <div key={grupoKey} style={{marginBottom:"12px",background:"#fff",borderRadius:"16px",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
+            <div key={grupoKey} style={{marginBottom:"12px",background:"var(--fx-card)",borderRadius:"16px",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
               {/* Cabecera de la liga: clicable para expandir/contraer */}
               <div onClick={()=>setExpandedLigas(prev=>({...prev,[grupoKey]:!expanded}))}
                 style={{display:"flex",alignItems:"center",gap:"10px",padding:"14px 16px",cursor:"pointer",userSelect:"none",background:expanded?"#faf5ff":"#fff"}}>
@@ -1316,7 +1316,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                   </button>
                 )}
                 {isAdmin&&ps.some(p=>p.fuente==="fiba")&&<button onClick={e=>{e.stopPropagation();setFibaSlug("");setFibaMensaje("");setFibaResultado(null);setFibaModal({ligaId,temporada});}} style={{background:"#ecfdf5",color:"#059669",border:"1.5px solid #6ee7b7",borderRadius:"20px",padding:"3px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer",flexShrink:0,marginRight:"4px"}}>⚡ Live</button>}
-                <span style={{fontSize:"18px",color:"#94a3b8",transform:expanded?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>›</span>
+                <span style={{fontSize:"18px",color:"var(--fx-muted2)",transform:expanded?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>›</span>
               </div>
 
               {/* Contenido expandido */}
@@ -1328,18 +1328,18 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                       const jk=grupoKey+"|"+j.key;
                       const open=expandedJornadas[jk]??false;
                       return(
-                        <div key={j.key} style={{border:j.proxima?"1.5px solid #fcd34d":"1px solid #e2e8f0",borderRadius:"12px",overflow:"hidden",marginTop:"4px"}}>
+                        <div key={j.key} style={{border:j.proxima?"1.5px solid #fcd34d":"1px solid var(--fx-border)",borderRadius:"12px",overflow:"hidden",marginTop:"4px"}}>
                           <div onClick={()=>setExpandedJornadas(prev=>({...prev,[jk]:!open}))}
                             style={{display:"flex",alignItems:"center",gap:"8px",padding:"10px 12px",cursor:"pointer",userSelect:"none",background:j.proxima?"#fffbeb":open?"#faf5ff":"#f8fafc"}}>
                             <span style={{fontWeight:700,fontSize:"12.5px",color:j.proxima?"#b45309":"#475569",flexShrink:0}}>{j.label}</span>
-                            <span style={{fontSize:"11px",color:"#94a3b8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{fmtRango(j.games)}</span>
+                            <span style={{fontSize:"11px",color:"var(--fx-muted2)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{fmtRango(j.games)}</span>
                             <span style={{flex:1}}/>
                             {j.enJuego&&<span style={{width:8,height:8,borderRadius:"50%",background:"#ef4444",flexShrink:0,boxShadow:"0 0 0 3px rgba(239,68,68,0.2)",display:"inline-block"}}/>}
                             {j.proxima&&!j.enJuego&&<span style={{background:"#f59e0b",color:"#fff",borderRadius:"20px",padding:"2px 10px",fontSize:"10px",fontWeight:800,flexShrink:0}}>Próxima</span>}
-                            <span style={{fontSize:"16px",color:"#94a3b8",transform:open?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s",flexShrink:0}}>›</span>
+                            <span style={{fontSize:"16px",color:"var(--fx-muted2)",transform:open?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s",flexShrink:0}}>›</span>
                           </div>
                           {open&&(
-                            <div style={{padding:"10px",display:"flex",flexDirection:"column",gap:"8px",background:"#fff"}}>
+                            <div style={{padding:"10px",display:"flex",flexDirection:"column",gap:"8px",background:"var(--fx-card)"}}>
                               {j.games.map(p=><TarjetaPartido key={p.id} p={p}/>)}
                             </div>
                           )}
@@ -1364,7 +1364,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                     <div style={{marginTop:"8px"}}>
                       <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px"}}>
                         <div style={{flex:1,height:"1px",background:"#e2e8f0"}}/>
-                        <span style={{fontSize:"11px",fontWeight:700,color:"#94a3b8",whiteSpace:"nowrap"}}>Próximos</span>
+                        <span style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",whiteSpace:"nowrap"}}>Próximos</span>
                         <div style={{flex:1,height:"1px",background:"#e2e8f0"}}/>
                       </div>
                       <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
@@ -1378,7 +1378,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                     <div style={{marginTop:"8px"}}>
                       <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px"}}>
                         <div style={{flex:1,height:"1px",background:"#e2e8f0"}}/>
-                        <span style={{fontSize:"11px",fontWeight:700,color:"#94a3b8",whiteSpace:"nowrap"}}>Últimos resultados</span>
+                        <span style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",whiteSpace:"nowrap"}}>Últimos resultados</span>
                         <div style={{flex:1,height:"1px",background:"#e2e8f0"}}/>
                       </div>
                       <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
@@ -1408,9 +1408,9 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
               <div onClick={()=>setArchivoOpen(o=>!o)}
                 style={{display:"flex",alignItems:"center",gap:"10px",padding:"14px 16px",cursor:"pointer",userSelect:"none",background:"#eef2f7",borderRadius:"14px"}}>
                 <span style={{fontSize:"18px"}}>🗄️</span>
-                <span style={{fontWeight:800,fontSize:"14px",color:"#475569",flex:1}}>Competiciones finalizadas</span>
-                <span style={{background:"#dbe2ea",color:"#64748b",borderRadius:"20px",padding:"2px 10px",fontSize:"12px",fontWeight:700}}>{finalizadas.length}</span>
-                <span style={{fontSize:"18px",color:"#94a3b8",transform:archivoOpen?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>›</span>
+                <span style={{fontWeight:800,fontSize:"14px",color:"var(--fx-label)",flex:1}}>Competiciones finalizadas</span>
+                <span style={{background:"#dbe2ea",color:"var(--fx-muted)",borderRadius:"20px",padding:"2px 10px",fontSize:"12px",fontWeight:700}}>{finalizadas.length}</span>
+                <span style={{fontSize:"18px",color:"var(--fx-muted2)",transform:archivoOpen?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>›</span>
               </div>
               {archivoOpen&&(
                 <div style={{marginTop:"10px",display:"flex",flexDirection:"column",gap:"10px"}}>
@@ -1423,8 +1423,8 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                           style={{display:"flex",alignItems:"center",gap:"10px",padding:"11px 16px",cursor:"pointer",userSelect:"none",background:tOpen?"#faf5ff":"#fff",borderRadius:"12px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
                           <span style={{fontSize:"13px"}}>📅</span>
                           <span style={{fontWeight:700,fontSize:"13px",color:"#9333ea",flex:1}}>{temp}</span>
-                          <span style={{fontSize:"11px",color:"#94a3b8"}}>{grupos.length} {grupos.length===1?"competición":"competiciones"}</span>
-                          <span style={{fontSize:"16px",color:"#94a3b8",transform:tOpen?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>›</span>
+                          <span style={{fontSize:"11px",color:"var(--fx-muted2)"}}>{grupos.length} {grupos.length===1?"competición":"competiciones"}</span>
+                          <span style={{fontSize:"16px",color:"var(--fx-muted2)",transform:tOpen?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>›</span>
                         </div>
                         {tOpen&&<div style={{marginTop:"8px",display:"flex",flexDirection:"column",gap:"12px"}}>{grupos.map(([k,ps])=>renderGrupo(k,ps))}</div>}
                       </div>
@@ -1556,13 +1556,13 @@ function EuroligaFases({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlayer}){
   };
   const zonaColor={verde:"#16a34a",naranja:"#ea580c",azul:"#2563eb",gris:"#94a3b8"};
   const Tabla=({titulo,filas,zonas,nota})=>(
-    <div style={{background:"#fff",borderRadius:"16px",overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"16px"}}>
+    <div style={{background:"var(--fx-card)",borderRadius:"16px",overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"16px"}}>
       <div style={{background:"#f5f3ff",padding:"10px 16px",borderBottom:"1px solid #e9d5ff",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <span style={{fontWeight:800,fontSize:"14px",color:"#7c3aed"}}>{titulo}</span>
-        {nota&&<span style={{fontSize:"11px",color:"#94a3b8"}}>{nota}</span>}
+        {nota&&<span style={{fontSize:"11px",color:"var(--fx-muted2)"}}>{nota}</span>}
       </div>
       <table style={{width:"100%",borderCollapse:"collapse",fontSize:"13px"}}>
-        <thead><tr style={{background:"#fafafa",color:"#64748b",fontSize:"11px"}}>
+        <thead><tr style={{background:"#fafafa",color:"var(--fx-muted)",fontSize:"11px"}}>
           <th style={{padding:"6px 8px",textAlign:"left"}}>#</th><th style={{padding:"6px",textAlign:"left"}}>Equipo</th>
           <th style={{padding:"6px"}}>PJ</th><th style={{padding:"6px"}}>PG</th><th style={{padding:"6px"}}>PP</th><th style={{padding:"6px"}}>DIF</th>
         </tr></thead>
@@ -1571,10 +1571,10 @@ function EuroligaFases({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlayer}){
             const z=zonas(i+1);
             const eq=equipoMap[e.id]||{};
             return(
-              <tr key={e.id} style={{borderTop:"1px solid #f1f5f9"}}>
-                <td style={{padding:"7px 8px",borderLeft:"4px solid "+(z?zonaColor[z.color]:"transparent"),fontWeight:700,color:"#475569"}}>{i+1}</td>
-                <td style={{padding:"7px 6px",color:"#1e293b",fontWeight:600}}>{eq.nombre||e.id}{z&&<span style={{display:"block",fontSize:"10px",fontWeight:700,color:zonaColor[z.color]}}>{z.txt}</span>}</td>
-                <td style={{padding:"7px 6px",textAlign:"center",color:"#64748b"}}>{e.pj}</td>
+              <tr key={e.id} style={{borderTop:"1px solid var(--fx-border2)"}}>
+                <td style={{padding:"7px 8px",borderLeft:"4px solid "+(z?zonaColor[z.color]:"transparent"),fontWeight:700,color:"var(--fx-label)"}}>{i+1}</td>
+                <td style={{padding:"7px 6px",color:"var(--fx-text)",fontWeight:600}}>{eq.nombre||e.id}{z&&<span style={{display:"block",fontSize:"10px",fontWeight:700,color:zonaColor[z.color]}}>{z.txt}</span>}</td>
+                <td style={{padding:"7px 6px",textAlign:"center",color:"var(--fx-muted)"}}>{e.pj}</td>
                 <td style={{padding:"7px 6px",textAlign:"center",fontWeight:700,color:"#16a34a"}}>{e.pg}</td>
                 <td style={{padding:"7px 6px",textAlign:"center",color:"#ef4444"}}>{e.pp}</td>
                 <td style={{padding:"7px 6px",textAlign:"center",color:e.dif>0?"#16a34a":e.dif<0?"#ef4444":"#64748b"}}>{e.dif>0?"+":""}{e.dif}</td>
@@ -1665,12 +1665,12 @@ function KOBox({p,equipoMap,caption,onOpen}){
   return(
     <div style={{width:"150px",flexShrink:0}}>
       <div onClick={onOpen?()=>onOpen(p):undefined}
-        style={{background:"#fff",border:enVivo?"1.5px solid #ef4444":"1px solid #e2e8f0",borderRadius:"10px",overflow:"hidden",cursor:onOpen?"pointer":"default"}}>
+        style={{background:"var(--fx-card)",border:enVivo?"1.5px solid #ef4444":"1px solid var(--fx-border)",borderRadius:"10px",overflow:"hidden",cursor:onOpen?"pointer":"default"}}>
         {row(p.id_equipo_local,p.resultado_local,winL)}
-        <div style={{height:"1px",background:"#f1f5f9"}}/>
+        <div style={{height:"1px",background:"var(--fx-hover)"}}/>
         {row(p.id_equipo_visitante,p.resultado_visitante,winV)}
       </div>
-      {caption&&<div style={{fontSize:"9px",color:"#94a3b8",textAlign:"center",marginTop:"2px",fontWeight:700}}>{caption}</div>}
+      {caption&&<div style={{fontSize:"9px",color:"var(--fx-muted2)",textAlign:"center",marginTop:"2px",fontWeight:700}}>{caption}</div>}
     </div>
   );
 }
@@ -1678,7 +1678,7 @@ function KOBox({p,equipoMap,caption,onOpen}){
 function BracketCol({label,children,align}){
   return(
     <div style={{display:"flex",flexDirection:"column",flexShrink:0}}>
-      <div style={{fontSize:"10px",fontWeight:800,color:"#94a3b8",textAlign:"center",textTransform:"uppercase",letterSpacing:"0.4px",marginBottom:"8px",whiteSpace:"nowrap"}}>{label}</div>
+      <div style={{fontSize:"10px",fontWeight:800,color:"var(--fx-muted2)",textAlign:"center",textTransform:"uppercase",letterSpacing:"0.4px",marginBottom:"8px",whiteSpace:"nowrap"}}>{label}</div>
       <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:align||"space-around",gap:"8px"}}>{children}</div>
     </div>
   );
@@ -1686,7 +1686,7 @@ function BracketCol({label,children,align}){
 
 function BracketCard({title,children}){
   return(
-    <div style={{background:"#fff",borderRadius:"16px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"16px",overflow:"hidden"}}>
+    <div style={{background:"var(--fx-card)",borderRadius:"16px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"16px",overflow:"hidden"}}>
       <div style={{background:"#f5f3ff",padding:"10px 16px",borderBottom:"1px solid #e9d5ff"}}>
         <span style={{fontWeight:800,fontSize:"14px",color:"#7c3aed"}}>{title}</span>
       </div>
@@ -1704,7 +1704,7 @@ function BracketMundialFIBA({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlay
     for(const p of psLiga){const mt=(p.notas||"").match(/#(\d+)/);if(mt)m[parseInt(mt[1],10)]=p;}
     return m;
   },[psLiga]);
-  const slot=(n,cap)=>{const p=byNum[n];return p?<KOBox p={p} equipoMap={equipoMap} caption={cap} onOpen={onOpenPartido}/>:<div style={{width:150,flexShrink:0}}><div style={{background:"#fff",border:"1px dashed #cbd5e1",borderRadius:10,padding:"14px 6px",textAlign:"center",fontSize:11,color:"#94a3b8"}}>—</div>{cap&&<div style={{fontSize:9,color:"#94a3b8",textAlign:"center",marginTop:2,fontWeight:700}}>{cap}</div>}</div>;};
+  const slot=(n,cap)=>{const p=byNum[n];return p?<KOBox p={p} equipoMap={equipoMap} caption={cap} onOpen={onOpenPartido}/>:<div style={{width:150,flexShrink:0}}><div style={{background:"var(--fx-card)",border:"1px dashed #cbd5e1",borderRadius:10,padding:"14px 6px",textAlign:"center",fontSize:11,color:"var(--fx-muted2)"}}>—</div>{cap&&<div style={{fontSize:9,color:"var(--fx-muted2)",textAlign:"center",marginTop:2,fontWeight:700}}>{cap}</div>}</div>;};
   // Orden cross (igual que la quiniela): SF33 arriba = QF29+QF32, SF34 abajo = QF30+QF31
   const playins=[27,26,28,25];
   const qfs=[29,32,30,31];
@@ -1713,7 +1713,7 @@ function BracketMundialFIBA({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlay
   const MATCH_H=64,GAP_UNIT=20;
   const bracketH=4*MATCH_H+3*GAP_UNIT;
   const colCommon={display:"flex",flexDirection:"column",justifyContent:"space-around",alignItems:"center",height:bracketH+"px",position:"relative"};
-  const Hdr=({txt})=><div style={{fontSize:10,fontWeight:800,color:"#94a3b8",letterSpacing:"1px",position:"absolute",top:-18,left:0,right:0,textAlign:"center"}}>{txt}</div>;
+  const Hdr=({txt})=><div style={{fontSize:10,fontWeight:800,color:"var(--fx-muted2)",letterSpacing:"1px",position:"absolute",top:-18,left:0,right:0,textAlign:"center"}}>{txt}</div>;
   return(
     <BracketCard title="Cuadro final">
       <div style={{overflowX:"auto",paddingTop:22,paddingBottom:6}}>
@@ -1764,7 +1764,7 @@ function BracketMundialFIBA({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlay
             {slot(35,"3er puesto")}
             {mvpPlayer&&(<div onClick={()=>onGoToPlayer&&onGoToPlayer(mvpPlayer.id_jugadora)} style={{display:"flex",flexDirection:"column",alignItems:"center",cursor:onGoToPlayer?"pointer":"default",gap:2,marginTop:6}}>
               <Avatar photo={mvpPlayer.foto} name={mvpPlayer.nombre} size={40} fontSize={13}/>
-              <span style={{fontSize:11,fontWeight:700,color:"#1e293b",whiteSpace:"nowrap",maxWidth:150,overflow:"hidden",textOverflow:"ellipsis"}}>{mvpPlayer.nombre}</span>
+              <span style={{fontSize:11,fontWeight:700,color:"var(--fx-text)",whiteSpace:"nowrap",maxWidth:150,overflow:"hidden",textOverflow:"ellipsis"}}>{mvpPlayer.nombre}</span>
               <span style={{fontSize:9,fontWeight:800,color:"#b45309",letterSpacing:"0.5px"}}>🏅 MVP</span>
             </div>)}
           </div>
@@ -1834,7 +1834,7 @@ function FaseFinal({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlayer}){
   const finC=sfC.length>=2?(sfC[0]+sfC[sfC.length-1])/2:sfC[0]??qfC[Math.floor(qfC.length/2)]??r16C[Math.floor(r16C.length/2)]??totalH/2;
   const GBox=({g,top,cap})=>!g?null:(<div style={{position:"absolute",top:top-GAME_H/2,left:0,width:GAME_W}}><KOBox p={g} equipoMap={equipoMap} caption={cap} onOpen={onOpenPartido}/></div>);
   const Conn=({froms,to})=>{const mn=Math.min(...froms),mx=Math.max(...froms);return(<svg style={{position:"absolute",top:0,left:0,width:CONN_W,height:totalH,overflow:"visible",pointerEvents:"none"}} viewBox={"0 0 "+CONN_W+" "+totalH}>{froms.map((f,fi)=><line key={fi} x1={0} y1={f} x2={CONN_W/2} y2={f} stroke="#e2e8f0" strokeWidth={1.5}/>)}{mn!==mx&&<line x1={CONN_W/2} y1={mn} x2={CONN_W/2} y2={mx} stroke="#e2e8f0" strokeWidth={1.5}/>}<line x1={CONN_W/2} y1={to} x2={CONN_W} y2={to} stroke="#e2e8f0" strokeWidth={1.5}/></svg>);};
-  const Hdr=({label,left,w})=>(<div style={{position:"absolute",top:-22,left,width:w,textAlign:"center",fontSize:"9px",fontWeight:800,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.4px",whiteSpace:"nowrap"}}>{label}</div>);
+  const Hdr=({label,left,w})=>(<div style={{position:"absolute",top:-22,left,width:w,textAlign:"center",fontSize:"9px",fontWeight:800,color:"var(--fx-muted2)",textTransform:"uppercase",letterSpacing:"0.4px",whiteSpace:"nowrap"}}>{label}</div>);
   const hasQF=qfS.length>0,hasSF=sfS.length>0,hasFin=!!(finalP||bronce);
   const colW=GAME_W+CONN_W;
   const totalW=GAME_W+(hasQF?colW:0)+(hasSF?colW:0)+(hasFin?colW:0);
@@ -1879,7 +1879,7 @@ function FaseFinal({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlayer}){
                   {bronce&&<GBox g={bronce} top={finC+GAME_H+GAME_GAP} cap="🥉 3er puesto"/>}
                   {mvpPlayer&&(<div onClick={()=>onGoToPlayer&&onGoToPlayer(mvpPlayer.id_jugadora)} style={{position:"absolute",top:finC+GAME_H*2+GAME_GAP*2+4,left:0,display:"flex",flexDirection:"column",alignItems:"center",cursor:onGoToPlayer?"pointer":"default",gap:"2px",width:GAME_W}}>
                     <Avatar photo={mvpPlayer.foto} name={mvpPlayer.nombre} size={40} fontSize={13}/>
-                    <span style={{fontSize:"11px",fontWeight:700,color:"#1e293b",whiteSpace:"nowrap",maxWidth:"150px",overflow:"hidden",textOverflow:"ellipsis"}}>{mvpPlayer.nombre}</span>
+                    <span style={{fontSize:"11px",fontWeight:700,color:"var(--fx-text)",whiteSpace:"nowrap",maxWidth:"150px",overflow:"hidden",textOverflow:"ellipsis"}}>{mvpPlayer.nombre}</span>
                     <span style={{fontSize:"9px",fontWeight:800,color:"#b45309",letterSpacing:"0.5px"}}>🏅 MVP</span>
                   </div>)}
                 </div>
@@ -1957,11 +1957,11 @@ function SerieBox({partidosSerie,equipoMap,compacto,onOpen}){
   return(
     <div style={{width:compacto?"96px":"150px",flexShrink:0}}>
       <div onClick={multi?toggleSerie:(onOpen&&partidosSerie[0]?()=>onOpen(partidosSerie[0]):undefined)}
-        style={{background:"#fff",border:enVivo?"1.5px solid #ef4444":(abierta?"1.5px solid #c084fc":"1px solid #e2e8f0"),borderRadius:"10px",overflow:"hidden",transition:"border-color 0.15s",cursor:"pointer"}}
+        style={{background:"var(--fx-card)",border:enVivo?"1.5px solid #ef4444":(abierta?"1.5px solid #c084fc":"1px solid var(--fx-border)"),borderRadius:"10px",overflow:"hidden",transition:"border-color 0.15s",cursor:"pointer"}}
         onMouseEnter={e=>e.currentTarget.style.borderColor="#c084fc"}
         onMouseLeave={e=>e.currentTarget.style.borderColor=enVivo?"#ef4444":(abierta?"#c084fc":"#e2e8f0")}>
         {row(ids[0])}
-        <div style={{height:"1px",background:"#f1f5f9"}}/>
+        <div style={{height:"1px",background:"var(--fx-hover)"}}/>
         {row(ids[1])}
       </div>
       {multi&&abierta&&(
@@ -1974,7 +1974,7 @@ function SerieBox({partidosSerie,equipoMap,compacto,onOpen}){
             return(
               <div key={p.id} onClick={e=>{e.stopPropagation();onOpen&&onOpen(p);}}
                 style={{background:"#faf5ff",border:"1px solid #e9d5ff",borderRadius:"8px",padding:"4px 6px",cursor:onOpen?"pointer":"default",fontSize:"10px"}}>
-                <div style={{color:"#94a3b8",fontWeight:700,marginBottom:"2px"}}>{idaVuelta?["Ida","Vuelta","3er partido"][i]||"":("Partido "+(i+1))}</div>
+                <div style={{color:"var(--fx-muted2)",fontWeight:700,marginBottom:"2px"}}>{idaVuelta?["Ida","Vuelta","3er partido"][i]||"":("Partido "+(i+1))}</div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <span style={{fontWeight:winL?800:500,color:winL?"#7c3aed":"#475569"}}>{tL?(compacto?etiqueta(tL):tL.nombre):"—"}</span>
                   <span style={{fontWeight:800,color:"#7c3aed",margin:"0 4px"}}>{played?(p.resultado_local+" - "+p.resultado_visitante):"vs"}</span>
@@ -2100,9 +2100,9 @@ function calcUlt10(partidos, teamId){
 function WNBATabla({filas, equipoMap, onGoToTeam, mostrarGB}){
   const lider=filas[0];
   return(
-    <div style={{background:"#fff",borderRadius:"14px",overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
+    <div style={{background:"var(--fx-card)",borderRadius:"14px",overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
       <table style={{width:"100%",borderCollapse:"collapse",fontSize:"13px"}}>
-        <thead><tr style={{background:"#fafafa",color:"#64748b",fontSize:"11px"}}>
+        <thead><tr style={{background:"#fafafa",color:"var(--fx-muted)",fontSize:"11px"}}>
           <th style={{padding:"7px 8px",textAlign:"left"}}>#</th>
           <th style={{padding:"7px 6px",textAlign:"left"}}>Equipo</th>
           <th style={{padding:"7px 6px"}}>PJ</th>
@@ -2121,19 +2121,19 @@ function WNBATabla({filas, equipoMap, onGoToTeam, mostrarGB}){
             const enPlayoff=i<8;
             const seed=i+1;
             return(
-              <tr key={e.id} style={{borderTop:"1px solid #f1f5f9",cursor:onGoToTeam?"pointer":"default"}} onClick={()=>onGoToTeam&&onGoToTeam(e.id)}>
-                <td style={{padding:"8px",borderLeft:"4px solid "+(enPlayoff?"#16a34a":"transparent"),fontWeight:700,color:"#475569"}}>{seed}</td>
-                <td style={{padding:"8px 6px",color:"#1e293b",fontWeight:600,display:"flex",alignItems:"center",gap:"8px"}}>
+              <tr key={e.id} style={{borderTop:"1px solid var(--fx-border2)",cursor:onGoToTeam?"pointer":"default"}} onClick={()=>onGoToTeam&&onGoToTeam(e.id)}>
+                <td style={{padding:"8px",borderLeft:"4px solid "+(enPlayoff?"#16a34a":"transparent"),fontWeight:700,color:"var(--fx-label)"}}>{seed}</td>
+                <td style={{padding:"8px 6px",color:"var(--fx-text)",fontWeight:600,display:"flex",alignItems:"center",gap:"8px"}}>
                   {eq.escudo&&<img src={eq.escudo} alt="" style={{width:22,height:22,objectFit:"contain"}} onError={ev=>{ev.currentTarget.style.display="none";}}/>}
                   <span>{eq.nombre||e.id}</span>
                 </td>
-                <td style={{padding:"8px 6px",textAlign:"center",color:"#64748b"}}>{e.pj}</td>
+                <td style={{padding:"8px 6px",textAlign:"center",color:"var(--fx-muted)"}}>{e.pj}</td>
                 <td style={{padding:"8px 6px",textAlign:"center",fontWeight:700,color:"#16a34a"}}>{e.v}</td>
                 <td style={{padding:"8px 6px",textAlign:"center",color:"#ef4444"}}>{e.d}</td>
                 <td style={{padding:"8px 6px",textAlign:"center",fontWeight:700}}>{(e.pctV*100).toFixed(1)}</td>
-                {mostrarGB&&<td style={{padding:"8px 6px",textAlign:"center",color:"#64748b"}}>{gb===0?"—":gb.toFixed(1)}</td>}
+                {mostrarGB&&<td style={{padding:"8px 6px",textAlign:"center",color:"var(--fx-muted)"}}>{gb===0?"—":gb.toFixed(1)}</td>}
                 <td style={{padding:"8px 6px",textAlign:"center",color:e.dif>0?"#16a34a":e.dif<0?"#ef4444":"#64748b"}}>{e.dif>0?"+":""}{e.dif}</td>
-                <td style={{padding:"8px 6px",textAlign:"center",color:"#64748b"}}>{calcUlt10.__cache?.[e.id]||e.ult10||"—"}</td>
+                <td style={{padding:"8px 6px",textAlign:"center",color:"var(--fx-muted)"}}>{calcUlt10.__cache?.[e.id]||e.ult10||"—"}</td>
                 <td style={{padding:"8px 6px",textAlign:"center",fontWeight:700,color:e.racha?.startsWith("V")?"#16a34a":e.racha?.startsWith("D")?"#ef4444":"#64748b"}}>{e.racha||"—"}</td>
               </tr>
             );
@@ -2211,9 +2211,9 @@ function WNBABracketAuto({globalRanked, playoffPartidos, equipoMap, onOpenPartid
     return(
       <BracketCol label={roundLabel}>
         <div style={{width:"180px"}}>
-          <div onClick={()=>setOpen(!open)} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:"10px",overflow:"hidden",cursor:"pointer"}}>
+          <div onClick={()=>setOpen(!open)} style={{background:"var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"10px",overflow:"hidden",cursor:"pointer"}}>
             {row(ta,eA,mA,ganador===ta,seeds[ta])}
-            <div style={{height:"1px",background:"#f1f5f9"}}/>
+            <div style={{height:"1px",background:"var(--fx-hover)"}}/>
             {row(tb,eB,mB,ganador===tb,seeds[tb])}
           </div>
           {open&&<div style={{marginTop:"6px",display:"flex",flexDirection:"column",gap:"6px"}}>
@@ -2230,7 +2230,7 @@ function WNBABracketAuto({globalRanked, playoffPartidos, equipoMap, onOpenPartid
     const eqA=a?equipoMap[a.id]:null, eqB=b?equipoMap[b.id]:null;
     return(
       <BracketCol key={key} label={`(${s1}) vs (${s2})`}>
-        <div style={{background:"#f8fafc",border:"1px dashed #cbd5e1",borderRadius:"10px",padding:"10px",width:"150px",fontSize:"11px",color:"#64748b",display:"flex",flexDirection:"column",gap:"4px"}}>
+        <div style={{background:"var(--fx-hover)",border:"1px dashed #cbd5e1",borderRadius:"10px",padding:"10px",width:"150px",fontSize:"11px",color:"var(--fx-muted)",display:"flex",flexDirection:"column",gap:"4px"}}>
           <div style={{display:"flex",alignItems:"center",gap:"6px"}}>{eqA?.escudo&&<img src={eqA.escudo} alt="" style={{width:16,height:16,objectFit:"contain"}} onError={e=>{e.currentTarget.style.display="none";}}/>}<span>({s1}) {eqA?.nombre||"—"}</span></div>
           <div style={{display:"flex",alignItems:"center",gap:"6px"}}>{eqB?.escudo&&<img src={eqB.escudo} alt="" style={{width:16,height:16,objectFit:"contain"}} onError={e=>{e.currentTarget.style.display="none";}}/>}<span>({s2}) {eqB?.nombre||"—"}</span></div>
         </div>
@@ -2251,13 +2251,13 @@ function WNBABracketAuto({globalRanked, playoffPartidos, equipoMap, onOpenPartid
           <div style={{fontSize:"10px",fontWeight:800,color:"#7c3aed",textTransform:"uppercase",letterSpacing:"0.4px"}}>Semifinales · Bo5</div>
           {seriesSemi.length>0
             ? seriesSemi.map((s,i)=><SerieBox key={i} serie={s} needed={3} roundLabel={`Semi ${i+1}`}/>)
-            : [0,1].map(i=><BracketCol key={i} label={`Semi ${i+1}`}><div style={{background:"#f8fafc",border:"1px dashed #cbd5e1",borderRadius:"10px",padding:"14px",width:"150px",fontSize:"11px",color:"#94a3b8",textAlign:"center"}}>Sin jugar</div></BracketCol>)}
+            : [0,1].map(i=><BracketCol key={i} label={`Semi ${i+1}`}><div style={{background:"var(--fx-hover)",border:"1px dashed #cbd5e1",borderRadius:"10px",padding:"14px",width:"150px",fontSize:"11px",color:"var(--fx-muted2)",textAlign:"center"}}>Sin jugar</div></BracketCol>)}
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:"14px",justifyContent:"center"}}>
           <div style={{fontSize:"10px",fontWeight:800,color:"#7c3aed",textTransform:"uppercase",letterSpacing:"0.4px"}}>🏆 Finales · Bo7</div>
           {serieFinal.length>0
             ? serieFinal.map((s,i)=><SerieBox key={i} serie={s} needed={4} roundLabel="Final"/>)
-            : <BracketCol label="Final"><div style={{background:"#f8fafc",border:"1px dashed #cbd5e1",borderRadius:"10px",padding:"14px",width:"150px",fontSize:"11px",color:"#94a3b8",textAlign:"center"}}>Sin jugar</div></BracketCol>}
+            : <BracketCol label="Final"><div style={{background:"var(--fx-hover)",border:"1px dashed #cbd5e1",borderRadius:"10px",padding:"14px",width:"150px",fontSize:"11px",color:"var(--fx-muted2)",textAlign:"center"}}>Sin jugar</div></BracketCol>}
         </div>
       </div>
     </BracketCard>
@@ -2301,8 +2301,8 @@ function WNBAClasificacion({psLiga, equipoMap, temporada, onOpenPartido, onGoToT
   return(
     <div style={{maxWidth:"900px",margin:"0 auto",padding:"16px",fontFamily:"system-ui,sans-serif"}}>
       <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"15px",cursor:"pointer",padding:"0 0 16px"}}>← Volver</button>
-      <h1 style={{fontWeight:800,fontSize:"20px",color:"#1e293b",margin:"0 0 6px"}}>🏆 WNBA {temporada}</h1>
-      <p style={{fontSize:"12px",color:"#94a3b8",margin:"0 0 14px"}}>Clasificación por %V con desempates oficiales WNBA (H2H → V vs top-8 → V vs top-4 → dif.). Verde: puestos 1-8 (playoffs).</p>
+      <h1 style={{fontWeight:800,fontSize:"20px",color:"var(--fx-text)",margin:"0 0 6px"}}>🏆 WNBA {temporada}</h1>
+      <p style={{fontSize:"12px",color:"var(--fx-muted2)",margin:"0 0 14px"}}>Clasificación por %V con desempates oficiales WNBA (H2H → V vs top-8 → V vs top-4 → dif.). Verde: puestos 1-8 (playoffs).</p>
       <div style={{display:"flex",gap:"6px",marginBottom:"14px",flexWrap:"wrap"}}>
         {tabBtn("global","Global")}
         {tabBtn("east","🌅 East")}
@@ -2347,7 +2347,7 @@ function PlayoffBracket({psLiga,equipoMap,soloPrevia,onOpenPartido,showAscenso})
 
   if(soloPrevia){
     const previa=buscar(/previa/i);
-    if(!previa.length)return<p style={{color:"#94a3b8",textAlign:"center",paddingTop:"40px"}}>Sin fase previa.</p>;
+    if(!previa.length)return<p style={{color:"var(--fx-muted2)",textAlign:"center",paddingTop:"40px"}}>Sin fase previa.</p>;
     return(
       <BracketCard title="Fase previa">
         <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
@@ -2358,7 +2358,7 @@ function PlayoffBracket({psLiga,equipoMap,soloPrevia,onOpenPartido,showAscenso})
                 <span style={{color:"#22c55e",fontWeight:800,fontSize:"14px"}}>→</span>
                 <TeamBadge team={t} size={18}/>
                 <span style={{fontSize:"11px",fontWeight:800,color:"#16a34a"}}>{t.nombre}</span>
-                <span style={{fontSize:"10px",color:"#94a3b8"}}>a grupos</span>
+                <span style={{fontSize:"10px",color:"var(--fx-muted2)"}}>a grupos</span>
               </div>}
             </div>
           );})}
@@ -2377,7 +2377,7 @@ function PlayoffBracket({psLiga,equipoMap,soloPrevia,onOpenPartido,showAscenso})
   const hayBracket=dieci.length||octavos.length||cuartos.length||semis.length||finalAsc.length;
 
   if(!finalCampeones.length&&!hayBracket)return(
-    <p style={{color:"#94a3b8",textAlign:"center",paddingTop:"40px"}}>El cuadro se rellenará cuando avance la competición.</p>
+    <p style={{color:"var(--fx-muted2)",textAlign:"center",paddingTop:"40px"}}>El cuadro se rellenará cuando avance la competición.</p>
   );
 
   const AscLabel=({serie})=>{if(!showAscenso)return null;const w=winnerOf(serie);const t=w&&equipoMap[w];if(!t)return null;return(
@@ -2445,20 +2445,20 @@ function StandingFinal({psLiga,equipoMap,temporada,onGoToTeam,mvpPlayer,onGoToPl
   const medalla=i=>i===1?"🥇":i===2?"🥈":i===3?"🥉":null;
 
   return(
-    <div style={{background:"#fff",borderRadius:"16px",overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
+    <div style={{background:"var(--fx-card)",borderRadius:"16px",overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
       {Array.from({length:16},(_,idx)=>{
         const i=idx+1;
         const team=posiciones[i]?equipoMap[posiciones[i]]:null;
         const med=medalla(i);
         return(
           <div key={i} onClick={()=>team&&onGoToTeam&&onGoToTeam(team.id_equipo,temporada)}
-            style={{display:"flex",alignItems:"center",gap:"10px",padding:"9px 16px",borderTop:i>1?"1px solid #f1f5f9":"none",
+            style={{display:"flex",alignItems:"center",gap:"10px",padding:"9px 16px",borderTop:i>1?"1px solid var(--fx-border2)":"none",
               background:i===1?"#fffbeb":i===2?"#f8fafc":i===3?"#fff7ed":"#fff",cursor:team&&onGoToTeam?"pointer":"default"}}>
-            <span style={{width:"28px",textAlign:"center",fontSize:med?"18px":"13px",fontWeight:800,color:"#94a3b8",flexShrink:0}}>{med||i}</span>
+            <span style={{width:"28px",textAlign:"center",fontSize:med?"18px":"13px",fontWeight:800,color:"var(--fx-muted2)",flexShrink:0}}>{med||i}</span>
             {team?(
               <>
                 <TeamBadge team={team} size={26}/>
-                <span style={{fontWeight:i<=3?800:600,fontSize:"13px",color:"#1e293b"}}>{team.nombre}</span>
+                <span style={{fontWeight:i<=3?800:600,fontSize:"13px",color:"var(--fx-text)"}}>{team.nombre}</span>
                 {i===1&&mvpPlayer&&(
                   <div onClick={e=>{e.stopPropagation();onGoToPlayer&&onGoToPlayer(mvpPlayer.id_jugadora);}}
                     style={{marginLeft:"auto",display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer",flexShrink:0}}>
@@ -2527,14 +2527,14 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
   if(!grupos.length&&!hayKO&&!hayBracketIV&&!hayPreviaIV)return(
     <div style={{maxWidth:"700px",margin:"0 auto",padding:"16px"}}>
       <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"15px",cursor:"pointer",padding:"0 0 16px"}}>← Volver</button>
-      <p style={{color:"#94a3b8",textAlign:"center",paddingTop:"40px"}}>No hay partidos con resultado para calcular la clasificación.</p>
+      <p style={{color:"var(--fx-muted2)",textAlign:"center",paddingTop:"40px"}}>No hay partidos con resultado para calcular la clasificación.</p>
     </div>
   );
 
   if(esEuroliga)return(
     <div style={{maxWidth:"700px",margin:"0 auto",padding:"16px",fontFamily:"system-ui,sans-serif"}}>
       <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"15px",cursor:"pointer",padding:"0 0 16px"}}>← Volver</button>
-      <h1 style={{fontWeight:800,fontSize:"20px",color:"#1e293b",margin:"0 0 20px"}}>🏆 Clasificación</h1>
+      <h1 style={{fontWeight:800,fontSize:"20px",color:"var(--fx-text)",margin:"0 0 20px"}}>🏆 Clasificación</h1>
       <EuroligaFases psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido} mvpPlayer={mvpPlayer} onGoToPlayer={onGoToPlayer}/>
     </div>
   );
@@ -2544,7 +2544,7 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
   return(
     <div style={{maxWidth:"700px",margin:"0 auto",padding:"16px",fontFamily:"system-ui,sans-serif"}}>
       <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"15px",cursor:"pointer",padding:"0 0 16px"}}>← Volver</button>
-      <h1 style={{fontWeight:800,fontSize:"20px",color:"#1e293b",margin:"0 0 20px"}}>🏆 Clasificación</h1>
+      <h1 style={{fontWeight:800,fontSize:"20px",color:"var(--fx-text)",margin:"0 0 20px"}}>🏆 Clasificación</h1>
       {(()=>{
         const tabs=modoLiga
           ?[...(multiGrupo?grupos.map((g,i)=>[`grp${i}`,g.nombre]):[["grupos","Clasificación"]]),...(hayPlayoffs?[["final","Playoffs"]]:[])]
@@ -2583,26 +2583,26 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
         return(<div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
           {juegos.map(p=>{const eqL=equipoMap[p.id_equipo_local],eqV=equipoMap[p.id_equipo_visitante];
             const tieneRes=p.resultado_local!=null;
-            return(<div key={p.id} onClick={()=>onOpenPartido&&onOpenPartido(p)} style={{background:"#fff",borderRadius:"12px",border:"1.5px solid #e2e8f0",padding:"10px 14px",cursor:onOpenPartido?"pointer":"default",display:"flex",alignItems:"center",gap:"8px"}}>
-              <span style={{fontSize:"11px",color:"#94a3b8",minWidth:"110px"}}>{p.notas}</span>
+            return(<div key={p.id} onClick={()=>onOpenPartido&&onOpenPartido(p)} style={{background:"var(--fx-card)",borderRadius:"12px",border:"1.5px solid var(--fx-border)",padding:"10px 14px",cursor:onOpenPartido?"pointer":"default",display:"flex",alignItems:"center",gap:"8px"}}>
+              <span style={{fontSize:"11px",color:"var(--fx-muted2)",minWidth:"110px"}}>{p.notas}</span>
               <span style={{flex:1,fontWeight:tieneRes&&p.resultado_local>p.resultado_visitante?700:500,fontSize:"13px"}}>{eqL?.nombre||"—"}</span>
-              {tieneRes?<span style={{fontWeight:700,fontSize:"14px",color:"#1e293b",minWidth:"50px",textAlign:"center"}}>{p.resultado_local} - {p.resultado_visitante}</span>:<span style={{fontSize:"12px",color:"#94a3b8",minWidth:"50px",textAlign:"center"}}>vs</span>}
+              {tieneRes?<span style={{fontWeight:700,fontSize:"14px",color:"var(--fx-text)",minWidth:"50px",textAlign:"center"}}>{p.resultado_local} - {p.resultado_visitante}</span>:<span style={{fontSize:"12px",color:"var(--fx-muted2)",minWidth:"50px",textAlign:"center"}}>vs</span>}
               <span style={{flex:1,textAlign:"right",fontWeight:tieneRes&&p.resultado_visitante>p.resultado_local?700:500,fontSize:"13px"}}>{eqV?.nombre||"—"}</span>
             </div>);
           })}
-          {!juegos.length&&<p style={{color:"#94a3b8",textAlign:"center",paddingTop:"20px"}}>Sin partidos en esta fase todavía.</p>}
+          {!juegos.length&&<p style={{color:"var(--fx-muted2)",textAlign:"center",paddingTop:"20px"}}>Sin partidos en esta fase todavía.</p>}
         </div>);
       })()}
       {vista==="final"&&hayPlayoffs&&<PlayoffBracket psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido} showAscenso={!!zl.ascenso}/>}
       {vista==="standing"&&hayKO&&<StandingFinal psLiga={psLiga} equipoMap={equipoMap} temporada={temporada} onGoToTeam={onGoToTeam} mvpPlayer={mvpPlayer} onGoToPlayer={onGoToPlayer}/>}
-      {vista==="grupos"&&!grupos.length&&<p style={{color:"#94a3b8",textAlign:"center",paddingTop:"40px"}}>No hay partidos con resultado para calcular la clasificación.</p>}
+      {vista==="grupos"&&!grupos.length&&<p style={{color:"var(--fx-muted2)",textAlign:"center",paddingTop:"40px"}}>No hay partidos con resultado para calcular la clasificación.</p>}
       {grupos.map(({nombre,equipos:eqs},gi)=>{
         const grpKey=`grp${gi}`;
         if(modoLiga&&grupos.length>1&&vista!==grpKey)return null;
         if(modoLiga&&grupos.length<=1&&vista!=="grupos")return null;
         if(!modoLiga&&vista!=="grupos")return null;
         return(
-        <div key={nombre} style={{background:"#fff",borderRadius:"16px",overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"16px"}}>
+        <div key={nombre} style={{background:"var(--fx-card)",borderRadius:"16px",overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"16px"}}>
           <div style={{background:"#f5f3ff",padding:"10px 16px",borderBottom:"1px solid #e9d5ff"}}>
             <span style={{fontWeight:800,fontSize:"14px",color:"#7c3aed"}}>{nombre}</span>
           </div>
@@ -2610,14 +2610,14 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:"12px"}}>
               <thead>
                 <tr style={{background:"#faf5ff"}}>
-                  <th style={{textAlign:"left",padding:"8px 12px",fontWeight:700,color:"#64748b",whiteSpace:"nowrap"}}>#</th>
-                  <th style={{textAlign:"left",padding:"8px 12px",fontWeight:700,color:"#64748b",whiteSpace:"nowrap"}}>Equipo</th>
-                  <th style={{textAlign:"center",padding:"8px 8px",fontWeight:700,color:"#64748b"}}>PJ</th>
-                  <th style={{textAlign:"center",padding:"8px 8px",fontWeight:700,color:"#64748b"}}>PG</th>
-                  <th style={{textAlign:"center",padding:"8px 8px",fontWeight:700,color:"#64748b"}}>PP</th>
-                  <th style={{textAlign:"center",padding:"8px 8px",fontWeight:700,color:"#64748b"}}>PF</th>
-                  <th style={{textAlign:"center",padding:"8px 8px",fontWeight:700,color:"#64748b"}}>PC</th>
-                  <th style={{textAlign:"center",padding:"8px 8px",fontWeight:700,color:"#64748b"}}>DIF</th>
+                  <th style={{textAlign:"left",padding:"8px 12px",fontWeight:700,color:"var(--fx-muted)",whiteSpace:"nowrap"}}>#</th>
+                  <th style={{textAlign:"left",padding:"8px 12px",fontWeight:700,color:"var(--fx-muted)",whiteSpace:"nowrap"}}>Equipo</th>
+                  <th style={{textAlign:"center",padding:"8px 8px",fontWeight:700,color:"var(--fx-muted)"}}>PJ</th>
+                  <th style={{textAlign:"center",padding:"8px 8px",fontWeight:700,color:"var(--fx-muted)"}}>PG</th>
+                  <th style={{textAlign:"center",padding:"8px 8px",fontWeight:700,color:"var(--fx-muted)"}}>PP</th>
+                  <th style={{textAlign:"center",padding:"8px 8px",fontWeight:700,color:"var(--fx-muted)"}}>PF</th>
+                  <th style={{textAlign:"center",padding:"8px 8px",fontWeight:700,color:"var(--fx-muted)"}}>PC</th>
+                  <th style={{textAlign:"center",padding:"8px 8px",fontWeight:700,color:"var(--fx-muted)"}}>DIF</th>
                   <th style={{textAlign:"center",padding:"8px 12px",fontWeight:700,color:"#9333ea"}}>PTS</th>
                 </tr>
               </thead>
@@ -2632,19 +2632,19 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
                   const borde=modoLiga?(zonaDesc?"3px solid #ef4444":zonaAsc?"3px solid #16a34a":zonaPOAsc?"3px solid #2563eb":zonaPO?"3px solid #9333ea":"3px solid transparent"):undefined;
                   return(
                     <tr key={eq.id} onClick={()=>onGoToTeam&&onGoToTeam(eq.id,temporada)}
-                      style={{borderTop:"1px solid #f1f5f9",background:fondo,cursor:onGoToTeam?"pointer":"default",borderLeft:borde}}>
+                      style={{borderTop:"1px solid var(--fx-border2)",background:fondo,cursor:onGoToTeam?"pointer":"default",borderLeft:borde}}>
                       <td style={{padding:"10px 12px",fontWeight:700,color:zonaDesc?"#ef4444":zonaAsc?"#16a34a":zonaPOAsc?"#2563eb":zonaPO&&modoLiga?"#9333ea":"#94a3b8"}}>{i+1}</td>
                       <td style={{padding:"10px 12px"}}>
                         <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                           {team?.escudo&&<img src={team.escudo} alt="" style={{width:22,height:22,objectFit:"contain"}}/>}
-                          <span style={{fontWeight:600,color:"#1e293b",whiteSpace:"nowrap"}}>{team?.nombre||eq.id}</span>
+                          <span style={{fontWeight:600,color:"var(--fx-text)",whiteSpace:"nowrap"}}>{team?.nombre||eq.id}</span>
                         </div>
                       </td>
-                      <td style={{textAlign:"center",padding:"10px 8px",color:"#475569"}}>{eq.pj}</td>
+                      <td style={{textAlign:"center",padding:"10px 8px",color:"var(--fx-label)"}}>{eq.pj}</td>
                       <td style={{textAlign:"center",padding:"10px 8px",color:"#16a34a",fontWeight:600}}>{eq.pg}</td>
                       <td style={{textAlign:"center",padding:"10px 8px",color:"#dc2626",fontWeight:600}}>{eq.pp}</td>
-                      <td style={{textAlign:"center",padding:"10px 8px",color:"#475569"}}>{eq.pf}</td>
-                      <td style={{textAlign:"center",padding:"10px 8px",color:"#475569"}}>{eq.pc}</td>
+                      <td style={{textAlign:"center",padding:"10px 8px",color:"var(--fx-label)"}}>{eq.pf}</td>
+                      <td style={{textAlign:"center",padding:"10px 8px",color:"var(--fx-label)"}}>{eq.pc}</td>
                       <td style={{textAlign:"center",padding:"10px 8px",color:eq.dif>0?"#16a34a":eq.dif<0?"#dc2626":"#475569",fontWeight:600}}>{eq.dif>0?"+":""}{eq.dif}</td>
                       <td style={{textAlign:"center",padding:"10px 12px",fontWeight:800,color:"#7c3aed",fontSize:"14px"}}>{eq.pts}</td>
                     </tr>
@@ -2656,7 +2656,7 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
         </div>
       );})}
       {(vista==="grupos"||(modoLiga&&vista?.startsWith("grp")))&&grupos.length>0&&(modoLiga?(
-        <div style={{fontSize:"11px",color:"#94a3b8",textAlign:"center",marginTop:"8px",lineHeight:"1.7"}}>
+        <div style={{fontSize:"11px",color:"var(--fx-muted2)",textAlign:"center",marginTop:"8px",lineHeight:"1.7"}}>
           {zl.ascenso&&<><span style={{display:"inline-block",width:10,height:10,background:"#16a34a",borderRadius:"3px",verticalAlign:"middle",marginRight:"4px"}}/>{zl.ascensoLabel||"Ascenso directo"}</>}
           {zl.playoffAsc&&<><span style={{display:"inline-block",width:10,height:10,background:"#2563eb",borderRadius:"3px",verticalAlign:"middle",margin:"0 4px 0 14px"}}/>{zl.playoffAscLabel||("Playoffs de ascenso ("+zl.ascenso+"º-"+(zl.playoffAsc)+"º)")}</>}
           {!zl.ascenso&&<><span style={{display:"inline-block",width:10,height:10,background:"#9333ea",borderRadius:"3px",verticalAlign:"middle",marginRight:"4px"}}/> Playoffs (1º-{PLAYOFF_PUESTOS}º)</>}
@@ -2665,7 +2665,7 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
           <br/>Criterios de desempate FEB: enfrentamientos particulares → diferencia particular → diferencia general → puntos anotados
         </div>
       ):(
-        <div style={{fontSize:"11px",color:"#94a3b8",textAlign:"center",marginTop:"8px"}}>
+        <div style={{fontSize:"11px",color:"var(--fx-muted2)",textAlign:"center",marginTop:"8px"}}>
           Criterios de desempate FIBA: head-to-head → diferencia directa → diferencia global → puntos anotados
         </div>
       ))}
@@ -2674,9 +2674,9 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
 }
 
 function EmptyState({icon,text,sub}){return(
-  <div style={{textAlign:"center",padding:"80px 20px",color:"#94a3b8"}}>
+  <div style={{textAlign:"center",padding:"80px 20px",color:"var(--fx-muted2)"}}>
     <div style={{fontSize:"48px",marginBottom:"12px"}}>{icon}</div>
-    <div style={{fontWeight:600,color:"#64748b",fontSize:"16px"}}>{text}</div>
+    <div style={{fontWeight:600,color:"var(--fx-muted)",fontSize:"16px"}}>{text}</div>
     {sub&&<div style={{fontSize:"13px",marginTop:"6px"}}>{sub}</div>}
   </div>
 );}
@@ -2701,14 +2701,14 @@ function PlayerForm({initial,onSave,onCancel,saving}){
       <Fld label="Fecha nac."><input style={inp} type="date" value={f.fecha_nac||""} onChange={set("fecha_nac")}/></Fld>
       <Fld label="Fecha fallecimiento (opcional)"><input style={inp} type="date" value={f.fecha_fallecimiento||""} onChange={set("fecha_fallecimiento")}/></Fld>
     </div>
-    <div style={{marginTop:"6px",fontSize:"12px",fontWeight:700,color:"#64748b",letterSpacing:"0.4px",textTransform:"uppercase"}}>IDs externos</div>
+    <div style={{marginTop:"6px",fontSize:"12px",fontWeight:700,color:"var(--fx-muted)",letterSpacing:"0.4px",textTransform:"uppercase"}}>IDs externos</div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"12px"}}>
       <Fld label="ESPN"><input style={inp} value={f.id_espn||""} onChange={set("id_espn")} placeholder="4433402"/></Fld>
       <Fld label="FIBA"><input style={inp} value={f.fiba_person_id||""} onChange={set("fiba_person_id")} placeholder="123456"/></Fld>
       <Fld label="FEB"><input style={inp} value={f.id_feb||""} onChange={set("id_feb")} placeholder="98765"/></Fld>
     </div>
     <div style={{display:"flex",gap:"10px",marginTop:"8px"}}>
-      <button onClick={onCancel} style={{flex:1,border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"11px",color:"#64748b",background:"#fff",cursor:"pointer",fontWeight:600}}>Cancelar</button>
+      <button onClick={onCancel} style={{flex:1,border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"11px",color:"var(--fx-muted)",background:"var(--fx-card)",cursor:"pointer",fontWeight:600}}>Cancelar</button>
       <button onClick={()=>f.nombre.trim()&&onSave(f)} disabled={saving||!f.nombre.trim()} style={{flex:1,background:f.nombre.trim()?"#9333ea":"#fed7aa",color:"#fff",border:"none",borderRadius:"10px",padding:"11px",cursor:f.nombre.trim()?"pointer":"not-allowed",fontWeight:700}}>{saving?"Guardando...":"Guardar"}</button>
     </div>
   </div>);}
@@ -2830,7 +2830,7 @@ function SeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
     </Fld>
     <Fld label="Orden"><input style={inp} type="number" value={f.orden??0} onChange={e=>setF(p=>({...p,orden:parseInt(e.target.value)||0}))} placeholder="0" min="0"/></Fld>
     <div style={{display:"flex",gap:"10px",marginTop:"8px"}}>
-      <button onClick={onCancel} style={{flex:1,border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"11px",color:"#64748b",background:"#fff",cursor:"pointer",fontWeight:600}}>Cancelar</button>
+      <button onClick={onCancel} style={{flex:1,border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"11px",color:"var(--fx-muted)",background:"var(--fx-card)",cursor:"pointer",fontWeight:600}}>Cancelar</button>
       <button onClick={()=>ok&&onSave(f)} disabled={saving||!ok} style={{flex:1,background:ok?"#9333ea":"#fed7aa",color:"#fff",border:"none",borderRadius:"10px",padding:"11px",cursor:ok?"pointer":"not-allowed",fontWeight:700}}>{saving?"Guardando...":"Guardar"}</button>
     </div>
   </div>);}
@@ -2839,13 +2839,13 @@ const STATUS_BADGE = {
   cantera: null,
   europea: <span title="Jugadora europea" style={{background:"#eff6ff",color:"#1d4ed8",border:"1.5px solid #bfdbfe",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap",display:"inline-flex",alignItems:"center"}}><img src="https://flagcdn.com/20x15/eu.png" width={16} height={12} alt="EU" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",marginRight:"3px"}}/>Europea</span>,
   acp:     <span title="Acuerdo de Cotonú" style={{background:"#fefce8",color:"#a16207",border:"1.5px solid #fde68a",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap"}}>🤝 ACP</span>,
-  extra:   <span title="Extracomunitaria" style={{background:"#f8fafc",color:"#64748b",border:"1.5px solid #cbd5e1",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap"}}>🌍 Extra</span>,
+  extra:   <span title="Extracomunitaria" style={{background:"var(--fx-hover)",color:"var(--fx-muted)",border:"1.5px solid #cbd5e1",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap"}}>🌍 Extra</span>,
 };
 const STATUS_BADGE_LG = {
   cantera: null,
   europea: <span title="Jugadora europea" style={{background:"#eff6ff",color:"#1d4ed8",border:"1.5px solid #bfdbfe",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap",display:"inline-flex",alignItems:"center"}}><img src="https://flagcdn.com/20x15/eu.png" width={16} height={12} alt="EU" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",marginRight:"3px"}}/>Europea</span>,
   acp:     <span title="Acuerdo de Cotonú" style={{background:"#fefce8",color:"#a16207",border:"1.5px solid #fde68a",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🤝 Cotonú</span>,
-  extra:   <span title="Extracomunitaria" style={{background:"#f8fafc",color:"#64748b",border:"1.5px solid #cbd5e1",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🌍 Extra</span>,
+  extra:   <span title="Extracomunitaria" style={{background:"var(--fx-hover)",color:"var(--fx-muted)",border:"1.5px solid #cbd5e1",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🌍 Extra</span>,
 };
 const ACP_BADGE = STATUS_BADGE.acp;
 
@@ -2867,12 +2867,12 @@ function StatusDropdown({filterStatus,setFilterStatus}){
   const label=selected?<span style={{display:"flex",alignItems:"center"}}>{selected.icon}{selected.label}</span>:"Todas las categorías";
   return(
     <div className="bfdb-status-dropdown" ref={ref} style={{position:"relative",flexShrink:0}}>
-      <div onClick={()=>setOpen(o=>!o)} style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:filterStatus?"#9333ea":"#475569",background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",whiteSpace:"nowrap",fontWeight:filterStatus?700:400,minWidth:"190px"}}>
+      <div onClick={()=>setOpen(o=>!o)} style={{border:"1.5px solid var(--fx-border)",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:filterStatus?"#9333ea":"#475569",background:"var(--fx-card)",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",whiteSpace:"nowrap",fontWeight:filterStatus?700:400,minWidth:"190px"}}>
         {label}<span style={{marginLeft:"auto",fontSize:"10px"}}>▼</span>
       </div>
       {open&&(
-        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,zIndex:100,background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:"12px",boxShadow:"0 8px 24px rgba(0,0,0,0.12)",minWidth:"210px",padding:"8px 0"}}>
-          <div onClick={()=>{setFilterStatus("");setOpen(false);}} style={{padding:"8px 14px",fontSize:"12px",color:"#94a3b8",cursor:"pointer",fontWeight:600,borderBottom:"1px solid #f1f5f9"}}>
+        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,zIndex:100,background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"12px",boxShadow:"0 8px 24px rgba(0,0,0,0.12)",minWidth:"210px",padding:"8px 0"}}>
+          <div onClick={()=>{setFilterStatus("");setOpen(false);}} style={{padding:"8px 14px",fontSize:"12px",color:"var(--fx-muted2)",cursor:"pointer",fontWeight:600,borderBottom:"1px solid var(--fx-border2)"}}>
             Todas las categorías
           </div>
           {STATUS_OPTIONS.map(o=>{
@@ -2883,7 +2883,7 @@ function StatusDropdown({filterStatus,setFilterStatus}){
                 onMouseEnter={e=>e.currentTarget.style.background=active?"#fff7ed":"#f8fafc"}
                 onMouseLeave={e=>e.currentTarget.style.background=active?"#fff7ed":"transparent"}>
                 {o.icon}
-                <span style={{fontSize:"13px",color:"#1e293b"}}>{o.label}</span>
+                <span style={{fontSize:"13px",color:"var(--fx-text)"}}>{o.label}</span>
                 {active&&<span style={{marginLeft:"auto",color:"#9333ea"}}>✓</span>}
               </div>
             );
@@ -2910,12 +2910,12 @@ function FibaRow({entry,onApply,onPlaceholder,showActions}){
     <span style={{display:"inline-block",padding:"1px 6px",borderRadius:"6px",fontSize:"10px",fontWeight:700,background:ok?"#dcfce7":"#fee2e2",color:ok?"#166534":"#991b1b",marginRight:"4px"}}>{ok?"✓":"✗"} {label}</span>
   );
   return(
-    <div style={{display:"flex",gap:"10px",padding:"8px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0",alignItems:"center"}}>
+    <div style={{display:"flex",gap:"10px",padding:"8px",background:"var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)",alignItems:"center"}}>
       <img src={p.foto} alt="" width={40} height={40} style={{borderRadius:"6px",objectFit:"cover",background:"#e2e8f0"}}
         onError={function(e){e.currentTarget.style.opacity=0.3;}}/>
       <div style={{flex:1,minWidth:0}}>
         <div style={{fontWeight:700,fontSize:"13px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>
-        <div style={{fontSize:"11px",color:"#94a3b8"}}>{p.nacionalidad} · {p.fecha_nac}</div>
+        <div style={{fontSize:"11px",color:"var(--fx-muted2)"}}>{p.nacionalidad} · {p.fecha_nac}</div>
         <div style={{marginTop:"3px"}}>
           {badge(score.nameOk,"nombre")}
           {score.countryPresent&&badge(score.countryOk,"país")}
@@ -2926,10 +2926,10 @@ function FibaRow({entry,onApply,onPlaceholder,showActions}){
         {pick?(
           <>
             <div style={{fontWeight:700}}>{(pick.display_firstname||pick.firstname)+" "+(pick.display_lastname||pick.lastname)}</div>
-            <div style={{color:"#94a3b8"}}>{pick.country} · {(pick.birthdate||"").slice(0,10)}</div>
-            <div style={{color:"#94a3b8",fontSize:"10px"}}>id {pick.id}</div>
+            <div style={{color:"var(--fx-muted2)"}}>{pick.country} · {(pick.birthdate||"").slice(0,10)}</div>
+            <div style={{color:"var(--fx-muted2)",fontSize:"10px"}}>id {pick.id}</div>
           </>
-        ):<div style={{color:"#94a3b8"}}>sin candidato</div>}
+        ):<div style={{color:"var(--fx-muted2)"}}>sin candidato</div>}
       </div>
       {fotoUrl&&<img src={fotoUrl} alt="" width={40} height={40} style={{borderRadius:"6px",objectFit:"cover"}} onError={function(e){e.currentTarget.style.opacity=0.3;}}/>}
       {showActions&&(
@@ -2943,7 +2943,7 @@ function FibaRow({entry,onApply,onPlaceholder,showActions}){
           )}
           {cands.length>1&&(
             <select value={pick?.id||""} onChange={function(e){const c=cands.find(x=>String(x.id)===e.target.value);if(c)setPick(c);}}
-              style={{fontSize:"10px",padding:"3px",borderRadius:"5px",border:"1px solid #e2e8f0",maxWidth:"110px"}}>
+              style={{fontSize:"10px",padding:"3px",borderRadius:"5px",border:"1px solid var(--fx-border)",maxWidth:"110px"}}>
               {cands.map(function(c){return <option key={c.id} value={c.id}>{(c.display_lastname||c.lastname)} ({c.country})</option>;})}
             </select>
           )}
@@ -2988,44 +2988,44 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
       <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"#0f172a",zIndex:500,display:"flex",flexDirection:"column"}}>
         <div style={{display:"flex",alignItems:"center",gap:"10px",padding:"14px 16px",borderBottom:"1px solid #1e293b"}}>
           <div style={{display:"flex",alignItems:"center",gap:"8px",flex:1,background:"rgba(255,255,255,0.08)",border:"1.5px solid rgba(255,255,255,0.12)",borderRadius:"10px",padding:"9px 12px"}}>
-            <span style={{fontSize:"14px",color:"#94a3b8"}}>🔍</span>
+            <span style={{fontSize:"14px",color:"var(--fx-muted2)"}}>🔍</span>
             <input ref={inputRef} value={q} onChange={e=>{setQ(e.target.value);setOpen(true);}}
               placeholder="Buscar jugadoras, equipos, ligas..." style={{background:"transparent",border:"none",outline:"none",color:"#fff",fontSize:"15px",width:"100%"}}
               onKeyDown={e=>{if(e.key==="Escape"){onClose&&onClose();}}}/>
-            {q&&<button onClick={()=>setQ("")} style={{background:"none",border:"none",color:"#64748b",cursor:"pointer",fontSize:"16px",lineHeight:1,padding:0}}>×</button>}
+            {q&&<button onClick={()=>setQ("")} style={{background:"none",border:"none",color:"var(--fx-muted)",cursor:"pointer",fontSize:"16px",lineHeight:1,padding:0}}>×</button>}
           </div>
           <button onClick={onClose} style={{background:"none",border:"none",color:"#fff",fontSize:"14px",fontWeight:700,cursor:"pointer",padding:"4px 8px"}}>Cancelar</button>
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"6px 0"}}>
           {results&&total>0?(<>
             {results.jugadoras.length>0&&(<>
-              <div style={{padding:"10px 16px 6px",fontSize:"11px",color:"#64748b",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>👩‍🏀 Jugadoras ({results.jugadoras.length})</div>
+              <div style={{padding:"10px 16px 6px",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>👩‍🏀 Jugadoras ({results.jugadoras.length})</div>
               {results.jugadoras.slice(0,8).map(p=>(
                 <div key={p.id_jugadora} onClick={()=>go(()=>onGoToPlayer(p.id_jugadora))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b"}}>{p.nombre}</div>
               ))}
             </>)}
             {results.equipos.length>0&&(<>
-              <div style={{padding:"10px 16px 6px",fontSize:"11px",color:"#64748b",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>🏟️ Equipos ({results.equipos.length})</div>
+              <div style={{padding:"10px 16px 6px",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>🏟️ Equipos ({results.equipos.length})</div>
               {results.equipos.slice(0,8).map(e=>(
                 <div key={e.id_equipo} onClick={()=>go(()=>onGoToTeam(e.id_equipo))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b"}}>{e.nombre}</div>
               ))}
             </>)}
             {results.ligas.length>0&&(<>
-              <div style={{padding:"10px 16px 6px",fontSize:"11px",color:"#64748b",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>🏆 Ligas ({results.ligas.length})</div>
+              <div style={{padding:"10px 16px 6px",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>🏆 Ligas ({results.ligas.length})</div>
               {results.ligas.slice(0,8).map(l=>(
                 <div key={l.id_liga} onClick={()=>go(()=>onGoToLeague(l.id_liga))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b"}}>{l.nombre}</div>
               ))}
             </>)}
             {results.coaches.length>0&&(<>
-              <div style={{padding:"10px 16px 6px",fontSize:"11px",color:"#64748b",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>📋 Cuerpo técnico ({results.coaches.length})</div>
+              <div style={{padding:"10px 16px 6px",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>📋 Cuerpo técnico ({results.coaches.length})</div>
               {results.coaches.slice(0,8).map(c=>(
                 <div key={c.id_coach} onClick={()=>go(()=>onGoToCoach(c.id_coach))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b"}}>{c.nombre}</div>
               ))}
             </>)}
           </>):q.length>=2?(
-            <div style={{textAlign:"center",padding:"40px 20px",color:"#64748b",fontSize:"14px"}}>Sin resultados</div>
+            <div style={{textAlign:"center",padding:"40px 20px",color:"var(--fx-muted)",fontSize:"14px"}}>Sin resultados</div>
           ):(
-            <div style={{textAlign:"center",padding:"40px 20px",color:"#64748b",fontSize:"14px"}}>Escribe al menos 2 caracteres</div>
+            <div style={{textAlign:"center",padding:"40px 20px",color:"var(--fx-muted)",fontSize:"14px"}}>Escribe al menos 2 caracteres</div>
           )}
         </div>
       </div>
@@ -3035,16 +3035,16 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
   return(
     <div ref={ref} style={{position:"relative",flexShrink:0}}>
       <div style={{display:"flex",alignItems:"center",gap:"6px",background:"rgba(255,255,255,0.08)",border:"1.5px solid rgba(255,255,255,0.12)",borderRadius:"10px",padding:"5px 10px"}}>
-        <span style={{fontSize:"13px",color:"#94a3b8"}}>🔍</span>
+        <span style={{fontSize:"13px",color:"var(--fx-muted2)"}}>🔍</span>
         <input value={q} onChange={e=>{setQ(e.target.value);setOpen(true);}} onFocus={()=>q.length>=2&&setOpen(true)}
           placeholder="Buscar..." style={{background:"transparent",border:"none",outline:"none",color:"#fff",fontSize:"13px",width:"160px"}}
           onKeyDown={e=>{if(e.key==="Escape"){setQ("");setOpen(false);}}}/>
-        {q&&<button onClick={()=>{setQ("");setOpen(false);}} style={{background:"none",border:"none",color:"#64748b",cursor:"pointer",fontSize:"14px",lineHeight:1,padding:0}}>×</button>}
+        {q&&<button onClick={()=>{setQ("");setOpen(false);}} style={{background:"none",border:"none",color:"var(--fx-muted)",cursor:"pointer",fontSize:"14px",lineHeight:1,padding:0}}>×</button>}
       </div>
       {open&&results&&total>0&&(
         <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,zIndex:200,background:"#1e293b",border:"1px solid #334155",borderRadius:"14px",boxShadow:"0 12px 40px rgba(0,0,0,0.5)",width:"340px",maxHeight:"480px",overflowY:"auto"}}>
           {results.jugadoras.length>0&&(<>
-            <div style={{padding:"10px 14px 6px",fontSize:"10px",color:"#64748b",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>👩‍🏀 Jugadoras ({results.jugadoras.length})</div>
+            <div style={{padding:"10px 14px 6px",fontSize:"10px",color:"var(--fx-muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>👩‍🏀 Jugadoras ({results.jugadoras.length})</div>
             {results.jugadoras.slice(0,6).map(p=>(
               <div key={p.id_jugadora} onClick={()=>go(()=>onGoToPlayer(p.id_jugadora))}
                 style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 14px",cursor:"pointer",transition:"background 0.1s"}}
@@ -3052,12 +3052,12 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
                 onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                 <Avatar photo={p.foto} name={p.nombre} size={32} fontSize={12} fallecida={!!p.fecha_fallecimiento}/>
                 <div><div style={{fontSize:"13px",color:"#f1f5f9",fontWeight:600}}>{p.nombre}</div>
-                <div style={{fontSize:"11px",color:"#64748b"}}>{p.posicion}{p.posicion2?` · ${p.posicion2}`:""}</div></div>
+                <div style={{fontSize:"11px",color:"var(--fx-muted)"}}>{p.posicion}{p.posicion2?` · ${p.posicion2}`:""}</div></div>
               </div>
             ))}
           </>)}
           {results.equipos.length>0&&(<>
-            <div style={{padding:"10px 14px 6px",fontSize:"10px",color:"#64748b",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",borderTop:"1px solid #1e293b"}}>🏟️ Equipos ({results.equipos.length})</div>
+            <div style={{padding:"10px 14px 6px",fontSize:"10px",color:"var(--fx-muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",borderTop:"1px solid #1e293b"}}>🏟️ Equipos ({results.equipos.length})</div>
             {results.equipos.slice(0,4).map(e=>(
               <div key={e.id_equipo} onClick={()=>go(()=>onGoToTeam(e.id_equipo))}
                 style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 14px",cursor:"pointer"}}
@@ -3065,12 +3065,12 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
                 onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
                 <TeamBadge team={e} size={28}/>
                 <div><div style={{fontSize:"13px",color:"#f1f5f9",fontWeight:600}}>{e.nombre}</div>
-                <div style={{fontSize:"11px",color:"#64748b"}}>{e.ciudad||""}{e.pais?` · ${e.pais}`:""}</div></div>
+                <div style={{fontSize:"11px",color:"var(--fx-muted)"}}>{e.ciudad||""}{e.pais?` · ${e.pais}`:""}</div></div>
               </div>
             ))}
           </>)}
           {results.ligas.length>0&&(<>
-            <div style={{padding:"10px 14px 6px",fontSize:"10px",color:"#64748b",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",borderTop:"1px solid #1e293b"}}>🏆 Ligas ({results.ligas.length})</div>
+            <div style={{padding:"10px 14px 6px",fontSize:"10px",color:"var(--fx-muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",borderTop:"1px solid #1e293b"}}>🏆 Ligas ({results.ligas.length})</div>
             {results.ligas.slice(0,4).map(l=>(
               <div key={l.id_liga} onClick={()=>go(()=>onGoToLeague(l.id_liga))}
                 style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 14px",cursor:"pointer"}}
@@ -3078,12 +3078,12 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
                 onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                 <LeagueBadge liga={l} size={28}/>
                 <div><div style={{fontSize:"13px",color:"#f1f5f9",fontWeight:600}}>{l.nombre}</div>
-                <div style={{fontSize:"11px",color:"#64748b"}}>{l.pais||""}</div></div>
+                <div style={{fontSize:"11px",color:"var(--fx-muted)"}}>{l.pais||""}</div></div>
               </div>
             ))}
           </>)}
           {results.coaches.length>0&&(<>
-            <div style={{padding:"10px 14px 6px",fontSize:"10px",color:"#64748b",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",borderTop:"1px solid #1e293b"}}>📋 Cuerpo Técnico ({results.coaches.length})</div>
+            <div style={{padding:"10px 14px 6px",fontSize:"10px",color:"var(--fx-muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",borderTop:"1px solid #1e293b"}}>📋 Cuerpo Técnico ({results.coaches.length})</div>
             {results.coaches.slice(0,4).map(c=>(
               <div key={c.id_coach} onClick={()=>go(()=>onGoToCoach(c.id_coach))}
                 style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 14px",cursor:"pointer"}}
@@ -3091,15 +3091,15 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
                 onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                 <Avatar photo={c.foto} name={c.nombre} size={32} fontSize={12}/>
                 <div><div style={{fontSize:"13px",color:"#f1f5f9",fontWeight:600}}>{c.nombre}</div>
-                <div style={{fontSize:"11px",color:"#64748b"}}>{c.nacionalidad||""}</div></div>
+                <div style={{fontSize:"11px",color:"var(--fx-muted)"}}>{c.nacionalidad||""}</div></div>
               </div>
             ))}
           </>)}
-          {total===0&&q.length>=2&&<div style={{padding:"16px 14px",fontSize:"13px",color:"#64748b",textAlign:"center"}}>Sin resultados para "{q}"</div>}
+          {total===0&&q.length>=2&&<div style={{padding:"16px 14px",fontSize:"13px",color:"var(--fx-muted)",textAlign:"center"}}>Sin resultados para "{q}"</div>}
         </div>
       )}
       {open&&results&&total===0&&q.length>=2&&(
-        <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,zIndex:200,background:"#1e293b",border:"1px solid #334155",borderRadius:"14px",padding:"16px 14px",width:"280px",fontSize:"13px",color:"#64748b",textAlign:"center"}}>
+        <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,zIndex:200,background:"#1e293b",border:"1px solid #334155",borderRadius:"14px",padding:"16px 14px",width:"280px",fontSize:"13px",color:"var(--fx-muted)",textAlign:"center"}}>
           Sin resultados para "{q}"
         </div>
       )}
@@ -3163,28 +3163,8 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
   },[fichajesPorLiga,equipoMap]);
   const fichajesFiltrados=useMemo(()=>filterEquipo==="ALL"?fichajesPorLiga:fichajesPorLiga.filter(s=>s.id_equipo===filterEquipo),[fichajesPorLiga,filterEquipo]);
   const visible=fichajesFiltrados.slice(0,visibleCount);
-  const [dark,setDark]=useState(()=>{try{return localStorage.getItem("bfdb-fichajes-dark")==="1";}catch(e){return false;}});
-  useEffect(()=>{
-    try{localStorage.setItem("bfdb-fichajes-dark",dark?"1":"0");}catch(e){}
-    const html=document.documentElement;
-    if(dark) html.setAttribute("data-bfdb-fichajes-theme","dark"); else html.removeAttribute("data-bfdb-fichajes-theme");
-    return()=>html.removeAttribute("data-bfdb-fichajes-theme");
-  },[dark]);
   return(
-    <div className="bfdb-container bfdb-fichajes" style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
-      <style>{`
-        html[data-bfdb-fichajes-theme="dark"]{background:#0f172a;}
-        html[data-bfdb-fichajes-theme="dark"] body{background:#0f172a;}
-        html[data-bfdb-fichajes-theme="dark"] .bfdb-app-root{background:#0f172a !important;}
-        .bfdb-fichajes{--fx-text:#1e293b;--fx-muted:#94a3b8;--fx-label:#475569;--fx-card:#fff;--fx-border:#e2e8f0;--fx-pill:#fff7ed;--fx-shadow:0 1px 6px rgba(0,0,0,0.07);--fx-shadow-hover:0 4px 16px rgba(249,115,22,0.15);--fx-brand:#9333ea;}
-        html[data-bfdb-fichajes-theme="dark"] .bfdb-fichajes{--fx-text:#f1f5f9;--fx-muted:#94a3b8;--fx-label:#cbd5e1;--fx-card:#1e293b;--fx-border:#334155;--fx-pill:#292524;--fx-shadow:0 1px 6px rgba(0,0,0,0.4);--fx-shadow-hover:0 4px 16px rgba(147,51,234,0.35);--fx-brand:#c084fc;}
-      `}</style>
-      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:"6px"}}>
-        <button onClick={()=>setDark(d=>!d)} title={dark?"Cambiar a claro":"Cambiar a oscuro"}
-          style={{background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"999px",padding:"6px 12px",fontSize:"14px",cursor:"pointer",color:"var(--fx-text)",boxShadow:"var(--fx-shadow)"}}>
-          {dark?"☀️ Claro":"🌙 Oscuro"}
-        </button>
-      </div>
+    <div className="bfdb-container" style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
       <div style={{marginBottom:"16px"}}>
         <h2 style={{fontWeight:800,fontSize:"20px",color:"var(--fx-text)",margin:"0 0 4px",display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}>
           ✍️ Últimos fichajes
@@ -3251,12 +3231,12 @@ function StatsHeader({stats}){
     <div className="bfdb-stats-grid" style={{display:"grid",gridTemplateColumns:`repeat(${stats.length},1fr)`,gap:"8px",marginBottom:"16px"}}>
       {stats.map(({icon,value,label,onClick})=>(
         <div key={label} onClick={onClick}
-          style={{background:"#fff",borderRadius:"14px",padding:"12px 8px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",textAlign:"center",cursor:onClick?"pointer":"default",transition:"all 0.15s"}}
+          style={{background:"var(--fx-card)",borderRadius:"14px",padding:"12px 8px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",textAlign:"center",cursor:onClick?"pointer":"default",transition:"all 0.15s"}}
           onMouseEnter={e=>{if(onClick)e.currentTarget.style.boxShadow="0 4px 12px rgba(249,115,22,0.2)";}}
           onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.06)";}}>
           <div style={{fontSize:"18px",marginBottom:"4px"}}>{icon}</div>
           <div style={{fontSize:"20px",fontWeight:800,color:onClick?"#9333ea":"#1e293b"}}>{typeof value==="number"?value.toLocaleString("es"):value}</div>
-          <div style={{fontSize:"11px",color:"#94a3b8",lineHeight:1.2}}>{label}</div>
+          <div style={{fontSize:"11px",color:"var(--fx-muted2)",lineHeight:1.2}}>{label}</div>
         </div>
       ))}
     </div>
@@ -3273,13 +3253,13 @@ function PaisDropdown({allPaises,filterPais,setFilterPais,placeholder}){
   },[]);
   return(
     <div ref={ref} style={{position:"relative",flexShrink:0}}>
-      <div onClick={()=>setOpen(o=>!o)} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 14px",fontSize:"13px",color:filterPais?"#9333ea":"#475569",background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px",whiteSpace:"nowrap",fontWeight:filterPais?700:400,height:"40px",boxSizing:"border-box",minWidth:"140px"}}>
+      <div onClick={()=>setOpen(o=>!o)} style={{border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 14px",fontSize:"13px",color:filterPais?"#9333ea":"#475569",background:"var(--fx-card)",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px",whiteSpace:"nowrap",fontWeight:filterPais?700:400,height:"40px",boxSizing:"border-box",minWidth:"140px"}}>
         {filterPais?<><FlagImg country={filterPais}/><span>{filterPais}</span></>:<span>{placeholder}</span>}
         <span style={{marginLeft:"auto",fontSize:"10px"}}>▼</span>
       </div>
       {open&&(
-        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,zIndex:100,background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:"12px",boxShadow:"0 8px 24px rgba(0,0,0,0.12)",minWidth:"180px",maxHeight:"280px",overflowY:"auto",padding:"8px 0"}}>
-          <div onClick={()=>{setFilterPais("");setOpen(false);}} style={{padding:"8px 14px",fontSize:"12px",color:"#94a3b8",cursor:"pointer",fontWeight:600,borderBottom:"1px solid #f1f5f9"}}>
+        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,zIndex:100,background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"12px",boxShadow:"0 8px 24px rgba(0,0,0,0.12)",minWidth:"180px",maxHeight:"280px",overflowY:"auto",padding:"8px 0"}}>
+          <div onClick={()=>{setFilterPais("");setOpen(false);}} style={{padding:"8px 14px",fontSize:"12px",color:"var(--fx-muted2)",cursor:"pointer",fontWeight:600,borderBottom:"1px solid var(--fx-border2)"}}>
             Todos los países
           </div>
           {(allPaises||[]).map(p=>{
@@ -3290,7 +3270,7 @@ function PaisDropdown({allPaises,filterPais,setFilterPais,placeholder}){
                 onMouseEnter={e=>e.currentTarget.style.background=checked?"#fff7ed":"#f8fafc"}
                 onMouseLeave={e=>e.currentTarget.style.background=checked?"#fff7ed":"transparent"}>
                 <FlagImg country={p}/>
-                <span style={{fontSize:"13px",color:"#1e293b",fontWeight:checked?700:400}}>{p}</span>
+                <span style={{fontSize:"13px",color:"var(--fx-text)",fontWeight:checked?700:400}}>{p}</span>
                 {checked&&<span style={{marginLeft:"auto",color:"#9333ea",fontSize:"12px"}}>✓</span>}
               </div>
             );
@@ -3311,12 +3291,12 @@ function NacDropdown({allNacs,filterNacs,setFilterNacs}){
   const label=filterNacs.size===0?"Todas las nacionalidades":`${filterNacs.size} seleccionada${filterNacs.size>1?"s":""}`;
   return(
     <div className="bfdb-nac-dropdown" ref={ref} style={{position:"relative",flexShrink:0}}>
-      <div onClick={()=>setOpen(o=>!o)} style={{border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:filterNacs.size>0?"#9333ea":"#475569",background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",whiteSpace:"nowrap",fontWeight:filterNacs.size>0?700:400,minWidth:"200px"}}>
+      <div onClick={()=>setOpen(o=>!o)} style={{border:"1.5px solid var(--fx-border)",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:filterNacs.size>0?"#9333ea":"#475569",background:"var(--fx-card)",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",whiteSpace:"nowrap",fontWeight:filterNacs.size>0?700:400,minWidth:"200px"}}>
         {label}<span style={{marginLeft:"auto",fontSize:"10px"}}>▼</span>
       </div>
       {open&&(
-        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,zIndex:100,background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:"12px",boxShadow:"0 8px 24px rgba(0,0,0,0.12)",minWidth:"220px",maxHeight:"260px",overflowY:"auto",padding:"8px 0"}}>
-          <div onClick={()=>setFilterNacs(new Set())} style={{padding:"8px 14px",fontSize:"12px",color:"#94a3b8",cursor:"pointer",fontWeight:600,borderBottom:"1px solid #f1f5f9"}}>
+        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,zIndex:100,background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"12px",boxShadow:"0 8px 24px rgba(0,0,0,0.12)",minWidth:"220px",maxHeight:"260px",overflowY:"auto",padding:"8px 0"}}>
+          <div onClick={()=>setFilterNacs(new Set())} style={{padding:"8px 14px",fontSize:"12px",color:"var(--fx-muted2)",cursor:"pointer",fontWeight:600,borderBottom:"1px solid var(--fx-border2)"}}>
             Limpiar selección
           </div>
           {allNacs.map(n=>{
@@ -3327,7 +3307,7 @@ function NacDropdown({allNacs,filterNacs,setFilterNacs}){
                 onMouseLeave={e=>e.currentTarget.style.background=checked?"#fff7ed":"transparent"}>
                 <input type="checkbox" checked={checked} onChange={()=>setFilterNacs(prev=>{const s=new Set(prev);checked?s.delete(n):s.add(n);return s;})} style={{accentColor:"#9333ea",width:"14px",height:"14px",flexShrink:0}}/>
                 <FlagImg country={n}/>
-                <span style={{fontSize:"13px",color:"#1e293b",fontWeight:checked?600:400}}>{n}</span>
+                <span style={{fontSize:"13px",color:"var(--fx-text)",fontWeight:checked?600:400}}>{n}</span>
               </label>
             );
           })}
@@ -3357,8 +3337,8 @@ function StatsJugadora({idJugadora,equipos,ligas,equiposNombres,onOpenPartido}){
     return ()=>{cancel=true;};
   },[idJugadora]);
 
-  if(rows===null)return <div style={{textAlign:"center",padding:"40px",color:"#94a3b8",fontSize:"14px"}}>Cargando estadísticas…</div>;
-  if(rows.length===0)return <div style={{background:"#fff",borderRadius:"20px",padding:"40px",textAlign:"center",color:"#94a3b8",fontSize:"14px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>Aún no hay estadísticas de partido para esta jugadora.</div>;
+  if(rows===null)return <div style={{textAlign:"center",padding:"40px",color:"var(--fx-muted2)",fontSize:"14px"}}>Cargando estadísticas…</div>;
+  if(rows.length===0)return <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"40px",textAlign:"center",color:"var(--fx-muted2)",fontSize:"14px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>Aún no hay estadísticas de partido para esta jugadora.</div>;
 
   const N=v=>{if(typeof v==="string"&&v.indexOf(":")>=0){const p=v.split(":");return (parseInt(p[0],10)||0)+(parseInt(p[1],10)||0)/60;}return Number(v)||0;};
   const ligaMap={}; (ligas||[]).forEach(l=>ligaMap[l.id_liga]=l);
@@ -3377,7 +3357,7 @@ function StatsJugadora({idJugadora,equipos,ligas,equiposNombres,onOpenPartido}){
     return fb-fa;
   });
   const varios=equiposOrden.length>1;
-  const th={padding:"7px 6px",fontSize:"10px",fontWeight:700,color:"#94a3b8",textAlign:"center",whiteSpace:"nowrap",borderBottom:"2px solid #f1f5f9"};
+  const th={padding:"7px 6px",fontSize:"10px",fontWeight:700,color:"var(--fx-muted2)",textAlign:"center",whiteSpace:"nowrap",borderBottom:"2px solid #f1f5f9"};
   const td={padding:"7px 6px",fontSize:"12px",color:"#334155",textAlign:"center",whiteSpace:"nowrap",borderBottom:"1px solid #f8fafc"};
 
   const bloque=(idEq,part)=>{
@@ -3390,17 +3370,17 @@ function StatsJugadora({idJugadora,equipos,ligas,equiposNombres,onOpenPartido}){
     const e=tData(idEq,temp);
     return(
       <div key={idEq} style={{display:"flex",flexDirection:"column",gap:"12px",borderLeft:varios?"3px solid #ddd6fe":"none",paddingLeft:varios?"12px":"0"}}>
-        {varios&&(<div style={{display:"flex",alignItems:"center",gap:"8px"}}>{e&&e.escudo&&<img src={e.escudo} alt="" style={{width:26,height:26,objectFit:"contain"}}/>}<span style={{fontWeight:800,fontSize:"15px",color:"#1e293b"}}>{e.nombre}</span></div>)}
-        <div style={{background:"#fff",borderRadius:"18px",padding:"18px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
+        {varios&&(<div style={{display:"flex",alignItems:"center",gap:"8px"}}>{e&&e.escudo&&<img src={e.escudo} alt="" style={{width:26,height:26,objectFit:"contain"}}/>}<span style={{fontWeight:800,fontSize:"15px",color:"var(--fx-text)"}}>{e.nombre}</span></div>)}
+        <div style={{background:"var(--fx-card)",borderRadius:"18px",padding:"18px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
           <div style={{fontSize:"12px",fontWeight:700,color:"#9333ea",marginBottom:"12px",display:"flex",alignItems:"center",gap:"6px"}}>{!varios&&e&&e.escudo&&<img src={e.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>}PROMEDIOS · {temp}{!varios?` · ${e.nombre}`:""}</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(58px,1fr))",gap:"8px"}}>
-            {cards.map(([l,v])=>(<div key={l} style={{textAlign:"center",background:"#faf5ff",borderRadius:"12px",padding:"10px 4px"}}><div style={{fontSize:"18px",fontWeight:800,color:"#1e293b"}}>{v}</div><div style={{fontSize:"10px",color:"#94a3b8",fontWeight:600}}>{l}</div></div>))}
+            {cards.map(([l,v])=>(<div key={l} style={{textAlign:"center",background:"#faf5ff",borderRadius:"12px",padding:"10px 4px"}}><div style={{fontSize:"18px",fontWeight:800,color:"var(--fx-text)"}}>{v}</div><div style={{fontSize:"10px",color:"var(--fx-muted2)",fontWeight:600}}>{l}</div></div>))}
           </div>
           <div style={{display:"flex",gap:"16px",marginTop:"12px",flexWrap:"wrap"}}>
-            {pcts.map(([l,v])=>(<div key={l} style={{fontSize:"12px",color:"#64748b"}}><span style={{fontWeight:700,color:"#334155"}}>{v==null?"—":v+"%"}</span> {l}</div>))}
+            {pcts.map(([l,v])=>(<div key={l} style={{fontSize:"12px",color:"var(--fx-muted)"}}><span style={{fontWeight:700,color:"#334155"}}>{v==null?"—":v+"%"}</span> {l}</div>))}
           </div>
         </div>
-        <div style={{background:"#fff",borderRadius:"18px",padding:"14px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",overflowX:"auto"}}>
+        <div style={{background:"var(--fx-card)",borderRadius:"18px",padding:"14px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",overflowX:"auto"}}>
           <div style={{fontSize:"12px",fontWeight:700,color:"#9333ea",marginBottom:"10px"}}>PARTIDO A PARTIDO</div>
           <table style={{borderCollapse:"collapse",width:"100%",minWidth:"580px"}}>
             <thead><tr>{["Fecha","","Rival","Res","MIN","PTS","TC","T3","TL","REB","AST","VAL"].map((h,i)=><th key={i} style={th}>{h}</th>)}</tr></thead>
@@ -3412,7 +3392,7 @@ function StatsJugadora({idJugadora,equipos,ligas,equiposNombres,onOpenPartido}){
                 const pc=local?N(x.resultado_visitante):N(x.resultado_local);
                 const win=pf>pc;
                 return(<tr key={i} onClick={()=>onOpenPartido&&onOpenPartido(x.id_partido)} style={{cursor:onOpenPartido?"pointer":"default"}}>
-                  <td style={{...td,color:"#94a3b8",fontSize:"11px"}}>{(x.fecha_hora||"").slice(5,10).split("-").reverse().join("/")}</td>
+                  <td style={{...td,color:"var(--fx-muted2)",fontSize:"11px"}}>{(x.fecha_hora||"").slice(5,10).split("-").reverse().join("/")}</td>
                   <td style={{...td,fontSize:"13px"}}>{local?"🏠":"✈️"}</td>
                   <td style={{...td,textAlign:"left",maxWidth:"130px",overflow:"hidden",textOverflow:"ellipsis"}}>{rival}</td>
                   <td style={{...td,fontWeight:700,color:win?"#16a34a":"#ef4444"}}>{win?"V":"D"} {pf}-{pc}</td>
@@ -3436,16 +3416,16 @@ function StatsJugadora({idJugadora,equipos,ligas,equiposNombres,onOpenPartido}){
   return(
     <div style={{display:"flex",flexDirection:"column",gap:"16px"}}>
       <div style={{display:"flex",alignItems:"center",gap:"10px",flexWrap:"wrap"}}>
-        <select value={temp||""} onChange={e=>{setTemp(e.target.value);setComp("ALL");}} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#9333ea",fontWeight:700,background:"#fff",outline:"none"}}>
+        <select value={temp||""} onChange={e=>{setTemp(e.target.value);setComp("ALL");}} style={{border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#9333ea",fontWeight:700,background:"var(--fx-card)",outline:"none"}}>
           {temps.map(t=><option key={t} value={t}>{t}</option>)}
         </select>
         {compsTemp.length>1?(
-          <select value={compActiva} onChange={e=>setComp(e.target.value)} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#475569",fontWeight:600,background:"#fff",outline:"none"}}>
+          <select value={compActiva} onChange={e=>setComp(e.target.value)} style={{border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"var(--fx-label)",fontWeight:600,background:"var(--fx-card)",outline:"none"}}>
             <option value="ALL">Todas las competiciones</option>
             {compsTemp.map(c=><option key={c} value={c}>{ligaMap[c]?.nombre||c}</option>)}
           </select>
         ):compsTemp.length===1&&(
-          <select value={compsTemp[0]} disabled style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#475569",fontWeight:600,background:"#f8fafc",outline:"none",cursor:"default"}}>
+          <select value={compsTemp[0]} disabled style={{border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"var(--fx-label)",fontWeight:600,background:"var(--fx-hover)",outline:"none",cursor:"default"}}>
             <option value={compsTemp[0]}>{ligaMap[compsTemp[0]]?.nombre||compsTemp[0]}</option>
           </select>
         )}
@@ -3676,7 +3656,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
             const shareText=detallesShare?`${selected.nombre} · ${detallesShare} — La Basketneta`:`Ficha de ${selected.nombre} en La Basketneta`;
             if(navigator.share){navigator.share({title:selected.nombre,text:shareText,url}).catch(()=>{});}
             else{navigator.clipboard.writeText(url);setShareMsg(true);setTimeout(()=>setShareMsg(false),2000);}
-          }} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>📤 Compartir</button>
+          }} style={{background:"var(--fx-hover)",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"var(--fx-label)"}}>📤 Compartir</button>
           {shareMsg&&<span style={{fontSize:"12px",color:"#16a34a",fontWeight:600}}>¡Enlace copiado!</span>}
           {isAdmin&&!del&&(<>
           <div style={{display:"flex",gap:"8px"}}>
@@ -3687,7 +3667,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
                 if(data)setPlayers(prev=>prev.map(p=>p.id_jugadora===selId?{...p,...data}:p));
               }catch(_){}
               setModal("editPlayer");
-            }} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>✏️ Editar</button>
+            }} style={{background:"var(--fx-hover)",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"var(--fx-label)"}}>✏️ Editar</button>
             <button onClick={()=>setDel("player")} style={{background:"#fee2e2",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#ef4444"}}>🗑️</button>
           </div>
           </>)}
@@ -3696,17 +3676,17 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
             <span style={{fontSize:"13px",color:"#ef4444",fontWeight:600}}>¿Eliminar?</span>
             <button onClick={del==="player"?delPlayer:()=>delSeason(del)} style={{background:"#ef4444",color:"#fff",border:"none",borderRadius:"8px",padding:"6px 14px",fontWeight:700,cursor:"pointer",fontSize:"13px"}}>Sí</button>
-            <button onClick={()=>setDel(null)} style={{background:"#f1f5f9",color:"#475569",border:"none",borderRadius:"8px",padding:"6px 14px",fontWeight:600,cursor:"pointer",fontSize:"13px"}}>No</button>
+            <button onClick={()=>setDel(null)} style={{background:"var(--fx-hover)",color:"var(--fx-label)",border:"none",borderRadius:"8px",padding:"6px 14px",fontWeight:600,cursor:"pointer",fontSize:"13px"}}>No</button>
           </div>
         )}
       </div>
 
-      <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
+      <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
         <div style={{display:"flex",alignItems:"flex-start",gap:"20px"}}>
           <Avatar photo={selected.foto} name={selected.nombre} size={90} fontSize={30} fallecida={!!selected.fecha_fallecimiento} onPhotoClick={setLightboxPhoto}/>
           <div style={{flex:1}}>
             <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"12px",marginBottom:"8px",flexWrap:"wrap"}}>
-              <div style={{minWidth:"140px",flex:1}}><div style={{display:"flex",alignItems:"center",gap:"8px"}}><h1 style={{fontWeight:800,fontSize:"21px",color:"#1e293b",margin:0,wordBreak:"break-word"}}>{selected.nombre}</h1>{onToggleFav&&<button onClick={e=>{e.stopPropagation();onToggleFav("jugadora",selected.id_jugadora);}} title={isFavFn?.("jugadora",selected.id_jugadora)?"Quitar de favoritos":"Añadir a favoritos"} style={{background:"none",border:"none",cursor:"pointer",fontSize:"20px",padding:0,lineHeight:1,flexShrink:0}}>{isFavFn?.("jugadora",selected.id_jugadora)?"⭐":"☆"}</button>}</div>{isAdmin&&<span style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{selected.id_jugadora}</span>}</div>
+              <div style={{minWidth:"140px",flex:1}}><div style={{display:"flex",alignItems:"center",gap:"8px"}}><h1 style={{fontWeight:800,fontSize:"21px",color:"var(--fx-text)",margin:0,wordBreak:"break-word"}}>{selected.nombre}</h1>{onToggleFav&&<button onClick={e=>{e.stopPropagation();onToggleFav("jugadora",selected.id_jugadora);}} title={isFavFn?.("jugadora",selected.id_jugadora)?"Quitar de favoritos":"Añadir a favoritos"} style={{background:"none",border:"none",cursor:"pointer",fontSize:"20px",padding:0,lineHeight:1,flexShrink:0}}>{isFavFn?.("jugadora",selected.id_jugadora)?"⭐":"☆"}</button>}</div>{isAdmin&&<span style={{fontSize:"11px",color:"var(--fx-muted2)",fontFamily:"monospace"}}>{selected.id_jugadora}</span>}</div>
               {(()=>{
                 const titles={};
                 const uniquePairs=[...new Map((selected.seasons||[]).map(s=>[s.id_equipo+"_"+s.temporada,s])).values()];
@@ -3725,15 +3705,15 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
               {selected.posicion&&<span style={posStyle(selected.posicion)}>{selected.posicion}</span>}
               {selected.posicion2&&<span style={posStyle(selected.posicion2)}>{selected.posicion2}</span>}
               {STATUS_BADGE_LG[playerStatus(selected.nacionalidad,selected.nacionalidad2)]}
-              {(selected.nacionalidad||selected.nacionalidad2)&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",padding:"3px 8px",borderRadius:"20px",display:"inline-flex",alignItems:"center",gap:"4px"}}>{selected.nacionalidad&&<FlagImg country={selected.nacionalidad}/>}{selected.nacionalidad2&&<FlagImg country={selected.nacionalidad2}/>}</span>}
+              {(selected.nacionalidad||selected.nacionalidad2)&&<span style={{background:"var(--fx-hover)",color:"var(--fx-label)",fontSize:"12px",padding:"3px 8px",borderRadius:"20px",display:"inline-flex",alignItems:"center",gap:"4px"}}>{selected.nacionalidad&&<FlagImg country={selected.nacionalidad}/>}{selected.nacionalidad2&&<FlagImg country={selected.nacionalidad2}/>}</span>}
             </div>
             {(()=>{
               const coachRecord=(coaches||[]).find(c=>String(c.id_jugadora)===String(selected.id_jugadora));
               return(
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"12px",flexWrap:"wrap"}}>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:"8px",flex:1,minWidth:0}}>
-                    {selected.altura_cm&&<div style={{fontSize:"13px"}}><span style={{color:"#94a3b8"}}>Altura: </span><span style={{fontWeight:600,color:"#334155"}}>{selected.altura_cm} cm</span></div>}
-                    {selected.fecha_nac&&<div style={{fontSize:"13px"}}><span style={{color:"#94a3b8"}}>{selected.fecha_fallecimiento?"Edad al fallecer: ":"Edad: "}</span><span style={{fontWeight:600,color:"#334155"}}>{calcAge(selected.fecha_nac,selected.fecha_fallecimiento)} años</span></div>}
+                    {selected.altura_cm&&<div style={{fontSize:"13px"}}><span style={{color:"var(--fx-muted2)"}}>Altura: </span><span style={{fontWeight:600,color:"#334155"}}>{selected.altura_cm} cm</span></div>}
+                    {selected.fecha_nac&&<div style={{fontSize:"13px"}}><span style={{color:"var(--fx-muted2)"}}>{selected.fecha_fallecimiento?"Edad al fallecer: ":"Edad: "}</span><span style={{fontWeight:600,color:"#334155"}}>{calcAge(selected.fecha_nac,selected.fecha_fallecimiento)} años</span></div>}
                   </div>
                   {coachRecord&&(
                     <button onClick={()=>onGoToCoach(coachRecord.id_coach,{tab:"jugadoras",id:selected?.id_jugadora,label:selected?.nombre})}
@@ -3751,16 +3731,16 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
         {[["carrera","Carrera"],["estadisticas","Estadísticas"]].map(([k,l])=>(<button key={k} onClick={()=>setFtab(k)} style={{flex:1,padding:"10px",borderRadius:"12px",border:"none",cursor:"pointer",fontWeight:700,fontSize:"13px",background:ftab===k?"#9333ea":"#f1f5f9",color:ftab===k?"#fff":"#64748b"}}>{l}</button>))}
       </div>
       {ftab==="carrera"&&(
-      <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
+      <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px",flexWrap:"wrap",gap:"10px"}}>
-          <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>Historial <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({selected.seasons.length})</span></h2>
+          <h2 style={{fontWeight:700,fontSize:"17px",color:"var(--fx-text)",margin:0}}>Historial <span style={{color:"var(--fx-muted2)",fontWeight:400,fontSize:"14px"}}>({selected.seasons.length})</span></h2>
           {isAdmin&&<button onClick={()=>setModal("addSeason")} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Temporada</button>}
         </div>
         {isAdmin&&modal==="addSeason"&&<Modal title="Añadir temporada" onClose={()=>setModal(null)}><SeasonForm equipos={equipos} ligas={ligas} onSave={addSeason} onCancel={()=>setModal(null)} saving={saving}/></Modal>}
         {playerTipos.length>1&&(
-          <div style={{marginBottom:"16px",paddingBottom:"14px",borderBottom:"1px solid #f1f5f9"}}>
+          <div style={{marginBottom:"16px",paddingBottom:"14px",borderBottom:"1px solid var(--fx-border2)"}}>
             <select value={currentTipo||"ALL"} onChange={e=>setActiveTipo(e.target.value)}
-              style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none",width:"100%"}}>
+              style={{border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"var(--fx-label)",background:"var(--fx-card)",outline:"none",width:"100%"}}>
               <option value="ALL">Todas las competiciones</option>
               {playerTipos.map(t=><option key={t} value={t}>{TIPO_LABELS[t]||t}</option>)}
             </select>
@@ -3771,11 +3751,11 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           const coachSeasons=(coachRecord?(tempCoach||[]).filter(tc=>tc.id_coach===coachRecord.id_coach):[]).map(s=>({...s,_type:"coach"}));
           const playSeasons=filteredSeasons.map(s=>({...s,_type:"player"}));
           const merged=[...playSeasons,...coachSeasons].sort((a,b)=>b.temporada.localeCompare(a.temporada));
-          if(merged.length===0)return <div style={{textAlign:"center",padding:"30px",color:"#94a3b8",fontSize:"14px"}}>Sin temporadas para esta competición</div>;
+          if(merged.length===0)return <div style={{textAlign:"center",padding:"30px",color:"var(--fx-muted2)",fontSize:"14px"}}>Sin temporadas para esta competición</div>;
           const hasCoach=coachSeasons.length>0;
           return(
             <>
-              {hasCoach&&<div style={{display:"flex",gap:"12px",marginBottom:"12px",fontSize:"12px",color:"#64748b",alignItems:"center"}}>
+              {hasCoach&&<div style={{display:"flex",gap:"12px",marginBottom:"12px",fontSize:"12px",color:"var(--fx-muted)",alignItems:"center"}}>
                 <span style={{display:"flex",alignItems:"center",gap:"4px"}}><span style={{width:10,height:10,borderRadius:"50%",background:"#9333ea",display:"inline-block"}}/> Jugadora</span>
                 <span style={{display:"flex",alignItems:"center",gap:"4px"}}><span style={{width:10,height:10,borderRadius:"50%",background:"#3b82f6",display:"inline-block"}}/> Entrenadora</span>
               </div>}
@@ -3798,19 +3778,19 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
                             <div>
                               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"6px",flexWrap:"wrap"}}>
                                 <div style={{display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
-                                  <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{s.temporada} · </span>
+                                  <span style={{fontWeight:700,fontSize:"14px",color:"var(--fx-text)"}}>{s.temporada} · </span>
                                   <span style={{color:isCoach?"#3b82f6":"#9333ea",fontWeight:700,textDecoration:"underline"}}>{resolveTeamName(s.id_equipo,s.temporada,equiposNombres,equipoMap)||s.id_equipo}</span>
                                   {eq?.filial_de&&<span style={{background:"#f0fdf4",color:"#16a34a",fontSize:"9px",fontWeight:800,padding:"1px 6px",borderRadius:"20px",letterSpacing:"0.3px"}}>FILIAL</span>}
                                   {isCoach&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"10px",fontWeight:700,padding:"1px 6px",borderRadius:"20px"}}>📋 Coach</span>}
-                                  {isAdmin&&isCoach&&<div style={{display:"flex",gap:"4px",marginLeft:"auto"}} onClick={e=>e.stopPropagation()}>{i===0&&<button onClick={()=>setSeasonModal({id_equipo:s.id_equipo,id_liga:s.id_liga,temporada:nextSeason(s.temporada)})} style={{background:"#f0fdf4",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#16a34a"}} title="Renovar temporada coach">⟳</button>}<button onClick={()=>setSeasonModal(s)} style={{background:"#f1f5f9",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#475569"}}>✏️</button><button onClick={()=>setDelCoachItem({type:"season",id:s.id})} style={{background:"#fee2e2",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#ef4444"}}>🗑️</button></div>}
+                                  {isAdmin&&isCoach&&<div style={{display:"flex",gap:"4px",marginLeft:"auto"}} onClick={e=>e.stopPropagation()}>{i===0&&<button onClick={()=>setSeasonModal({id_equipo:s.id_equipo,id_liga:s.id_liga,temporada:nextSeason(s.temporada)})} style={{background:"#f0fdf4",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#16a34a"}} title="Renovar temporada coach">⟳</button>}<button onClick={()=>setSeasonModal(s)} style={{background:"var(--fx-hover)",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"var(--fx-label)"}}>✏️</button><button onClick={()=>setDelCoachItem({type:"season",id:s.id})} style={{background:"#fee2e2",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#ef4444"}}>🗑️</button></div>}
                                 </div>
                                 {isAdmin&&!isCoach&&<div style={{display:"flex",gap:"4px"}} onClick={e=>e.stopPropagation()}>
                                   {i===0&&<button onClick={()=>{setRenewSeason({id_equipo:s.id_equipo,id_liga:s.id_liga,temporada:nextSeason(s.temporada),dorsal:s.dorsal||""});setModal("addSeason");}} style={{background:"#f0fdf4",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#16a34a"}} title="Renovar temporada">⟳</button>}
-                                  <button onClick={()=>{setEditSeason(s);setModal("editSeason");}} style={{background:"#f1f5f9",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#475569"}}>✏️</button>
+                                  <button onClick={()=>{setEditSeason(s);setModal("editSeason");}} style={{background:"var(--fx-hover)",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"var(--fx-label)"}}>✏️</button>
                                   <button onClick={()=>setDel(s.id)} style={{background:"#fee2e2",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#ef4444"}}>🗑️</button>
                                 </div>}
                               </div>
-                              <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{lig&&<MultiFlag countries={[lig.pais,lig.pais2,lig.pais3]}/>}{lig?.nombre||s.id_liga}</div>
+                              <div style={{fontSize:"12px",color:"var(--fx-muted)",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{lig&&<MultiFlag countries={[lig.pais,lig.pais2,lig.pais3]}/>}{lig?.nombre||s.id_liga}</div>
                             </div>
                           </div>
                         </div>
@@ -3853,17 +3833,17 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
       {isAdmin&&<div style={{display:"flex",justifyContent:"flex-end",marginBottom:"12px"}}><button onClick={()=>setModal("addPlayer")} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Jugadora</button></div>}
 
       <div className="bfdb-filter-row" style={{display:"flex",gap:"8px",marginBottom:"8px",flexWrap:"wrap",alignItems:"stretch"}}>
-        <input style={{flex:"1 1 200px",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 14px",fontSize:"13px",color:"#1e293b",outline:"none",background:"#fff",height:"40px",boxSizing:"border-box"}}
+        <input style={{flex:"1 1 200px",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 14px",fontSize:"13px",color:"var(--fx-text)",outline:"none",background:"var(--fx-card)",height:"40px",boxSizing:"border-box"}}
           placeholder="🔍 Nombre de jugadora..." value={search} onChange={e=>setSearch(e.target.value)}/>
-        <select style={{flex:"0 0 auto",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterPos?"#9333ea":"#475569",background:"#fff",outline:"none",height:"40px",fontWeight:filterPos?700:400}} value={filterPos} onChange={e=>setFilterPos(e.target.value)}>
+        <select style={{flex:"0 0 auto",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterPos?"#9333ea":"#475569",background:"var(--fx-card)",outline:"none",height:"40px",fontWeight:filterPos?700:400}} value={filterPos} onChange={e=>setFilterPos(e.target.value)}>
           <option value="">Posición</option>
           {POSITIONS.map(p=><option key={p}>{p}</option>)}
         </select>
-        <select style={{flex:"0 0 auto",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterLiga?"#9333ea":"#475569",background:"#fff",outline:"none",height:"40px",fontWeight:filterLiga?700:400}} value={filterLiga} onChange={e=>setFilterLiga(e.target.value)}>
+        <select style={{flex:"0 0 auto",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterLiga?"#9333ea":"#475569",background:"var(--fx-card)",outline:"none",height:"40px",fontWeight:filterLiga?700:400}} value={filterLiga} onChange={e=>setFilterLiga(e.target.value)}>
           <option value="">Liga</option>
           {allLigasPlayer.map(l=><option key={l} value={l}>{l}</option>)}
         </select>
-        <select style={{flex:"0 0 auto",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterTemp?"#9333ea":"#475569",background:"#fff",outline:"none",height:"40px",fontWeight:filterTemp?700:400}} value={filterTemp} onChange={e=>setFilterTemp(e.target.value)}>
+        <select style={{flex:"0 0 auto",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterTemp?"#9333ea":"#475569",background:"var(--fx-card)",outline:"none",height:"40px",fontWeight:filterTemp?700:400}} value={filterTemp} onChange={e=>setFilterTemp(e.target.value)}>
           <option value="">Temporada</option>
           {allTemps.map(t=><option key={t} value={t}>{t}</option>)}
         </select>
@@ -3872,22 +3852,22 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
       </div>
       {(filterPos||filterLiga||filterTemp||filterStatus||filterNacs.size>0)&&(
         <button onClick={()=>{setFilterPos("");setFilterLiga("");setFilterTemp("");setFilterStatus("");setFilterNacs(new Set());}}
-          style={{alignSelf:"flex-start",background:"#f1f5f9",color:"#64748b",border:"1.5px solid #e2e8f0",borderRadius:"20px",padding:"5px 14px",fontSize:"12px",fontWeight:700,cursor:"pointer",marginBottom:"4px"}}>
+          style={{alignSelf:"flex-start",background:"var(--fx-hover)",color:"var(--fx-muted)",border:"1.5px solid var(--fx-border)",borderRadius:"20px",padding:"5px 14px",fontSize:"12px",fontWeight:700,cursor:"pointer",marginBottom:"4px"}}>
           ✕ Limpiar filtros
         </button>
       )}
       {filterNacs.size>0&&(
         <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"8px",alignItems:"center"}}>
-          <span style={{fontSize:"12px",color:"#64748b"}}>Nac.:</span>
+          <span style={{fontSize:"12px",color:"var(--fx-muted)"}}>Nac.:</span>
           {[...filterNacs].map(n=>(
             <span key={n} style={{background:"#fff7ed",border:"1.5px solid #fed7aa",color:"#9333ea",fontSize:"11px",fontWeight:700,padding:"2px 8px",borderRadius:"20px",display:"inline-flex",alignItems:"center",gap:"3px"}}>
               <FlagImg country={n}/>{n}
             </span>
           ))}
-          <span onClick={()=>setFilterNacs(new Set())} style={{background:"#f1f5f9",color:"#64748b",fontSize:"11px",fontWeight:600,padding:"2px 8px",borderRadius:"20px",cursor:"pointer"}}>✕ Limpiar</span>
+          <span onClick={()=>setFilterNacs(new Set())} style={{background:"var(--fx-hover)",color:"var(--fx-muted)",fontSize:"11px",fontWeight:600,padding:"2px 8px",borderRadius:"20px",cursor:"pointer"}}>✕ Limpiar</span>
         </div>
       )}
-      <div style={{fontSize:"13px",color:"#94a3b8",marginBottom:"12px"}}>{filtered.length} jugadora{filtered.length!==1?"s":""}</div>
+      <div style={{fontSize:"13px",color:"var(--fx-muted2)",marginBottom:"12px"}}>{filtered.length} jugadora{filtered.length!==1?"s":""}</div>
       <div className="bfdb-cards-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:"12px"}}>
         {filtered.slice(0,visibleCount).map(p=>{
           const allS=sortS(p.seasons||[]);
@@ -3895,25 +3875,25 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           const lastEq=last?equipoMap[last.id_equipo]:null;
           return(
             <div key={p.id_jugadora} onClick={()=>{setSelId(p.id_jugadora);setActiveTipo(null);window.scrollTo({top:0,behavior:"smooth"});}}
-              style={{background:"#fff",borderRadius:"16px",padding:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",cursor:"pointer",border:"2px solid transparent",transition:"all 0.15s"}}
+              style={{background:"var(--fx-card)",borderRadius:"16px",padding:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",cursor:"pointer",border:"2px solid transparent",transition:"all 0.15s"}}
               onMouseEnter={e=>{e.currentTarget.style.borderColor="#c084fc";e.currentTarget.style.boxShadow="0 4px 18px rgba(249,115,22,0.18)";}}
               onMouseLeave={e=>{e.currentTarget.style.borderColor="transparent";e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.06)";}}>
               <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"12px"}}>
                 <Avatar photo={p.foto} name={p.nombre} size={48} fontSize={18} fallecida={!!p.fecha_fallecimiento}/>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:700,fontSize:"15px",color:"#1e293b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>
-                  <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"1px",display:"flex",alignItems:"center",gap:"3px"}}>{p.nacionalidad&&<FlagImg country={p.nacionalidad}/>}{p.nacionalidad2&&<FlagImg country={p.nacionalidad2}/>}{p.altura_cm&&<span>{p.nacionalidad||p.nacionalidad2?" · ":""}{p.altura_cm} cm</span>}</div>
+                  <div style={{fontWeight:700,fontSize:"15px",color:"var(--fx-text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.nombre}</div>
+                  <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginTop:"1px",display:"flex",alignItems:"center",gap:"3px"}}>{p.nacionalidad&&<FlagImg country={p.nacionalidad}/>}{p.nacionalidad2&&<FlagImg country={p.nacionalidad2}/>}{p.altura_cm&&<span>{p.nacionalidad||p.nacionalidad2?" · ":""}{p.altura_cm} cm</span>}</div>
                 </div>
                 <div className="bfdb-player-card-right" style={{display:"flex",flexDirection:"column",gap:"3px",alignItems:"flex-end",flexShrink:0}}><div className="bfdb-player-badges" style={{display:"flex",gap:"3px",flexWrap:"wrap",justifyContent:"flex-end"}}>{p.posicion&&<span style={posStyle(p.posicion)}>{p.posicion}</span>}{p.posicion2&&<span style={posStyle(p.posicion2)}>{p.posicion2}</span>}</div></div>
               </div>
-              <div style={{borderTop:"1px solid #f1f5f9",paddingTop:"10px"}}>
+              <div style={{borderTop:"1px solid var(--fx-border2)",paddingTop:"10px"}}>
                 {lastEq?(<>
-                  <div style={{fontSize:"11px",color:"#94a3b8",marginBottom:"4px"}}>Último equipo</div>
+                  <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginBottom:"4px"}}>Último equipo</div>
                   <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                     <TeamBadge team={lastEq} size={26}/>
                     <div>
                       <div style={{fontSize:"13px",fontWeight:600,color:"#334155"}}>{last.temporada} · {lastEq.nombre}</div>
-                      <div style={{fontSize:"11px",color:"#94a3b8"}}>{ligaMap[last.id_liga]?.nombre||last.id_liga}</div>
+                      <div style={{fontSize:"11px",color:"var(--fx-muted2)"}}>{ligaMap[last.id_liga]?.nombre||last.id_liga}</div>
                     </div>
                   </div>
                 </>):<div style={{fontSize:"12px",color:"#cbd5e1",fontStyle:"italic"}}>Sin temporadas</div>}
@@ -3924,7 +3904,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
         })}
       </div>
       {visibleCount<filtered.length&&(
-        <div ref={loadMoreRef} style={{textAlign:"center",padding:"24px",color:"#94a3b8",fontSize:"13px"}}>
+        <div ref={loadMoreRef} style={{textAlign:"center",padding:"24px",color:"var(--fx-muted2)",fontSize:"13px"}}>
           Mostrando {visibleCount} de {filtered.length}...
         </div>
       )}
@@ -3937,7 +3917,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
 function TeamForm({initial,onSave,onCancel,saving}){
   const [f,setF]=useState({nombre:'',ciudad:'',pais:'',año_fundacion:'',escudo:'',tipo:'equipo',redes_sociales:'',pabellon:'',id_espn:'',id_fiba:'',id_ext:'',conferencia:'',...(initial||{})});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
-  const inp={width:'100%',border:'1.5px solid #e2e8f0',borderRadius:'10px',padding:'9px 12px',fontSize:'14px',outline:'none',boxSizing:'border-box'};
+  const inp={width:'100%',border:'1.5px solid var(--fx-border)',borderRadius:'10px',padding:'9px 12px',fontSize:'14px',outline:'none',boxSizing:'border-box'};
   return(<div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
     <Fld label='Nombre *'><input style={inp} value={f.nombre||''} onChange={set('nombre')} placeholder='Perfumerías Avenida'/></Fld>
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
@@ -3969,7 +3949,7 @@ function TeamForm({initial,onSave,onCancel,saving}){
 function PalmaresForm({initial,ligas,onSave,onCancel,saving}){
   const [f,setF]=useState({id_liga:'',temporada:'',...(initial||{})});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
-  const inp={width:'100%',border:'1.5px solid #e2e8f0',borderRadius:'10px',padding:'9px 12px',fontSize:'14px',outline:'none',boxSizing:'border-box'};
+  const inp={width:'100%',border:'1.5px solid var(--fx-border)',borderRadius:'10px',padding:'9px 12px',fontSize:'14px',outline:'none',boxSizing:'border-box'};
   return(<div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
     <Fld label='Liga *'><select style={inp} value={f.id_liga||''} onChange={set('id_liga')}>
       <option value=''>Seleccionar liga...</option>
@@ -3987,7 +3967,7 @@ function PalmaresForm({initial,ligas,onSave,onCancel,saving}){
 function AddToSquadForm({initial,players,ligas,onSave,onCancel,saving}){
   const [f,setF]=useState({id_jugadora:"",id_liga:"",temporada:initial?.temporada||"",...(initial||{})});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
-  const inp={width:"100%",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"14px",outline:"none",boxSizing:"border-box"};
+  const inp={width:"100%",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"14px",outline:"none",boxSizing:"border-box"};
   const sorted=[...(players||[])].sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
   return(<div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
     <Fld label="Jugadora *"><select style={inp} value={f.id_jugadora} onChange={set("id_jugadora")}>
@@ -4000,7 +3980,7 @@ function AddToSquadForm({initial,players,ligas,onSave,onCancel,saving}){
     </select></Fld>
     <Fld label="Temporada *"><input style={inp} value={f.temporada} onChange={set("temporada")} placeholder="2025-26"/></Fld>
     <div style={{display:"flex",gap:"10px",justifyContent:"flex-end",marginTop:"8px"}}>
-      <button onClick={onCancel} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"9px 20px",fontWeight:600,cursor:"pointer"}}>Cancelar</button>
+      <button onClick={onCancel} style={{background:"var(--fx-hover)",border:"none",borderRadius:"10px",padding:"9px 20px",fontWeight:600,cursor:"pointer"}}>Cancelar</button>
       <button onClick={()=>onSave(f)} disabled={saving||!f.id_jugadora||!f.id_liga||!f.temporada} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"9px 20px",fontWeight:700,cursor:"pointer"}}>{saving?"Guardando...":"Guardar"}</button>
     </div>
   </div>);
@@ -4009,7 +3989,7 @@ function AddToSquadForm({initial,players,ligas,onSave,onCancel,saving}){
 /* ── NombreHistoricoForm ────────────────────────────────── */
 function NombreHistoricoForm({initial,onSave,onCancel,saving}){
   const [f,setF]=useState({nombre:"",temporada_inicio:"",temporada_fin:"",escudo:"",...(initial||{})});
-  const inp={width:"100%",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"14px",outline:"none",boxSizing:"border-box"};
+  const inp={width:"100%",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"14px",outline:"none",boxSizing:"border-box"};
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
   const ok=f.nombre.trim()&&f.temporada_inicio.trim();
   return(<div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
@@ -4019,12 +3999,12 @@ function NombreHistoricoForm({initial,onSave,onCancel,saving}){
     <Fld label="URL Escudo (opcional)">
       <div style={{display:"flex",gap:"10px",alignItems:"center"}}>
         <input style={{...inp,flex:1}} value={f.escudo||""} onChange={set("escudo")} placeholder="https://..."/>
-        {f.escudo&&<img src={f.escudo} alt="" style={{width:40,height:40,objectFit:"contain",borderRadius:"8px",border:"1px solid #e2e8f0",flexShrink:0}} onError={e=>e.target.style.display="none"}/>}
+        {f.escudo&&<img src={f.escudo} alt="" style={{width:40,height:40,objectFit:"contain",borderRadius:"8px",border:"1px solid var(--fx-border)",flexShrink:0}} onError={e=>e.target.style.display="none"}/>}
       </div>
     </Fld>
-    <div style={{fontSize:"12px",color:"#94a3b8"}}>Define el rango de temporadas en que el equipo usó este nombre y escudo. Deja "fin" vacío si sigue siendo el nombre actual.</div>
+    <div style={{fontSize:"12px",color:"var(--fx-muted2)"}}>Define el rango de temporadas en que el equipo usó este nombre y escudo. Deja "fin" vacío si sigue siendo el nombre actual.</div>
     <div style={{display:"flex",gap:"10px",justifyContent:"flex-end",marginTop:"4px"}}>
-      <button onClick={onCancel} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"9px 20px",fontWeight:600,cursor:"pointer"}}>Cancelar</button>
+      <button onClick={onCancel} style={{background:"var(--fx-hover)",border:"none",borderRadius:"10px",padding:"9px 20px",fontWeight:600,cursor:"pointer"}}>Cancelar</button>
       <button onClick={()=>onSave({nombre:f.nombre.trim(),temporada_inicio:f.temporada_inicio.trim(),temporada_fin:f.temporada_fin.trim()||null,escudo:f.escudo?.trim()||null})} disabled={saving||!ok}
         style={{background:ok?"#9333ea":"#fed7aa",color:"#fff",border:"none",borderRadius:"10px",padding:"9px 20px",fontWeight:700,cursor:ok?"pointer":"not-allowed"}}>
         {saving?"Guardando...":"Guardar"}
@@ -4036,7 +4016,7 @@ function NombreHistoricoForm({initial,onSave,onCancel,saving}){
 /* ── DuplicateSquadForm ─────────────────────────────────── */
 function DuplicateSquadForm({initial,ligas,ligaMap,eq,onSave,onCancel,saving}){
   const [targetLiga,setTargetLiga]=useState("");
-  const inp={width:"100%",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"14px",outline:"none",boxSizing:"border-box"};
+  const inp={width:"100%",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"14px",outline:"none",boxSizing:"border-box"};
   const squad=initial.squad||[];
   const temporada=initial.temporada;
   const sourceLiga=initial.sourceLiga;
@@ -4054,7 +4034,7 @@ function DuplicateSquadForm({initial,ligas,ligaMap,eq,onSave,onCancel,saving}){
   }).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
 
   return(<div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
-    <div style={{background:"#f8fafc",borderRadius:"12px",padding:"14px",fontSize:"13px",color:"#475569"}}>
+    <div style={{background:"var(--fx-hover)",borderRadius:"12px",padding:"14px",fontSize:"13px",color:"var(--fx-label)"}}>
       <div style={{marginBottom:"6px"}}><b>{squad.length}</b> jugadora{squad.length!==1?"s":""} de <b>{eq.nombre}</b></div>
       <div>Temporada: <b>{temporada||"—"}</b></div>
       {sourceLigaObj&&<div>Desde: <b>{sourceLigaObj.nombre}</b></div>}
@@ -4065,9 +4045,9 @@ function DuplicateSquadForm({initial,ligas,ligaMap,eq,onSave,onCancel,saving}){
         {availLigas.map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}{l.tipo==="copadom"?" (Copa)":l.tipo==="copacont"?" (Continental)":""}</option>)}
       </select>
     </Fld>
-    <div style={{fontSize:"12px",color:"#94a3b8"}}>Se crearán las mismas entradas con el equipo y temporada actuales, cambiando solo la competición. Las jugadoras que ya tengan esa competición se omitirán.</div>
+    <div style={{fontSize:"12px",color:"var(--fx-muted2)"}}>Se crearán las mismas entradas con el equipo y temporada actuales, cambiando solo la competición. Las jugadoras que ya tengan esa competición se omitirán.</div>
     <div style={{display:"flex",gap:"10px",justifyContent:"flex-end",marginTop:"4px"}}>
-      <button onClick={onCancel} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"9px 20px",fontWeight:600,cursor:"pointer"}}>Cancelar</button>
+      <button onClick={onCancel} style={{background:"var(--fx-hover)",border:"none",borderRadius:"10px",padding:"9px 20px",fontWeight:600,cursor:"pointer"}}>Cancelar</button>
       <button onClick={()=>onSave(squad,targetLiga,temporada)} disabled={saving||!targetLiga||!temporada} style={{background:targetLiga&&temporada?"#9333ea":"#fed7aa",color:"#fff",border:"none",borderRadius:"10px",padding:"9px 20px",fontWeight:700,cursor:targetLiga&&temporada?"pointer":"not-allowed"}}>{saving?"Duplicando...":"Duplicar plantilla"}</button>
     </div>
   </div>);
@@ -4095,7 +4075,7 @@ function CalendarioEquipo({idEquipo,temporada,equipos,ligas,equiposNombres,onGoT
   const rid=g=>g.id_equipo_local===idEquipo?g.id_equipo_visitante:g.id_equipo_local;
   const rdata=g=>resolveTeamData(rid(g),g.temporada,equiposNombres,equipoMap);
   const fmt=f=>{if(!f)return"—";const d=new Date(f);return d.toLocaleDateString("es",{day:"2-digit",month:"short",year:"2-digit"});};
-  const card={background:"#fff",borderRadius:"20px",padding:"18px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"};
+  const card={background:"var(--fx-card)",borderRadius:"20px",padding:"18px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"};
   const fila=(g)=>{
     const local=g.id_equipo_local===idEquipo;
     const rv=rdata(g);
@@ -4104,7 +4084,7 @@ function CalendarioEquipo({idEquipo,temporada,equipos,ligas,equiposNombres,onGoT
     const win=jugado&&pf>pc;
     return(
       <div key={g.id} onClick={()=>onGoToPartido&&onGoToPartido(g.id)} style={{display:"flex",alignItems:"center",gap:"10px",padding:"9px 4px",borderBottom:"1px solid #f8fafc",cursor:"pointer"}}>
-        <span style={{fontSize:"11px",color:"#94a3b8",width:"62px",flexShrink:0}}>{fmt(g.fecha_hora)}</span>
+        <span style={{fontSize:"11px",color:"var(--fx-muted2)",width:"62px",flexShrink:0}}>{fmt(g.fecha_hora)}</span>
         <span title={local?"Local":"Visitante"} style={{fontSize:"12px",flexShrink:0}}>{local?"🏠":"✈️"}</span>
         {rv.escudo&&<img src={rv.escudo} alt="" style={{width:20,height:20,objectFit:"contain",flexShrink:0}}/>}
         <span style={{fontSize:"13px",color:"#334155",fontWeight:600,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{rv.nombre}</span>
@@ -4123,24 +4103,24 @@ function CalendarioEquipo({idEquipo,temporada,equipos,ligas,equiposNombres,onGoT
             <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:liga?"5px":0}}>
               <span style={{fontSize:"12px"}}>{local?"🏠":"✈️"}</span>
               {rv.escudo&&<img src={rv.escudo} alt="" style={{width:24,height:24,objectFit:"contain"}}/>}
-              <span style={{fontSize:"15px",fontWeight:800,color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{rv.nombre}</span>
+              <span style={{fontSize:"15px",fontWeight:800,color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{rv.nombre}</span>
             </div>
             {liga&&<div onClick={e=>{e.stopPropagation();onGoToLeague&&onGoToLeague(liga.id_liga);}} style={{display:"inline-flex",alignItems:"center",gap:"5px",cursor:"pointer"}}>
               {liga.logo&&<img src={liga.logo} alt="" style={{width:16,height:16,objectFit:"contain"}}/>}
               <span style={{fontSize:"12px",fontWeight:600,color:"#3b82f6",textDecoration:"underline",textDecorationColor:"#bfdbfe"}}>{liga.nombre}</span>
             </div>}
           </div>
-          <span style={{fontSize:"11px",color:"#94a3b8",textAlign:"right",flexShrink:0}}>{fmt(prox.fecha_hora)}</span>
+          <span style={{fontSize:"11px",color:"var(--fx-muted2)",textAlign:"right",flexShrink:0}}>{fmt(prox.fecha_hora)}</span>
         </div>
       );})()}
       <div style={card}>
         <button onClick={()=>setOpen(v=>!v)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",padding:0,width:"100%"}}>
-          <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>📅 Calendario <span style={{fontSize:"13px",fontWeight:500,color:"#94a3b8"}}>({games.length})</span></h2>
-          <span style={{fontSize:"13px",color:"#94a3b8",display:"inline-block",transform:open?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>▼</span>
+          <h2 style={{fontWeight:700,fontSize:"17px",color:"var(--fx-text)",margin:0}}>📅 Calendario <span style={{fontSize:"13px",fontWeight:500,color:"var(--fx-muted2)"}}>({games.length})</span></h2>
+          <span style={{fontSize:"13px",color:"var(--fx-muted2)",display:"inline-block",transform:open?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>▼</span>
         </button>
         {open&&<div style={{marginTop:"12px"}}>
           {games.slice(0,shown).map(fila)}
-          {shown<games.length&&<button onClick={()=>setShown(s=>s+5)} style={{marginTop:"10px",width:"100%",padding:"9px",borderRadius:"10px",border:"1px solid #e2e8f0",background:"#f8fafc",color:"#64748b",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>Ver más ({games.length-shown})</button>}
+          {shown<games.length&&<button onClick={()=>setShown(s=>s+5)} style={{marginTop:"10px",width:"100%",padding:"9px",borderRadius:"10px",border:"1px solid var(--fx-border)",background:"var(--fx-hover)",color:"var(--fx-muted)",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>Ver más ({games.length-shown})</button>}
         </div>}
       </div>
     </>
@@ -4401,21 +4381,21 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
               const shareTextEq=detallesShareEq?`${eq.nombre} · ${detallesShareEq} — La Basketneta`:`Ficha de ${eq.nombre} en La Basketneta`;
               if(navigator.share){navigator.share({title:eq.nombre,text:shareTextEq,url}).catch(()=>{});}
               else{navigator.clipboard.writeText(url);setShareMsg(true);setTimeout(()=>setShareMsg(false),2000);}
-            }} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>📤 Compartir</button>
+            }} style={{background:"var(--fx-hover)",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"var(--fx-label)"}}>📤 Compartir</button>
             {shareMsg&&<span style={{fontSize:"12px",color:"#16a34a",fontWeight:600}}>¡Enlace copiado!</span>}
             {isAdmin&&<>
-            <button onClick={()=>setTeamModal("editTeam")} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>✏️ Editar</button>
+            <button onClick={()=>setTeamModal("editTeam")} style={{background:"var(--fx-hover)",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"var(--fx-label)"}}>✏️ Editar</button>
             <button onClick={()=>setDelItem("team")} style={{background:"#fee2e2",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#ef4444"}}>🗑️</button>
             </>}
           </div>
         </div>
         {isAdmin&&delItem==="team"&&<ConfirmDel msg="¿Eliminar este equipo?" onCancel={()=>setDelItem(null)} onConfirm={delTeam}/>}
-        <div style={{background:"#fff",borderRadius:"20px",padding:"24px",paddingBottom:eq.redes_sociales?"68px":"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px",position:"relative"}}>
+        <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"24px",paddingBottom:eq.redes_sociales?"68px":"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px",position:"relative"}}>
           {eq.redes_sociales&&<div style={{position:"absolute",bottom:"18px",left:"24px"}}><SocialIcon url={eq.redes_sociales}/></div>}
           <div style={{display:"flex",alignItems:"center",gap:"20px",flexWrap:"wrap"}}>
             <TeamBadge team={eq} size={80}/>
             <div style={{flex:1,minWidth:"180px"}}>
-              <div><div style={{display:"flex",alignItems:"center",gap:"8px"}}><h1 style={{fontWeight:800,fontSize:"22px",color:"#1e293b",margin:"0 0 4px"}}>{eq.nombre}</h1>{eq.filial_de&&<span style={{background:"#f0fdf4",color:"#16a34a",fontSize:"10px",fontWeight:800,padding:"2px 8px",borderRadius:"20px"}}>Filial de {equipoMap[eq.filial_de]?.nombre||eq.filial_de}</span>}{onToggleFav&&<button onClick={e=>{e.stopPropagation();onToggleFav("equipo",eq.id_equipo);}} title={isFavFn?.("equipo",eq.id_equipo)?"Quitar de favoritos":"Añadir a favoritos"} style={{background:"none",border:"none",cursor:"pointer",fontSize:"20px",padding:0,lineHeight:1,flexShrink:0}}>{isFavFn?.("equipo",eq.id_equipo)?"⭐":"☆"}</button>}</div>{isAdmin&&<span style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{eq.id_equipo}</span>}</div>
+              <div><div style={{display:"flex",alignItems:"center",gap:"8px"}}><h1 style={{fontWeight:800,fontSize:"22px",color:"var(--fx-text)",margin:"0 0 4px"}}>{eq.nombre}</h1>{eq.filial_de&&<span style={{background:"#f0fdf4",color:"#16a34a",fontSize:"10px",fontWeight:800,padding:"2px 8px",borderRadius:"20px"}}>Filial de {equipoMap[eq.filial_de]?.nombre||eq.filial_de}</span>}{onToggleFav&&<button onClick={e=>{e.stopPropagation();onToggleFav("equipo",eq.id_equipo);}} title={isFavFn?.("equipo",eq.id_equipo)?"Quitar de favoritos":"Añadir a favoritos"} style={{background:"none",border:"none",cursor:"pointer",fontSize:"20px",padding:0,lineHeight:1,flexShrink:0}}>{isFavFn?.("equipo",eq.id_equipo)?"⭐":"☆"}</button>}</div>{isAdmin&&<span style={{fontSize:"11px",color:"var(--fx-muted2)",fontFamily:"monospace"}}>{eq.id_equipo}</span>}</div>
               <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
                 {eq.pais&&<Chip><FlagImg country={eq.pais}/>{eq.pais}</Chip>}
                 {eq.fiba_rank&&<Chip variant="fiba" title={eq.fiba_zona?`Ranking FIBA (${eq.fiba_zona})`:"Ranking FIBA mundial"} onClick={onGoToTab?(e=>{e.stopPropagation();onGoToTab("ranking_fiba");}):undefined}>🌐 RankFIBA: #{eq.fiba_rank}</Chip>}
@@ -4429,9 +4409,9 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
           <div style={{display:"flex",gap:"16px",marginTop:"14px",flexWrap:"wrap",alignItems:"flex-start"}}>
             <div style={{display:"flex",gap:"8px",flex:1,flexWrap:"wrap"}}>
               {[[years.length,"Temporadas"],[new Set(selected.players.map(({player})=>player.id_jugadora)).size,"Jugadoras únicas"],[selected.players.length,"Apariciones"]].map(([v,l])=>(
-                <div key={l} style={{background:"#f8fafc",borderRadius:"10px",padding:"8px 12px",textAlign:"center",minWidth:"70px"}}>
-                  <div style={{fontSize:"16px",fontWeight:800,color:"#1e293b"}}>{v}</div>
-                  <div style={{fontSize:"10px",color:"#94a3b8",marginTop:"1px"}}>{l}</div>
+                <div key={l} style={{background:"var(--fx-hover)",borderRadius:"10px",padding:"8px 12px",textAlign:"center",minWidth:"70px"}}>
+                  <div style={{fontSize:"16px",fontWeight:800,color:"var(--fx-text)"}}>{v}</div>
+                  <div style={{fontSize:"10px",color:"var(--fx-muted2)",marginTop:"1px"}}>{l}</div>
                 </div>
               ))}
             </div>
@@ -4462,45 +4442,45 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
           </div>
         </div>
         <CalendarioEquipo idEquipo={eq.id_equipo} temporada={effectiveYear} equipos={equipos} ligas={ligas} equiposNombres={equiposNombres} onGoToPartido={onGoToPartido} onGoToLeague={onGoToLeague}/>
-        <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
+        <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom: showPlantilla?"16px":"0",flexWrap:"wrap",gap:"10px"}}>
             <button onClick={()=>setShowPlantilla(v=>!v)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",padding:0}}>
-              <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>Plantilla <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({squad.length})</span></h2>
-              <span style={{fontSize:"13px",color:"#94a3b8",transition:"transform 0.2s",display:"inline-block",transform:showPlantilla?"rotate(180deg)":"rotate(0deg)"}}>▼</span>
+              <h2 style={{fontWeight:700,fontSize:"17px",color:"var(--fx-text)",margin:0}}>Plantilla <span style={{color:"var(--fx-muted2)",fontWeight:400,fontSize:"14px"}}>({squad.length})</span></h2>
+              <span style={{fontSize:"13px",color:"var(--fx-muted2)",transition:"transform 0.2s",display:"inline-block",transform:showPlantilla?"rotate(180deg)":"rotate(0deg)"}}>▼</span>
             </button>
             {showPlantilla&&<div style={{display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}>
               {ligasInYear.length===1&&(()=>{const l=ligasInYear[0];return(
                 <div style={{display:"flex",alignItems:"center",gap:"4px"}}>
-                  <div style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"6px 12px",fontSize:"13px",color:"#9333ea",fontWeight:700,background:"#fff",display:"flex",alignItems:"center",gap:"6px"}}>
+                  <div style={{border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"6px 12px",fontSize:"13px",color:"#9333ea",fontWeight:700,background:"var(--fx-card)",display:"flex",alignItems:"center",gap:"6px"}}>
                     <MultiFlag countries={[l.pais,l.pais2,l.pais3]}/>{l.nombre}
                   </div>
-                  <button onClick={()=>onGoToLeague&&onGoToLeague(l.id_liga)} title="Ir a esta liga" style={{background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"6px 10px",cursor:"pointer",color:"#9333ea",fontSize:"14px",lineHeight:1}}>→</button>
+                  <button onClick={()=>onGoToLeague&&onGoToLeague(l.id_liga)} title="Ir a esta liga" style={{background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"6px 10px",cursor:"pointer",color:"#9333ea",fontSize:"14px",lineHeight:1}}>→</button>
                 </div>
               );})()}
               {ligasInYear.length>1&&<div style={{display:"flex",alignItems:"center",gap:"4px"}}>
-                <select value={effectiveLiga||""} onChange={e=>setSelLiga(e.target.value)} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"6px 12px",fontSize:"13px",color:"#9333ea",fontWeight:700,background:"#fff",outline:"none"}}>
+                <select value={effectiveLiga||""} onChange={e=>setSelLiga(e.target.value)} style={{border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"6px 12px",fontSize:"13px",color:"#9333ea",fontWeight:700,background:"var(--fx-card)",outline:"none"}}>
                   {ligasInYear.map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}</option>)}
                 </select>
-                <button onClick={()=>onGoToLeague&&onGoToLeague(effectiveLiga)} title="Ir a esta liga" style={{background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"6px 10px",cursor:"pointer",color:"#9333ea",fontSize:"14px",lineHeight:1}}>→</button>
+                <button onClick={()=>onGoToLeague&&onGoToLeague(effectiveLiga)} title="Ir a esta liga" style={{background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"6px 10px",cursor:"pointer",color:"#9333ea",fontSize:"14px",lineHeight:1}}>→</button>
               </div>}
-              {isAdmin&&squad.length>0&&<button onClick={()=>setDupModal({squad,temporada:effectiveYear,sourceLiga:effectiveLiga||(()=>{const ls=[...new Set(squad.map(({season})=>season.id_liga))];return ls.length===1?ls[0]:"";})()})} title="Duplicar plantilla a otra competición" style={{background:"#fff",color:"#9333ea",border:"1.5px solid #9333ea",borderRadius:"10px",padding:"7px 12px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>⎘ Duplicar</button>}
+              {isAdmin&&squad.length>0&&<button onClick={()=>setDupModal({squad,temporada:effectiveYear,sourceLiga:effectiveLiga||(()=>{const ls=[...new Set(squad.map(({season})=>season.id_liga))];return ls.length===1?ls[0]:"";})()})} title="Duplicar plantilla a otra competición" style={{background:"var(--fx-card)",color:"#9333ea",border:"1.5px solid #9333ea",borderRadius:"10px",padding:"7px 12px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>⎘ Duplicar</button>}
               {isAdmin&&<button onClick={()=>setSquadModal({temporada:effectiveYear||"",id_liga:"",id_equipo:eq.id_equipo})} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Jugadora</button>}
-              {years.length>0&&<select value={effectiveYear||""} onChange={e=>{setSelYear(e.target.value||null);setSelLiga(null);}} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}}>
+              {years.length>0&&<select value={effectiveYear||""} onChange={e=>{setSelYear(e.target.value||null);setSelLiga(null);}} style={{border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"var(--fx-label)",background:"var(--fx-card)",outline:"none"}}>
                 {years.map(y=><option key={y} value={y}>{y}</option>)}
               </select>}
             </div>}
           </div>
-          {showPlantilla&&(squad.length===0?<div style={{textAlign:"center",padding:"30px",color:"#94a3b8"}}>Sin jugadoras para esta temporada</div>
+          {showPlantilla&&(squad.length===0?<div style={{textAlign:"center",padding:"30px",color:"var(--fx-muted2)"}}>Sin jugadoras para esta temporada</div>
             :<div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
               {squad.map(({player},i)=>(
                 <div key={i} onClick={()=>onGoToPlayer(player.id_jugadora,{tab:"equipos",id:selId,label:eq?.nombre})}
-                  style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",background:"#f8fafc",borderRadius:"12px",border:"1.5px solid #e2e8f0",cursor:"pointer",transition:"all 0.15s"}}
+                  style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",background:"var(--fx-hover)",borderRadius:"12px",border:"1.5px solid var(--fx-border)",cursor:"pointer",transition:"all 0.15s"}}
                   onMouseEnter={e=>{e.currentTarget.style.borderColor="#c084fc";e.currentTarget.style.background="#fff7ed";}}
                   onMouseLeave={e=>{e.currentTarget.style.borderColor="#e2e8f0";e.currentTarget.style.background="#f8fafc";}}>
                   <Avatar photo={player.foto} name={player.nombre} size={44} fontSize={16} fallecida={!!player.fecha_fallecimiento}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontWeight:700,fontSize:"14px",color:"#9333ea"}}>{player.nombre}</div>
-                    <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"3px"}}>{player.nacionalidad&&<FlagImg country={player.nacionalidad}/>}{player.nacionalidad2&&<FlagImg country={player.nacionalidad2}/>}{player.altura_cm&&<span>{player.nacionalidad||player.nacionalidad2?" · ":""}{player.altura_cm} cm</span>}</div>
+                    <div style={{fontSize:"12px",color:"var(--fx-muted)",marginTop:"2px",display:"flex",alignItems:"center",gap:"3px"}}>{player.nacionalidad&&<FlagImg country={player.nacionalidad}/>}{player.nacionalidad2&&<FlagImg country={player.nacionalidad2}/>}{player.altura_cm&&<span>{player.nacionalidad||player.nacionalidad2?" · ":""}{player.altura_cm} cm</span>}</div>
                   </div>
                   <div className="bfdb-player-card-right" style={{display:"flex",flexDirection:"column",gap:"3px",alignItems:"flex-end",flexShrink:0}}><div className="bfdb-player-badges" style={{display:"flex",gap:"3px",flexWrap:"wrap",justifyContent:"flex-end"}}>{player.posicion&&<span style={posStyle(player.posicion)}>{player.posicion}</span>}{player.posicion2&&<span style={posStyle(player.posicion2)}>{player.posicion2}</span>}</div>{esEquipoEuropeo(eq.pais)&&STATUS_BADGE[playerStatus(player.nacionalidad,player.nacionalidad2)]}</div>
                 </div>
@@ -4522,11 +4502,11 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
           <TeamForm initial={teamModal!=="addTeam"?eq:null} onSave={saveTeam} onCancel={()=>setTeamModal(null)} saving={saving}/>
         </Modal>}
         {(isAdmin||(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length>0)&&(
-          <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginTop:"14px"}}>
+          <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginTop:"14px"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom: showPalmares?"14px":"0"}}>
               <button onClick={()=>setShowPalmares(v=>!v)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",padding:0}}>
-                <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>🏆 Palmarés <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length})</span></h2>
-                <span style={{fontSize:"13px",color:"#94a3b8",transition:"transform 0.2s",display:"inline-block",transform:showPalmares?"rotate(180deg)":"rotate(0deg)"}}>▼</span>
+                <h2 style={{fontWeight:700,fontSize:"17px",color:"var(--fx-text)",margin:0}}>🏆 Palmarés <span style={{color:"var(--fx-muted2)",fontWeight:400,fontSize:"14px"}}>({(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length})</span></h2>
+                <span style={{fontSize:"13px",color:"var(--fx-muted2)",transition:"transform 0.2s",display:"inline-block",transform:showPalmares?"rotate(180deg)":"rotate(0deg)"}}>▼</span>
               </button>
               {isAdmin&&<button onClick={()=>setPalModal("add")} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Título</button>}
             </div>
@@ -4560,9 +4540,9 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
                             <div onClick={()=>setSelYear(p.temporada)} style={{flex:1,display:"flex",alignItems:"center",gap:"10px",padding:"6px 12px",background:"#fffbeb",borderRadius:"10px",border:"1.5px solid #fed7aa",cursor:"pointer",transition:"all 0.15s"}}
                               onMouseEnter={e=>{e.currentTarget.style.background="#fef3c7";e.currentTarget.style.borderColor="#f59e0b";}}
                               onMouseLeave={e=>{e.currentTarget.style.background="#fffbeb";e.currentTarget.style.borderColor="#fed7aa";}}>
-                              <span style={{fontWeight:700,fontSize:"13px",color:"#1e293b"}}>{p.temporada}</span>
+                              <span style={{fontWeight:700,fontSize:"13px",color:"var(--fx-text)"}}>{p.temporada}</span>
                             </div>
-                            {isAdmin&&<><button onClick={()=>setPalModal(p)} style={{background:"#f1f5f9",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#475569"}}>✏️</button>
+                            {isAdmin&&<><button onClick={()=>setPalModal(p)} style={{background:"var(--fx-hover)",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"var(--fx-label)"}}>✏️</button>
                             <button onClick={()=>setDelItem({type:"palmares",id:p.id})} style={{background:"#fee2e2",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"#ef4444"}}>🗑️</button></>}
                           </div>
                         ))}
@@ -4576,31 +4556,31 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
         )}
         {(()=>{const nombres=(equiposNombres||[]).filter(n=>n.id_equipo===eq.id_equipo).sort((a,b)=>b.temporada_inicio.localeCompare(a.temporada_inicio));
           if(!nombres.length&&!isAdmin)return null;
-          return(<div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
+          return(<div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
             {isAdmin&&nombreModal&&<Modal title={nombreModal==="add"?"Añadir nombre histórico":"Editar nombre"} onClose={()=>setNombreModal(null)}>
               <NombreHistoricoForm initial={nombreModal!=="add"?nombreModal:null} onSave={saveNombre} onCancel={()=>setNombreModal(null)} saving={saving}/>
             </Modal>}
             {isAdmin&&delNombreId&&<ConfirmDel msg="¿Eliminar este nombre?" onCancel={()=>setDelNombreId(null)} onConfirm={delNombre}/>}
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom: showNombres?"14px":"0"}}>
               <button onClick={()=>setShowNombres(v=>!v)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",padding:0}}>
-                <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>🏷️ Nombres históricos {nombres.length>0&&<span style={{fontSize:"13px",fontWeight:500,color:"#94a3b8"}}>({nombres.length})</span>}</h2>
-                <span style={{fontSize:"13px",color:"#94a3b8",transition:"transform 0.2s",display:"inline-block",transform:showNombres?"rotate(180deg)":"rotate(0deg)"}}>▼</span>
+                <h2 style={{fontWeight:700,fontSize:"17px",color:"var(--fx-text)",margin:0}}>🏷️ Nombres históricos {nombres.length>0&&<span style={{fontSize:"13px",fontWeight:500,color:"var(--fx-muted2)"}}>({nombres.length})</span>}</h2>
+                <span style={{fontSize:"13px",color:"var(--fx-muted2)",transition:"transform 0.2s",display:"inline-block",transform:showNombres?"rotate(180deg)":"rotate(0deg)"}}>▼</span>
               </button>
               {isAdmin&&<button onClick={()=>setNombreModal("add")} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"6px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Añadir</button>}
             </div>
-            {showNombres&&(!nombres.length?<p style={{color:"#94a3b8",fontSize:"13px",margin:0}}>Sin nombres históricos registrados.</p>:
+            {showNombres&&(!nombres.length?<p style={{color:"var(--fx-muted2)",fontSize:"13px",margin:0}}>Sin nombres históricos registrados.</p>:
             <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
               {nombres.map(n=>(
-                <div key={n.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"#f8fafc",borderRadius:"10px",border:"1px solid #e2e8f0"}}>
+                <div key={n.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)"}}>
                   <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-                    {n.escudo&&<img src={n.escudo} alt="" style={{width:32,height:32,objectFit:"contain",borderRadius:"6px",border:"1px solid #e2e8f0",flexShrink:0}} onError={e=>e.target.style.display="none"}/>}
+                    {n.escudo&&<img src={n.escudo} alt="" style={{width:32,height:32,objectFit:"contain",borderRadius:"6px",border:"1px solid var(--fx-border)",flexShrink:0}} onError={e=>e.target.style.display="none"}/>}
                     <div>
-                      <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{n.nombre}</div>
-                      <div style={{fontSize:"12px",color:"#94a3b8"}}>{n.temporada_inicio}{n.temporada_fin?` → ${n.temporada_fin}`:" → actualidad"}</div>
+                      <div style={{fontWeight:700,fontSize:"14px",color:"var(--fx-text)"}}>{n.nombre}</div>
+                      <div style={{fontSize:"12px",color:"var(--fx-muted2)"}}>{n.temporada_inicio}{n.temporada_fin?` → ${n.temporada_fin}`:" → actualidad"}</div>
                     </div>
                   </div>
                   {isAdmin&&<div style={{display:"flex",gap:"6px"}}>
-                    <button onClick={()=>setNombreModal(n)} style={{background:"#f1f5f9",border:"none",borderRadius:"6px",padding:"4px 8px",fontSize:"12px",cursor:"pointer"}}>✏️</button>
+                    <button onClick={()=>setNombreModal(n)} style={{background:"var(--fx-hover)",border:"none",borderRadius:"6px",padding:"4px 8px",fontSize:"12px",cursor:"pointer"}}>✏️</button>
                     <button onClick={()=>setDelNombreId(n.id)} style={{background:"#fee2e2",border:"none",borderRadius:"6px",padding:"4px 8px",fontSize:"12px",cursor:"pointer"}}>🗑️</button>
                   </div>}
                 </div>
@@ -4617,18 +4597,18 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
 
       <div style={{minHeight:"112px"}}>
       <div className="bfdb-filter-row" style={{display:"flex",gap:"8px",marginBottom:"14px",flexWrap:"wrap",alignItems:"stretch"}}>
-        <input style={{flex:"1 1 200px",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 14px",fontSize:"13px",color:"#1e293b",outline:"none",background:"#fff",height:"40px",boxSizing:"border-box"}}
+        <input style={{flex:"1 1 200px",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 14px",fontSize:"13px",color:"var(--fx-text)",outline:"none",background:"var(--fx-card)",height:"40px",boxSizing:"border-box"}}
           placeholder="🔍 Nombre de equipo..." value={search} onChange={e=>setSearch(e.target.value)}/>
-        <select value={filterTipo} onChange={e=>setFilterTipo(e.target.value)} style={{flex:"0 0 auto",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterTipo?"#9333ea":"#475569",background:"#fff",outline:"none",height:"40px",fontWeight:filterTipo?700:400}}>
+        <select value={filterTipo} onChange={e=>setFilterTipo(e.target.value)} style={{flex:"0 0 auto",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterTipo?"#9333ea":"#475569",background:"var(--fx-card)",outline:"none",height:"40px",fontWeight:filterTipo?700:400}}>
           <option value="">Tipo</option>
           <option value="equipo">🏟️ Clubs</option>
           <option value="seleccion">🌍 Selecciones</option>
         </select>
-        <select value={filterLeague} onChange={e=>setFilterLeague(e.target.value)} style={{flex:"0 0 auto",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterLeague?"#9333ea":"#475569",background:"#fff",outline:"none",height:"40px",fontWeight:filterLeague?700:400}}>
+        <select value={filterLeague} onChange={e=>setFilterLeague(e.target.value)} style={{flex:"0 0 auto",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterLeague?"#9333ea":"#475569",background:"var(--fx-card)",outline:"none",height:"40px",fontWeight:filterLeague?700:400}}>
           <option value="">Liga</option>
           {allLeagues.map(l=><option key={l} value={l}>{l}</option>)}
         </select>
-        <select value={filterSeason||""} onChange={e=>setFilterSeason(e.target.value||null)} style={{flex:"0 0 auto",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterSeason?"#9333ea":"#475569",background:"#fff",outline:"none",height:"40px",fontWeight:filterSeason?700:400}}>
+        <select value={filterSeason||""} onChange={e=>setFilterSeason(e.target.value||null)} style={{flex:"0 0 auto",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterSeason?"#9333ea":"#475569",background:"var(--fx-card)",outline:"none",height:"40px",fontWeight:filterSeason?700:400}}>
           <option value="">Temporada</option>
           {allSeasons.map(s=><option key={s} value={s}>{s}{s===latestSeason?" (actual)":""}</option>)}
         </select>
@@ -4637,7 +4617,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
       {isAdmin&&teamModal==="addTeam"&&<Modal title="Nuevo equipo" onClose={()=>setTeamModal(null)}><TeamForm onSave={saveTeam} onCancel={()=>setTeamModal(null)} saving={saving}/></Modal>}
       </div>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
-        <span style={{fontSize:"13px",color:"#94a3b8"}}>{filtered.length} equipo{filtered.length!==1?"s":""}</span>
+        <span style={{fontSize:"13px",color:"var(--fx-muted2)"}}>{filtered.length} equipo{filtered.length!==1?"s":""}</span>
         {isAdmin&&<button onClick={()=>setTeamModal("addTeam")} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Equipo</button>}
       </div>
       {(()=>{
@@ -4655,8 +4635,8 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
           return(
             <div key={tipo} style={{marginBottom:"28px"}}>
               <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"12px"}}>
-                <h2 style={{fontWeight:700,fontSize:"15px",color:"#1e293b",margin:0}}>{label}</h2>
-                <span style={{background:"#f1f5f9",color:"#64748b",fontSize:"12px",fontWeight:600,padding:"2px 10px",borderRadius:"20px"}}>{items.length}</span>
+                <h2 style={{fontWeight:700,fontSize:"15px",color:"var(--fx-text)",margin:0}}>{label}</h2>
+                <span style={{background:"var(--fx-hover)",color:"var(--fx-muted)",fontSize:"12px",fontWeight:600,padding:"2px 10px",borderRadius:"20px"}}>{items.length}</span>
               </div>
               <div className="bfdb-cards-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:"12px"}}>
                 {items.map(({eq,years:yrs,players:pl})=>{
@@ -4665,19 +4645,19 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
                   const latestY=[...yrs].sort((a,b)=>b.localeCompare(a))[0];
                   return(
                     <div key={eq.id_equipo} onClick={()=>{setSelId(eq.id_equipo);setSelYear(null);window.scrollTo({top:0,behavior:"smooth"});}}
-                      style={{background:"#fff",borderRadius:"16px",padding:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",cursor:"pointer",border:"2px solid transparent",transition:"all 0.15s"}}
+                      style={{background:"var(--fx-card)",borderRadius:"16px",padding:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",cursor:"pointer",border:"2px solid transparent",transition:"all 0.15s"}}
                       onMouseEnter={e=>{e.currentTarget.style.borderColor=bg;e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,0.12)";}}
                       onMouseLeave={e=>{e.currentTarget.style.borderColor="transparent";e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.06)";}}>
                       <div style={{display:"flex",alignItems:"center",gap:"14px",marginBottom:"12px"}}>
                         <TeamBadge team={eq} size={50}/>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b",lineHeight:"1.3"}}>{eq.nombre}</div>
-                          <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"2px",display:"flex",alignItems:"center"}}>{eq.ciudad?`${eq.ciudad} · `:""}<FlagImg country={eq.pais||""}/>{eq.pais||""}</div>
+                          <div style={{fontWeight:700,fontSize:"14px",color:"var(--fx-text)",lineHeight:"1.3"}}>{eq.nombre}</div>
+                          <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginTop:"2px",display:"flex",alignItems:"center"}}>{eq.ciudad?`${eq.ciudad} · `:""}<FlagImg country={eq.pais||""}/>{eq.pais||""}</div>
                         </div>
                       </div>
                       <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
                         <span style={{background:light,color:tc,fontSize:"11px",fontWeight:700,padding:"3px 10px",borderRadius:"20px"}}>{uniq} jugadora{uniq!==1?"s":""}</span>
-                        {latestY&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"11px",fontWeight:600,padding:"3px 10px",borderRadius:"20px"}}>{latestY}</span>}
+                        {latestY&&<span style={{background:"var(--fx-hover)",color:"var(--fx-label)",fontSize:"11px",fontWeight:600,padding:"3px 10px",borderRadius:"20px"}}>{latestY}</span>}
                         {eq.año_fundacion&&<span style={{background:"#fff7ed",color:"#c2410c",fontSize:"11px",fontWeight:600,padding:"3px 10px",borderRadius:"20px"}}>Est. {eq.año_fundacion}</span>}
                       </div>
                     </div>
@@ -4689,7 +4669,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
         });
       })()}
       {visibleCount<filtered.length&&(
-        <div ref={loadMoreRef} style={{textAlign:"center",padding:"24px",color:"#94a3b8",fontSize:"13px"}}>
+        <div ref={loadMoreRef} style={{textAlign:"center",padding:"24px",color:"var(--fx-muted2)",fontSize:"13px"}}>
           Mostrando {visibleCount} de {filtered.length}...
         </div>
       )}
@@ -4701,7 +4681,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
 function LeagueForm({initial,onSave,onCancel,saving}){
   const [f,setF]=useState({nombre:'',pais:'',pais2:'',pais3:'',nivel:'',tipo:'liga',logo:'',...initial});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
-  const inp={width:'100%',border:'1.5px solid #e2e8f0',borderRadius:'10px',padding:'9px 12px',fontSize:'14px',outline:'none',boxSizing:'border-box'};
+  const inp={width:'100%',border:'1.5px solid var(--fx-border)',borderRadius:'10px',padding:'9px 12px',fontSize:'14px',outline:'none',boxSizing:'border-box'};
   return(<div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
     <Fld label='Nombre *'><input style={inp} value={f.nombre} onChange={set('nombre')} placeholder='Liga Femenina Endesa'/></Fld>
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
@@ -4730,7 +4710,7 @@ function LeagueForm({initial,onSave,onCancel,saving}){
 function CoachForm({initial,players,onSave,onCancel,saving}){
   const [f,setF]=useState({nombre:'',nacionalidad:'',nacionalidad2:'',fecha_nac:'',foto:'',id_jugadora:'',...initial});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
-  const inp={width:'100%',border:'1.5px solid #e2e8f0',borderRadius:'10px',padding:'9px 12px',fontSize:'14px',outline:'none',boxSizing:'border-box'};
+  const inp={width:'100%',border:'1.5px solid var(--fx-border)',borderRadius:'10px',padding:'9px 12px',fontSize:'14px',outline:'none',boxSizing:'border-box'};
   return(<div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
     <Fld label='Nombre *'><input style={inp} value={f.nombre} onChange={set('nombre')} placeholder='Anna Montañana'/></Fld>
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
@@ -4760,7 +4740,7 @@ function CoachForm({initial,players,onSave,onCancel,saving}){
 function CoachSeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
   const [f,setF]=useState({id_equipo:'',id_liga:'',temporada:'',orden:0,...initial});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
-  const inp={width:'100%',border:'1.5px solid #e2e8f0',borderRadius:'10px',padding:'9px 12px',fontSize:'14px',outline:'none',boxSizing:'border-box'};
+  const inp={width:'100%',border:'1.5px solid var(--fx-border)',borderRadius:'10px',padding:'9px 12px',fontSize:'14px',outline:'none',boxSizing:'border-box'};
   return(<div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
     <Fld label='Equipo *'><select style={inp} value={f.id_equipo} onChange={set('id_equipo')}>
       <option value=''>Seleccionar equipo...</option>
@@ -4886,7 +4866,7 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}}>
           {(()=>{const prev=navHistory&&navHistory.length>0?navHistory[navHistory.length-1]:null;return prev?(<button onClick={onGoBack} style={{background:"none",border:"none",color:"#c084fc",fontSize:"15px",cursor:"pointer",fontWeight:600,padding:0}}>← Volver a {prev.label}</button>):(<button onClick={()=>{setSelId(null);setSelYear(null);}} style={{background:"none",border:"none",color:"#c084fc",fontSize:"15px",cursor:"pointer",fontWeight:600,padding:0}}>← Volver</button>);})()}
           {isAdmin&&<div style={{display:"flex",gap:"8px"}}>
-            <button onClick={()=>setLigaModal("edit")} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>✏️ Editar</button>
+            <button onClick={()=>setLigaModal("edit")} style={{background:"var(--fx-hover)",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"var(--fx-label)"}}>✏️ Editar</button>
             <button onClick={()=>setDelLiga(true)} style={{background:"#fee2e2",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#ef4444"}}>🗑️</button>
           </div>}
         </div>
@@ -4894,32 +4874,32 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
         {isAdmin&&ligaModal&&<Modal title={ligaModal==="add"?"Nueva liga":"Editar liga"} onClose={()=>setLigaModal(null)}>
           <LeagueForm initial={ligaModal!=="add"?selected:null} onSave={saveLiga} onCancel={()=>setLigaModal(null)} saving={saving}/>
         </Modal>}
-        <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
+        <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
           <div style={{display:"flex",alignItems:"center",gap:"20px",flexWrap:"wrap"}}>
             <LeagueBadge liga={selected} size={72}/>
             <div style={{flex:1,minWidth:"180px"}}>
-              <div><div style={{display:"flex",alignItems:"center",gap:"8px"}}><h1 style={{fontWeight:800,fontSize:"22px",color:"#1e293b",margin:"0 0 4px"}}>{selected.nombre}</h1>{onToggleFav&&<button onClick={e=>{e.stopPropagation();onToggleFav("liga",selected.id_liga);}} title={isFavFn?.("liga",selected.id_liga)?"Quitar de favoritos":"Añadir a favoritos"} style={{background:"none",border:"none",cursor:"pointer",fontSize:"20px",padding:0,lineHeight:1,flexShrink:0}}>{isFavFn?.("liga",selected.id_liga)?"⭐":"☆"}</button>}</div>{isAdmin&&<span style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{selected.id_liga}</span>}</div>
+              <div><div style={{display:"flex",alignItems:"center",gap:"8px"}}><h1 style={{fontWeight:800,fontSize:"22px",color:"var(--fx-text)",margin:"0 0 4px"}}>{selected.nombre}</h1>{onToggleFav&&<button onClick={e=>{e.stopPropagation();onToggleFav("liga",selected.id_liga);}} title={isFavFn?.("liga",selected.id_liga)?"Quitar de favoritos":"Añadir a favoritos"} style={{background:"none",border:"none",cursor:"pointer",fontSize:"20px",padding:0,lineHeight:1,flexShrink:0}}>{isFavFn?.("liga",selected.id_liga)?"⭐":"☆"}</button>}</div>{isAdmin&&<span style={{fontSize:"11px",color:"var(--fx-muted2)",fontFamily:"monospace"}}>{selected.id_liga}</span>}</div>
               <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
-                {selected.pais&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center"}}><FlagImg country={selected.pais}/>{selected.pais}</span>}
-                {selected.pais2&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center"}}><FlagImg country={selected.pais2}/>{selected.pais2}</span>}
-                {selected.pais3&&<span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center"}}><FlagImg country={selected.pais3}/>{selected.pais3}</span>}
+                {selected.pais&&<span style={{background:"var(--fx-hover)",color:"var(--fx-label)",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center"}}><FlagImg country={selected.pais}/>{selected.pais}</span>}
+                {selected.pais2&&<span style={{background:"var(--fx-hover)",color:"var(--fx-label)",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center"}}><FlagImg country={selected.pais2}/>{selected.pais2}</span>}
+                {selected.pais3&&<span style={{background:"var(--fx-hover)",color:"var(--fx-label)",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center"}}><FlagImg country={selected.pais3}/>{selected.pais3}</span>}
                 {selected.tipo&&<span style={{background:bg,color,fontSize:"12px",fontWeight:700,padding:"3px 10px",borderRadius:"20px"}}>{TIPO_LABELS[selected.tipo]||selected.tipo}</span>}
-                {selected.nivel&&<span style={{background:"#f1f5f9",color:"#64748b",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px"}}>División {selected.nivel}</span>}
+                {selected.nivel&&<span style={{background:"var(--fx-hover)",color:"var(--fx-muted)",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px"}}>División {selected.nivel}</span>}
               </div>
             </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px",marginTop:"18px"}}>
             {[[years.length,"Temporadas registradas"],[teamsInLeague.length,`Equipos ${effectiveYear||""}`],[playersInYear.size,`Jugadoras ${effectiveYear||""}`]].map(([v,l])=>(
-              <div key={l} style={{background:"#f8fafc",borderRadius:"12px",padding:"12px",textAlign:"center"}}>
-                <div style={{fontSize:"22px",fontWeight:800,color:"#1e293b"}}>{v}</div>
-                <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"2px"}}>{l}</div>
+              <div key={l} style={{background:"var(--fx-hover)",borderRadius:"12px",padding:"12px",textAlign:"center"}}>
+                <div style={{fontSize:"22px",fontWeight:800,color:"var(--fx-text)"}}>{v}</div>
+                <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginTop:"2px"}}>{l}</div>
               </div>
             ))}
           </div>
         </div>
-        <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
+        <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px",flexWrap:"wrap",gap:"10px"}}>
-            <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>Equipos <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({teamsInLeague.length})</span></h2>
+            <h2 style={{fontWeight:700,fontSize:"17px",color:"var(--fx-text)",margin:0}}>Equipos <span style={{color:"var(--fx-muted2)",fontWeight:400,fontSize:"14px"}}>({teamsInLeague.length})</span></h2>
             <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
               {(partidos||[]).some(p=>p.id_liga===selId&&(p.temporada||"")===(effectiveYear||""))&&(
                 <button onClick={()=>onGoToClasificacion&&onGoToClasificacion(selId,effectiveYear)}
@@ -4927,25 +4907,25 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
                   🏆 Clasificación
                 </button>
               )}
-              {years.length>0&&<select value={effectiveYear||""} onChange={e=>setSelYear(e.target.value||null)} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none"}}>
+              {years.length>0&&<select value={effectiveYear||""} onChange={e=>setSelYear(e.target.value||null)} style={{border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"8px 14px",fontSize:"13px",color:"var(--fx-label)",background:"var(--fx-card)",outline:"none"}}>
                 {years.map(y=><option key={y} value={y}>{y}{y===latestYear?" (actual)":""}</option>)}
               </select>}
             </div>
           </div>
           {teamsInLeague.length===0
-            ?<div style={{textAlign:"center",padding:"40px",color:"#94a3b8"}}><div style={{fontSize:"32px",marginBottom:"10px"}}>🏟️</div><div>Sin equipos para esta temporada</div></div>
+            ?<div style={{textAlign:"center",padding:"40px",color:"var(--fx-muted2)"}}><div style={{fontSize:"32px",marginBottom:"10px"}}>🏟️</div><div>Sin equipos para esta temporada</div></div>
             :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:"10px"}}>
               {teamsInLeague.map(eq=>{
                 const esCampeon=(palmares||[]).some(p=>p.id_liga===selId&&p.id_equipo===eq.id_equipo&&p.temporada===effectiveYear);
                 return(
                 <div key={eq.id_equipo} onClick={()=>onGoToTeam(eq.id_equipo,effectiveYear,{tab:"ligas",id:selId,label:selected?.nombre})}
-                  style={{background:esCampeon?"#fffbeb":"#f8fafc",borderRadius:"14px",padding:"14px",border:esCampeon?"1.5px solid #fbbf24":"1.5px solid #e2e8f0",display:"flex",alignItems:"center",gap:"12px",cursor:"pointer",transition:"all 0.15s",position:"relative"}}
+                  style={{background:esCampeon?"#fffbeb":"#f8fafc",borderRadius:"14px",padding:"14px",border:esCampeon?"1.5px solid #fbbf24":"1.5px solid var(--fx-border)",display:"flex",alignItems:"center",gap:"12px",cursor:"pointer",transition:"all 0.15s",position:"relative"}}
                   onMouseEnter={e=>{e.currentTarget.style.borderColor="#c084fc";e.currentTarget.style.background="#fff7ed";}}
                   onMouseLeave={e=>{e.currentTarget.style.borderColor=esCampeon?"#fbbf24":"#e2e8f0";e.currentTarget.style.background=esCampeon?"#fffbeb":"#f8fafc";}}>
                   <TeamBadge team={eq} size={40}/>
                   <div style={{minWidth:0}}>
                     <div style={{fontWeight:700,fontSize:"13px",color:"#9333ea",lineHeight:"1.3",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{eq.nombre}</div>
-                    <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"2px",display:"flex",alignItems:"center"}}><FlagImg country={eq.pais||""}/>{eq.pais||""}</div>
+                    <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginTop:"2px",display:"flex",alignItems:"center"}}><FlagImg country={eq.pais||""}/>{eq.pais||""}</div>
                   </div>
                   {esCampeon&&<span title={`Campeón ${effectiveYear}`} style={{position:"absolute",bottom:"8px",right:"10px",fontSize:"18px"}}>🏆</span>}
                 </div>
@@ -4957,8 +4937,8 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
           const pal=(palmares||[]).filter(p=>p.id_liga===selId).sort((a,b)=>b.temporada.localeCompare(a.temporada));
           if(!pal.length)return null;
           return(
-            <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginTop:"14px"}}>
-              <h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:"0 0 14px"}}>🏆 Campeones por temporada <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({pal.length})</span></h2>
+            <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginTop:"14px"}}>
+              <h2 style={{fontWeight:700,fontSize:"17px",color:"var(--fx-text)",margin:"0 0 14px"}}>🏆 Campeones por temporada <span style={{color:"var(--fx-muted2)",fontWeight:400,fontSize:"14px"}}>({pal.length})</span></h2>
               <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
                 {pal.map((p,i)=>{
                   const eq=equipoMap[p.id_equipo];
@@ -4969,7 +4949,7 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
                       onMouseLeave={e=>{e.currentTarget.style.background="#fffbeb";e.currentTarget.style.borderColor="#fed7aa";}}>
                       <span style={{fontWeight:800,fontSize:"14px",color:"#b45309",minWidth:"72px"}}>{p.temporada}</span>
                       <TeamBadge team={eq} size={32}/>
-                      <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{eq?.nombre||p.id_equipo}</span>
+                      <span style={{fontWeight:700,fontSize:"14px",color:"var(--fx-text)"}}>{eq?.nombre||p.id_equipo}</span>
                       {eq?.pais&&<span style={{marginLeft:"auto",display:"flex",alignItems:"center"}}><FlagImg country={eq.pais}/></span>}
                     </div>
                   );
@@ -4989,9 +4969,9 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
       {isAdmin&&ligaModal==="add"&&<Modal title="Nueva liga" onClose={()=>setLigaModal(null)}><LeagueForm onSave={saveLiga} onCancel={()=>setLigaModal(null)} saving={saving}/></Modal>}
       <div style={{minHeight:"112px"}}>
       <div style={{display:"flex",gap:"8px",marginBottom:"14px",flexWrap:"wrap",alignItems:"stretch"}}>
-        <input style={{flex:"1 1 180px",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 14px",fontSize:"13px",color:"#1e293b",outline:"none",background:"#fff",height:"40px",boxSizing:"border-box"}}
+        <input style={{flex:"1 1 180px",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 14px",fontSize:"13px",color:"var(--fx-text)",outline:"none",background:"var(--fx-card)",height:"40px",boxSizing:"border-box"}}
           placeholder="🔍 Buscar liga..." value={search} onChange={e=>setSearch(e.target.value)}/>
-        <select value={filterTipoLiga} onChange={e=>setFilterTipoLiga(e.target.value)} style={{flex:"0 0 auto",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterTipoLiga?"#9333ea":"#475569",background:"#fff",outline:"none",height:"40px",fontWeight:filterTipoLiga?700:400,maxWidth:"100%"}}>
+        <select value={filterTipoLiga} onChange={e=>setFilterTipoLiga(e.target.value)} style={{flex:"0 0 auto",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterTipoLiga?"#9333ea":"#475569",background:"var(--fx-card)",outline:"none",height:"40px",fontWeight:filterTipoLiga?700:400,maxWidth:"100%"}}>
           <option value="">Tipo</option>
           <option value="liga">Liga</option>
           <option value="copadom">Copa Nacional</option>
@@ -5010,20 +4990,20 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
           <div key={tipo} style={{marginBottom:"24px"}}>
             <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"12px"}}>
               <span style={{background:bg,color,fontSize:"12px",fontWeight:700,padding:"4px 12px",borderRadius:"20px"}}>{label}</span>
-              <span style={{fontSize:"12px",color:"#94a3b8"}}>{items.length} competición{items.length!==1?"es":""}</span>
+              <span style={{fontSize:"12px",color:"var(--fx-muted2)"}}>{items.length} competición{items.length!==1?"es":""}</span>
             </div>
             <div className="bfdb-cards-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:"10px"}}>
               {items.map(l=>{
                 const paises=[l.pais,l.pais2,l.pais3].filter(Boolean);
                 return(
                   <div key={l.id_liga} onClick={()=>{setSelId(l.id_liga);setSelYear(null);window.scrollTo({top:0,behavior:"smooth"});}}
-                    style={{background:"#fff",borderRadius:"16px",padding:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",cursor:"pointer",border:"2px solid transparent",transition:"all 0.15s",display:"flex",alignItems:"center",gap:"14px"}}
+                    style={{background:"var(--fx-card)",borderRadius:"16px",padding:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",cursor:"pointer",border:"2px solid transparent",transition:"all 0.15s",display:"flex",alignItems:"center",gap:"14px"}}
                     onMouseEnter={e=>{e.currentTarget.style.borderColor=color;e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,0.10)";}}
                     onMouseLeave={e=>{e.currentTarget.style.borderColor="transparent";e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.06)";}}>
                     <LeagueBadge liga={l} size={52}/>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:"14px",color:"#1e293b",lineHeight:"1.3"}}>{l.nombre}</div>
-                      <div style={{fontSize:"12px",color:"#64748b",marginTop:"4px",display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
+                      <div style={{fontWeight:700,fontSize:"14px",color:"var(--fx-text)",lineHeight:"1.3"}}>{l.nombre}</div>
+                      <div style={{fontSize:"12px",color:"var(--fx-muted)",marginTop:"4px",display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
                         <MultiFlag countries={[l.pais,l.pais2,l.pais3]}/>
                         <span>{paises.length?paises.join(" · "):"—"}</span>
                       </div>
@@ -5141,11 +5121,11 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
             const shareTextCoach=banderasShareCoach?`${coach.nombre} · ${banderasShareCoach} — La Basketneta`:`Ficha de ${coach.nombre} en La Basketneta`;
             if(navigator.share){navigator.share({title:coach.nombre,text:shareTextCoach,url}).catch(()=>{});}
             else{navigator.clipboard.writeText(url);setShareMsg(true);setTimeout(()=>setShareMsg(false),2000);}
-          }} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>📤 Compartir</button>
+          }} style={{background:"var(--fx-hover)",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"var(--fx-label)"}}>📤 Compartir</button>
           {shareMsg&&<span style={{fontSize:"12px",color:"#16a34a",fontWeight:600}}>¡Enlace copiado!</span>}
           {isAdmin&&<>
           <div style={{display:"flex",gap:"8px"}}>
-          <button onClick={()=>setCoachModal(coach)} style={{background:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#475569"}}>✏️ Editar</button>
+          <button onClick={()=>setCoachModal(coach)} style={{background:"var(--fx-hover)",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"var(--fx-label)"}}>✏️ Editar</button>
           <button onClick={()=>setDelCoachItem({type:"coach",id:coach.id_coach})} style={{background:"#fee2e2",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#ef4444"}}>🗑️</button>
           </div>
           </>}
@@ -5160,12 +5140,12 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
         <CoachSeasonForm initial={seasonModal!=="add"?seasonModal:null} equipos={equipos} ligas={ligas} onSave={f=>saveCoachSeason(f,coach.id_coach)} onCancel={()=>setSeasonModal(null)} saving={saving2}/>
       </Modal>}
         {/* Header */}
-        <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
+        <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
           <div style={{display:"flex",alignItems:"flex-start",gap:"20px",flexWrap:"wrap"}}>
             <Avatar photo={coach.foto} name={coach.nombre} size={80} fontSize={28} onPhotoClick={setLightboxPhoto}/>
             <div style={{flex:1,minWidth:0}}>
               <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"12px",marginBottom:"10px"}}>
-                <div><h1 style={{fontWeight:800,fontSize:"21px",color:"#1e293b",margin:0}}>{coach.nombre}</h1>{isAdmin&&<span style={{fontSize:"11px",color:"#94a3b8",fontFamily:"monospace"}}>{coach.id_coach}</span>}</div>
+                <div><h1 style={{fontWeight:800,fontSize:"21px",color:"var(--fx-text)",margin:0}}>{coach.nombre}</h1>{isAdmin&&<span style={{fontSize:"11px",color:"var(--fx-muted2)",fontFamily:"monospace"}}>{coach.id_coach}</span>}</div>
                 {(()=>{
                   const titles={};const seen=new Set();
                   const uniquePairs=[...new Map(coachSeasons.map(s=>[s.id_equipo+"_"+s.temporada,s])).values()];
@@ -5184,16 +5164,16 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
               <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"10px"}}>
                 {isExPlayer&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"12px",fontWeight:700,padding:"3px 10px",borderRadius:"20px"}}>Ex jugadora</span>}
                 {(coach.nacionalidad||coach.nacionalidad2)&&(
-                  <span style={{background:"#f1f5f9",color:"#475569",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center",gap:"4px"}}>
+                  <span style={{background:"var(--fx-hover)",color:"var(--fx-label)",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center",gap:"4px"}}>
                     {coach.nacionalidad&&<FlagImg country={coach.nacionalidad}/>}
                     {coach.nacionalidad2&&<FlagImg country={coach.nacionalidad2}/>}
                   </span>
                 )}
               </div>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"12px"}}>
-                <div style={{display:"grid",gridTemplateColumns:"auto auto",gap:"6px 20px",fontSize:"13px",color:"#64748b"}}>
-                  {age&&<span>Edad: <strong style={{color:"#1e293b"}}>{age} años</strong></span>}
-                  <span>Temporadas: <strong style={{color:"#1e293b"}}>{coachSeasons.length}</strong></span>
+                <div style={{display:"grid",gridTemplateColumns:"auto auto",gap:"6px 20px",fontSize:"13px",color:"var(--fx-muted)"}}>
+                  {age&&<span>Edad: <strong style={{color:"var(--fx-text)"}}>{age} años</strong></span>}
+                  <span>Temporadas: <strong style={{color:"var(--fx-text)"}}>{coachSeasons.length}</strong></span>
                 </div>
                 {isExPlayer&&playerProfile&&(
                   <button onClick={()=>onGoToPlayer(coach.id_jugadora,{tab:"cuerpo_tecnico",id:selId,label:coach?.nombre})}
@@ -5206,7 +5186,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
           </div>
         </div>
         {/* Historial unificado */}
-        <div style={{background:"#fff",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
+        <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
           {(()=>{
             const playSeasonsRaw=playerProfile?[...(playerProfile.seasons||[])]:[];
             const playSeasons=playSeasonsRaw.map(s=>({...s,_type:"player"}));
@@ -5216,13 +5196,13 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
             const total=merged.length;
             return(
               <>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}><h2 style={{fontWeight:700,fontSize:"17px",color:"#1e293b",margin:0}}>Historial <span style={{color:"#94a3b8",fontWeight:400,fontSize:"14px"}}>({total})</span></h2>{isAdmin&&<button onClick={()=>setSeasonModal("add")} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Temporada</button>}</div>
-                {hasPlay&&<div style={{display:"flex",gap:"12px",marginBottom:"12px",fontSize:"12px",color:"#64748b",alignItems:"center"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}><h2 style={{fontWeight:700,fontSize:"17px",color:"var(--fx-text)",margin:0}}>Historial <span style={{color:"var(--fx-muted2)",fontWeight:400,fontSize:"14px"}}>({total})</span></h2>{isAdmin&&<button onClick={()=>setSeasonModal("add")} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Temporada</button>}</div>
+                {hasPlay&&<div style={{display:"flex",gap:"12px",marginBottom:"12px",fontSize:"12px",color:"var(--fx-muted)",alignItems:"center"}}>
                   <span style={{display:"flex",alignItems:"center",gap:"4px"}}><span style={{width:10,height:10,borderRadius:"50%",background:"#9333ea",display:"inline-block"}}/> Jugadora</span>
                   <span style={{display:"flex",alignItems:"center",gap:"4px"}}><span style={{width:10,height:10,borderRadius:"50%",background:"#3b82f6",display:"inline-block"}}/> Entrenadora</span>
                 </div>}
                 {merged.length===0
-                  ?<div style={{textAlign:"center",padding:"30px",color:"#94a3b8",fontSize:"14px"}}>Sin temporadas registradas</div>
+                  ?<div style={{textAlign:"center",padding:"30px",color:"var(--fx-muted2)",fontSize:"14px"}}>Sin temporadas registradas</div>
                   :<div style={{position:"relative"}}>
                     <div style={{position:"absolute",left:"11px",top:"10px",bottom:"10px",width:"2px",background:hasPlay?"linear-gradient(to bottom,#fed7aa,#bfdbfe)":"#bfdbfe"}}/>
                     <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
@@ -5241,14 +5221,14 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
                                 <TeamBadge team={eq} size={30}/>
                                 <div style={{flex:1}}>
                                   <div style={{display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
-                                    <span style={{fontWeight:700,fontSize:"14px",color:"#1e293b"}}>{s.temporada} · </span>
+                                    <span style={{fontWeight:700,fontSize:"14px",color:"var(--fx-text)"}}>{s.temporada} · </span>
                                     <span style={{color:isCoach?"#3b82f6":"#9333ea",fontWeight:700,textDecoration:"underline"}}>{resolveTeamName(s.id_equipo,s.temporada,equiposNombres,equipoMap)||s.id_equipo}</span>
                                     {isCoach&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"10px",fontWeight:700,padding:"1px 6px",borderRadius:"20px"}}>📋 Coach</span>}
                                   </div>
-                                  <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{lig&&<MultiFlag countries={[lig.pais,lig.pais2,lig.pais3]}/>}{lig?.nombre||s.id_liga}</div>
+                                  <div style={{fontSize:"12px",color:"var(--fx-muted)",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{lig&&<MultiFlag countries={[lig.pais,lig.pais2,lig.pais3]}/>}{lig?.nombre||s.id_liga}</div>
                                 </div>
                                 {isAdmin&&<div style={{display:"flex",gap:"4px",flexShrink:0}} onClick={e=>e.stopPropagation()}>
-                                  <button onClick={()=>setSeasonModal(s)} title="Editar" style={{background:"#f1f5f9",border:"none",borderRadius:"6px",padding:"4px 8px",fontSize:"12px",cursor:"pointer",color:"#475569"}}>✏️</button>
+                                  <button onClick={()=>setSeasonModal(s)} title="Editar" style={{background:"var(--fx-hover)",border:"none",borderRadius:"6px",padding:"4px 8px",fontSize:"12px",cursor:"pointer",color:"var(--fx-label)"}}>✏️</button>
                                   <button onClick={()=>setDelCoachItem({type:"season",id:s.id})} title="Eliminar" style={{background:"#fee2e2",border:"none",borderRadius:"6px",padding:"4px 8px",fontSize:"12px",cursor:"pointer",color:"#ef4444"}}>🗑️</button>
                                 </div>}
                               </div>
@@ -5274,8 +5254,8 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
       <div style={{minHeight:"112px"}}>
       <div style={{display:"flex",gap:"8px",marginBottom:"14px",flexWrap:"wrap",alignItems:"stretch"}}>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Nombre de entrenador..."
-          style={{flex:"1 1 180px",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 14px",fontSize:"13px",color:"#1e293b",outline:"none",background:"#fff",height:"40px",boxSizing:"border-box"}}/>
-        <select style={{flex:"0 0 auto",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterLiga?"#9333ea":"#475569",background:"#fff",outline:"none",height:"40px",fontWeight:filterLiga?700:400,maxWidth:"100%"}} value={filterLiga} onChange={e=>setFilterLiga(e.target.value)}>
+          style={{flex:"1 1 180px",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 14px",fontSize:"13px",color:"var(--fx-text)",outline:"none",background:"var(--fx-card)",height:"40px",boxSizing:"border-box"}}/>
+        <select style={{flex:"0 0 auto",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterLiga?"#9333ea":"#475569",background:"var(--fx-card)",outline:"none",height:"40px",fontWeight:filterLiga?700:400,maxWidth:"100%"}} value={filterLiga} onChange={e=>setFilterLiga(e.target.value)}>
           <option value="">Liga</option>
           {allLigas.map(l=><option key={l} value={l}>{l}</option>)}
         </select>
@@ -5284,7 +5264,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
       </div>
       {isAdmin&&coachModal==="add"&&<Modal title="Nuevo coach" onClose={()=>setCoachModal(null)}><CoachForm players={players} onSave={saveCoach} onCancel={()=>setCoachModal(null)} saving={saving2}/></Modal>}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
-        <span style={{fontSize:"13px",color:"#94a3b8"}}>{filteredList.length} entrenador{filteredList.length!==1?"es":"a"}</span>
+        <span style={{fontSize:"13px",color:"var(--fx-muted2)"}}>{filteredList.length} entrenador{filteredList.length!==1?"es":"a"}</span>
         {isAdmin&&<button onClick={()=>setCoachModal("add")} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Coach</button>}
       </div>
       <div className="bfdb-cards-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:"12px"}}>
@@ -5296,28 +5276,28 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
           const isExPlayer=!!coach.id_jugadora;
           return(
             <div key={coach.id_coach} onClick={()=>{setSelId(coach.id_coach);window.scrollTo({top:0,behavior:"smooth"});}}
-              style={{background:"#fff",borderRadius:"16px",padding:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",cursor:"pointer",border:"2px solid transparent",transition:"all 0.15s"}}
+              style={{background:"var(--fx-card)",borderRadius:"16px",padding:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",cursor:"pointer",border:"2px solid transparent",transition:"all 0.15s"}}
               onMouseEnter={e=>{e.currentTarget.style.borderColor="#3b82f6";e.currentTarget.style.boxShadow="0 4px 18px rgba(59,130,246,0.18)";}}
               onMouseLeave={e=>{e.currentTarget.style.borderColor="transparent";e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.06)";}}>
               <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"12px"}}>
                 <Avatar photo={coach.foto} name={coach.nombre} size={48} fontSize={18}/>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:700,fontSize:"15px",color:"#1e293b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{coach.nombre}</div>
-                  <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"1px",display:"flex",alignItems:"center",gap:"3px"}}>
+                  <div style={{fontWeight:700,fontSize:"15px",color:"var(--fx-text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{coach.nombre}</div>
+                  <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginTop:"1px",display:"flex",alignItems:"center",gap:"3px"}}>
                     {coach.nacionalidad&&<FlagImg country={coach.nacionalidad}/>}
                     {coach.nacionalidad2&&<FlagImg country={coach.nacionalidad2}/>}
                   </div>
                 </div>
                 {isExPlayer&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"10px",fontWeight:700,padding:"2px 7px",borderRadius:"20px",flexShrink:0}}>ex jugadora</span>}
               </div>
-              <div style={{borderTop:"1px solid #f1f5f9",paddingTop:"10px"}}>
+              <div style={{borderTop:"1px solid var(--fx-border2)",paddingTop:"10px"}}>
                 {lastEq?(<>
-                  <div style={{fontSize:"11px",color:"#94a3b8",marginBottom:"4px"}}>Último equipo</div>
+                  <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginBottom:"4px"}}>Último equipo</div>
                   <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                     <TeamBadge team={lastEq} size={26}/>
                     <div>
                       <div style={{fontSize:"13px",fontWeight:600,color:"#334155"}}>{lastSeason.temporada} · {lastEq.nombre}</div>
-                      <div style={{fontSize:"11px",color:"#94a3b8"}}>{lastLig?.nombre||lastSeason.id_liga}</div>
+                      <div style={{fontSize:"11px",color:"var(--fx-muted2)"}}>{lastLig?.nombre||lastSeason.id_liga}</div>
                     </div>
                   </div>
                 </>):<div style={{fontSize:"12px",color:"#cbd5e1",fontStyle:"italic"}}>Sin temporadas</div>}
@@ -5339,22 +5319,22 @@ function Landing({onEnter,players,equipos,ligas,coaches,tempCoach,palmares,regEx
         <div style={{marginBottom:"28px"}}>
           <img src="/icon-home.png" alt="La Basketneta" style={{height:"120px",objectFit:"contain"}}/>
         </div>
-        <div style={{fontSize:"14px",color:"#94a3b8",marginBottom:"36px",fontWeight:500}}>Base de datos del baloncesto femenino</div>
+        <div style={{fontSize:"14px",color:"var(--fx-muted2)",marginBottom:"36px",fontWeight:500}}>Base de datos del baloncesto femenino</div>
         {players&&<div style={{background:"rgba(255,255,255,0.04)",borderRadius:"14px",padding:"16px 20px",marginBottom:"16px",border:"1px solid rgba(255,255,255,0.07)"}}>
-          <div style={{fontWeight:700,fontSize:"12px",color:"#94a3b8",marginBottom:"12px",textTransform:"uppercase",letterSpacing:"0.5px"}}>La Basketneta en números</div>
+          <div style={{fontWeight:700,fontSize:"12px",color:"var(--fx-muted2)",marginBottom:"12px",textTransform:"uppercase",letterSpacing:"0.5px"}}>La Basketneta en números</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:"8px"}}>
             {[["👩‍🏀",(players||[]).length,"Jugadoras"],["🏟️",(equipos||[]).length,"Equipos"],["🏆",(ligas||[]).length,"Ligas"],["🗂️",((players||[]).length+(equipos||[]).length+(ligas||[]).length+(coaches||[]).length+(tempCoach||[]).length+(palmares||[]).length+(regExtra||0)).toLocaleString("es"),"Registros"]].map(([icon,val,label])=>(
               <div key={label} style={{textAlign:"center",padding:"8px 4px"}}>
                 <div style={{fontSize:"14px"}}>{icon}</div>
                 <div style={{fontSize:"18px",fontWeight:800,color:"#f1f5f9"}}>{typeof val==="number"?val.toLocaleString("es"):val}</div>
-                <div style={{fontSize:"10px",color:"#64748b"}}>{label}</div>
+                <div style={{fontSize:"10px",color:"var(--fx-muted)"}}>{label}</div>
               </div>
             ))}
           </div>
         </div>}
         <div style={{background:"rgba(255,255,255,0.04)",borderRadius:"14px",padding:"16px 20px",marginBottom:"24px",border:"1px solid rgba(255,255,255,0.07)",textAlign:"left"}}>
-          <div style={{fontWeight:700,fontSize:"12px",color:"#94a3b8",marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Aviso legal</div>
-          <p style={{fontSize:"12px",color:"#64748b",lineHeight:"1.6",margin:0}}>
+          <div style={{fontWeight:700,fontSize:"12px",color:"var(--fx-muted2)",marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Aviso legal</div>
+          <p style={{fontSize:"12px",color:"var(--fx-muted)",lineHeight:"1.6",margin:0}}>
             Los datos mostrados en esta aplicación son de carácter público y han sido obtenidos de fuentes oficiales como webs de federaciones deportivas. Esta plataforma no tiene ánimo de lucro y su uso es exclusivamente informativo. Si eres jugadora, entrenadora o representante de algún club y deseas solicitar la modificación o eliminación de tus datos, contacta con nosotros en <span style={{color:"#9333ea",fontWeight:600}}>labasketneta@gmail.com</span>.
           </p>
         </div>
@@ -5364,7 +5344,7 @@ function Landing({onEnter,players,equipos,ligas,coaches,tempCoach,palmares,regEx
           onMouseLeave={e=>e.currentTarget.style.background="#9333ea"}>
           Entrar a la base de datos →
         </button>
-        <div style={{fontSize:"11px",color:"#475569",marginTop:"12px"}}>
+        <div style={{fontSize:"11px",color:"var(--fx-label)",marginTop:"12px"}}>
           Al acceder aceptas el uso informativo de los datos según se describe arriba.
         </div>
       </div>
@@ -5410,10 +5390,10 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
 
   if(!favoritos.length)return(
     <div className="bfdb-container" style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
-      <div style={{background:"#fff",borderRadius:"16px",padding:"40px 24px",border:"1px solid #e2e8f0",textAlign:"center"}}>
+      <div style={{background:"var(--fx-card)",borderRadius:"16px",padding:"40px 24px",border:"1px solid var(--fx-border)",textAlign:"center"}}>
         <div style={{fontSize:"48px",marginBottom:"12px"}}>⭐</div>
-        <div style={{fontWeight:800,fontSize:"18px",color:"#1e293b",marginBottom:"8px"}}>Aún no tienes favoritos</div>
-        <div style={{fontSize:"14px",color:"#94a3b8",maxWidth:"400px",margin:"0 auto"}}>Marca jugadoras, equipos o ligas con la estrella ☆ en sus fichas para ver aquí sus próximos partidos, resultados y fichajes.</div>
+        <div style={{fontWeight:800,fontSize:"18px",color:"var(--fx-text)",marginBottom:"8px"}}>Aún no tienes favoritos</div>
+        <div style={{fontSize:"14px",color:"var(--fx-muted2)",maxWidth:"400px",margin:"0 auto"}}>Marca jugadoras, equipos o ligas con la estrella ☆ en sus fichas para ver aquí sus próximos partidos, resultados y fichajes.</div>
       </div>
     </div>
   );
@@ -5478,9 +5458,9 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
     return(
       <div onClick={()=>onGoToPartido(p)} style={{display:"flex",alignItems:"center",gap:"4px",padding:"4px 0",cursor:"pointer",fontSize:"12px"}} title={`${tL.nombre||"?"} vs ${tV.nombre||"?"}`}>
         {tL.escudo?<img src={tL.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>:<span style={{width:18,textAlign:"center"}}>•</span>}
-        <span style={{fontWeight:played&&Number(p.resultado_local)>Number(p.resultado_visitante)?700:400,color:"#1e293b",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}/>
+        <span style={{fontWeight:played&&Number(p.resultado_local)>Number(p.resultado_visitante)?700:400,color:"var(--fx-text)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}/>
         <span style={{fontWeight:700,color:"#7c3aed",fontSize:"12px",flexShrink:0}}>{played?`${p.resultado_local}-${p.resultado_visitante}`:d?`${d.getDate()}/${d.getMonth()+1}`:"-"}</span>
-        <span style={{fontWeight:played&&Number(p.resultado_visitante)>Number(p.resultado_local)?700:400,color:"#1e293b",flex:1}}/>
+        <span style={{fontWeight:played&&Number(p.resultado_visitante)>Number(p.resultado_local)?700:400,color:"var(--fx-text)",flex:1}}/>
         {tV.escudo?<img src={tV.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>:<span style={{width:18,textAlign:"center"}}>•</span>}
       </div>
     );
@@ -5491,7 +5471,7 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
       {/* Filtros */}
       <div style={{display:"flex",gap:"8px",marginBottom:"20px",flexWrap:"wrap"}}>
         {[["todo","⭐ Todo"],["jugadora","👩‍🏀 Jugadoras"],["equipo","🏟️ Equipos"],["liga","🏆 Ligas"]].map(([k,label])=>(
-          <button key={k} onClick={()=>setFiltro(k)} style={{background:filtro===k?"#9333ea":"#fff",color:filtro===k?"#fff":"#475569",border:filtro===k?"none":"1.5px solid #e2e8f0",borderRadius:"20px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",transition:"all 0.15s"}}>{label}</button>
+          <button key={k} onClick={()=>setFiltro(k)} style={{background:filtro===k?"#9333ea":"#fff",color:filtro===k?"#fff":"#475569",border:filtro===k?"none":"1.5px solid var(--fx-border)",borderRadius:"20px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",transition:"all 0.15s"}}>{label}</button>
         ))}
       </div>
 
@@ -5500,20 +5480,20 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
         const liga=partido?ligaMap[partido.id_liga]:null;
         const resultado=partido?(partido.id_equipo_local===lastBox?.id_equipo?`${partido.resultado_local}-${partido.resultado_visitante}`:`${partido.resultado_visitante}-${partido.resultado_local}`):null;
         return(
-        <div key={p.id_jugadora} style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0",marginBottom:"16px"}}>
+        <div key={p.id_jugadora} style={{background:"var(--fx-card)",borderRadius:"16px",padding:"16px",border:"1px solid var(--fx-border)",marginBottom:"16px"}}>
           <div onClick={()=>onGoToPlayer(p.id_jugadora)} style={{display:"flex",alignItems:"center",gap:"14px",cursor:"pointer",marginBottom:lastBox?"12px":"0"}}>
             <Avatar photo={p.foto} name={p.nombre} size={52} fontSize={18}/>
             <div style={{flex:1}}>
-              <div style={{fontWeight:800,fontSize:"16px",color:"#1e293b"}}>{p.nombre}</div>
-              {rivalEq&&<div style={{fontSize:"13px",color:"#475569",fontWeight:600}}>vs {rivalEq.nombre}{resultado?" · "+resultado:""}</div>}
+              <div style={{fontWeight:800,fontSize:"16px",color:"var(--fx-text)"}}>{p.nombre}</div>
+              {rivalEq&&<div style={{fontSize:"13px",color:"var(--fx-label)",fontWeight:600}}>vs {rivalEq.nombre}{resultado?" · "+resultado:""}</div>}
               {liga&&<div style={{fontSize:"11px",color:"#9333ea",fontWeight:600}}>{liga.nombre}</div>}
             </div>
           </div>
           {lastBox&&<div style={{display:"flex",gap:"8px",flexWrap:"wrap"}}>
             {[["PTS",lastBox.puntos],["REB",lastBox.reb_totales],["AST",lastBox.asistencias],["ROB",lastBox.robos],["MIN",lastBox.minutos],["VAL",lastBox.valoracion]].map(([k,v])=>(
-              <div key={k} style={{background:"#f8fafc",borderRadius:"10px",padding:"8px 12px",textAlign:"center",flex:"1 0 48px"}}>
+              <div key={k} style={{background:"var(--fx-hover)",borderRadius:"10px",padding:"8px 12px",textAlign:"center",flex:"1 0 48px"}}>
                 <div style={{fontSize:"16px",fontWeight:800,color:"#7c3aed"}}>{v||0}</div>
-                <div style={{fontSize:"10px",fontWeight:700,color:"#94a3b8"}}>{k}</div>
+                <div style={{fontSize:"10px",fontWeight:700,color:"var(--fx-muted2)"}}>{k}</div>
               </div>
             ))}
           </div>}
@@ -5522,11 +5502,11 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
 
       {/* ── EQUIPOS ── */}
       {(filtro==="todo"||filtro==="equipo")&&eqCards.map(({eq,comps,ultPartido,proxPartido,ultFichaje})=>(
-        <div key={eq.id_equipo} style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0",marginBottom:"16px"}}>
+        <div key={eq.id_equipo} style={{background:"var(--fx-card)",borderRadius:"16px",padding:"16px",border:"1px solid var(--fx-border)",marginBottom:"16px"}}>
           <div onClick={()=>onGoToTeam(eq.id_equipo)} style={{display:"flex",alignItems:"center",gap:"12px",cursor:"pointer",marginBottom:"12px"}}>
-            {eq.escudo?<img src={eq.escudo} alt="" style={{width:44,height:44,objectFit:"contain"}}/>:<div style={{width:44,height:44,borderRadius:"10px",background:"#f1f5f9",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px"}}>🏟️</div>}
+            {eq.escudo?<img src={eq.escudo} alt="" style={{width:44,height:44,objectFit:"contain"}}/>:<div style={{width:44,height:44,borderRadius:"10px",background:"var(--fx-hover)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px"}}>🏟️</div>}
             <div style={{flex:1}}>
-              <div style={{fontWeight:800,fontSize:"16px",color:"#1e293b"}}>{eq.nombre}</div>
+              <div style={{fontWeight:800,fontSize:"16px",color:"var(--fx-text)"}}>{eq.nombre}</div>
               <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginTop:"4px"}}>
                 {comps.map(l=><span key={l.id_liga} onClick={e=>{e.stopPropagation();onGoToLeague(l.id_liga);}} style={{fontSize:"10px",fontWeight:700,color:"#9333ea",background:"#faf5ff",padding:"2px 8px",borderRadius:"10px",cursor:"pointer"}}>{l.nombre}</span>)}
               </div>
@@ -5534,19 +5514,19 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px",marginBottom:ultFichaje?"12px":"0"}}>
             <div>
-              <div style={{fontSize:"11px",fontWeight:700,color:"#94a3b8",marginBottom:"6px"}}>ÚLTIMO PARTIDO</div>
+              <div style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",marginBottom:"6px"}}>ÚLTIMO PARTIDO</div>
               {ultPartido?<><div style={{fontSize:"10px",color:"#9333ea",fontWeight:600,marginBottom:"2px"}}>{ligaMap[ultPartido.id_liga]?.nombre||""}</div><MiniPartido p={ultPartido}/></>:<div style={{fontSize:"12px",color:"#cbd5e1"}}>—</div>}
             </div>
             <div>
-              <div style={{fontSize:"11px",fontWeight:700,color:"#94a3b8",marginBottom:"6px"}}>PRÓXIMO PARTIDO</div>
+              <div style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",marginBottom:"6px"}}>PRÓXIMO PARTIDO</div>
               {proxPartido?<><div style={{fontSize:"10px",color:"#9333ea",fontWeight:600,marginBottom:"2px"}}>{ligaMap[proxPartido.id_liga]?.nombre||""}</div><MiniPartido p={proxPartido}/></>:<div style={{fontSize:"12px",color:"#cbd5e1"}}>—</div>}
             </div>
           </div>
-          {ultFichaje&&<div style={{borderTop:"1px solid #f1f5f9",paddingTop:"10px"}}>
-            <div style={{fontSize:"11px",fontWeight:700,color:"#94a3b8",marginBottom:"4px"}}>ÚLTIMO FICHAJE</div>
+          {ultFichaje&&<div style={{borderTop:"1px solid var(--fx-border2)",paddingTop:"10px"}}>
+            <div style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",marginBottom:"4px"}}>ÚLTIMO FICHAJE</div>
             <div onClick={()=>onGoToPlayer(ultFichaje.id_jugadora)} style={{display:"flex",alignItems:"center",gap:"8px",cursor:"pointer"}}>
               <Avatar photo={ultFichaje.player?.foto} name={ultFichaje.player?.nombre} size={28} fontSize={11}/>
-              <span style={{fontSize:"13px",fontWeight:700,color:"#1e293b"}}>{ultFichaje.player?.nombre}</span>
+              <span style={{fontSize:"13px",fontWeight:700,color:"var(--fx-text)"}}>{ultFichaje.player?.nombre}</span>
             </div>
           </div>}
         </div>
@@ -5554,26 +5534,26 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
 
       {/* ── LIGAS ── */}
       {(filtro==="todo"||filtro==="liga")&&ligaCards.map(({liga,ultJornada,proxJornada,clasi})=>(
-        <div key={liga.id_liga} style={{background:"#fff",borderRadius:"16px",padding:"16px",border:"1px solid #e2e8f0",marginBottom:"16px"}}>
-          <div onClick={()=>onGoToLeague(liga.id_liga)} style={{fontWeight:800,fontSize:"16px",color:"#1e293b",cursor:"pointer",marginBottom:"12px"}}>{liga.nombre}</div>
+        <div key={liga.id_liga} style={{background:"var(--fx-card)",borderRadius:"16px",padding:"16px",border:"1px solid var(--fx-border)",marginBottom:"16px"}}>
+          <div onClick={()=>onGoToLeague(liga.id_liga)} style={{fontWeight:800,fontSize:"16px",color:"var(--fx-text)",cursor:"pointer",marginBottom:"12px"}}>{liga.nombre}</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px",marginBottom:"12px"}}>
             <div>
-              <div style={{fontSize:"11px",fontWeight:700,color:"#94a3b8",marginBottom:"6px"}}>ÚLTIMA JORNADA</div>
+              <div style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",marginBottom:"6px"}}>ÚLTIMA JORNADA</div>
               {ultJornada.slice(0,7).map(p=><MiniPartido key={p.id} p={p}/>)}
               {!ultJornada.length&&<div style={{fontSize:"12px",color:"#cbd5e1"}}>—</div>}
             </div>
             <div>
-              <div style={{fontSize:"11px",fontWeight:700,color:"#94a3b8",marginBottom:"6px"}}>PRÓXIMA JORNADA</div>
+              <div style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",marginBottom:"6px"}}>PRÓXIMA JORNADA</div>
               {proxJornada.slice(0,7).map(p=><MiniPartido key={p.id} p={p}/>)}
               {!proxJornada.length&&<div style={{fontSize:"12px",color:"#cbd5e1"}}>—</div>}
             </div>
           </div>
           {clasi.length>0&&<div>
-            <div style={{fontSize:"11px",fontWeight:700,color:"#94a3b8",marginBottom:"6px"}}>CLASIFICACIÓN</div>
+            <div style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",marginBottom:"6px"}}>CLASIFICACIÓN</div>
             <div style={{display:"flex",flexDirection:"column",gap:"2px"}}>
               {clasi.slice(0,16).map((r,i)=>{const eq=equipoMap[r.id];return(
                 <div key={r.id} style={{display:"flex",alignItems:"center",gap:"6px",padding:"3px 4px",fontSize:"11px"}}>
-                  <span style={{width:"16px",fontWeight:700,color:"#94a3b8",textAlign:"right"}}>{i+1}</span>
+                  <span style={{width:"16px",fontWeight:700,color:"var(--fx-muted2)",textAlign:"right"}}>{i+1}</span>
                   {eq?.escudo?<img src={eq.escudo} alt="" title={eq.nombre} style={{width:16,height:16,objectFit:"contain"}}/>:<span style={{width:16,textAlign:"center",fontSize:"8px"}}>•</span>}
                   <span style={{fontWeight:700,color:"#16a34a",width:"24px",textAlign:"center"}}>{r.v}</span>
                   <span style={{fontWeight:700,color:"#ef4444",width:"24px",textAlign:"center"}}>{r.d}</span>
@@ -5592,17 +5572,17 @@ function PrivacidadView({onBack}){
   return(
     <div style={{maxWidth:"720px",margin:"0 auto",padding:"24px 20px"}}>
       <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"13px",cursor:"pointer",padding:"0 0 16px",display:"flex",alignItems:"center",gap:"4px"}}>{"← Volver"}</button>
-      <h1 style={{fontWeight:800,fontSize:"24px",color:"#1e293b",margin:"0 0 8px"}}>{"Política de Privacidad"}</h1>
-      <p style={{fontSize:"13px",color:"#94a3b8",margin:"0 0 24px"}}>{"Última actualización: julio 2026"}</p>
-      <div style={{display:"flex",flexDirection:"column",gap:"20px",fontSize:"14px",color:"#475569",lineHeight:"1.7"}}>
-        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"#1e293b",margin:"0 0 8px"}}>{"1. Quién somos"}</h2><p style={{margin:0}}>{"La Basketneta (labasketneta.app) es una aplicación web dedicada a la recopilación y visualización de estadísticas de baloncesto femenino. Es un proyecto independiente sin ánimo de lucro."}</p></div>
-        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"#1e293b",margin:"0 0 8px"}}>{"2. Qué datos recogemos"}</h2><p style={{margin:0}}>{"Cuando creas una cuenta o inicias sesión con Google, recogemos únicamente: tu dirección de correo electrónico, tu nombre y foto de perfil (si inicias sesión con Google), y tus selecciones de favoritos (jugadoras, equipos y ligas). No recogemos datos de navegación, ubicación, ni ningún otro tipo de información personal."}</p></div>
-        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"#1e293b",margin:"0 0 8px"}}>{"3. Para qué usamos tus datos"}</h2><p style={{margin:0}}>{"Permitirte iniciar sesión, guardar y mostrar tus favoritos, y personalizar tu página de inicio con información relevante."}</p></div>
-        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"#1e293b",margin:"0 0 8px"}}>{"4. Con quién compartimos tus datos"}</h2><p style={{margin:0}}>{"No compartimos, vendemos ni cedemos tus datos personales a terceros bajo ninguna circunstancia. Tus datos se almacenan de forma segura en Supabase (infraestructura en la Unión Europea)."}</p></div>
-        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"#1e293b",margin:"0 0 8px"}}>{"5. Cuánto tiempo conservamos tus datos"}</h2><p style={{margin:0}}>{"Tus datos se conservan mientras mantengas tu cuenta activa. Puedes solicitar la eliminación de tu cuenta y todos los datos asociados en cualquier momento contactando con nosotros."}</p></div>
-        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"#1e293b",margin:"0 0 8px"}}>{"6. Tus derechos"}</h2><p style={{margin:0}}>{"De acuerdo con el Reglamento General de Protección de Datos (RGPD), tienes derecho a acceder a tus datos personales, rectificar datos inexactos, solicitar la eliminación de tus datos y retirar tu consentimiento en cualquier momento."}</p></div>
-        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"#1e293b",margin:"0 0 8px"}}>{"7. Seguridad"}</h2><p style={{margin:0}}>{"Utilizamos medidas de seguridad estándar de la industria para proteger tus datos, incluyendo cifrado en tránsito (HTTPS), autenticación segura y políticas de acceso a nivel de fila (Row Level Security) en la base de datos."}</p></div>
-        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"#1e293b",margin:"0 0 8px"}}>{"8. Contacto"}</h2><p style={{margin:0}}>{"Los datos mostrados en esta aplicación son de carácter público y han sido obtenidos de fuentes oficiales como webs de federaciones deportivas. Esta plataforma no tiene ánimo de lucro y su uso es exclusivamente informativo. Si eres jugadora, entrenadora o representante de algún club y deseas solicitar la modificación o eliminación de tus datos, o para cualquier consulta relacionada con tu privacidad, contacta con nosotros en: "}<a href="mailto:labasketneta@gmail.com" style={{color:"#9333ea",fontWeight:600}}>{"labasketneta@gmail.com"}</a></p></div>
+      <h1 style={{fontWeight:800,fontSize:"24px",color:"var(--fx-text)",margin:"0 0 8px"}}>{"Política de Privacidad"}</h1>
+      <p style={{fontSize:"13px",color:"var(--fx-muted2)",margin:"0 0 24px"}}>{"Última actualización: julio 2026"}</p>
+      <div style={{display:"flex",flexDirection:"column",gap:"20px",fontSize:"14px",color:"var(--fx-label)",lineHeight:"1.7"}}>
+        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"var(--fx-text)",margin:"0 0 8px"}}>{"1. Quién somos"}</h2><p style={{margin:0}}>{"La Basketneta (labasketneta.app) es una aplicación web dedicada a la recopilación y visualización de estadísticas de baloncesto femenino. Es un proyecto independiente sin ánimo de lucro."}</p></div>
+        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"var(--fx-text)",margin:"0 0 8px"}}>{"2. Qué datos recogemos"}</h2><p style={{margin:0}}>{"Cuando creas una cuenta o inicias sesión con Google, recogemos únicamente: tu dirección de correo electrónico, tu nombre y foto de perfil (si inicias sesión con Google), y tus selecciones de favoritos (jugadoras, equipos y ligas). No recogemos datos de navegación, ubicación, ni ningún otro tipo de información personal."}</p></div>
+        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"var(--fx-text)",margin:"0 0 8px"}}>{"3. Para qué usamos tus datos"}</h2><p style={{margin:0}}>{"Permitirte iniciar sesión, guardar y mostrar tus favoritos, y personalizar tu página de inicio con información relevante."}</p></div>
+        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"var(--fx-text)",margin:"0 0 8px"}}>{"4. Con quién compartimos tus datos"}</h2><p style={{margin:0}}>{"No compartimos, vendemos ni cedemos tus datos personales a terceros bajo ninguna circunstancia. Tus datos se almacenan de forma segura en Supabase (infraestructura en la Unión Europea)."}</p></div>
+        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"var(--fx-text)",margin:"0 0 8px"}}>{"5. Cuánto tiempo conservamos tus datos"}</h2><p style={{margin:0}}>{"Tus datos se conservan mientras mantengas tu cuenta activa. Puedes solicitar la eliminación de tu cuenta y todos los datos asociados en cualquier momento contactando con nosotros."}</p></div>
+        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"var(--fx-text)",margin:"0 0 8px"}}>{"6. Tus derechos"}</h2><p style={{margin:0}}>{"De acuerdo con el Reglamento General de Protección de Datos (RGPD), tienes derecho a acceder a tus datos personales, rectificar datos inexactos, solicitar la eliminación de tus datos y retirar tu consentimiento en cualquier momento."}</p></div>
+        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"var(--fx-text)",margin:"0 0 8px"}}>{"7. Seguridad"}</h2><p style={{margin:0}}>{"Utilizamos medidas de seguridad estándar de la industria para proteger tus datos, incluyendo cifrado en tránsito (HTTPS), autenticación segura y políticas de acceso a nivel de fila (Row Level Security) en la base de datos."}</p></div>
+        <div><h2 style={{fontWeight:700,fontSize:"16px",color:"var(--fx-text)",margin:"0 0 8px"}}>{"8. Contacto"}</h2><p style={{margin:0}}>{"Los datos mostrados en esta aplicación son de carácter público y han sido obtenidos de fuentes oficiales como webs de federaciones deportivas. Esta plataforma no tiene ánimo de lucro y su uso es exclusivamente informativo. Si eres jugadora, entrenadora o representante de algún club y deseas solicitar la modificación o eliminación de tus datos, o para cualquier consulta relacionada con tu privacidad, contacta con nosotros en: "}<a href="mailto:labasketneta@gmail.com" style={{color:"#9333ea",fontWeight:600}}>{"labasketneta@gmail.com"}</a></p></div>
       </div>
     </div>
   );
@@ -5622,16 +5602,16 @@ function LoginModal({onLogin,onGoogleLogin,onForgot,onClose,loading,error,info,m
         <div style={{textAlign:"center",marginBottom:"24px"}}>
           <div style={{fontSize:"32px",marginBottom:"8px"}}>🏀</div>
           <div style={{fontWeight:800,fontSize:"18px",color:"#f1f5f9"}}>{isForgot?"Recuperar contraseña":isReg?"Crear cuenta":"Iniciar sesión"}</div>
-          <div style={{fontSize:"12px",color:"#94a3b8",marginTop:"4px"}}>{isForgot?"Te enviaremos un email para restablecerla":"Guarda tus jugadoras y equipos favoritos"}</div>
+          <div style={{fontSize:"12px",color:"var(--fx-muted2)",marginTop:"4px"}}>{isForgot?"Te enviaremos un email para restablecerla":"Guarda tus jugadoras y equipos favoritos"}</div>
         </div>
         {!isForgot&&<>
           <button onClick={onGoogleLogin}
-            style={{width:"100%",background:"#fff",color:"#1e293b",border:"none",borderRadius:"10px",padding:"11px",fontWeight:700,fontSize:"14px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",marginBottom:"16px"}}>
+            style={{width:"100%",background:"var(--fx-card)",color:"var(--fx-text)",border:"none",borderRadius:"10px",padding:"11px",fontWeight:700,fontSize:"14px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",marginBottom:"16px"}}>
             <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
             Continuar con Google
           </button>
           <div style={{display:"flex",alignItems:"center",gap:"12px",margin:"16px 0"}}>
-            <div style={{flex:1,height:"1px",background:"#334155"}}/><span style={{color:"#64748b",fontSize:"12px"}}>o</span><div style={{flex:1,height:"1px",background:"#334155"}}/>
+            <div style={{flex:1,height:"1px",background:"#334155"}}/><span style={{color:"var(--fx-muted)",fontSize:"12px"}}>o</span><div style={{flex:1,height:"1px",background:"#334155"}}/>
           </div>
         </>}
         <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
@@ -5651,12 +5631,12 @@ function LoginModal({onLogin,onGoogleLogin,onForgot,onClose,loading,error,info,m
         {!isReg&&!isForgot&&<div style={{textAlign:"center",marginTop:"12px",fontSize:"12px"}}>
           <span onClick={()=>setMode("forgot")} style={{color:"#a78bfa",cursor:"pointer",fontWeight:600}}>¿Olvidaste tu contraseña?</span>
         </div>}
-        <div style={{textAlign:"center",marginTop:"16px",fontSize:"12px",color:"#94a3b8"}}>
+        <div style={{textAlign:"center",marginTop:"16px",fontSize:"12px",color:"var(--fx-muted2)"}}>
           {isForgot?<span onClick={()=>setMode("login")} style={{color:"#a78bfa",cursor:"pointer",fontWeight:700}}>← Volver</span>:
            isReg?<>¿Ya tienes cuenta? <span onClick={()=>setMode("login")} style={{color:"#a78bfa",cursor:"pointer",fontWeight:700}}>Inicia sesión</span></>:
                  <>¿No tienes cuenta? <span onClick={()=>setMode("register")} style={{color:"#a78bfa",cursor:"pointer",fontWeight:700}}>Regístrate</span></>}
         </div>
-        <div style={{textAlign:"center",marginTop:"12px"}}><a href="/privacidad" target="_blank" style={{fontSize:"11px",color:"#64748b",textDecoration:"none"}}>Política de privacidad</a></div>
+        <div style={{textAlign:"center",marginTop:"12px"}}><a href="/privacidad" target="_blank" style={{fontSize:"11px",color:"var(--fx-muted)",textDecoration:"none"}}>Política de privacidad</a></div>
       </div>
     </div>
   );
@@ -5690,7 +5670,7 @@ function ResetPasswordModal({onSave,onCancel,loading,error,info}){
             style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"11px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>
             {loading?"Guardando...":"Guardar contraseña"}
           </button>
-          <button onClick={onCancel} style={{background:"transparent",color:"#94a3b8",border:"none",fontSize:"12px",cursor:"pointer"}}>Cancelar</button>
+          <button onClick={onCancel} style={{background:"transparent",color:"var(--fx-muted2)",border:"none",fontSize:"12px",cursor:"pointer"}}>Cancelar</button>
         </div>
       </div>
     </div>
@@ -5798,22 +5778,22 @@ function PerfilView({user,favoritos,onClose,onLogout}){
   return(
     <div style={{maxWidth:"640px",margin:"0 auto",padding:"12px"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
-        <h2 style={{margin:0,fontSize:"20px",fontWeight:800,color:"#1e293b"}}>👤 Mi perfil</h2>
-        <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:"20px",cursor:"pointer",color:"#64748b"}}>✕</button>
+        <h2 style={{margin:0,fontSize:"20px",fontWeight:800,color:"var(--fx-text)"}}>👤 Mi perfil</h2>
+        <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:"20px",cursor:"pointer",color:"var(--fx-muted)"}}>✕</button>
       </div>
 
       {/* cabecera con avatar */}
-      <div style={{background:"#fff",borderRadius:"16px",padding:"18px",boxShadow:"0 2px 12px rgba(0,0,0,0.06)",marginBottom:"14px",display:"flex",gap:"14px",alignItems:"center"}}>
+      <div style={{background:"var(--fx-card)",borderRadius:"16px",padding:"18px",boxShadow:"0 2px 12px rgba(0,0,0,0.06)",marginBottom:"14px",display:"flex",gap:"14px",alignItems:"center"}}>
         <UserAvatar avatar={avatar} googleUrl={user.user_metadata?.avatar_url} nombre={nombreReal} size={64}/>
         <div style={{minWidth:0,flex:1}}>
-          <div style={{fontSize:"16px",fontWeight:800,color:"#1e293b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nombreReal}</div>
-          <div style={{fontSize:"12px",color:"#64748b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.email}</div>
+          <div style={{fontSize:"16px",fontWeight:800,color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nombreReal}</div>
+          <div style={{fontSize:"12px",color:"var(--fx-muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.email}</div>
         </div>
       </div>
 
       {/* selector de avatar */}
-      <div style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",marginBottom:"14px"}}>
-        <div style={{fontSize:"12px",fontWeight:700,color:"#64748b",marginBottom:"10px"}}>Tu avatar</div>
+      <div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",marginBottom:"14px"}}>
+        <div style={{fontSize:"12px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"10px"}}>Tu avatar</div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(52px,1fr))",gap:"8px",marginBottom:"12px"}}>
           {AVATAR_PRESETS.map(p=>{
             const sel=avatar===`preset:${p.k}`;
@@ -5832,18 +5812,18 @@ function PerfilView({user,favoritos,onClose,onLogout}){
           </label>
           {(avatar||user.user_metadata?.avatar_url)&&(
             <button onClick={()=>saveAvatar(null)}
-              style={{background:"#fff",color:"#64748b",border:"1px solid #e2e8f0",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
+              style={{background:"var(--fx-card)",color:"var(--fx-muted)",border:"1px solid var(--fx-border)",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
               Usar el de Google
             </button>
           )}
         </div>
         {avatarMsg&&<div style={{fontSize:"11px",color:avatarMsg.startsWith("Error")||avatarMsg.startsWith("No")||avatarMsg.startsWith("Máx")?"#dc2626":"#16a34a",marginTop:"8px",fontWeight:700}}>{avatarMsg}</div>}
-        <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"6px"}}>Elige un preset, sube tu foto (máx 2 MB) o vuelve al avatar de Google.</div>
+        <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginTop:"6px"}}>Elige un preset, sube tu foto (máx 2 MB) o vuelve al avatar de Google.</div>
       </div>
 
       {/* alias */}
-      <div style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",marginBottom:"14px"}}>
-        <div style={{fontSize:"12px",fontWeight:700,color:"#64748b",marginBottom:"6px"}}>Alias en el ranking de la quiniela</div>
+      <div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",marginBottom:"14px"}}>
+        <div style={{fontSize:"12px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"6px"}}>Alias en el ranking de la quiniela</div>
         <div style={{display:"flex",gap:"8px"}}>
           <input type="text" maxLength={24} value={alias} onChange={e=>setAlias(e.target.value)}
             placeholder={nombreReal}
@@ -5854,12 +5834,12 @@ function PerfilView({user,favoritos,onClose,onLogout}){
           </button>
         </div>
         {aliasMsg&&<div style={{fontSize:"11px",color:"#16a34a",marginTop:"6px",fontWeight:700}}>{aliasMsg}</div>}
-        <div style={{fontSize:"11px",color:"#94a3b8",marginTop:"6px"}}>Déjalo vacío para usar tu nombre.</div>
+        <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginTop:"6px"}}>Déjalo vacío para usar tu nombre.</div>
       </div>
 
       {/* stats */}
-      <div style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",marginBottom:"14px"}}>
-        <div style={{fontSize:"12px",fontWeight:700,color:"#64748b",marginBottom:"10px"}}>Tu actividad</div>
+      <div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",marginBottom:"14px"}}>
+        <div style={{fontSize:"12px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"10px"}}>Tu actividad</div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:"10px"}}>
           {[
             {n:favCount.jugadoras,l:"⭐ Jugadoras",c:"#9333ea"},
@@ -5868,9 +5848,9 @@ function PerfilView({user,favoritos,onClose,onLogout}){
             {n:counts.basketneta,l:"🏀 Pronóstico",c:"#0891b2"},
             {n:counts.bola,l:"🔮 Bola",c:"#0891b2"},
           ].map(s=>(
-            <div key={s.l} style={{background:"#f8fafc",borderRadius:"10px",padding:"10px",textAlign:"center"}}>
+            <div key={s.l} style={{background:"var(--fx-hover)",borderRadius:"10px",padding:"10px",textAlign:"center"}}>
               <div style={{fontSize:"22px",fontWeight:800,color:s.c,lineHeight:1}}>{s.n}</div>
-              <div style={{fontSize:"11px",color:"#64748b",marginTop:"4px",fontWeight:600}}>{s.l}</div>
+              <div style={{fontSize:"11px",color:"var(--fx-muted)",marginTop:"4px",fontWeight:600}}>{s.l}</div>
             </div>
           ))}
         </div>
@@ -5879,7 +5859,7 @@ function PerfilView({user,favoritos,onClose,onLogout}){
       {/* logout */}
       <div style={{marginBottom:"14px"}}>
         <button onClick={onLogout}
-          style={{width:"100%",background:"#fff",color:"#1e293b",border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"12px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>
+          style={{width:"100%",background:"var(--fx-card)",color:"var(--fx-text)",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"12px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>
           Cerrar sesión
         </button>
       </div>
@@ -5892,7 +5872,7 @@ function PerfilView({user,favoritos,onClose,onLogout}){
         </div>
         {confirmStep===0&&(
           <button onClick={()=>setConfirmStep(1)}
-            style={{background:"#fff",color:"#991b1b",border:"1px solid #fca5a5",borderRadius:"8px",padding:"8px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
+            style={{background:"var(--fx-card)",color:"#991b1b",border:"1px solid #fca5a5",borderRadius:"8px",padding:"8px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
             🗑 Eliminar mi cuenta
           </button>
         )}
@@ -5905,7 +5885,7 @@ function PerfilView({user,favoritos,onClose,onLogout}){
                 Continuar
               </button>
               <button onClick={()=>setConfirmStep(0)}
-                style={{background:"#fff",color:"#64748b",border:"1px solid #e2e8f0",borderRadius:"8px",padding:"8px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
+                style={{background:"var(--fx-card)",color:"var(--fx-muted)",border:"1px solid var(--fx-border)",borderRadius:"8px",padding:"8px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
                 Cancelar
               </button>
             </div>
@@ -5927,7 +5907,7 @@ function PerfilView({user,favoritos,onClose,onLogout}){
               </button>
               <button onClick={()=>{setConfirmStep(0);setConfirmText("");}}
                 disabled={deleting}
-                style={{background:"#fff",color:"#64748b",border:"1px solid #e2e8f0",borderRadius:"8px",padding:"8px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
+                style={{background:"var(--fx-card)",color:"var(--fx-muted)",border:"1px solid var(--fx-border)",borderRadius:"8px",padding:"8px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
                 Cancelar
               </button>
             </div>
@@ -5961,20 +5941,20 @@ function FlagSelect({value,options,onChange,disabled,placeholder,size}){
           border:"1px solid #cbd5e1",borderRadius:"6px",background:disabled?"#f1f5f9":"#fff",
           cursor:disabled?"not-allowed":"pointer"}}>
         {current?<>{flag(current.flagUrl)}<span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{current.label}</span></>
-          :<span style={{color:"#94a3b8",flex:1}}>{placeholder||"—"}</span>}
-        <span style={{fontSize:"9px",color:"#94a3b8"}}>▾</span>
+          :<span style={{color:"var(--fx-muted2)",flex:1}}>{placeholder||"—"}</span>}
+        <span style={{fontSize:"9px",color:"var(--fx-muted2)"}}>▾</span>
       </button>
       {open&&(<>
         <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:30}}/>
-        <div style={{position:"absolute",top:"calc(100% + 2px)",left:0,right:0,minWidth:"200px",background:"#fff",border:"1px solid #cbd5e1",borderRadius:"6px",zIndex:31,boxShadow:"0 6px 20px rgba(0,0,0,0.15)"}}>
+        <div style={{position:"absolute",top:"calc(100% + 2px)",left:0,right:0,minWidth:"200px",background:"var(--fx-card)",border:"1px solid #cbd5e1",borderRadius:"6px",zIndex:31,boxShadow:"0 6px 20px rgba(0,0,0,0.15)"}}>
           {options.length>=8&&(
             <input type="text" autoFocus value={q} onChange={e=>setQ(e.target.value)}
               placeholder="Buscar…"
-              style={{width:"100%",boxSizing:"border-box",padding:"6px 8px",fontSize:"12px",border:"none",borderBottom:"1px solid #e2e8f0",outline:"none"}}/>
+              style={{width:"100%",boxSizing:"border-box",padding:"6px 8px",fontSize:"12px",border:"none",borderBottom:"1px solid var(--fx-border)",outline:"none"}}/>
           )}
           <div style={{maxHeight:"240px",overflowY:"auto"}}>
             <div onClick={()=>{onChange("");setOpen(false);}}
-              style={{padding:"6px 8px",fontSize:"11px",color:"#94a3b8",cursor:"pointer",borderBottom:"1px solid #f1f5f9"}}>— sin elegir —</div>
+              style={{padding:"6px 8px",fontSize:"11px",color:"var(--fx-muted2)",cursor:"pointer",borderBottom:"1px solid var(--fx-border2)"}}>— sin elegir —</div>
             {filtered.map(o=>(
               <div key={o.id} onClick={()=>{onChange(o.id);setOpen(false);}}
                 style={{display:"flex",alignItems:"center",gap:"6px",padding:"6px 8px",fontSize:"12px",cursor:"pointer",borderBottom:"1px solid #f8fafc"}}
@@ -5984,7 +5964,7 @@ function FlagSelect({value,options,onChange,disabled,placeholder,size}){
                 <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{o.label}</span>
               </div>
             ))}
-            {filtered.length===0&&<div style={{padding:"10px",fontSize:"11px",color:"#94a3b8",textAlign:"center"}}>Sin resultados</div>}
+            {filtered.length===0&&<div style={{padding:"10px",fontSize:"11px",color:"var(--fx-muted2)",textAlign:"center"}}>Sin resultados</div>}
           </div>
         </div>
       </>)}
@@ -6073,10 +6053,10 @@ function BolaCristalView({user,equipos,cierre}){
         const ops=opciones(q);
         const val=drafts[q.id]||[];
         return(
-          <div key={q.id} style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+          <div key={q.id} style={{background:"var(--fx-card)",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"10px"}}>
-              <div style={{fontSize:"14px",fontWeight:700,color:"#1e293b"}}>{q.icon} {q.label}</div>
-              <span style={{fontSize:"10px",color:"#94a3b8",fontWeight:700}}>{q.puntos} pt{q.puntos==="3×"?"":"s"}</span>
+              <div style={{fontSize:"14px",fontWeight:700,color:"var(--fx-text)"}}>{q.icon} {q.label}</div>
+              <span style={{fontSize:"10px",color:"var(--fx-muted2)",fontWeight:700}}>{q.puntos} pt{q.puntos==="3×"?"":"s"}</span>
             </div>
             {q.n===1?(
               <FlagSelect value={val[0]||""} disabled={cerrado||ops.length===0}
@@ -6093,12 +6073,12 @@ function BolaCristalView({user,equipos,cierre}){
                 ))}
               </div>
             )}
-            {ops.length===0&&<div style={{fontSize:"11px",color:"#94a3b8",marginTop:"6px"}}>Sin opciones cargadas todavía.</div>}
+            {ops.length===0&&<div style={{fontSize:"11px",color:"var(--fx-muted2)",marginTop:"6px"}}>Sin opciones cargadas todavía.</div>}
           </div>
         );
       })}
       {!cerrado&&(
-        <div style={{position:"sticky",bottom:"8px",display:"flex",gap:"10px",alignItems:"center",background:"#fff",borderRadius:"12px",padding:"12px 14px",boxShadow:"0 4px 14px rgba(0,0,0,0.08)"}}>
+        <div style={{position:"sticky",bottom:"8px",display:"flex",gap:"10px",alignItems:"center",background:"var(--fx-card)",borderRadius:"12px",padding:"12px 14px",boxShadow:"0 4px 14px rgba(0,0,0,0.08)"}}>
           <button onClick={guardarTodo} disabled={saving}
             style={{flex:1,background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"12px",fontWeight:800,fontSize:"14px",cursor:"pointer",opacity:saving?0.6:1}}>
             {saving?"Guardando…":"💾 Guardar bola de cristal"}
@@ -6219,7 +6199,7 @@ function BasketnetaView({user,equipos,cierre}){
     setMsg("✓ Guardado");setTimeout(()=>setMsg(""),1800);
   };
 
-  const sel={width:"100%",padding:"8px 10px",borderRadius:"8px",border:"1px solid #cbd5e1",fontSize:"13px",background:"#fff",cursor:"pointer"};
+  const sel={width:"100%",padding:"8px 10px",borderRadius:"8px",border:"1px solid #cbd5e1",fontSize:"13px",background:"var(--fx-card)",cursor:"pointer"};
 
   // en grupos: solo puede elegir equipos de ese grupo, sin repetir posición
   const opsGrupo=(g,pos)=>{
@@ -6243,9 +6223,9 @@ function BasketnetaView({user,equipos,cierre}){
       </div>
 
       {/* FASE DE GRUPOS */}
-      <div style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
-        <div style={{fontSize:"15px",fontWeight:800,color:"#1e293b",marginBottom:"4px"}}>🏁 Ordena cada grupo (1 pt × posición correcta)</div>
-        <div style={{fontSize:"11px",color:"#64748b",marginBottom:"10px"}}>
+      <div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+        <div style={{fontSize:"15px",fontWeight:800,color:"var(--fx-text)",marginBottom:"4px"}}>🏁 Ordena cada grupo (1 pt × posición correcta)</div>
+        <div style={{fontSize:"11px",color:"var(--fx-muted)",marginBottom:"10px"}}>
           <span style={{color:"#166534",fontWeight:700}}>■ 1º</span> pasa directo a cuartos ·
           <span style={{color:"#a16207",fontWeight:700}}> ■ 2º y 3º</span> juegan play-in ·
           <span style={{color:"#b91c1c",fontWeight:700}}> ■ 4º</span> eliminado
@@ -6257,8 +6237,8 @@ function BasketnetaView({user,equipos,cierre}){
             const bgPos={1:"#dcfce7",2:"#fef3c7",3:"#fef3c7",4:"#fee2e2"};
             const numPos={1:"#166534",2:"#a16207",3:"#a16207",4:"#b91c1c"};
             return(
-              <div key={g} style={{border:"1px solid #e2e8f0",borderRadius:"10px",padding:"8px"}}>
-                <div style={{fontSize:"11px",fontWeight:800,color:"#64748b",marginBottom:"6px",textAlign:"center"}}>GRUPO {g}</div>
+              <div key={g} style={{border:"1px solid var(--fx-border)",borderRadius:"10px",padding:"8px"}}>
+                <div style={{fontSize:"11px",fontWeight:800,color:"var(--fx-muted)",marginBottom:"6px",textAlign:"center"}}>GRUPO {g}</div>
                 {[1,2,3,4].map(pos=>{
                   const slot=`grupo_${g}_${pos}`;
                   return(
@@ -6272,7 +6252,7 @@ function BasketnetaView({user,equipos,cierre}){
                     </div>
                   );
                 })}
-                {total.length===0&&<div style={{fontSize:"11px",color:"#94a3b8"}}>Sin equipos aún.</div>}
+                {total.length===0&&<div style={{fontSize:"11px",color:"var(--fx-muted2)"}}>Sin equipos aún.</div>}
               </div>
             );
           })}
@@ -6280,8 +6260,8 @@ function BasketnetaView({user,equipos,cierre}){
       </div>
 
       {/* BRACKET VISUAL con líneas */}
-      <div style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
-        <div style={{fontSize:"15px",fontWeight:800,color:"#1e293b",marginBottom:"12px"}}>🎯 Bracket · Elige ganador de cada partido</div>
+      <div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+        <div style={{fontSize:"15px",fontWeight:800,color:"var(--fx-text)",marginBottom:"12px"}}>🎯 Bracket · Elige ganador de cada partido</div>
         {(()=>{
           const teamBtn=(id,activo)=>({
             display:"flex",alignItems:"center",gap:"5px",width:"100%",textAlign:"left",padding:"5px 7px",
@@ -6308,8 +6288,8 @@ function BasketnetaView({user,equipos,cierre}){
             const pick=drafts[slot];
             const ok=pick&&(pick===idA||pick===idB);
             return(
-              <div style={{border:"1px solid #e2e8f0",borderRadius:"7px",padding:"5px 6px",background:"#fff",width:"150px"}}>
-                <div style={{display:"flex",justifyContent:"space-between",fontSize:"9px",color:"#94a3b8",fontWeight:700,marginBottom:"3px"}}>
+              <div style={{border:"1px solid var(--fx-border)",borderRadius:"7px",padding:"5px 6px",background:"var(--fx-card)",width:"150px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:"9px",color:"var(--fx-muted2)",fontWeight:700,marginBottom:"3px"}}>
                   <span>{label}</span><span>{puntos}pt</span>
                 </div>
                 <button style={teamBtn(idA,ok&&pick===idA)} disabled={!idA||cerrado}
@@ -6349,7 +6329,7 @@ function BasketnetaView({user,equipos,cierre}){
               <div style={{display:"flex",alignItems:"stretch",minWidth:"780px"}}>
                 {/* col Play-in */}
                 <div style={colCommon}>
-                  <div style={{fontSize:"10px",fontWeight:800,color:"#94a3b8",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>PLAY-IN</div>
+                  <div style={{fontSize:"10px",fontWeight:800,color:"var(--fx-muted2)",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>PLAY-IN</div>
                   {playins.map(p=>(
                     <div key={p.slot} style={{position:"relative"}}>
                       <MatchCard {...p}/>
@@ -6360,7 +6340,7 @@ function BasketnetaView({user,equipos,cierre}){
                 </div>
                 {/* col Cuartos con pair-wrapper para líneas verticales hacia SF */}
                 <div style={{...colCommon,marginLeft:"20px"}}>
-                  <div style={{fontSize:"10px",fontWeight:800,color:"#94a3b8",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>CUARTOS</div>
+                  <div style={{fontSize:"10px",fontWeight:800,color:"var(--fx-muted2)",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>CUARTOS</div>
                   {[0,1].map(pairIdx=>(
                     <div key={pairIdx} style={{display:"flex",flexDirection:"column",justifyContent:"space-around",alignItems:"center",height:(bracketH/2-GAP_UNIT/2)+"px",position:"relative"}}>
                       <div style={{position:"relative"}}>
@@ -6381,7 +6361,7 @@ function BasketnetaView({user,equipos,cierre}){
                 </div>
                 {/* col Semis */}
                 <div style={{...colCommon,marginLeft:"24px"}}>
-                  <div style={{fontSize:"10px",fontWeight:800,color:"#94a3b8",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>SEMIS</div>
+                  <div style={{fontSize:"10px",fontWeight:800,color:"var(--fx-muted2)",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>SEMIS</div>
                   <div style={{display:"flex",flexDirection:"column",justifyContent:"space-around",alignItems:"center",height:bracketH+"px",position:"relative"}}>
                     {sfs.map((s,i)=>(
                       <div key={s.slot} style={{position:"relative"}}>
@@ -6398,7 +6378,7 @@ function BasketnetaView({user,equipos,cierre}){
                 </div>
                 {/* col Final + 3er puesto debajo */}
                 <div style={{...colCommon,marginLeft:"24px",justifyContent:"center",gap:"18px"}}>
-                  <div style={{fontSize:"10px",fontWeight:800,color:"#94a3b8",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>FINAL</div>
+                  <div style={{fontSize:"10px",fontWeight:800,color:"var(--fx-muted2)",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>FINAL</div>
                   <MatchCard {...finalM}/>
                   <div style={{fontSize:"9px",fontWeight:800,color:"#f59e0b",letterSpacing:"1px"}}>🥉 3ER PUESTO</div>
                   <MatchCard slot="br_35" label="3er puesto" puntos={4}/>
@@ -6416,7 +6396,7 @@ function BasketnetaView({user,equipos,cierre}){
       </div>
 
       {!cerrado&&(
-        <div style={{position:"sticky",bottom:"8px",display:"flex",gap:"10px",alignItems:"center",background:"#fff",borderRadius:"12px",padding:"12px 14px",boxShadow:"0 4px 14px rgba(0,0,0,0.08)"}}>
+        <div style={{position:"sticky",bottom:"8px",display:"flex",gap:"10px",alignItems:"center",background:"var(--fx-card)",borderRadius:"12px",padding:"12px 14px",boxShadow:"0 4px 14px rgba(0,0,0,0.08)"}}>
           <button onClick={guardarTodo} disabled={saving}
             style={{flex:1,background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"12px",fontWeight:800,fontSize:"14px",cursor:"pointer",opacity:saving?0.6:1}}>
             {saving?"Guardando…":"💾 Guardar Basketneta"}
@@ -6463,16 +6443,16 @@ function VerPrediccionesModal({target,equipos,onClose}){
     :<span style={{width:16,height:12,background:"#e2e8f0",borderRadius:2,flexShrink:0,display:"inline-block"}}/>;
 
   const teamPill=id=>id?(
-    <span style={{display:"inline-flex",alignItems:"center",gap:"5px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:"6px",padding:"3px 7px",fontSize:"12px",fontWeight:600}}>
+    <span style={{display:"inline-flex",alignItems:"center",gap:"5px",background:"var(--fx-hover)",border:"1px solid var(--fx-border)",borderRadius:"6px",padding:"3px 7px",fontSize:"12px",fontWeight:600}}>
       {flag(escDe(id))}<span>{eqIdx[id]||id}</span>
     </span>
-  ):<span style={{fontSize:"12px",color:"#94a3b8"}}>—</span>;
+  ):<span style={{fontSize:"12px",color:"var(--fx-muted2)"}}>—</span>;
 
   const jugPill=id=>{
     const j=jugMap[id];
-    if(!j) return <span style={{fontSize:"12px",color:"#94a3b8"}}>{id}</span>;
+    if(!j) return <span style={{fontSize:"12px",color:"var(--fx-muted2)"}}>{id}</span>;
     return(
-      <span style={{display:"inline-flex",alignItems:"center",gap:"5px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:"6px",padding:"3px 7px",fontSize:"12px",fontWeight:600}}>
+      <span style={{display:"inline-flex",alignItems:"center",gap:"5px",background:"var(--fx-hover)",border:"1px solid var(--fx-border)",borderRadius:"6px",padding:"3px 7px",fontSize:"12px",fontWeight:600}}>
         {flag(escDe(j.id_equipo))}<span>{j.nombre}</span>
       </span>
     );
@@ -6493,30 +6473,30 @@ function VerPrediccionesModal({target,equipos,onClose}){
 
   return(
     <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.7)",zIndex:200,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"20px",overflowY:"auto"}}>
-      <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:"14px",maxWidth:"760px",width:"100%",padding:"18px",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"var(--fx-card)",borderRadius:"14px",maxWidth:"760px",width:"100%",padding:"18px",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
           <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
             <UserAvatar avatar={target.avatar} googleUrl={target.google} nombre={target.nombre} size={40}/>
             <div>
-              <div style={{fontSize:"16px",fontWeight:800,color:"#1e293b"}}>{target.nombre}</div>
-              <div style={{fontSize:"11px",color:"#94a3b8"}}>Predicciones · Mundial 2026</div>
+              <div style={{fontSize:"16px",fontWeight:800,color:"var(--fx-text)"}}>{target.nombre}</div>
+              <div style={{fontSize:"11px",color:"var(--fx-muted2)"}}>Predicciones · Mundial 2026</div>
             </div>
           </div>
-          <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:"22px",cursor:"pointer",color:"#64748b"}}>✕</button>
+          <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:"22px",cursor:"pointer",color:"var(--fx-muted)"}}>✕</button>
         </div>
 
         {err&&<div style={{background:"#fef2f2",color:"#991b1b",padding:"10px",borderRadius:"8px",fontSize:"12px"}}>{err}</div>}
-        {!data&&!err&&<div style={{padding:"30px",textAlign:"center",color:"#94a3b8"}}>Cargando…</div>}
+        {!data&&!err&&<div style={{padding:"30px",textAlign:"center",color:"var(--fx-muted2)"}}>Cargando…</div>}
         {data&&!data.cerrado&&<div style={{background:"#fef3c7",color:"#92400e",padding:"12px",borderRadius:"8px",fontSize:"12px"}}>La quiniela aún no está cerrada — solo podrás ver las predicciones de otros cuando empiece el primer partido.</div>}
 
         {data?.cerrado&&(<>
           {/* BASKETNETA */}
           <div style={{marginTop:"6px"}}>
-            <div style={{fontSize:"13px",fontWeight:800,color:"#1e293b",marginBottom:"8px"}}>🏀 Pronóstico (Basketneta)</div>
+            <div style={{fontSize:"13px",fontWeight:800,color:"var(--fx-text)",marginBottom:"8px"}}>🏀 Pronóstico (Basketneta)</div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:"8px",marginBottom:"12px"}}>
               {["A","B","C","D"].map(g=>(
-                <div key={g} style={{border:"1px solid #e2e8f0",borderRadius:"8px",padding:"8px"}}>
-                  <div style={{fontSize:"11px",fontWeight:800,color:"#64748b",marginBottom:"6px",textAlign:"center"}}>GRUPO {g}</div>
+                <div key={g} style={{border:"1px solid var(--fx-border)",borderRadius:"8px",padding:"8px"}}>
+                  <div style={{fontSize:"11px",fontWeight:800,color:"var(--fx-muted)",marginBottom:"6px",textAlign:"center"}}>GRUPO {g}</div>
                   {[1,2,3,4].map(pos=>{
                     const s=bnBySlot[`grupo_${g}_${pos}`];
                     const bgPos={1:"#dcfce7",2:"#fef3c7",3:"#fef3c7",4:"#fee2e2"}[pos];
@@ -6525,15 +6505,15 @@ function VerPrediccionesModal({target,equipos,onClose}){
                     return(
                       <div key={pos} style={{display:"flex",alignItems:"center",gap:"6px",padding:"3px 6px",background:mk?mk.background:bgPos,border:mk?mk.border:"2px solid transparent",borderRadius:"6px",marginBottom:"3px",fontSize:"12px"}}>
                         <b style={{width:"16px",color:"#334155"}}>{pos}º</b>
-                        {s?<div style={{display:"flex",alignItems:"center",gap:"5px",overflow:"hidden"}}>{flag(escDe(s.id_equipo))}<span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.nombre||s.id_equipo}</span></div>:<span style={{color:"#94a3b8"}}>—</span>}
+                        {s?<div style={{display:"flex",alignItems:"center",gap:"5px",overflow:"hidden"}}>{flag(escDe(s.id_equipo))}<span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.nombre||s.id_equipo}</span></div>:<span style={{color:"var(--fx-muted2)"}}>—</span>}
                       </div>
                     );
                   })}
                 </div>
               ))}
             </div>
-            <div style={{border:"1px solid #e2e8f0",borderRadius:"8px",padding:"10px"}}>
-              <div style={{fontSize:"11px",fontWeight:800,color:"#64748b",marginBottom:"8px"}}>BRACKET</div>
+            <div style={{border:"1px solid var(--fx-border)",borderRadius:"8px",padding:"10px"}}>
+              <div style={{fontSize:"11px",fontWeight:800,color:"var(--fx-muted)",marginBottom:"8px"}}>BRACKET</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px",fontSize:"12px"}}>
                 {[["playin_25","Play-in #25"],["playin_26","Play-in #26"],["playin_27","Play-in #27"],["playin_28","Play-in #28"],
                   ["qf_29","Cuartos #29"],["qf_30","Cuartos #30"],["qf_31","Cuartos #31"],["qf_32","Cuartos #32"],
@@ -6543,8 +6523,8 @@ function VerPrediccionesModal({target,equipos,onClose}){
                     const mk=correcto?marcar(s?.id_equipo,[correcto]):null;
                     return(
                       <div key={slot} style={{display:"flex",alignItems:"center",gap:"6px",padding:"4px 6px",background:mk?mk.background:(slot==="final_36"?"#fef3c7":"#f8fafc"),border:mk?mk.border:"2px solid transparent",borderRadius:"6px"}}>
-                        <span style={{fontSize:"10px",color:"#64748b",fontWeight:700,minWidth:"78px"}}>{lab}</span>
-                        {s?teamPill(s.id_equipo):<span style={{color:"#94a3b8",fontSize:"11px"}}>—</span>}
+                        <span style={{fontSize:"10px",color:"var(--fx-muted)",fontWeight:700,minWidth:"78px"}}>{lab}</span>
+                        {s?teamPill(s.id_equipo):<span style={{color:"var(--fx-muted2)",fontSize:"11px"}}>—</span>}
                       </div>
                     );
                   })}
@@ -6554,16 +6534,16 @@ function VerPrediccionesModal({target,equipos,onClose}){
 
           {/* BOLA */}
           <div style={{marginTop:"14px"}}>
-            <div style={{fontSize:"13px",fontWeight:800,color:"#1e293b",marginBottom:"8px"}}>🔮 Bola de cristal</div>
+            <div style={{fontSize:"13px",fontWeight:800,color:"var(--fx-text)",marginBottom:"8px"}}>🔮 Bola de cristal</div>
             <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
               {["campeon","mvp","top_scorer","joven","quinteto","t3pct","robos"].map(pid=>{
                 const ids=boByPreg[pid]||[];
                 const correctList=res.bola&&res.bola[pid];
                 return(
-                  <div key={pid} style={{border:"1px solid #e2e8f0",borderRadius:"8px",padding:"8px 10px"}}>
-                    <div style={{fontSize:"11px",fontWeight:700,color:"#64748b",marginBottom:"5px"}}>{preguntaLabel[pid]}</div>
+                  <div key={pid} style={{border:"1px solid var(--fx-border)",borderRadius:"8px",padding:"8px 10px"}}>
+                    <div style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"5px"}}>{preguntaLabel[pid]}</div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>
-                      {ids.length===0&&<span style={{fontSize:"12px",color:"#94a3b8"}}>—</span>}
+                      {ids.length===0&&<span style={{fontSize:"12px",color:"var(--fx-muted2)"}}>—</span>}
                       {ids.map(id=>{
                         const mk=correctList?marcar(id,correctList):null;
                         const inner=pid==="campeon"?teamPill(id):jugPill(id);
@@ -6618,12 +6598,12 @@ function ResultadosOficialesAdmin(){
     setSaving(s=>({...s,[pregunta_id]:false}));
     setMsg("✓ Guardado "+pregunta_id);setTimeout(()=>setMsg(""),1800);
   };
-  const sel={width:"100%",padding:"8px 10px",borderRadius:"8px",border:"1px solid #cbd5e1",fontSize:"13px",background:"#fff"};
+  const sel={width:"100%",padding:"8px 10px",borderRadius:"8px",border:"1px solid #cbd5e1",fontSize:"13px",background:"var(--fx-card)"};
   const single=(pid,titulo,opciones,puntos)=>{
     const v=oficiales[pid]?.[0]||"";
     return(
-      <div style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
-        <div style={{fontSize:"14px",fontWeight:800,color:"#1e293b",marginBottom:"8px"}}>{titulo} <span style={{fontSize:"11px",color:"#94a3b8",fontWeight:600}}>· {puntos} pts</span></div>
+      <div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+        <div style={{fontSize:"14px",fontWeight:800,color:"var(--fx-text)",marginBottom:"8px"}}>{titulo} <span style={{fontSize:"11px",color:"var(--fx-muted2)",fontWeight:600}}>· {puntos} pts</span></div>
         <select value={v} onChange={e=>guardar(pid,[e.target.value])} disabled={saving[pid]} style={sel}>
           <option value="">— Sin resolver —</option>
           {opciones.map(j=><option key={j.id} value={j.id}>{j.nombre}</option>)}
@@ -6636,9 +6616,9 @@ function ResultadosOficialesAdmin(){
     const ids=oficiales.quinteto||[];
     const set=new Set(ids);
     return(
-      <div style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
-        <div style={{fontSize:"14px",fontWeight:800,color:"#1e293b",marginBottom:"4px"}}>🖐️ Quinteto ideal <span style={{fontSize:"11px",color:"#94a3b8",fontWeight:600}}>· 3 pts × jugadora acertada (máx 15)</span></div>
-        <div style={{fontSize:"11px",color:"#64748b",marginBottom:"8px"}}>Selecciona 5. Guarda automáticamente cuando marques la 5ª.</div>
+      <div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+        <div style={{fontSize:"14px",fontWeight:800,color:"var(--fx-text)",marginBottom:"4px"}}>🖐️ Quinteto ideal <span style={{fontSize:"11px",color:"var(--fx-muted2)",fontWeight:600}}>· 3 pts × jugadora acertada (máx 15)</span></div>
+        <div style={{fontSize:"11px",color:"var(--fx-muted)",marginBottom:"8px"}}>Selecciona 5. Guarda automáticamente cuando marques la 5ª.</div>
         <select value="" onChange={e=>{
           const v=e.target.value;if(!v||set.has(v)||ids.length>=5)return;
           const next=[...ids,v];guardar("quinteto",next);
@@ -6688,13 +6668,13 @@ function QuinielaView({user,equipos,onAbrirPerfil,isAdmin}){
     setRank(r||[]);
   })();},[user.id,tab]);
 
-  const btnStyle=a=>({background:a?"#9333ea":"#f8fafc",color:a?"#fff":"#64748b",border:a?"none":"1.5px solid #e2e8f0",borderRadius:"10px",padding:"9px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"});
+  const btnStyle=a=>({background:a?"#9333ea":"#f8fafc",color:a?"#fff":"#64748b",border:a?"none":"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"});
 
   return(
     <div style={{maxWidth:"820px",margin:"0 auto",padding:"12px"}}>
-      <div style={{background:"#fff",borderRadius:"16px",padding:"16px 18px",marginBottom:"14px",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
-        <h2 style={{margin:0,fontSize:"18px",fontWeight:800,color:"#1e293b"}}>🎯 Quiniela · Mundial 2026</h2>
-        <div style={{fontSize:"12px",color:"#64748b",marginTop:"3px"}}>
+      <div style={{background:"var(--fx-card)",borderRadius:"16px",padding:"16px 18px",marginBottom:"14px",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
+        <h2 style={{margin:0,fontSize:"18px",fontWeight:800,color:"var(--fx-text)"}}>🎯 Quiniela · Mundial 2026</h2>
+        <div style={{fontSize:"12px",color:"var(--fx-muted)",marginTop:"3px"}}>
           Basketneta (60 pts) + Bola de cristal (61 pts) · Máx 121 pts · Cierre al empezar el 1er partido
         </div>
       </div>
@@ -6712,23 +6692,23 @@ function QuinielaView({user,equipos,onAbrirPerfil,isAdmin}){
       {verUser&&<VerPrediccionesModal target={verUser} equipos={equipos} onClose={()=>setVerUser(null)}/>}
 
       {tab==="ranking"&&(
-        <div style={{background:"#fff",borderRadius:"12px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+        <div style={{background:"var(--fx-card)",borderRadius:"12px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
           <div style={{padding:"12px 14px",background:"#faf5ff",fontSize:"12px",color:"#6b21a8",borderBottom:"1px solid #e9d5ff",borderRadius:"12px 12px 0 0"}}>
             🕒 El ranking mostrará puntos cuando termine el Mundial. Ahora muestra cuántas predicciones ha guardado cada usuario.
           </div>
           <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
           <table style={{width:"100%",minWidth:"520px",borderCollapse:"collapse",fontSize:"14px"}}>
-            <thead style={{background:"#f8fafc"}}>
+            <thead style={{background:"var(--fx-hover)"}}>
               <tr>
-                <th style={{padding:"10px 14px",textAlign:"left",fontSize:"11px",color:"#64748b",fontWeight:700}}>#</th>
-                <th style={{padding:"10px 14px",textAlign:"left",fontSize:"11px",color:"#64748b",fontWeight:700}}>Usuario</th>
-                <th style={{padding:"10px 14px",textAlign:"center",fontSize:"11px",color:"#64748b",fontWeight:700}}>🏀 BN</th>
-                <th style={{padding:"10px 14px",textAlign:"center",fontSize:"11px",color:"#64748b",fontWeight:700}}>🔮 Bola</th>
-                <th style={{padding:"10px 14px",textAlign:"right",fontSize:"11px",color:"#64748b",fontWeight:700}}>Pts</th>
+                <th style={{padding:"10px 14px",textAlign:"left",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>#</th>
+                <th style={{padding:"10px 14px",textAlign:"left",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>Usuario</th>
+                <th style={{padding:"10px 14px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>🏀 BN</th>
+                <th style={{padding:"10px 14px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>🔮 Bola</th>
+                <th style={{padding:"10px 14px",textAlign:"right",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>Pts</th>
               </tr>
             </thead>
             <tbody>
-              {rank.length===0&&<tr><td colSpan={5} style={{padding:"24px",textAlign:"center",color:"#94a3b8"}}>Todavía nadie ha guardado predicciones.</td></tr>}
+              {rank.length===0&&<tr><td colSpan={5} style={{padding:"24px",textAlign:"center",color:"var(--fx-muted2)"}}>Todavía nadie ha guardado predicciones.</td></tr>}
               {rank.map((r,i)=>{
                 const google=r.user_id===user.id?user.user_metadata?.avatar_url:null;
                 const cerrado=cierre&&new Date(cierre).getTime()<=Date.now();
@@ -6736,12 +6716,12 @@ function QuinielaView({user,equipos,onAbrirPerfil,isAdmin}){
                 return(
                 <tr key={r.user_id}
                   onClick={onClick}
-                  style={{borderTop:"1px solid #f1f5f9",background:r.user_id===user.id?"#faf5ff":undefined,cursor:cerrado?"pointer":"default"}}
+                  style={{borderTop:"1px solid var(--fx-border2)",background:r.user_id===user.id?"#faf5ff":undefined,cursor:cerrado?"pointer":"default"}}
                   onMouseEnter={e=>{if(cerrado)e.currentTarget.style.background="#f5f3ff";}}
                   onMouseLeave={e=>{e.currentTarget.style.background=r.user_id===user.id?"#faf5ff":"";}}
                   title={cerrado?"Ver sus predicciones":undefined}>
                   <td style={{padding:"10px 14px",fontWeight:700,color:i===0?"#eab308":i===1?"#94a3b8":i===2?"#c2410c":"#64748b"}}>{i+1}</td>
-                  <td style={{padding:"8px 14px",fontWeight:600,color:"#1e293b"}}>
+                  <td style={{padding:"8px 14px",fontWeight:600,color:"var(--fx-text)"}}>
                     <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                       <UserAvatar avatar={r.avatar} googleUrl={google} nombre={r.nombre} size={28}/>
                       <span
@@ -6753,8 +6733,8 @@ function QuinielaView({user,equipos,onAbrirPerfil,isAdmin}){
                       {cerrado&&<span style={{fontSize:"11px",color:"#9333ea",marginLeft:"4px"}}>👁</span>}
                     </div>
                   </td>
-                  <td style={{padding:"10px 14px",textAlign:"center",color:"#64748b"}}>{r.basketneta_slots}/28</td>
-                  <td style={{padding:"10px 14px",textAlign:"center",color:"#64748b"}}>{r.bola_slots}/7</td>
+                  <td style={{padding:"10px 14px",textAlign:"center",color:"var(--fx-muted)"}}>{r.basketneta_slots}/28</td>
+                  <td style={{padding:"10px 14px",textAlign:"center",color:"var(--fx-muted)"}}>{r.bola_slots}/7</td>
                   <td style={{padding:"10px 14px",textAlign:"right",fontWeight:800,color:"#9333ea",fontSize:"16px"}}>{r.puntos}</td>
                 </tr>
               );})}
@@ -6869,15 +6849,15 @@ function AnalyticsPanel({onClose}){
   const yTicks=data?[0,maxV/4,maxV/2,maxV*3/4,maxV].map(v=>Math.round(v)):[];
   const [hover,setHover]=useState(null);
   return(
-    <div style={{minHeight:"100vh",background:"#f1f5f9",padding:"20px",fontFamily:"system-ui,-apple-system,sans-serif"}}>
+    <div style={{minHeight:"100vh",background:"var(--fx-hover)",padding:"20px",fontFamily:"system-ui,-apple-system,sans-serif"}}>
       <div style={{maxWidth:"1000px",margin:"0 auto"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"20px",flexWrap:"wrap",gap:"10px"}}>
-          <h1 style={{fontSize:"22px",fontWeight:800,color:"#1e293b",margin:0}}>📊 Analytics</h1>
+          <h1 style={{fontSize:"22px",fontWeight:800,color:"var(--fx-text)",margin:0}}>📊 Analytics</h1>
           <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
             {[7,30,90,365].map(d=>
-              <button key={d} onClick={()=>setDias(d)} style={{padding:"7px 12px",borderRadius:"10px",border:dias===d?"1.5px solid #9333ea":"1.5px solid #e2e8f0",background:dias===d?"#9333ea":"#fff",color:dias===d?"#fff":"#475569",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>{d>=365?"1 año":`${d} días`}</button>
+              <button key={d} onClick={()=>setDias(d)} style={{padding:"7px 12px",borderRadius:"10px",border:dias===d?"1.5px solid #9333ea":"1.5px solid var(--fx-border)",background:dias===d?"#9333ea":"#fff",color:dias===d?"#fff":"#475569",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>{d>=365?"1 año":`${d} días`}</button>
             )}
-            <button onClick={onClose} style={{padding:"7px 14px",borderRadius:"10px",border:"1.5px solid #e2e8f0",background:"#fff",color:"#475569",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>Cerrar</button>
+            <button onClick={onClose} style={{padding:"7px 14px",borderRadius:"10px",border:"1.5px solid var(--fx-border)",background:"var(--fx-card)",color:"var(--fx-label)",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>Cerrar</button>
           </div>
         </div>
         {snapshots.length>0&&<div style={{background:"#eef2ff",border:"1.5px solid #c7d2fe",borderRadius:"12px",padding:"12px 14px",marginBottom:"14px"}}>
@@ -6886,7 +6866,7 @@ function AnalyticsPanel({onClose}){
             <b>{s.periodo_desde} → {s.periodo_hasta}</b>: {s.visitantes?.toLocaleString("es")} visitantes · {s.pageviews?.toLocaleString("es")} pageviews · rebote {s.bounce_rate}%
           </div>)}
         </div>}
-        {loading&&<div style={{padding:"40px",textAlign:"center",color:"#94a3b8"}}>Cargando…</div>}
+        {loading&&<div style={{padding:"40px",textAlign:"center",color:"var(--fx-muted2)"}}>Cargando…</div>}
         {err&&<div style={{padding:"20px",background:"#fef2f2",border:"1.5px solid #fecaca",borderRadius:"12px",color:"#991b1b"}}>❌ {err}</div>}
         {data&&<>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:"12px",marginBottom:"16px"}}>
@@ -6896,10 +6876,10 @@ function AnalyticsPanel({onClose}){
             <MetricCard label="Logueadas" value={data.auth.toLocaleString("es")}/>
             {data.brutas!==data.total&&<MetricCard label="Bots filtrados" value={(data.brutas-data.total).toLocaleString("es")}/>}
           </div>
-          <div style={{background:"#fff",borderRadius:"14px",padding:"16px",marginBottom:"16px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
+          <div style={{background:"var(--fx-card)",borderRadius:"14px",padding:"16px",marginBottom:"16px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px",flexWrap:"wrap",gap:"6px"}}>
-              <div style={{fontSize:"13px",fontWeight:700,color:"#475569"}}>Actividad · últimos {dias} días</div>
-              <div style={{display:"flex",gap:"12px",fontSize:"11px",color:"#64748b"}}>
+              <div style={{fontSize:"13px",fontWeight:700,color:"var(--fx-label)"}}>Actividad · últimos {dias} días</div>
+              <div style={{display:"flex",gap:"12px",fontSize:"11px",color:"var(--fx-muted)"}}>
                 <span style={{display:"inline-flex",alignItems:"center",gap:"4px"}}><span style={{width:10,height:2,background:"#9333ea",display:"inline-block"}}/>Pageviews</span>
                 <span style={{display:"inline-flex",alignItems:"center",gap:"4px"}}><span style={{width:10,height:2,background:"#059669",display:"inline-block"}}/>Sesiones</span>
               </div>
@@ -6958,9 +6938,9 @@ function AnalyticsPanel({onClose}){
   );
 }
 function MetricCard({label,value}){
-  return <div style={{background:"#fff",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
-    <div style={{fontSize:"11px",fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.5px"}}>{label}</div>
-    <div style={{fontSize:"22px",fontWeight:800,color:"#1e293b",marginTop:"4px"}}>{value}</div>
+  return <div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
+    <div style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted)",textTransform:"uppercase",letterSpacing:"0.5px"}}>{label}</div>
+    <div style={{fontSize:"22px",fontWeight:800,color:"var(--fx-text)",marginTop:"4px"}}>{value}</div>
   </div>;
 }
 function TablaTop({titulo,filas,limite=10}){
@@ -6968,26 +6948,26 @@ function TablaTop({titulo,filas,limite=10}){
   const tot=filas.reduce((a,[,n])=>a+n,0)||1;
   const visibles=expand?filas:filas.slice(0,limite);
   const restantes=filas.length-visibles.length;
-  return <div style={{background:"#fff",borderRadius:"14px",padding:"16px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
-    <div style={{fontSize:"13px",fontWeight:700,color:"#475569",marginBottom:"10px"}}>{titulo}</div>
-    {filas.length===0&&<div style={{fontSize:"12px",color:"#94a3b8"}}>Sin datos</div>}
+  return <div style={{background:"var(--fx-card)",borderRadius:"14px",padding:"16px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
+    <div style={{fontSize:"13px",fontWeight:700,color:"var(--fx-label)",marginBottom:"10px"}}>{titulo}</div>
+    {filas.length===0&&<div style={{fontSize:"12px",color:"var(--fx-muted2)"}}>Sin datos</div>}
     <div style={{maxHeight:expand?"340px":"none",overflowY:expand?"auto":"visible"}}>
       {visibles.map(([k,n])=>{
         const fm=/^flag:([a-z]{2})\|(.*)$/.exec(k);
         return <div key={k} style={{marginBottom:"6px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",fontSize:"12px",color:"#475569"}}>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:"12px",color:"var(--fx-label)"}}>
           <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"70%",display:"inline-flex",alignItems:"center",gap:"6px"}}>
             {fm&&<img src={`https://flagcdn.com/w20/${fm[1]}.png`} alt={fm[1]} style={{width:16,height:12,borderRadius:2,flexShrink:0}}/>}
             <span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{fm?fm[2]:k}</span>
           </span>
-          <b style={{color:"#1e293b"}}>{n.toLocaleString("es")}</b>
+          <b style={{color:"var(--fx-text)"}}>{n.toLocaleString("es")}</b>
         </div>
-        <div style={{height:"4px",background:"#f1f5f9",borderRadius:"2px",marginTop:"2px"}}>
+        <div style={{height:"4px",background:"var(--fx-hover)",borderRadius:"2px",marginTop:"2px"}}>
           <div style={{height:"100%",background:"#9333ea",width:`${(n/tot)*100}%`,borderRadius:"2px"}}/>
         </div>
       </div>;})}
     </div>
-    {filas.length>limite&&<button onClick={()=>setExpand(v=>!v)} style={{marginTop:"8px",width:"100%",padding:"7px",border:"1.5px solid #e2e8f0",borderRadius:"8px",background:"#f8fafc",color:"#475569",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
+    {filas.length>limite&&<button onClick={()=>setExpand(v=>!v)} style={{marginTop:"8px",width:"100%",padding:"7px",border:"1.5px solid var(--fx-border)",borderRadius:"8px",background:"var(--fx-hover)",color:"var(--fx-label)",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
       {expand?"↑ Ver menos":`↓ Ver todo (${restantes} más)`}
     </button>}
   </div>;
@@ -7064,6 +7044,16 @@ export default function App(){
   };
   const [isAdmin,setIsAdmin]       = useState(false);
   const [user,setUser]             = useState(null);
+  const [tema,setTemaRaw]          = useState(()=>{try{return localStorage.getItem("bfdb-tema")==="oscuro"?"oscuro":"claro";}catch(e){return "claro";}});
+  const setTema=async(v)=>{
+    setTemaRaw(v);
+    try{localStorage.setItem("bfdb-tema",v);}catch(e){}
+    if(user){try{await supabase.from("perfiles").update({tema:v}).eq("id",user.id);}catch(e){}}
+  };
+  useEffect(()=>{
+    const html=document.documentElement;
+    if(tema==="oscuro") html.setAttribute("data-bfdb-tema","dark"); else html.removeAttribute("data-bfdb-tema");
+  },[tema]);
   const [favoritos,setFavoritos]   = useState([]);
   const [showLogin,setShowLogin]   = useState(false);
   const [loginErr,setLoginErr]     = useState("");
@@ -7088,6 +7078,7 @@ export default function App(){
       if(u){
         const {data:isAdm}=await supabase.rpc("is_admin");
         setIsAdmin(!!isAdm);
+        try{const {data:pf}=await supabase.from("perfiles").select("tema").eq("id",u.id).maybeSingle();if(pf?.tema){setTemaRaw(pf.tema);try{localStorage.setItem("bfdb-tema",pf.tema);}catch(e){}}}catch(e){}
         const {data}=await supabase.from("favoritos").select("*").eq("user_id",u.id);
         setFavoritos(data||[]);
         checkPushStatus();
@@ -7484,7 +7475,7 @@ export default function App(){
 
   if(showLanding) return <Landing onEnter={handleEnter} players={players} equipos={equipos} ligas={ligas} coaches={coaches} tempCoach={tempCoach} palmares={palmares} regExtra={regExtra}/>;
   if(showCalidad){
-    return <Suspense fallback={<div style={{padding:"40px",textAlign:"center",color:"#94a3b8"}}>Cargando panel de calidad…</div>}>
+    return <Suspense fallback={<div style={{padding:"40px",textAlign:"center",color:"var(--fx-muted2)"}}>Cargando panel de calidad…</div>}>
       <CalidadModal players={players} equipos={equipos} ligas={ligas} coaches={coaches}
         tempCoach={tempCoach} palmares={palmares} isAdmin={isAdmin}
         onClose={()=>setShowCalidad(false)} onGoToPlayer={goToPlayer}
@@ -7499,13 +7490,13 @@ export default function App(){
   if(showLogin) return <LoginModal onLogin={handleLogin} onGoogleLogin={handleGoogleLogin} onForgot={handleForgotPassword} onClose={()=>{setShowLogin(false);setLoginErr("");setLoginInfo("");setLoginMode("login");}} loading={loginLoading} error={loginErr} info={loginInfo} mode={loginMode} setMode={(m)=>{setLoginMode(m);setLoginErr("");setLoginInfo("");}}/>;
 
   if(loading) return(
-    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f1f5f9",fontFamily:"system-ui,sans-serif"}}>
-      <div style={{textAlign:"center",color:"#94a3b8"}}><div style={{display:"inline-block",animation:"bounce 0.7s infinite"}}><span style={{fontSize:"52px",lineHeight:1}}>🏀</span></div><div style={{width:"40px",height:"6px",background:"#cbd5e1",borderRadius:"50%",margin:"4px auto 0",animation:"shadow 0.7s infinite"}}></div><div style={{fontWeight:700,fontSize:"16px",color:"#9333ea",marginTop:"14px"}}>La Basketneta</div><div style={{fontSize:"13px",marginTop:"4px"}}>Cargando datos...</div></div>
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--fx-hover)",fontFamily:"system-ui,sans-serif"}}>
+      <div style={{textAlign:"center",color:"var(--fx-muted2)"}}><div style={{display:"inline-block",animation:"bounce 0.7s infinite"}}><span style={{fontSize:"52px",lineHeight:1}}>🏀</span></div><div style={{width:"40px",height:"6px",background:"#cbd5e1",borderRadius:"50%",margin:"4px auto 0",animation:"shadow 0.7s infinite"}}></div><div style={{fontWeight:700,fontSize:"16px",color:"#9333ea",marginTop:"14px"}}>La Basketneta</div><div style={{fontSize:"13px",marginTop:"4px"}}>Cargando datos...</div></div>
     </div>
   );
 
   if(error) return(
-    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f1f5f9",fontFamily:"system-ui,sans-serif",padding:"20px"}}>
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--fx-hover)",fontFamily:"system-ui,sans-serif",padding:"20px"}}>
       <div style={{background:"#fee2e2",border:"1.5px solid #fecaca",borderRadius:"14px",padding:"24px",maxWidth:"500px",color:"#b91c1c",fontSize:"14px",textAlign:"center"}}>
         <div style={{fontSize:"36px",marginBottom:"12px"}}>❌</div>
         <strong>Error de conexión</strong><br/>{error}
@@ -7541,8 +7532,30 @@ export default function App(){
         .bfdb-status-dropdown, .bfdb-nac-dropdown { flex: 1 1 calc(50% - 3px) !important; min-width: 0 !important; }
         .bfdb-status-dropdown > div:first-child, .bfdb-nac-dropdown > div:first-child { min-width: 0 !important; font-size: 12px !important; padding: 8px 8px !important; }
       }
+      /* ── Tema (variables CSS) ── */
+      .bfdb-app-root{
+        --fx-bg:#f1f5f9;--fx-card:#fff;--fx-hover:#f8fafc;
+        --fx-text:#1e293b;--fx-muted:#64748b;--fx-muted2:#94a3b8;--fx-label:#475569;
+        --fx-border:#e2e8f0;--fx-border2:#f1f5f9;
+        --fx-pill:#fff7ed;
+        --fx-shadow:0 1px 6px rgba(0,0,0,0.07);
+        --fx-shadow-hover:0 4px 16px rgba(147,51,234,0.15);
+        --fx-brand:#9333ea;--fx-brand2:#c084fc;
+      }
+      html[data-bfdb-tema="dark"] .bfdb-app-root{
+        --fx-bg:#0f172a;--fx-card:#1e293b;--fx-hover:#1a2434;
+        --fx-text:#f1f5f9;--fx-muted:#94a3b8;--fx-muted2:#64748b;--fx-label:#cbd5e1;
+        --fx-border:#334155;--fx-border2:#1e293b;
+        --fx-pill:#422006;
+        --fx-shadow:0 1px 6px rgba(0,0,0,0.4);
+        --fx-shadow-hover:0 4px 16px rgba(147,51,234,0.35);
+        --fx-brand:#c084fc;--fx-brand2:#9333ea;
+        background:var(--fx-bg)!important;
+      }
+      html[data-bfdb-tema="dark"]{background:#0f172a;}
+      html[data-bfdb-tema="dark"] body{background:#0f172a;}
     `}</style>
-    <div className="bfdb-app-root" style={{minHeight:"100vh",background:"#f1f5f9",fontFamily:"system-ui,-apple-system,sans-serif",overflowX:"hidden"}}>
+    <div className="bfdb-app-root" style={{minHeight:"100vh",background:"var(--fx-hover)",fontFamily:"system-ui,-apple-system,sans-serif",overflowX:"hidden"}}>
       <div style={{background:"#0f172a",color:"#fff",padding:"0 20px",position:"sticky",top:0,zIndex:10,boxShadow:"0 2px 16px rgba(0,0,0,0.4)"}}>
         <div className="bfdb-header-inner" style={{maxWidth:"880px",margin:"0 auto",display:"flex",alignItems:"center",gap:"8px",height:"56px"}}>
           {/* ☰ Hamburguesa */}
@@ -7569,18 +7582,18 @@ export default function App(){
           </div>
 
           {/* 🔄 Recargar */}
-          <button onClick={()=>loadAll(true)} title="Recargar datos" style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px",flexShrink:0}}>🔄</button>
+          <button onClick={()=>loadAll(true)} title="Recargar datos" style={{background:"transparent",color:"var(--fx-muted2)",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px",flexShrink:0}}>🔄</button>
 
           {/* 🔔 Notificaciones */}
           {user&&<div style={{position:"relative",flexShrink:0}}>
             <button onClick={()=>{setShowNotifs(!showNotifs);if(!showNotifs)markRead();}} style={{background:"transparent",color:notifCount>0?"#f59e0b":"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px",position:"relative"}}>🔔{notifCount>0&&<span style={{position:"absolute",top:"2px",right:"4px",background:"#ef4444",color:"#fff",fontSize:"9px",fontWeight:800,borderRadius:"50%",width:"16px",height:"16px",display:"flex",alignItems:"center",justifyContent:"center"}}>{notifCount>9?"9+":notifCount}</span>}</button>
             {showNotifs&&<><div onClick={()=>setShowNotifs(false)} style={{position:"fixed",inset:0,zIndex:99}}/><div style={{position:"absolute",left:0,top:"calc(100% + 8px)",background:"#1e293b",borderRadius:"12px",padding:"12px",boxShadow:"0 10px 40px rgba(0,0,0,0.5)",zIndex:100,width:"300px",maxHeight:"400px",overflowY:"auto",border:"1px solid #334155"}}>
               <div style={{fontWeight:800,fontSize:"14px",color:"#f1f5f9",marginBottom:"8px"}}>Notificaciones</div>
-              {notificaciones.length===0&&<div style={{fontSize:"12px",color:"#64748b",padding:"16px 0",textAlign:"center"}}>Sin notificaciones</div>}
+              {notificaciones.length===0&&<div style={{fontSize:"12px",color:"var(--fx-muted)",padding:"16px 0",textAlign:"center"}}>Sin notificaciones</div>}
               {notificaciones.map(n=><div key={n.id} style={{padding:"8px",borderRadius:"8px",background:n.leida?"transparent":"rgba(147,51,234,0.1)",marginBottom:"4px"}}>
                 <div style={{fontSize:"12px",fontWeight:700,color:"#f1f5f9"}}>{n.titulo}</div>
-                {n.cuerpo&&<div style={{fontSize:"11px",color:"#94a3b8"}}>{n.cuerpo}</div>}
-                <div style={{fontSize:"10px",color:"#64748b",marginTop:"2px"}}>{new Date(n.created_at).toLocaleDateString("es-ES",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div>
+                {n.cuerpo&&<div style={{fontSize:"11px",color:"var(--fx-muted2)"}}>{n.cuerpo}</div>}
+                <div style={{fontSize:"10px",color:"var(--fx-muted)",marginTop:"2px"}}>{new Date(n.created_at).toLocaleDateString("es-ES",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div>
               </div>)}
             </div></>}
           </div>}
@@ -7606,7 +7619,7 @@ export default function App(){
                 <div onClick={()=>setShowUserMenu(false)} style={{position:"fixed",inset:0,zIndex:99}}/>
                 <div style={{position:"absolute",right:0,top:"calc(100% + 8px)",background:"#1e293b",borderRadius:"12px",padding:"16px",boxShadow:"0 10px 40px rgba(0,0,0,0.5)",zIndex:100,minWidth:"220px",border:"1px solid #334155"}}>
                   <div style={{fontSize:"13px",fontWeight:700,color:"#f1f5f9",marginBottom:"4px"}}>{user.user_metadata?.full_name||user.email.split("@")[0]}</div>
-                  <div style={{fontSize:"11px",color:"#94a3b8",marginBottom:"4px"}}>{user.email}</div>
+                  <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginBottom:"4px"}}>{user.email}</div>
                   {isAdmin&&<div style={{fontSize:"10px",color:"#c084fc",fontWeight:700,marginBottom:"8px"}}>Administrador</div>}
                   <div style={{height:"1px",background:"#334155",margin:"8px 0"}}/>
                   <button onClick={()=>{setShowPerfil(true);setShowUserMenu(false);}}
@@ -7618,11 +7631,12 @@ export default function App(){
                     🏆 Mis logros
                   </button>
                   <button onClick={togglePush} style={{width:"100%",background:pushEnabled?"rgba(34,197,94,0.15)":"rgba(147,51,234,0.15)",color:pushEnabled?"#4ade80":"#a78bfa",border:`1px solid ${pushEnabled?"rgba(34,197,94,0.3)":"rgba(147,51,234,0.3)"}`,borderRadius:"8px",padding:"8px",fontWeight:700,fontSize:"12px",cursor:"pointer",marginBottom:"8px"}}>{pushEnabled?"🔔 Notificaciones activadas":"🔕 Activar notificaciones"}</button>
+                  <button onClick={()=>setTema(tema==="oscuro"?"claro":"oscuro")} style={{width:"100%",background:"rgba(148,163,184,0.15)",color:"#cbd5e1",border:"1px solid rgba(148,163,184,0.3)",borderRadius:"8px",padding:"8px",fontWeight:700,fontSize:"12px",cursor:"pointer",marginBottom:"8px"}}>{tema==="oscuro"?"☀️ Tema claro":"🌙 Tema oscuro"}</button>
                   <button onClick={()=>{handleLogout();setShowUserMenu(false);}} style={{width:"100%",background:"#ef4444",color:"#fff",border:"none",borderRadius:"8px",padding:"8px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>Cerrar sesión</button>
                 </div>
               </>}
             </div>
-            :<button onClick={()=>setShowLogin(true)} title="Iniciar sesión" style={{background:"transparent",color:"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px",flexShrink:0}}>👤</button>
+            :<button onClick={()=>setShowLogin(true)} title="Iniciar sesión" style={{background:"transparent",color:"var(--fx-muted2)",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px",flexShrink:0}}>👤</button>
           }
         </div>      </div>
       <div style={{paddingTop:"8px"}}>
@@ -7633,14 +7647,14 @@ export default function App(){
         {!showPrivacidad&&!showPerfil&&tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setPlayers={setPlayers} setTempCoach={setTempCoach} onGoToPartido={goToPartido} regExtra={regExtra} isFavFn={isFav} onToggleFav={toggleFav}/>}
         {!showPerfil&&tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setEquipos={setEquipos} setEquiposNombres={setEquiposNombres} setPlayers={setPlayers} setPalmares={setPalmares} regExtra={regExtra} onGoToPartido={goToPartido} isFavFn={isFav} onToggleFav={toggleFav}/>}
         {!showPerfil&&tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} coaches={coaches} tempCoach={tempCoach} partidos={partidos} onGoToClasificacion={(ligaId,temporada)=>{setOpenClasiKey(`${ligaId}|${temporada||""}`);setTab("partidos");scrollTop();}} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setLigas={setLigas} regExtra={regExtra} isFavFn={isFav} onToggleFav={toggleFav}/>}
-        {!showPrivacidad&&!showPerfil&&tab==="ranking_fiba"&&<Suspense fallback={<div style={{padding:"40px",textAlign:"center",color:"#94a3b8"}}>Cargando…</div>}><RankingFibaView equipos={equipos} isAdmin={isAdmin} onGoToTeam={(id)=>goToTeam(id,null,{tab:"ranking_fiba",label:"Ranking FIBA"})} onReload={loadAll}/></Suspense>}
+        {!showPrivacidad&&!showPerfil&&tab==="ranking_fiba"&&<Suspense fallback={<div style={{padding:"40px",textAlign:"center",color:"var(--fx-muted2)"}}>Cargando…</div>}><RankingFibaView equipos={equipos} isAdmin={isAdmin} onGoToTeam={(id)=>goToTeam(id,null,{tab:"ranking_fiba",label:"Ranking FIBA"})} onReload={loadAll}/></Suspense>}
         {!showPrivacidad&&!showPerfil&&tab==="cuerpo_tecnico"&&<CoachesView coaches={coaches} tempCoach={tempCoach} equipos={equipos} ligas={ligas} players={players} palmares={palmares} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} openCoachId={openCoachId} onClearCoach={()=>setOpenCoachId(null)} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setCoaches={setCoaches} setTempCoach={setTempCoach} equiposNombres={equiposNombres} regExtra={regExtra}/>}
         {!showPrivacidad&&!showPerfil&&tab==="quiniela"&&(user
           ?<QuinielaView user={user} equipos={equipos} onAbrirPerfil={setVerPerfilAlias} isAdmin={isAdmin}/>
-          :<div style={{maxWidth:"420px",margin:"48px auto",padding:"24px",background:"#fff",borderRadius:"16px",textAlign:"center",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
+          :<div style={{maxWidth:"420px",margin:"48px auto",padding:"24px",background:"var(--fx-card)",borderRadius:"16px",textAlign:"center",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
             <div style={{fontSize:"38px",marginBottom:"8px"}}>🎯</div>
-            <h3 style={{margin:"0 0 6px",color:"#1e293b",fontSize:"18px",fontWeight:800}}>Quiniela · Mundial 2026</h3>
-            <p style={{color:"#64748b",fontSize:"14px",margin:"0 0 16px"}}>Para hacer tu quiniela y competir en el ranking necesitas iniciar sesión.</p>
+            <h3 style={{margin:"0 0 6px",color:"var(--fx-text)",fontSize:"18px",fontWeight:800}}>Quiniela · Mundial 2026</h3>
+            <p style={{color:"var(--fx-muted)",fontSize:"14px",margin:"0 0 16px"}}>Para hacer tu quiniela y competir en el ranking necesitas iniciar sesión.</p>
             <button onClick={()=>setShowLogin(true)} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"11px 24px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>Iniciar sesión</button>
           </div>)}
         {!showPrivacidad&&!showPerfil&&tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} mvps={mvps} equiposNombres={equiposNombres} openClasiKey={openClasiKey} onClearClasi={()=>setOpenClasiKey(null)} partidosSub={partidosSub} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id,year)=>goToTeam(id,year||null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})} onGoToPlayer={(id)=>goToPlayer(id,{tab:"partidos",label:"Ver partidos"})}/>}
