@@ -3225,25 +3225,41 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
             <div style={{fontWeight:800,fontSize:"14px",color:"var(--fx-text)"}}>⭐ Tus favoritos</div>
             <button onClick={()=>onGoToTab&&onGoToTab("favoritos")} style={{background:"transparent",border:"none",color:"#9333ea",fontSize:"12px",fontWeight:700,cursor:"pointer"}}>Ver todos →</button>
           </div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:"10px"}}>
-            {favJugs.map(p=>(
-              <div key={"j"+p.id_jugadora} onClick={()=>onGoToPlayer(p.id_jugadora)} title={p.nombre} style={{display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer",width:"56px",gap:"4px"}}>
-                <Avatar photo={p.foto} name={p.nombre} size={44} fontSize={14} fallecida={!!p.fecha_fallecimiento}/>
-                <span style={{fontSize:"10px",color:"var(--fx-muted)",textAlign:"center",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",width:"100%"}}>{p.nombre.split(" ").slice(-1)[0]}</span>
-              </div>
-            ))}
-            {favEqs.map(e=>(
-              <div key={"e"+e.id_equipo} onClick={()=>onGoToTeam(e.id_equipo)} title={e.nombre} style={{display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer",width:"56px",gap:"4px"}}>
-                {e.escudo?<img loading="lazy" decoding="async" src={e.escudo} alt="" style={{width:44,height:44,objectFit:"contain"}}/>:<div style={{width:44,height:44,borderRadius:"8px",background:"var(--fx-hover)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px"}}>🏟️</div>}
-                <span style={{fontSize:"10px",color:"var(--fx-muted)",textAlign:"center",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",width:"100%"}}>{e.nombre}</span>
-              </div>
-            ))}
-            {favLgs.map(l=>(
-              <div key={"l"+l.id_liga} onClick={()=>onGoToLeague&&onGoToLeague(l.id_liga)} title={l.nombre} style={{display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer",width:"56px",gap:"4px"}}>
-                {l.logo?<img loading="lazy" decoding="async" src={l.logo} alt="" style={{width:44,height:44,objectFit:"contain",borderRadius:"8px"}}/>:<div style={{width:44,height:44,borderRadius:"8px",background:"var(--fx-hover)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px"}}>🏆</div>}
-                <span style={{fontSize:"10px",color:"var(--fx-muted)",textAlign:"center",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",width:"100%"}}>{l.nombre}</span>
-              </div>
-            ))}
+          <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>
+            {(()=>{
+              const box={width:52,height:52,borderRadius:"12px",background:"var(--fx-hover)",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0};
+              const item={display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer",width:"64px",gap:"5px"};
+              const label={fontSize:"10px",color:"var(--fx-muted)",textAlign:"center",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",width:"100%",lineHeight:1.2};
+              const imgSt={maxWidth:"88%",maxHeight:"88%",objectFit:"contain"};
+              return(<>
+                {favJugs.map(p=>(
+                  <div key={"j"+p.id_jugadora} onClick={()=>onGoToPlayer(p.id_jugadora)} title={p.nombre} style={item}>
+                    <div style={box}>
+                      {p.foto
+                        ?<img loading="lazy" decoding="async" src={p.foto} alt="" style={{width:"100%",height:"100%",objectFit:"cover",filter:p.fecha_fallecimiento?"grayscale(60%)":"none"}}/>
+                        :<span style={{fontSize:"20px",fontWeight:800,color:"var(--fx-brand)"}}>{(p.nombre||"?")[0]?.toUpperCase()}</span>}
+                    </div>
+                    <span style={label}>{p.nombre.split(" ").slice(-1)[0]}</span>
+                  </div>
+                ))}
+                {favEqs.map(e=>(
+                  <div key={"e"+e.id_equipo} onClick={()=>onGoToTeam(e.id_equipo)} title={e.nombre} style={item}>
+                    <div style={box}>
+                      {e.escudo?<img loading="lazy" decoding="async" src={e.escudo} alt="" style={imgSt}/>:<span style={{fontSize:"18px"}}>🏟️</span>}
+                    </div>
+                    <span style={label}>{e.nombre}</span>
+                  </div>
+                ))}
+                {favLgs.map(l=>(
+                  <div key={"l"+l.id_liga} onClick={()=>onGoToLeague&&onGoToLeague(l.id_liga)} title={l.nombre} style={item}>
+                    <div style={box}>
+                      {l.logo?<img loading="lazy" decoding="async" src={l.logo} alt="" style={imgSt}/>:<span style={{fontSize:"18px"}}>🏆</span>}
+                    </div>
+                    <span style={label}>{l.nombre}</span>
+                  </div>
+                ))}
+              </>);
+            })()}
           </div>
         </div>
       )}
