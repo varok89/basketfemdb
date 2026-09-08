@@ -6334,6 +6334,32 @@ export default function App(){
     try{localStorage.setItem("bfdb-tema",v);}catch(e){}
     if(user){try{await supabase.from("perfiles").update({tema:v}).eq("id",user.id);}catch(e){}}
   };
+  // SEO: titulo y descripcion dinamicos segun URL. Se re-evalua en cada
+  // pushState/popstate y cuando cambian los datos cargados (para hidratar
+  // nombre correcto una vez tenemos la lista de players/equipos/etc).
+  const [urlTick,setUrlTick]=useState(0);
+  useEffect(()=>{
+    const origPush=window.history.pushState;
+    window.history.pushState=function(...args){origPush.apply(this,args);setUrlTick(t=>t+1);};
+    const onPop=()=>setUrlTick(t=>t+1);
+    window.addEventListener("popstate",onPop);
+    return()=>{window.history.pushState=origPush;window.removeEventListener("popstate",onPop);};
+  },[]);
+  useEffect(()=>{
+    const TAB_TITLES={home:"Últimos fichajes",jugadoras:"Jugadoras",equipos:"Equipos",ligas:"Ligas",coaches:"Cuerpo técnico",ranking_fiba:"Ranking FIBA",partidos:"Partidos",quiniela:"Quiniela · Mundial 2026",favoritos:"Tus favoritos",privacidad:"Privacidad"};
+    const parts=window.location.pathname.split("/").filter(Boolean);
+    let title="La Basketneta", desc="Base de datos del baloncesto femenino: jugadoras, equipos, ligas y estadísticas de todo el mundo.";
+    const [seg,id]=parts;
+    if(seg==="jugadoras"&&id){const p=players.find(x=>x.id_jugadora===id);if(p){title=`${p.nombre} · La Basketneta`;desc=`Ficha de ${p.nombre}${p.posicion?` (${p.posicion})`:""}${p.nacionalidad?` · ${p.nacionalidad}`:""}. Trayectoria, estadísticas y palmarés en La Basketneta.`;}else if(TAB_TITLES.jugadoras){title=`${TAB_TITLES.jugadoras} · La Basketneta`;}}
+    else if(seg==="equipos"&&id){const e=equipos.find(x=>x.id_equipo===id);if(e){title=`${e.nombre} · La Basketneta`;desc=`Plantilla, palmarés y últimos fichajes de ${e.nombre}${e.ciudad?` (${e.ciudad})`:""}. Ficha completa en La Basketneta.`;}else{title=`${TAB_TITLES.equipos} · La Basketneta`;}}
+    else if(seg==="ligas"&&id){const l=ligas.find(x=>x.id_liga===id);if(l){title=`${l.nombre} · La Basketneta`;desc=`Clasificación, jornadas y equipos de ${l.nombre}${l.pais?` (${l.pais})`:""}. Todo el detalle en La Basketneta.`;}else{title=`${TAB_TITLES.ligas} · La Basketneta`;}}
+    else if(seg==="coaches"&&id){const c=coaches?.find(x=>x.id_coach===id);if(c){title=`${c.nombre} · La Basketneta`;desc=`Trayectoria de ${c.nombre} como entrenador/a en La Basketneta.`;}else{title=`${TAB_TITLES.coaches} · La Basketneta`;}}
+    else if(seg&&TAB_TITLES[seg]){title=`${TAB_TITLES[seg]} · La Basketneta`;}
+    document.title=title;
+    let m=document.querySelector('meta[name="description"]');
+    if(!m){m=document.createElement("meta");m.name="description";document.head.appendChild(m);}
+    m.setAttribute("content",desc);
+  },[urlTick,players,equipos,ligas,coaches]);
   useEffect(()=>{
     const html=document.documentElement;
     if(tema==="oscuro") html.setAttribute("data-bfdb-tema","dark"); else html.removeAttribute("data-bfdb-tema");
@@ -6634,13 +6660,12 @@ export default function App(){
             }));
           }catch(e){try{localStorage.removeItem(CK);}catch(_){}}
           try{
-            const [bc,sc,tp,tt]=await Promise.all([
+            const [bc,tp,tt]=await Promise.all([
               supabase.from("partido_boxscore").select("*",{count:"exact",head:true}),
-              supabase.from("partido_stats").select("*",{count:"exact",head:true}),
               supabase.from("partidos").select("*",{count:"exact",head:true}),
               supabase.from("temporadas").select("*",{count:"exact",head:true}),
             ]);
-            setBoxCount((bc.count||0)+(sc.count||0));
+            setBoxCount(bc.count||0);
             setTotalCounts({partidos:tp.count||0,temporadas:tt.count||0});
           }catch(e){}
         }catch(e){console.warn("Fase 2 falló:",e.message||e);}

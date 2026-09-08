@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 const ZONAS = [
@@ -23,8 +23,33 @@ const ROW_STYLE = {
   borderBottom: "1px solid var(--fx-border2)", cursor: "pointer",
 };
 
+const ZONA_KEYS = new Set(ZONAS.map(z => z.key));
+
 export default function RankingFibaView({ equipos, isAdmin, onGoToTeam, onReload }) {
-  const [zona, setZona] = useState("Mundo");
+  const [zona, setZonaRaw] = useState(() => {
+    try {
+      const q = new URLSearchParams(window.location.search).get("zona");
+      return q && ZONA_KEYS.has(q) ? q : "Mundo";
+    } catch { return "Mundo"; }
+  });
+  const setZona = v => {
+    setZonaRaw(v);
+    try {
+      const url = new URL(window.location.href);
+      if (v && v !== "Mundo") url.searchParams.set("zona", v); else url.searchParams.delete("zona");
+      window.history.replaceState({}, "", url.pathname + (url.search ? url.search : "") + url.hash);
+    } catch {}
+  };
+  useEffect(() => {
+    const onPop = () => {
+      try {
+        const q = new URLSearchParams(window.location.search).get("zona");
+        setZonaRaw(q && ZONA_KEYS.has(q) ? q : "Mundo");
+      } catch {}
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null); // { tipo: 'ok'|'err', texto }
 
