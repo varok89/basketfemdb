@@ -138,7 +138,7 @@ function PickerModal({players, equiposNombres, exclude, onPick, onClose}){
 function SlotCard({slot, idx, onOpen, onClear}){
   if(!slot){
     return (
-      <button onClick={onOpen} style={{background:"var(--fx-card)",border:"2px dashed var(--fx-border)",borderRadius:"14px",padding:"28px 12px",cursor:"pointer",color:"var(--fx-muted)",fontSize:"13px",fontWeight:700,minHeight:"140px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"6px"}}>
+      <button onClick={onOpen} style={{background:"var(--fx-card)",border:"2px dashed var(--fx-border)",borderRadius:"14px",padding:"28px 12px",cursor:"pointer",color:"var(--fx-muted)",fontSize:"13px",fontWeight:700,minHeight:"140px",minWidth:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"6px"}}>
         <div style={{fontSize:"28px"}}>➕</div>
         Añadir jugadora
       </button>
@@ -146,7 +146,7 @@ function SlotCard({slot, idx, onOpen, onClear}){
   }
   const {player}=slot;
   return (
-    <div style={{background:"var(--fx-card)",borderRadius:"14px",padding:"14px 12px",boxShadow:"0 1px 6px rgba(0,0,0,0.06)",position:"relative",textAlign:"center",minHeight:"140px",borderTop:`4px solid ${COLORS[idx]}`}}>
+    <div style={{background:"var(--fx-card)",borderRadius:"14px",padding:"14px 12px",boxShadow:"0 1px 6px rgba(0,0,0,0.06)",position:"relative",textAlign:"center",minHeight:"140px",minWidth:0,borderTop:`4px solid ${COLORS[idx]}`}}>
       <button onClick={onClear} title="Quitar" style={{position:"absolute",top:6,right:8,background:"transparent",border:"none",fontSize:"18px",cursor:"pointer",color:"var(--fx-muted2)"}}>×</button>
       {player.foto
         ? <img src={player.foto} alt="" style={{width:64,height:64,borderRadius:"50%",objectFit:"cover",border:`2px solid ${COLORS[idx]}`}}/>
