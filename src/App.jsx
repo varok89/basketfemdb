@@ -3202,8 +3202,40 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
   },[fichajesPorLiga,equipoMap]);
   const fichajesFiltrados=useMemo(()=>filterEquipo==="ALL"?fichajesPorLiga:fichajesPorLiga.filter(s=>s.id_equipo===filterEquipo),[fichajesPorLiga,filterEquipo]);
   const visible=fichajesFiltrados.slice(0,visibleCount);
+  const favJugs=user?(favoritos||[]).filter(f=>f.tipo==="jugadora").map(f=>players.find(p=>p.id_jugadora===f.id_referencia)).filter(Boolean).slice(0,12):[];
+  const favEqs=user?(favoritos||[]).filter(f=>f.tipo==="equipo").map(f=>equipos.find(e=>e.id_equipo===f.id_referencia)).filter(Boolean).slice(0,12):[];
+  const favLgs=user?(favoritos||[]).filter(f=>f.tipo==="liga").map(f=>ligas.find(l=>l.id_liga===f.id_referencia)).filter(Boolean).slice(0,8):[];
+  const hayFavs=favJugs.length+favEqs.length+favLgs.length>0;
   return(
     <div className="bfdb-container" style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
+      {hayFavs&&(
+        <div style={{background:"var(--fx-card)",borderRadius:"14px",padding:"14px 16px",marginBottom:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"10px"}}>
+            <div style={{fontWeight:800,fontSize:"14px",color:"var(--fx-text)"}}>⭐ Tus favoritos</div>
+            <button onClick={()=>onGoToTab&&onGoToTab("favoritos")} style={{background:"transparent",border:"none",color:"#9333ea",fontSize:"12px",fontWeight:700,cursor:"pointer"}}>Ver todos →</button>
+          </div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:"10px"}}>
+            {favJugs.map(p=>(
+              <div key={"j"+p.id_jugadora} onClick={()=>onGoToPlayer(p.id_jugadora)} title={p.nombre} style={{display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer",width:"56px",gap:"4px"}}>
+                <Avatar photo={p.foto} name={p.nombre} size={44} fontSize={14} fallecida={!!p.fecha_fallecimiento}/>
+                <span style={{fontSize:"10px",color:"var(--fx-muted)",textAlign:"center",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",width:"100%"}}>{p.nombre.split(" ").slice(-1)[0]}</span>
+              </div>
+            ))}
+            {favEqs.map(e=>(
+              <div key={"e"+e.id_equipo} onClick={()=>onGoToTeam(e.id_equipo)} title={e.nombre} style={{display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer",width:"56px",gap:"4px"}}>
+                {e.escudo?<img loading="lazy" decoding="async" src={e.escudo} alt="" style={{width:44,height:44,objectFit:"contain"}}/>:<div style={{width:44,height:44,borderRadius:"8px",background:"var(--fx-hover)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px"}}>🏟️</div>}
+                <span style={{fontSize:"10px",color:"var(--fx-muted)",textAlign:"center",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",width:"100%"}}>{e.nombre}</span>
+              </div>
+            ))}
+            {favLgs.map(l=>(
+              <div key={"l"+l.id_liga} onClick={()=>onGoToLeague&&onGoToLeague(l.id_liga)} title={l.nombre} style={{display:"flex",flexDirection:"column",alignItems:"center",cursor:"pointer",width:"56px",gap:"4px"}}>
+                {l.logo?<img loading="lazy" decoding="async" src={l.logo} alt="" style={{width:44,height:44,objectFit:"contain",borderRadius:"8px"}}/>:<div style={{width:44,height:44,borderRadius:"8px",background:"var(--fx-hover)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px"}}>🏆</div>}
+                <span style={{fontSize:"10px",color:"var(--fx-muted)",textAlign:"center",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",width:"100%"}}>{l.nombre}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div style={{marginBottom:"16px"}}>
         <h2 style={{fontWeight:800,fontSize:"20px",color:"var(--fx-text)",margin:"0 0 4px",display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}>
           ✍️ Últimos fichajes
@@ -6822,7 +6854,7 @@ export default function App(){
         {showPerfil&&user&&<PerfilView user={user} favoritos={favoritos} onClose={()=>setShowPerfil(false)} onLogout={()=>{handleLogout();setShowPerfil(false);}}/>}
         {showPrivacidad&&<Suspense fallback={<div style={{padding:"40px",textAlign:"center",color:"var(--fx-muted2)"}}>Cargando…</div>}><PrivacidadView onBack={()=>{setShowPrivacidad(false);window.history.back();}}/></Suspense>}
         {!showPrivacidad&&!showPerfil&&tab==="favoritos"&&user&&<FavoritosView players={players} equipos={equipos} ligas={ligas} partidos={partidos} favoritos={favoritos} user={user} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToPartido={goToPartido} isFavFn={isFav} onToggleFav={toggleFav}/>}
-        {!showPrivacidad&&!showPerfil&&tab==="home"&&<HomeView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToTab={t=>setTab(t)} equiposNombres={equiposNombres}/>}
+        {!showPrivacidad&&!showPerfil&&tab==="home"&&<HomeView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToTab={t=>setTab(t)} equiposNombres={equiposNombres} user={user} favoritos={favoritos} onGoToLeague={goToLeague}/>}
         {!showPrivacidad&&!showPerfil&&tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setPlayers={setPlayers} setTempCoach={setTempCoach} onGoToPartido={goToPartido} regExtra={regExtra} isFavFn={isFav} onToggleFav={toggleFav}/>}
         {!showPerfil&&tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setEquipos={setEquipos} setEquiposNombres={setEquiposNombres} setPlayers={setPlayers} setPalmares={setPalmares} regExtra={regExtra} onGoToPartido={goToPartido} isFavFn={isFav} onToggleFav={toggleFav}/>}
         {!showPerfil&&tab==="ligas"    &&<LeaguesView ligas={ligas} players={players} equipos={equipos} palmares={palmares} coaches={coaches} tempCoach={tempCoach} partidos={partidos} onGoToClasificacion={(ligaId,temporada)=>{setOpenClasiKey(`${ligaId}|${temporada||""}`);setTab("partidos");scrollTop();}} onGoToTeam={goToTeam} isAdmin={isAdmin} onReload={loadAll} openLigaId={openLigaId} onClearLiga={()=>setOpenLigaId(null)} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} setLigas={setLigas} regExtra={regExtra} isFavFn={isFav} onToggleFav={toggleFav}/>}
