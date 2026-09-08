@@ -9,6 +9,7 @@ const LogrosModal  = lazy(() => import("./views/LogrosModal"));
 const PerfilPublicoModal = lazy(() => import("./views/PerfilPublicoModal"));
 const PrivacidadView = lazy(() => import("./views/PrivacidadView"));
 const QuinielaView = lazy(() => import("./views/MundialViews"));
+const ComparadorView = lazy(() => import("./views/ComparadorView"));
 
 /* inject bounce keyframe once */
 if (!document.getElementById("bfdb-styles")) {
@@ -6346,7 +6347,7 @@ export default function App(){
     return()=>{window.history.pushState=origPush;window.removeEventListener("popstate",onPop);};
   },[]);
   useEffect(()=>{
-    const TAB_TITLES={home:"Últimos fichajes",jugadoras:"Jugadoras",equipos:"Equipos",ligas:"Ligas",coaches:"Cuerpo técnico",ranking_fiba:"Ranking FIBA",partidos:"Partidos",quiniela:"Quiniela · Mundial 2026",favoritos:"Tus favoritos",privacidad:"Privacidad"};
+    const TAB_TITLES={home:"Últimos fichajes",jugadoras:"Jugadoras",equipos:"Equipos",ligas:"Ligas",coaches:"Cuerpo técnico",ranking_fiba:"Ranking FIBA",partidos:"Partidos",quiniela:"Quiniela · Mundial 2026",comparar:"Comparar jugadoras",favoritos:"Tus favoritos",privacidad:"Privacidad"};
     const parts=window.location.pathname.split("/").filter(Boolean);
     let title="La Basketneta", desc="Base de datos del baloncesto femenino: jugadoras, equipos, ligas y estadísticas de todo el mundo.";
     const [seg,id]=parts;
@@ -6543,6 +6544,7 @@ export default function App(){
     if(tabName==="cuerpo_tecnico"&&id)return `/coaches/${id}`;
     if(tabName==="ligas")return `/ligas`;
     if(tabName==="partidos")return `/partidos`;
+    if(tabName==="comparar")return `/comparar`;
     return `/${tabName==="home"?"":tabName}`;
   };
 
@@ -6762,6 +6764,7 @@ export default function App(){
     setPartidosSub(parts[0]==="partidos"?parts.slice(1):null);
     if(parts[0]==="privacidad"){setShowPrivacidad(true);return;}else{setShowPrivacidad(false);}
     if(parts[0]==="jugadoras"||parts[0]==="equipos"||parts[0]==="coaches"||parts[0]==="ligas"||parts[0]==="partidos")setTab(parts[0]==="coaches"?"cuerpo_tecnico":parts[0]);
+    else if(parts[0]==="comparar")setTab("comparar");
     else if(parts.length===0)setTab("home");
   };
 
@@ -6780,7 +6783,17 @@ export default function App(){
     return()=>window.removeEventListener("popstate",onPopState);
   },[]);
 
-  const TABS=[["home","✍️","Mercado"],...(user?[["favoritos","⭐","Favoritos"]]:[]),["jugadoras","👩‍🏀","Jugadoras"],["equipos","🏟️","Equipos"],["ligas","🏆","Ligas"],["cuerpo_tecnico","📋","Cuerpo Técnico"],["ranking_fiba","🌐","Ranking FIBA"],["partidos","📺","Ver partidos"],["quiniela","🎯","Quiniela"]];
+  const TABS=[["home","✍️","Mercado"],...(user?[["favoritos","⭐","Favoritos"]]:[]),["jugadoras","👩‍🏀","Jugadoras"],["equipos","🏟️","Equipos"],["ligas","🏆","Ligas"],["cuerpo_tecnico","📋","Cuerpo Técnico"],["ranking_fiba","🌐","Ranking FIBA"],["partidos","📺","Ver partidos"],["comparar","⚖️","Comparar"],["quiniela","🎯","Quiniela"]];
+
+  // Alertas rápidas de calidad de datos (solo admin, sobre datos ya cargados)
+  const calidadAlertas=useMemo(()=>{
+    if(!isAdmin)return null;
+    const rePh=/empty-face-(woman|man)-share\.gif/;
+    const foto=(players||[]).filter(p=>!p.foto||rePh.test(p.foto)).length;
+    const nac=(players||[]).filter(p=>!p.nacionalidad).length;
+    const esc=(equipos||[]).filter(e=>!e.escudo).length;
+    return {foto,nac,esc,total:foto+nac+esc};
+  },[isAdmin,players,equipos]);
 
   if(showLanding) return <Landing onEnter={handleEnter} players={players} equipos={equipos} ligas={ligas} coaches={coaches} tempCoach={tempCoach} palmares={palmares} regExtra={regExtra}/>;
   if(showCalidad){
@@ -6899,8 +6912,9 @@ export default function App(){
                 </button>
               ))}
               <div style={{height:"1px",background:"#334155",margin:"6px 0"}}/>
-              {isAdmin&&<button onClick={()=>{setShowCalidad(true);setMenuOpen(false);}} style={{display:"flex",alignItems:"center",gap:"10px",width:"100%",background:"transparent",color:"#cbd5e1",border:"none",borderRadius:"8px",padding:"10px 14px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>
+              {isAdmin&&<button onClick={()=>{setShowCalidad(true);setMenuOpen(false);}} title={calidadAlertas?`${calidadAlertas.foto} sin foto · ${calidadAlertas.nac} sin nacionalidad · ${calidadAlertas.esc} escudos rotos`:""} style={{display:"flex",alignItems:"center",gap:"10px",width:"100%",background:"transparent",color:"#cbd5e1",border:"none",borderRadius:"8px",padding:"10px 14px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>
                 <span style={{fontSize:"16px"}}>🩺</span>Calidad de datos
+                {calidadAlertas&&calidadAlertas.total>0&&<span style={{marginLeft:"auto",background:"#ef4444",color:"#fff",borderRadius:"10px",padding:"1px 7px",fontSize:"10px",fontWeight:800}}>{calidadAlertas.total>999?"999+":calidadAlertas.total}</span>}
               </button>}
               {isAdmin&&<button onClick={()=>{setShowAnalytics(true);setMenuOpen(false);}} style={{display:"flex",alignItems:"center",gap:"10px",width:"100%",background:"transparent",color:"#cbd5e1",border:"none",borderRadius:"8px",padding:"10px 14px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>
                 <span style={{fontSize:"16px"}}>📊</span>Analytics
@@ -6987,6 +7001,7 @@ export default function App(){
             <p style={{color:"var(--fx-muted)",fontSize:"14px",margin:"0 0 16px"}}>Para hacer tu quiniela y competir en el ranking necesitas iniciar sesión.</p>
             <button onClick={()=>setShowLogin(true)} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"11px 24px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>Iniciar sesión</button>
           </div>)}
+        {!showPrivacidad&&!showPerfil&&tab==="comparar"&&<Suspense fallback={<GridSkel n={3} cards={false}/>}><ComparadorView players={players} equipos={equipos} ligas={ligas} equiposNombres={equiposNombres} onGoToPlayer={(id)=>goToPlayer(id,{tab:"comparar",label:"Comparar"})}/></Suspense>}
         {!showPrivacidad&&!showPerfil&&tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} mvps={mvps} equiposNombres={equiposNombres} openClasiKey={openClasiKey} onClearClasi={()=>setOpenClasiKey(null)} partidosSub={partidosSub} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id,year)=>goToTeam(id,year||null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})} onGoToPlayer={(id)=>goToPlayer(id,{tab:"partidos",label:"Ver partidos"})}/>}
       </div>
     </div>

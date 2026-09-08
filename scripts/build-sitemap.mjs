@@ -41,7 +41,7 @@ function urlEntry(loc, priority = "0.5") {
   return `  <url><loc>${loc}</loc><priority>${priority}</priority></url>`;
 }
 
-const tabs = ["", "jugadoras", "equipos", "ligas", "coaches", "ranking_fiba", "partidos", "quiniela", "privacidad"];
+const tabs = ["", "jugadoras", "equipos", "ligas", "coaches", "ranking_fiba", "partidos", "comparar", "quiniela", "privacidad"];
 
 const [jugs, eqs, ligas] = await Promise.all([
   fetchAllIds("jugadoras", "id_jugadora"),
