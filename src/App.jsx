@@ -3163,25 +3163,44 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
   },[fichajesPorLiga,equipoMap]);
   const fichajesFiltrados=useMemo(()=>filterEquipo==="ALL"?fichajesPorLiga:fichajesPorLiga.filter(s=>s.id_equipo===filterEquipo),[fichajesPorLiga,filterEquipo]);
   const visible=fichajesFiltrados.slice(0,visibleCount);
+  const [dark,setDark]=useState(()=>{try{return localStorage.getItem("bfdb-fichajes-dark")==="1";}catch(e){return false;}});
+  useEffect(()=>{
+    try{localStorage.setItem("bfdb-fichajes-dark",dark?"1":"0");}catch(e){}
+    const html=document.documentElement;
+    if(dark) html.setAttribute("data-bfdb-fichajes-theme","dark"); else html.removeAttribute("data-bfdb-fichajes-theme");
+    return()=>html.removeAttribute("data-bfdb-fichajes-theme");
+  },[dark]);
   return(
-    <div className="bfdb-container" style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
+    <div className="bfdb-container bfdb-fichajes" style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
+      <style>{`
+        html[data-bfdb-fichajes-theme="dark"]{background:#0f172a;}
+        html[data-bfdb-fichajes-theme="dark"] body{background:#0f172a;}
+        .bfdb-fichajes{--fx-text:#1e293b;--fx-muted:#94a3b8;--fx-label:#475569;--fx-card:#fff;--fx-border:#e2e8f0;--fx-pill:#fff7ed;--fx-shadow:0 1px 6px rgba(0,0,0,0.07);--fx-shadow-hover:0 4px 16px rgba(249,115,22,0.15);--fx-brand:#9333ea;}
+        html[data-bfdb-fichajes-theme="dark"] .bfdb-fichajes{--fx-text:#f1f5f9;--fx-muted:#94a3b8;--fx-label:#cbd5e1;--fx-card:#1e293b;--fx-border:#334155;--fx-pill:#292524;--fx-shadow:0 1px 6px rgba(0,0,0,0.4);--fx-shadow-hover:0 4px 16px rgba(147,51,234,0.35);--fx-brand:#c084fc;}
+      `}</style>
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:"6px"}}>
+        <button onClick={()=>setDark(d=>!d)} title={dark?"Cambiar a claro":"Cambiar a oscuro"}
+          style={{background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"999px",padding:"6px 12px",fontSize:"14px",cursor:"pointer",color:"var(--fx-text)",boxShadow:"var(--fx-shadow)"}}>
+          {dark?"☀️ Claro":"🌙 Oscuro"}
+        </button>
+      </div>
       <div style={{marginBottom:"16px"}}>
-        <h2 style={{fontWeight:800,fontSize:"20px",color:"#1e293b",margin:"0 0 4px",display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}>
+        <h2 style={{fontWeight:800,fontSize:"20px",color:"var(--fx-text)",margin:"0 0 4px",display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}>
           ✍️ Últimos fichajes
-          {filterLiga!=="ALL"&&(()=>{const ligaSel=ligaMap[filterLiga];return ligaSel?<span style={{fontWeight:800,fontSize:"20px",color:"#1e293b",display:"flex",alignItems:"center",gap:"6px"}}>de {ligaSel.nombre}{ligaSel.escudo&&<img src={ligaSel.escudo} alt={ligaSel.nombre} style={{width:"22px",height:"22px",objectFit:"contain",borderRadius:"4px"}}/>}</span>:null;})()}
+          {filterLiga!=="ALL"&&(()=>{const ligaSel=ligaMap[filterLiga];return ligaSel?<span style={{fontWeight:800,fontSize:"20px",color:"var(--fx-text)",display:"flex",alignItems:"center",gap:"6px"}}>de {ligaSel.nombre}{ligaSel.escudo&&<img src={ligaSel.escudo} alt={ligaSel.nombre} style={{width:"22px",height:"22px",objectFit:"contain",borderRadius:"4px"}}/>}</span>:null;})()}
         </h2>
-        <p style={{fontSize:"13px",color:"#94a3b8",margin:"0 0 12px"}}>Temporada {currentSeason} · {fichajesFiltrados.length} movimiento{fichajesFiltrados.length!==1?"s":""}</p>
-        {ligasEnFichajes.length>1&&<select value={filterLiga} onChange={e=>{setFilterLiga(e.target.value);setFilterEquipo("ALL");setVisibleCount(10);}} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"7px 12px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none",width:"100%",maxWidth:"320px"}}>
+        <p style={{fontSize:"13px",color:"var(--fx-muted)",margin:"0 0 12px"}}>Temporada {currentSeason} · {fichajesFiltrados.length} movimiento{fichajesFiltrados.length!==1?"s":""}</p>
+        {ligasEnFichajes.length>1&&<select value={filterLiga} onChange={e=>{setFilterLiga(e.target.value);setFilterEquipo("ALL");setVisibleCount(10);}} style={{border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"7px 12px",fontSize:"13px",color:"var(--fx-label)",background:"var(--fx-card)",outline:"none",width:"100%",maxWidth:"320px"}}>
           <option value="ALL">Todas las ligas</option>
           {ligasEnFichajes.map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}</option>)}
         </select>}
-        {equiposEnFichajes.length>1&&<select value={filterEquipo} onChange={e=>{setFilterEquipo(e.target.value);setVisibleCount(10);}} style={{border:"1.5px solid #e2e8f0",borderRadius:"10px",padding:"7px 12px",fontSize:"13px",color:"#475569",background:"#fff",outline:"none",width:"100%",maxWidth:"320px",marginTop:"8px"}}>
+        {equiposEnFichajes.length>1&&<select value={filterEquipo} onChange={e=>{setFilterEquipo(e.target.value);setVisibleCount(10);}} style={{border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"7px 12px",fontSize:"13px",color:"var(--fx-label)",background:"var(--fx-card)",outline:"none",width:"100%",maxWidth:"320px",marginTop:"8px"}}>
           <option value="ALL">Todos los equipos</option>
           {equiposEnFichajes.map(e=><option key={e.id_equipo} value={e.id_equipo}>{e.nombre}</option>)}
         </select>}
       </div>
       {fichajesFiltrados.length===0?(
-        <div style={{textAlign:"center",padding:"60px 0",color:"#94a3b8"}}>
+        <div style={{textAlign:"center",padding:"60px 0",color:"var(--fx-muted)"}}>
           <div style={{fontSize:"48px",marginBottom:"12px"}}>📋</div>
           <p style={{fontSize:"15px"}}>{fichajes.length===0?`No hay fichajes registrados para ${currentSeason} todavía`:"No hay fichajes para esta liga"}</p>
         </div>
@@ -3195,17 +3214,17 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
               const isDebut=!prev.length;
               return(
                 <div key={s.id} onClick={()=>onGoToPlayer(s.id_jugadora)}
-                  style={{background:"#fff",borderRadius:"16px",padding:"16px 12px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",display:"flex",flexDirection:"column",alignItems:"center",gap:"6px",cursor:"pointer",transition:"all 0.15s",textAlign:"center"}}
-                  onMouseEnter={e=>{e.currentTarget.style.boxShadow="0 4px 16px rgba(249,115,22,0.15)";e.currentTarget.style.transform="translateY(-2px)";}}
-                  onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 1px 6px rgba(0,0,0,0.07)";e.currentTarget.style.transform="translateY(0)";}}>
+                  style={{background:"var(--fx-card)",borderRadius:"16px",padding:"16px 12px",boxShadow:"var(--fx-shadow)",display:"flex",flexDirection:"column",alignItems:"center",gap:"6px",cursor:"pointer",transition:"all 0.15s",textAlign:"center"}}
+                  onMouseEnter={e=>{e.currentTarget.style.boxShadow="var(--fx-shadow-hover)";e.currentTarget.style.transform="translateY(-2px)";}}
+                  onMouseLeave={e=>{e.currentTarget.style.boxShadow="var(--fx-shadow)";e.currentTarget.style.transform="translateY(0)";}}>
                   <Avatar photo={s.player.foto} name={s.player.nombre} size={72} fontSize={24} fallecida={!!s.player.fecha_fallecimiento}/>
-                  <div style={{fontWeight:700,fontSize:"13px",color:"#1e293b",lineHeight:1.3,width:"100%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.player.nombre}</div>
+                  <div style={{fontWeight:700,fontSize:"13px",color:"var(--fx-text)",lineHeight:1.3,width:"100%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.player.nombre}</div>
                   <div style={{fontSize:"20px",lineHeight:1}}>✍️</div>
-                  <div style={{display:"flex",alignItems:"center",gap:"6px",background:"#fff7ed",borderRadius:"10px",padding:"6px 10px",width:"100%",justifyContent:"center",boxSizing:"border-box"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:"6px",background:"var(--fx-pill)",borderRadius:"10px",padding:"6px 10px",width:"100%",justifyContent:"center",boxSizing:"border-box"}}>
                     <TeamBadge team={eq} size={24}/>
-                    <span style={{fontSize:"11px",fontWeight:700,color:"#9333ea",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"80px"}}>{resolveTeamName(s.id_equipo,s.temporada,equiposNombres,equipoMap)||eq?.nombre}</span>
+                    <span style={{fontSize:"11px",fontWeight:700,color:"var(--fx-brand)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"80px"}}>{resolveTeamName(s.id_equipo,s.temporada,equiposNombres,equipoMap)||eq?.nombre}</span>
                   </div>
-                  {liga&&<div style={{fontSize:"10px",color:"#94a3b8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",width:"100%"}}>{liga.nombre}</div>}
+                  {liga&&<div style={{fontSize:"10px",color:"var(--fx-muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",width:"100%"}}>{liga.nombre}</div>}
                 </div>
               );
             })}
@@ -3213,9 +3232,9 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
           {visibleCount<fichajesFiltrados.length&&(
             <div style={{textAlign:"center"}}>
               <button onClick={()=>setVisibleCount(c=>c+10)}
-                style={{background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:"12px",padding:"10px 28px",fontWeight:700,fontSize:"13px",color:"#475569",cursor:"pointer",transition:"all 0.15s"}}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor="#9333ea";e.currentTarget.style.color="#9333ea";}}
-                onMouseLeave={e=>{e.currentTarget.style.borderColor="#e2e8f0";e.currentTarget.style.color="#475569";}}>
+                style={{background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"12px",padding:"10px 28px",fontWeight:700,fontSize:"13px",color:"var(--fx-label)",cursor:"pointer",transition:"all 0.15s"}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--fx-brand)";e.currentTarget.style.color="var(--fx-brand)";}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--fx-border)";e.currentTarget.style.color="var(--fx-label)";}}>
                 Ver más ({fichajesFiltrados.length-visibleCount} restantes)
               </button>
             </div>
