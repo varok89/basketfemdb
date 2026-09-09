@@ -68,6 +68,7 @@ const BOLA_PREGUNTAS=[
 const CORTE_JOVEN="2004-01-01";
 
 function BolaCristalView({user,equipos,cierre}){
+  const t = useT();
   const [equiposMundial,setEquiposMundial]=useState([]);
   const [jugadorasMundial,setJugadorasMundial]=useState([]);
   const [jovenesMundial,setJovenesMundial]=useState([]);
@@ -115,7 +116,7 @@ function BolaCristalView({user,equipos,cierre}){
         .eq("user_id",user.id).eq("id_liga","L055").eq("temporada","2026").in("pregunta_id",borrar);
     }
     setSaving(false);
-    setMsg("✓ Guardado");setTimeout(()=>setMsg(""),1800);
+    setMsg(t("quiniela.saved"));setTimeout(()=>setMsg(""),1800);
   };
 
   const opciones=q=>q.tipo==="equipo"?equiposMundial:q.tipo==="joven"?jovenesMundial:jugadorasMundial;
@@ -127,8 +128,8 @@ function BolaCristalView({user,equipos,cierre}){
     <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
       <div style={{background:cerrado?"#fef2f2":"#f0fdf4",border:`1px solid ${cerrado?"#fecaca":"#bbf7d0"}`,borderRadius:"12px",padding:"12px 14px",fontSize:"12px",color:cerrado?"#991b1b":"#166534"}}>
         {cerrado
-          ?<><b>🔒 Cerrado.</b> Cierre el {cierre?new Date(cierre).toLocaleString("es",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"}. Solo lectura.</>
-          :<><b>🔮 Abierto.</b> Cierra al empezar el primer partido{cierre?": "+new Date(cierre).toLocaleString("es",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):""}. Máx 61 pts.</>}
+          ?<><b>{t("bola.closed_status")}</b> {t("bola.closed_full",{fecha:cierre?new Date(cierre).toLocaleString("es",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"})}</>
+          :<><b>{t("bola.open_status")}</b> {t("bola.open_full",{fecha:cierre?": "+new Date(cierre).toLocaleString("es",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):""})}</>}
       </div>
       {BOLA_PREGUNTAS.map(q=>{
         const ops=opciones(q);
@@ -136,25 +137,25 @@ function BolaCristalView({user,equipos,cierre}){
         return(
           <div key={q.id} style={{background:"var(--fx-card)",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"10px"}}>
-              <div style={{fontSize:"14px",fontWeight:700,color:"var(--fx-text)"}}>{q.icon} {q.label}</div>
+              <div style={{fontSize:"14px",fontWeight:700,color:"var(--fx-text)"}}>{q.icon} {t("bola.q."+q.id)}</div>
               <span style={{fontSize:"10px",color:"var(--fx-muted2)",fontWeight:700}}>{q.puntos} pt{q.puntos==="3×"?"":"s"}</span>
             </div>
             {q.n===1?(
               <FlagSelect value={val[0]||""} disabled={cerrado||ops.length===0}
-                placeholder="— elegir —"
+                placeholder={t("bola.choose")}
                 options={ops.map(o=>toOpt(q,o))}
                 onChange={v=>setDrafts(d=>({...d,[q.id]:v?[v]:[]}))}/>
             ):(
               <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
                 {Array.from({length:q.n}).map((_,i)=>(
                   <FlagSelect key={i} value={val[i]||""} disabled={cerrado||ops.length===0}
-                    placeholder={`— posición ${i+1} —`}
+                    placeholder={t("bola.position",{n:i+1})}
                     options={ops.filter(o=>!val.includes(o.id)||o.id===val[i]).map(o=>toOpt(q,o))}
                     onChange={v=>{const nv=[...val];nv[i]=v;setDrafts(d=>({...d,[q.id]:nv}));}}/>
                 ))}
               </div>
             )}
-            {ops.length===0&&<div style={{fontSize:"11px",color:"var(--fx-muted2)",marginTop:"6px"}}>Sin opciones cargadas todavía.</div>}
+            {ops.length===0&&<div style={{fontSize:"11px",color:"var(--fx-muted2)",marginTop:"6px"}}>{t("bola.no_options")}</div>}
           </div>
         );
       })}
@@ -162,7 +163,7 @@ function BolaCristalView({user,equipos,cierre}){
         <div style={{position:"sticky",bottom:"8px",display:"flex",gap:"10px",alignItems:"center",background:"var(--fx-card)",borderRadius:"12px",padding:"12px 14px",boxShadow:"0 4px 14px rgba(0,0,0,0.08)"}}>
           <button onClick={guardarTodo} disabled={saving}
             style={{flex:1,background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"12px",fontWeight:800,fontSize:"14px",cursor:"pointer",opacity:saving?0.6:1}}>
-            {saving?"Guardando…":"💾 Guardar bola de cristal"}
+            {saving?t("quiniela.saving"):t("bola.save")}
           </button>
           {msg&&<span style={{fontSize:"13px",color:"#16a34a",fontWeight:700}}>{msg}</span>}
         </div>
@@ -214,6 +215,13 @@ function bnParticipantes(slot, d){
 }
 
 function BasketnetaView({user,equipos,cierre}){
+  const t = useT();
+  const bnLabel = (slot) => {
+    if (slot==="final_36") return t("bn.match.final");
+    if (slot==="br_35") return t("bn.match.br");
+    const [ronda,n] = slot.split("_");
+    return t("bn.match."+ronda, {n});
+  };
   const [equiposMundial,setEquiposMundial]=useState([]);
   const [gruposMap,setGruposMap]=useState({});
   const [drafts,setDrafts]=useState({});
@@ -272,7 +280,7 @@ function BasketnetaView({user,equipos,cierre}){
         .eq("user_id",user.id).eq("id_liga","L055").eq("temporada","2026").in("slot",borrar);
     }
     setSaving(false);
-    setMsg("✓ Guardado");setTimeout(()=>setMsg(""),1800);
+    setMsg(t("quiniela.saved"));setTimeout(()=>setMsg(""),1800);
   };
 
   const opsGrupo=(g,pos)=>{
@@ -290,16 +298,16 @@ function BasketnetaView({user,equipos,cierre}){
     <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
       <div style={{background:cerrado?"#fef2f2":"#f0fdf4",border:`1px solid ${cerrado?"#fecaca":"#bbf7d0"}`,borderRadius:"12px",padding:"12px 14px",fontSize:"12px",color:cerrado?"#991b1b":"#166534"}}>
         {cerrado
-          ?<><b>🔒 Cerrado.</b> Cierre el {cierre?new Date(cierre).toLocaleString("es",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"}. Solo lectura.</>
-          :<><b>🏀 Abierto.</b> Cierra al empezar el primer partido. Máx 60 pts.</>}
+          ?<><b>{t("bn.closed_status")}</b> {t("bn.closed_full",{fecha:cierre?new Date(cierre).toLocaleString("es",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"})}</>
+          :<><b>{t("bn.open_status")}</b> {t("bn.open_full")}</>}
       </div>
 
       <div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
-        <div style={{fontSize:"15px",fontWeight:800,color:"var(--fx-text)",marginBottom:"4px"}}>🏁 Ordena cada grupo (1 pt × posición correcta)</div>
+        <div style={{fontSize:"15px",fontWeight:800,color:"var(--fx-text)",marginBottom:"4px"}}>{t("bn.order_groups")}</div>
         <div style={{fontSize:"11px",color:"var(--fx-muted)",marginBottom:"10px"}}>
-          <span style={{color:"#166534",fontWeight:700}}>■ 1º</span> pasa directo a cuartos ·
-          <span style={{color:"#a16207",fontWeight:700}}> ■ 2º y 3º</span> juegan play-in ·
-          <span style={{color:"#b91c1c",fontWeight:700}}> ■ 4º</span> eliminado
+          <span style={{color:"#166534",fontWeight:700}}>{t("bn.pos1_note")}</span>{t("bn.pos1_desc")}
+          <span style={{color:"#a16207",fontWeight:700}}>{t("bn.pos23_note")}</span>{t("bn.pos23_desc")}
+          <span style={{color:"#b91c1c",fontWeight:700}}>{t("bn.pos4_note")}</span>{t("bn.pos4_desc")}
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:"10px"}}>
           {BN_GRUPOS.map(g=>{
@@ -308,7 +316,7 @@ function BasketnetaView({user,equipos,cierre}){
             const numPos={1:"#166534",2:"#a16207",3:"#a16207",4:"#b91c1c"};
             return(
               <div key={g} style={{border:"1px solid var(--fx-border)",borderRadius:"10px",padding:"8px"}}>
-                <div style={{fontSize:"11px",fontWeight:800,color:"var(--fx-muted)",marginBottom:"6px",textAlign:"center"}}>GRUPO {g}</div>
+                <div style={{fontSize:"11px",fontWeight:800,color:"var(--fx-muted)",marginBottom:"6px",textAlign:"center"}}>{t("bn.group",{letra:g})}</div>
                 {[1,2,3,4].map(pos=>{
                   const slot=`grupo_${g}_${pos}`;
                   return(
@@ -322,7 +330,7 @@ function BasketnetaView({user,equipos,cierre}){
                     </div>
                   );
                 })}
-                {total.length===0&&<div style={{fontSize:"11px",color:"var(--fx-muted2)"}}>Sin equipos aún.</div>}
+                {total.length===0&&<div style={{fontSize:"11px",color:"var(--fx-muted2)"}}>{t("bn.no_teams_yet")}</div>}
               </div>
             );
           })}
@@ -330,7 +338,7 @@ function BasketnetaView({user,equipos,cierre}){
       </div>
 
       <div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
-        <div style={{fontSize:"15px",fontWeight:800,color:"var(--fx-text)",marginBottom:"12px"}}>🎯 Bracket · Elige ganador de cada partido</div>
+        <div style={{fontSize:"15px",fontWeight:800,color:"var(--fx-text)",marginBottom:"12px"}}>{t("bn.bracket_title")}</div>
         {(()=>{
           const teamBtn=(id,activo)=>({
             display:"flex",alignItems:"center",gap:"5px",width:"100%",textAlign:"left",padding:"5px 7px",
@@ -370,22 +378,22 @@ function BasketnetaView({user,equipos,cierre}){
           };
           const line="#cbd5e1";
           const playins=[
-            {slot:"playin_27",label:"Play-in #27",puntos:2},
-            {slot:"playin_26",label:"Play-in #26",puntos:2},
-            {slot:"playin_28",label:"Play-in #28",puntos:2},
-            {slot:"playin_25",label:"Play-in #25",puntos:2},
+            {slot:"playin_27",label:bnLabel("playin_27"),puntos:2},
+            {slot:"playin_26",label:bnLabel("playin_26"),puntos:2},
+            {slot:"playin_28",label:bnLabel("playin_28"),puntos:2},
+            {slot:"playin_25",label:bnLabel("playin_25"),puntos:2},
           ];
           const qfs=[
-            {slot:"qf_29",label:"Cuartos #29",puntos:3},
-            {slot:"qf_32",label:"Cuartos #32",puntos:3},
-            {slot:"qf_30",label:"Cuartos #30",puntos:3},
-            {slot:"qf_31",label:"Cuartos #31",puntos:3},
+            {slot:"qf_29",label:bnLabel("qf_29"),puntos:3},
+            {slot:"qf_32",label:bnLabel("qf_32"),puntos:3},
+            {slot:"qf_30",label:bnLabel("qf_30"),puntos:3},
+            {slot:"qf_31",label:bnLabel("qf_31"),puntos:3},
           ];
           const sfs=[
-            {slot:"sf_33",label:"Semifinal #33",puntos:5},
-            {slot:"sf_34",label:"Semifinal #34",puntos:5},
+            {slot:"sf_33",label:bnLabel("sf_33"),puntos:5},
+            {slot:"sf_34",label:bnLabel("sf_34"),puntos:5},
           ];
-          const finalM={slot:"final_36",label:"Final",puntos:10};
+          const finalM={slot:"final_36",label:bnLabel("final_36"),puntos:10};
           const MATCH_H=64;
           const GAP_UNIT=20;
           const bracketH=4*MATCH_H+3*GAP_UNIT;
@@ -394,7 +402,7 @@ function BasketnetaView({user,equipos,cierre}){
             <div style={{overflowX:"auto",paddingBottom:"6px"}}>
               <div style={{display:"flex",alignItems:"stretch",minWidth:"780px"}}>
                 <div style={colCommon}>
-                  <div style={{fontSize:"10px",fontWeight:800,color:"var(--fx-muted2)",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>PLAY-IN</div>
+                  <div style={{fontSize:"10px",fontWeight:800,color:"var(--fx-muted2)",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>{t("bn.round.playin")}</div>
                   {playins.map(p=>(
                     <div key={p.slot} style={{position:"relative"}}>
                       <MatchCard {...p}/>
@@ -403,7 +411,7 @@ function BasketnetaView({user,equipos,cierre}){
                   ))}
                 </div>
                 <div style={{...colCommon,marginLeft:"20px"}}>
-                  <div style={{fontSize:"10px",fontWeight:800,color:"var(--fx-muted2)",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>CUARTOS</div>
+                  <div style={{fontSize:"10px",fontWeight:800,color:"var(--fx-muted2)",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>{t("bn.round.qf")}</div>
                   {[0,1].map(pairIdx=>(
                     <div key={pairIdx} style={{display:"flex",flexDirection:"column",justifyContent:"space-around",alignItems:"center",height:(bracketH/2-GAP_UNIT/2)+"px",position:"relative"}}>
                       <div style={{position:"relative"}}>
@@ -420,7 +428,7 @@ function BasketnetaView({user,equipos,cierre}){
                   ))}
                 </div>
                 <div style={{...colCommon,marginLeft:"24px"}}>
-                  <div style={{fontSize:"10px",fontWeight:800,color:"var(--fx-muted2)",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>SEMIS</div>
+                  <div style={{fontSize:"10px",fontWeight:800,color:"var(--fx-muted2)",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>{t("bn.round.sf")}</div>
                   <div style={{display:"flex",flexDirection:"column",justifyContent:"space-around",alignItems:"center",height:bracketH+"px",position:"relative"}}>
                     {sfs.map((s,i)=>(
                       <div key={s.slot} style={{position:"relative"}}>
@@ -433,10 +441,10 @@ function BasketnetaView({user,equipos,cierre}){
                   </div>
                 </div>
                 <div style={{...colCommon,marginLeft:"24px",justifyContent:"center",gap:"18px"}}>
-                  <div style={{fontSize:"10px",fontWeight:800,color:"var(--fx-muted2)",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>FINAL</div>
+                  <div style={{fontSize:"10px",fontWeight:800,color:"var(--fx-muted2)",letterSpacing:"1px",position:"absolute",transform:"translateY(-140%)"}}>{t("bn.round.final")}</div>
                   <MatchCard {...finalM}/>
-                  <div style={{fontSize:"9px",fontWeight:800,color:"#f59e0b",letterSpacing:"1px"}}>🥉 3ER PUESTO</div>
-                  <MatchCard slot="br_35" label="3er puesto" puntos={4}/>
+                  <div style={{fontSize:"9px",fontWeight:800,color:"#f59e0b",letterSpacing:"1px"}}>{t("bn.round.br")}</div>
+                  <MatchCard slot="br_35" label={bnLabel("br_35")} puntos={4}/>
                 </div>
               </div>
             </div>
@@ -445,7 +453,7 @@ function BasketnetaView({user,equipos,cierre}){
 
         {drafts.final_36&&(
           <div style={{marginTop:"12px",padding:"12px",background:"linear-gradient(90deg,#fef3c7,#fde68a)",borderRadius:"10px",fontSize:"14px",color:"#78350f",fontWeight:800,textAlign:"center"}}>
-            🏆 Tu campeona: {nomDe(drafts.final_36)}
+            {t("bn.your_champion",{nombre:nomDe(drafts.final_36)})}
           </div>
         )}
       </div>
@@ -454,7 +462,7 @@ function BasketnetaView({user,equipos,cierre}){
         <div style={{position:"sticky",bottom:"8px",display:"flex",gap:"10px",alignItems:"center",background:"var(--fx-card)",borderRadius:"12px",padding:"12px 14px",boxShadow:"0 4px 14px rgba(0,0,0,0.08)"}}>
           <button onClick={guardarTodo} disabled={saving}
             style={{flex:1,background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"12px",fontWeight:800,fontSize:"14px",cursor:"pointer",opacity:saving?0.6:1}}>
-            {saving?"Guardando…":"💾 Guardar Basketneta"}
+            {saving?t("quiniela.saving"):t("bn.save")}
           </button>
           {msg&&<span style={{fontSize:"13px",color:"#16a34a",fontWeight:700}}>{msg}</span>}
         </div>
@@ -547,7 +555,7 @@ function VerPrediccionesModal({target,equipos,onClose}){
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:"8px",marginBottom:"12px"}}>
               {["A","B","C","D"].map(g=>(
                 <div key={g} style={{border:"1px solid var(--fx-border)",borderRadius:"8px",padding:"8px"}}>
-                  <div style={{fontSize:"11px",fontWeight:800,color:"var(--fx-muted)",marginBottom:"6px",textAlign:"center"}}>GRUPO {g}</div>
+                  <div style={{fontSize:"11px",fontWeight:800,color:"var(--fx-muted)",marginBottom:"6px",textAlign:"center"}}>{t("bn.group",{letra:g})}</div>
                   {[1,2,3,4].map(pos=>{
                     const s=bnBySlot[`grupo_${g}_${pos}`];
                     const bgPos={1:"#dcfce7",2:"#fef3c7",3:"#fef3c7",4:"#fee2e2"}[pos];
