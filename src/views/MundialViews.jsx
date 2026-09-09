@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { UserAvatar } from "../lib/avatar";
-import { useT } from "../lib/i18n";
+import { useT, locale } from "../lib/i18n";
 
 function FlagSelect({value,options,onChange,disabled,placeholder,size}){
   const [open,setOpen]=useState(false);
@@ -128,8 +128,8 @@ function BolaCristalView({user,equipos,cierre}){
     <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
       <div style={{background:cerrado?"#fef2f2":"#f0fdf4",border:`1px solid ${cerrado?"#fecaca":"#bbf7d0"}`,borderRadius:"12px",padding:"12px 14px",fontSize:"12px",color:cerrado?"#991b1b":"#166534"}}>
         {cerrado
-          ?<><b>{t("bola.closed_status")}</b> {t("bola.closed_full",{fecha:cierre?new Date(cierre).toLocaleString("es",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"})}</>
-          :<><b>{t("bola.open_status")}</b> {t("bola.open_full",{fecha:cierre?": "+new Date(cierre).toLocaleString("es",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):""})}</>}
+          ?<><b>{t("bola.closed_status")}</b> {t("bola.closed_full",{fecha:cierre?new Date(cierre).toLocaleString(locale(),{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"})}</>
+          :<><b>{t("bola.open_status")}</b> {t("bola.open_full",{fecha:cierre?": "+new Date(cierre).toLocaleString(locale(),{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):""})}</>}
       </div>
       {BOLA_PREGUNTAS.map(q=>{
         const ops=opciones(q);
@@ -298,7 +298,7 @@ function BasketnetaView({user,equipos,cierre}){
     <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
       <div style={{background:cerrado?"#fef2f2":"#f0fdf4",border:`1px solid ${cerrado?"#fecaca":"#bbf7d0"}`,borderRadius:"12px",padding:"12px 14px",fontSize:"12px",color:cerrado?"#991b1b":"#166534"}}>
         {cerrado
-          ?<><b>{t("bn.closed_status")}</b> {t("bn.closed_full",{fecha:cierre?new Date(cierre).toLocaleString("es",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"})}</>
+          ?<><b>{t("bn.closed_status")}</b> {t("bn.closed_full",{fecha:cierre?new Date(cierre).toLocaleString(locale(),{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"})}</>
           :<><b>{t("bn.open_status")}</b> {t("bn.open_full")}</>}
       </div>
 

@@ -698,6 +698,7 @@ function PartidoForm({initial,equipos,ligas,onSave,onCancel,saving}){
 
 /* ── PartidoFichaView ────────────────────────────────────── */
 function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,onGoToPlayer}){
+  const t = useT();
   const [rows,setRows]=useState(null);
   const [tab,setTab]=useState("ambos");
   const [sortK,setSortK]=useState("puntos");
@@ -728,7 +729,7 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
 
   return(
     <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"16px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",overflowX:"auto"}}>
-      <h2 style={{fontWeight:800,fontSize:"16px",color:"var(--fx-text)",margin:"0 0 12px"}}>Estadísticas</h2>
+      <h2 style={{fontWeight:800,fontSize:"16px",color:"var(--fx-text)",margin:"0 0 12px"}}>{t("players.tab.stats")}</h2>
       <div style={{display:"flex",gap:"8px",marginBottom:"14px"}}>
         {tabBtn("ambos",<><Esc e={local}/><Esc e={visit}/></>)}
         {tabBtn("local",<><Esc e={local}/><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{local&&local.nombre}</span></>)}
@@ -773,6 +774,7 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
 }
 
 function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,onToggleConvocatoria,onBack,onEdit,onGoToTeam,onGoToLeague,onGoToPlayer}){
+  const t = useT();
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap=useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
   const localBase=equipoMap[partido.id_equipo_local];
@@ -811,7 +813,7 @@ function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,
   const rosterLocal=useMemo(()=>rosterPara(partido.id_equipo_local),[partido,players]);
   const rosterVisit=useMemo(()=>rosterPara(partido.id_equipo_visitante),[partido,players]);
 
-  const fmtDt=iso=>{if(!iso)return"";const d=new Date(iso);return d.toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long",year:"numeric"})+" · "+d.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});};
+  const fmtDt=iso=>{if(!iso)return"";const d=new Date(iso);return d.toLocaleDateString(locale(),{weekday:"long",day:"numeric",month:"long",year:"numeric"})+" · "+d.toLocaleTimeString(locale(),{hour:"2-digit",minute:"2-digit"});};
 
   const RosterCol=({equipo,roster,side})=>{
     const convocadas=roster.filter(p=>!noConvocadas.has(p.id_jugadora));
@@ -1132,8 +1134,8 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
     setPartidos(prev=>prev.filter(p=>p.id!==id));
   };
 
-  const fmtDt=iso=>{if(!iso)return"";const d=new Date(iso);return d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})+" · "+d.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});};
-  const fmtDia=iso=>iso?new Date(iso).toLocaleDateString("es-ES",{day:"numeric",month:"short"}):"";
+  const fmtDt=iso=>{if(!iso)return"";const d=new Date(iso);return d.toLocaleDateString(locale(),{weekday:"short",day:"numeric",month:"short"})+" · "+d.toLocaleTimeString(locale(),{hour:"2-digit",minute:"2-digit"});};
+  const fmtDia=iso=>iso?new Date(iso).toLocaleDateString(locale(),{day:"numeric",month:"short"}):"";
   const fmtRango=games=>{if(!games.length)return"";const a=fmtDia(games[0].fecha_hora),b=fmtDia(games[games.length-1].fecha_hora);return a===b?a:a+" – "+b;};
 
   if(ficha&&!modal){
@@ -3341,7 +3343,7 @@ function StatsHeader({stats}){
           onMouseEnter={e=>{if(onClick)e.currentTarget.style.boxShadow="0 4px 12px rgba(249,115,22,0.2)";}}
           onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.06)";}}>
           <div style={{fontSize:"18px",marginBottom:"4px"}}>{icon}</div>
-          <div style={{fontSize:"20px",fontWeight:800,color:onClick?"#9333ea":"#1e293b"}}>{typeof value==="number"?value.toLocaleString("es"):value}</div>
+          <div style={{fontSize:"20px",fontWeight:800,color:onClick?"#9333ea":"#1e293b"}}>{typeof value==="number"?value.toLocaleString(locale()):value}</div>
           <div style={{fontSize:"11px",color:"var(--fx-muted2)",lineHeight:1.2}}>{label}</div>
         </div>
       ))}
@@ -4185,7 +4187,7 @@ function CalendarioEquipo({idEquipo,temporada,equipos,ligas,equiposNombres,onGoT
   const prox=games.find(g=>g.fecha_hora&&new Date(g.fecha_hora).getTime()>=now);
   const rid=g=>g.id_equipo_local===idEquipo?g.id_equipo_visitante:g.id_equipo_local;
   const rdata=g=>resolveTeamData(rid(g),g.temporada,equiposNombres,equipoMap);
-  const fmt=f=>{if(!f)return"—";const d=new Date(f);return d.toLocaleDateString("es",{day:"2-digit",month:"short",year:"2-digit"});};
+  const fmt=f=>{if(!f)return"—";const d=new Date(f);return d.toLocaleDateString(locale(),{day:"2-digit",month:"short",year:"2-digit"});};
   const card={background:"var(--fx-card)",borderRadius:"20px",padding:"18px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"};
   const fila=(g)=>{
     const local=g.id_equipo_local===idEquipo;
@@ -4196,7 +4198,7 @@ function CalendarioEquipo({idEquipo,temporada,equipos,ligas,equiposNombres,onGoT
     return(
       <div key={g.id} onClick={()=>onGoToPartido&&onGoToPartido(g.id)} style={{display:"flex",alignItems:"center",gap:"10px",padding:"9px 4px",borderBottom:"1px solid #f8fafc",cursor:"pointer"}}>
         <span style={{fontSize:"11px",color:"var(--fx-muted2)",width:"62px",flexShrink:0}}>{fmt(g.fecha_hora)}</span>
-        <span title={local?"Local":"Visitante"} style={{fontSize:"12px",flexShrink:0}}>{local?"🏠":"✈️"}</span>
+        <span title={local?"Home":"Away"} style={{fontSize:"12px",flexShrink:0}}>{local?"🏠":"✈️"}</span>
         {rv.escudo&&<img loading="lazy" decoding="async" src={rv.escudo} alt="" style={{width:20,height:20,objectFit:"contain",flexShrink:0}}/>}
         <span style={{fontSize:"13px",color:"#334155",fontWeight:600,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{rv.nombre}</span>
         {jugado
@@ -5436,10 +5438,10 @@ function Landing({onEnter,players,equipos,ligas,coaches,tempCoach,palmares,regEx
         {players&&<div style={{background:"rgba(255,255,255,0.04)",borderRadius:"14px",padding:"16px 20px",marginBottom:"16px",border:"1px solid rgba(255,255,255,0.07)"}}>
           <div style={{fontWeight:700,fontSize:"12px",color:"var(--fx-muted2)",marginBottom:"12px",textTransform:"uppercase",letterSpacing:"0.5px"}}>{t("landing.stats_title")}</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:"8px"}}>
-            {[["👩‍🏀",(players||[]).length,t("landing.stats.jugadoras")],["🏟️",(equipos||[]).length,t("landing.stats.equipos")],["🏆",(ligas||[]).length,t("landing.stats.ligas")],["🗂️",((players||[]).length+(equipos||[]).length+(ligas||[]).length+(coaches||[]).length+(tempCoach||[]).length+(palmares||[]).length+(regExtra||0)).toLocaleString("es"),t("landing.stats.registros")]].map(([icon,val,label])=>(
+            {[["👩‍🏀",(players||[]).length,t("landing.stats.jugadoras")],["🏟️",(equipos||[]).length,t("landing.stats.equipos")],["🏆",(ligas||[]).length,t("landing.stats.ligas")],["🗂️",((players||[]).length+(equipos||[]).length+(ligas||[]).length+(coaches||[]).length+(tempCoach||[]).length+(palmares||[]).length+(regExtra||0)).toLocaleString(locale()),t("landing.stats.registros")]].map(([icon,val,label])=>(
               <div key={label} style={{textAlign:"center",padding:"8px 4px"}}>
                 <div style={{fontSize:"14px"}}>{icon}</div>
-                <div style={{fontSize:"18px",fontWeight:800,color:"#f1f5f9"}}>{typeof val==="number"?val.toLocaleString("es"):val}</div>
+                <div style={{fontSize:"18px",fontWeight:800,color:"#f1f5f9"}}>{typeof val==="number"?val.toLocaleString(locale()):val}</div>
                 <div style={{fontSize:"10px",color:"var(--fx-muted)"}}>{label}</div>
               </div>
             ))}
@@ -5568,7 +5570,7 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
     return{liga,ultJornada,proxJornada,clasi};
   }).filter(Boolean);
 
-  const fmtDay=iso=>{if(!iso)return "";const d=new Date(iso);return d.toLocaleDateString("es",{day:"numeric",month:"short"}).replace(".","");};
+  const fmtDay=iso=>{if(!iso)return "";const d=new Date(iso);return d.toLocaleDateString(locale(),{day:"numeric",month:"short"}).replace(".","");};
   const MiniPartido=({p,hideMeta,highlightEq})=>{
     const tL=equipoMap[p.id_equipo_local]||{},tV=equipoMap[p.id_equipo_visitante]||{};
     const played=p.resultado_local!=null;
@@ -6129,18 +6131,18 @@ function AnalyticsPanel({onClose}){
         {snapshots.length>0&&<div style={{background:"#eef2ff",border:"1.5px solid #c7d2fe",borderRadius:"12px",padding:"12px 14px",marginBottom:"14px"}}>
           <div style={{fontSize:"12px",fontWeight:800,color:"#4338ca",marginBottom:"6px"}}>📦 Histórico Vercel {dias>=30?"(sumado en los totales)":"(no incluido — rango < 30 días)"}</div>
           {snapshots.map(s=><div key={s.id} style={{fontSize:"12px",color:"#3730a3",lineHeight:"1.5"}}>
-            <b>{s.periodo_desde} → {s.periodo_hasta}</b>: {s.visitantes?.toLocaleString("es")} visitantes · {s.pageviews?.toLocaleString("es")} pageviews · rebote {s.bounce_rate}%
+            <b>{s.periodo_desde} → {s.periodo_hasta}</b>: {s.visitantes?.toLocaleString(locale())} visitantes · {s.pageviews?.toLocaleString(locale())} pageviews · rebote {s.bounce_rate}%
           </div>)}
         </div>}
         {loading&&<div style={{padding:"40px",textAlign:"center",color:"var(--fx-muted2)"}}>Cargando…</div>}
         {err&&<div style={{padding:"20px",background:"#fef2f2",border:"1.5px solid #fecaca",borderRadius:"12px",color:"#991b1b"}}>❌ {err}</div>}
         {data&&<>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:"12px",marginBottom:"16px"}}>
-            <MetricCard label="Pageviews" value={data.total.toLocaleString("es")}/>
-            <MetricCard label="Sesiones únicas" value={data.ses.toLocaleString("es")}/>
-            <MetricCard label="Anónimas" value={data.anon.toLocaleString("es")}/>
-            <MetricCard label="Logueadas" value={data.auth.toLocaleString("es")}/>
-            {data.brutas!==data.total&&<MetricCard label="Bots filtrados" value={(data.brutas-data.total).toLocaleString("es")}/>}
+            <MetricCard label="Pageviews" value={data.total.toLocaleString(locale())}/>
+            <MetricCard label="Sesiones únicas" value={data.ses.toLocaleString(locale())}/>
+            <MetricCard label="Anónimas" value={data.anon.toLocaleString(locale())}/>
+            <MetricCard label="Logueadas" value={data.auth.toLocaleString(locale())}/>
+            {data.brutas!==data.total&&<MetricCard label="Bots filtrados" value={(data.brutas-data.total).toLocaleString(locale())}/>}
           </div>
           <div style={{background:"var(--fx-card)",borderRadius:"14px",padding:"16px",marginBottom:"16px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px",flexWrap:"wrap",gap:"6px"}}>
@@ -6163,7 +6165,7 @@ function AnalyticsPanel({onClose}){
               {/* Grid + eje Y */}
               {yTicks.map((v,idx)=>{const y=py(v);return <g key={idx}>
                 <line x1={padL} y1={y} x2={chartW-padR} y2={y} stroke="#f1f5f9" strokeWidth="1"/>
-                <text x={padL-6} y={y+3} fontSize="9" fill="#94a3b8" textAnchor="end">{v.toLocaleString("es")}</text>
+                <text x={padL-6} y={y+3} fontSize="9" fill="#94a3b8" textAnchor="end">{v.toLocaleString(locale())}</text>
               </g>;})}
               {/* Línea del eje X */}
               <line x1={padL} y1={py(0)} x2={chartW-padR} y2={py(0)} stroke="#cbd5e1" strokeWidth="1"/>
@@ -6184,8 +6186,8 @@ function AnalyticsPanel({onClose}){
                 <g transform={`translate(${Math.min(hover.x+8,chartW-140)},${padT+4})`}>
                   <rect width="132" height="42" rx="4" fill="#1e293b" opacity="0.95"/>
                   <text x="8" y="14" fontSize="10" fill="#f1f5f9" fontWeight="700">{data.dayKeys[hover.i]}</text>
-                  <text x="8" y="28" fontSize="10" fill="#c4b5fd">● {data.serieVisitas[hover.i].toLocaleString("es")} pageviews</text>
-                  <text x="8" y="40" fontSize="10" fill="#6ee7b7">● {data.serieSesiones[hover.i].toLocaleString("es")} sesiones</text>
+                  <text x="8" y="28" fontSize="10" fill="#c4b5fd">● {data.serieVisitas[hover.i].toLocaleString(locale())} pageviews</text>
+                  <text x="8" y="40" fontSize="10" fill="#6ee7b7">● {data.serieSesiones[hover.i].toLocaleString(locale())} sesiones</text>
                 </g>
               </>}
             </svg>
@@ -6226,7 +6228,7 @@ function TablaTop({titulo,filas,limite=10}){
             {fm&&<img loading="lazy" decoding="async" src={`https://flagcdn.com/w20/${fm[1]}.png`} alt={fm[1]} style={{width:16,height:12,borderRadius:2,flexShrink:0}}/>}
             <span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{fm?fm[2]:k}</span>
           </span>
-          <b style={{color:"var(--fx-text)"}}>{n.toLocaleString("es")}</b>
+          <b style={{color:"var(--fx-text)"}}>{n.toLocaleString(locale())}</b>
         </div>
         <div style={{height:"4px",background:"var(--fx-hover)",borderRadius:"2px",marginTop:"2px"}}>
           <div style={{height:"100%",background:"#9333ea",width:`${(n/tot)*100}%`,borderRadius:"2px"}}/>
@@ -6961,7 +6963,7 @@ export default function App(){
               {notificaciones.map(n=><div key={n.id} style={{padding:"8px",borderRadius:"8px",background:n.leida?"transparent":"rgba(147,51,234,0.1)",marginBottom:"4px"}}>
                 <div style={{fontSize:"12px",fontWeight:700,color:"#f1f5f9"}}>{n.titulo}</div>
                 {n.cuerpo&&<div style={{fontSize:"11px",color:"var(--fx-muted2)"}}>{n.cuerpo}</div>}
-                <div style={{fontSize:"10px",color:"var(--fx-muted)",marginTop:"2px"}}>{new Date(n.created_at).toLocaleDateString("es-ES",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div>
+                <div style={{fontSize:"10px",color:"var(--fx-muted)",marginTop:"2px"}}>{new Date(n.created_at).toLocaleDateString(locale(),{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div>
               </div>)}
             </div></>}
           </div>}
