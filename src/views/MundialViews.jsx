@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { UserAvatar } from "../lib/avatar";
+import { useT } from "../lib/i18n";
 
 function FlagSelect({value,options,onChange,disabled,placeholder,size}){
   const [open,setOpen]=useState(false);
@@ -701,6 +702,7 @@ function ResultadosOficialesAdmin(){
 }
 
 export default function QuinielaView({user,equipos,onAbrirPerfil,isAdmin}){
+  const t = useT();
   const [cierre,setCierre]=useState(null);
   const [rank,setRank]=useState([]);
   const [tab,setTab]=useState("basketneta");
@@ -720,16 +722,16 @@ export default function QuinielaView({user,equipos,onAbrirPerfil,isAdmin}){
   return(
     <div style={{maxWidth:"820px",margin:"0 auto",padding:"12px"}}>
       <div style={{background:"var(--fx-card)",borderRadius:"16px",padding:"16px 18px",marginBottom:"14px",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
-        <h2 style={{margin:0,fontSize:"18px",fontWeight:800,color:"var(--fx-text)"}}>🎯 Quiniela · Mundial 2026</h2>
+        <h2 style={{margin:0,fontSize:"18px",fontWeight:800,color:"var(--fx-text)"}}>{t("quiniela.title")}</h2>
         <div style={{fontSize:"12px",color:"var(--fx-muted)",marginTop:"3px"}}>
-          Basketneta (60 pts) + Bola de cristal (61 pts) · Máx 121 pts · Cierre al empezar el 1er partido
+          {t("quiniela.sub")}
         </div>
       </div>
       <div style={{display:"flex",gap:"6px",marginBottom:"12px",flexWrap:"wrap"}}>
-        <button onClick={()=>setTab("basketneta")} style={btnStyle(tab==="basketneta")}>🏀 Pronóstico</button>
-        <button onClick={()=>setTab("bola")}       style={btnStyle(tab==="bola")}>🔮 Bola de cristal</button>
-        <button onClick={()=>setTab("ranking")}    style={btnStyle(tab==="ranking")}>🏆 Ranking</button>
-        {isAdmin&&<button onClick={()=>setTab("admin")} style={btnStyle(tab==="admin")}>🛠️ Admin</button>}
+        <button onClick={()=>setTab("basketneta")} style={btnStyle(tab==="basketneta")}>{t("quiniela.tab.basketneta")}</button>
+        <button onClick={()=>setTab("bola")}       style={btnStyle(tab==="bola")}>{t("quiniela.tab.bola")}</button>
+        <button onClick={()=>setTab("ranking")}    style={btnStyle(tab==="ranking")}>{t("quiniela.tab.ranking")}</button>
+        {isAdmin&&<button onClick={()=>setTab("admin")} style={btnStyle(tab==="admin")}>{t("quiniela.tab.admin")}</button>}
       </div>
 
       {tab==="basketneta"&&<BasketnetaView user={user} equipos={equipos} cierre={cierre}/>}
@@ -741,21 +743,21 @@ export default function QuinielaView({user,equipos,onAbrirPerfil,isAdmin}){
       {tab==="ranking"&&(
         <div style={{background:"var(--fx-card)",borderRadius:"12px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
           <div style={{padding:"12px 14px",background:"#faf5ff",fontSize:"12px",color:"#6b21a8",borderBottom:"1px solid #e9d5ff",borderRadius:"12px 12px 0 0"}}>
-            🕒 El ranking mostrará puntos cuando termine el Mundial. Ahora muestra cuántas predicciones ha guardado cada usuario.
+            {t("quiniela.rank.note")}
           </div>
           <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
           <table style={{width:"100%",minWidth:"520px",borderCollapse:"collapse",fontSize:"14px"}}>
             <thead style={{background:"var(--fx-hover)"}}>
               <tr>
                 <th style={{padding:"10px 14px",textAlign:"left",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>#</th>
-                <th style={{padding:"10px 14px",textAlign:"left",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>Usuario</th>
-                <th style={{padding:"10px 14px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>🏀 BN</th>
-                <th style={{padding:"10px 14px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>🔮 Bola</th>
-                <th style={{padding:"10px 14px",textAlign:"right",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>Pts</th>
+                <th style={{padding:"10px 14px",textAlign:"left",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("quiniela.rank.user")}</th>
+                <th style={{padding:"10px 14px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("quiniela.rank.bn")}</th>
+                <th style={{padding:"10px 14px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("quiniela.rank.bola")}</th>
+                <th style={{padding:"10px 14px",textAlign:"right",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("quiniela.rank.pts")}</th>
               </tr>
             </thead>
             <tbody>
-              {rank.length===0&&<tr><td colSpan={5} style={{padding:"24px",textAlign:"center",color:"var(--fx-muted2)"}}>Todavía nadie ha guardado predicciones.</td></tr>}
+              {rank.length===0&&<tr><td colSpan={5} style={{padding:"24px",textAlign:"center",color:"var(--fx-muted2)"}}>{t("quiniela.rank.empty")}</td></tr>}
               {rank.map((r,i)=>{
                 const google=r.user_id===user.id?user.user_metadata?.avatar_url:null;
                 const cerrado=cierre&&new Date(cierre).getTime()<=Date.now();
@@ -766,7 +768,7 @@ export default function QuinielaView({user,equipos,onAbrirPerfil,isAdmin}){
                   style={{borderTop:"1px solid var(--fx-border2)",background:r.user_id===user.id?"#faf5ff":undefined,cursor:cerrado?"pointer":"default"}}
                   onMouseEnter={e=>{if(cerrado)e.currentTarget.style.background="#f5f3ff";}}
                   onMouseLeave={e=>{e.currentTarget.style.background=r.user_id===user.id?"#faf5ff":"";}}
-                  title={cerrado?"Ver sus predicciones":undefined}>
+                  title={cerrado?t("quiniela.rank.view_pred"):undefined}>
                   <td style={{padding:"10px 14px",fontWeight:700,color:i===0?"#eab308":i===1?"#94a3b8":i===2?"#c2410c":"#64748b"}}>{i+1}</td>
                   <td style={{padding:"8px 14px",fontWeight:600,color:"var(--fx-text)"}}>
                     <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
@@ -774,8 +776,8 @@ export default function QuinielaView({user,equipos,onAbrirPerfil,isAdmin}){
                       <span
                         onClick={e=>{e.stopPropagation();if(onAbrirPerfil&&r.alias)onAbrirPerfil(r.alias);}}
                         style={{cursor:(onAbrirPerfil&&r.alias)?"pointer":"default",textDecoration:(onAbrirPerfil&&r.alias)?"underline":"none",textDecorationColor:"#c084fc",textUnderlineOffset:"3px"}}
-                        title={r.alias?"Ver perfil público":undefined}>
-                        {r.nombre}{r.user_id===user.id?" (tú)":""}
+                        title={r.alias?t("quiniela.rank.view_profile"):undefined}>
+                        {r.nombre}{r.user_id===user.id?t("quiniela.rank.you"):""}
                       </span>
                       {cerrado&&<span style={{fontSize:"11px",color:"#9333ea",marginLeft:"4px"}}>👁</span>}
                     </div>
