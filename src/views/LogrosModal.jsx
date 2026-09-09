@@ -1,9 +1,11 @@
 import { useMemo } from "react";
 import { LOGROS, CATEGORIAS, getEstadoLogros } from "../lib/logros";
 import { MedallaCard } from "./Medalla";
+import { useT } from "../lib/i18n";
 
 /* Modal privado "🏆 Mis logros": grid con desbloqueados en color y bloqueados en gris. */
 export default function LogrosModal({onClose}){
+  const t = useT();
   const estado = getEstadoLogros();
   const desbloq = estado?.desbloqueados || new Set();
 
@@ -25,7 +27,7 @@ export default function LogrosModal({onClose}){
       <div onClick={e=>e.stopPropagation()} style={{background: "var(--fx-card)",borderRadius:"18px",maxWidth:"720px",width:"100%",maxHeight:"92vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.4)"}}>
         <div style={{padding:"18px 20px",borderBottom:"1px solid var(--fx-border)",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,background: "var(--fx-card)",zIndex:1}}>
           <div>
-            <div style={{fontSize:"18px",fontWeight:800,color: "var(--fx-text)"}}>🏆 Mis logros</div>
+            <div style={{fontSize:"18px",fontWeight:800,color: "var(--fx-text)"}}>{t("header.my_achievements")}</div>
             <div style={{fontSize:"12px",color: "var(--fx-muted)",marginTop:"2px"}}>{conseguidos} / {total} · {pct}%</div>
           </div>
           <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:"22px",cursor:"pointer",color: "var(--fx-muted2)"}}>×</button>

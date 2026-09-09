@@ -5763,11 +5763,12 @@ function LoginModal({onLogin,onGoogleLogin,onForgot,onClose,loading,error,info,m
 
 /* ── ResetPasswordModal ────────────────────────────────── */
 function ResetPasswordModal({onSave,onCancel,loading,error,info}){
+  const t = useT();
   const [pass,setPass]=useState("");
   const [pass2,setPass2]=useState("");
   const submit=()=>{
-    if(pass.length<6){alert("Mínimo 6 caracteres");return;}
-    if(pass!==pass2){alert("Las contraseñas no coinciden");return;}
+    if(pass.length<6){alert(t("auth.min_chars"));return;}
+    if(pass!==pass2){alert(t("auth.pass_no_match"));return;}
     onSave(pass);
   };
   return(
@@ -5775,21 +5776,21 @@ function ResetPasswordModal({onSave,onCancel,loading,error,info}){
       <div style={{background:"#1e293b",borderRadius:"20px",padding:"32px",width:"340px",boxShadow:"0 20px 60px rgba(0,0,0,0.5)"}}>
         <div style={{textAlign:"center",marginBottom:"24px"}}>
           <div style={{fontSize:"32px",marginBottom:"8px"}}>🔑</div>
-          <div style={{fontWeight:800,fontSize:"18px",color:"#f1f5f9"}}>Nueva contraseña</div>
+          <div style={{fontWeight:800,fontSize:"18px",color:"#f1f5f9"}}>{t("auth.new_password")}</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
-          <input type="password" placeholder="Nueva contraseña" value={pass} onChange={e=>setPass(e.target.value)}
+          <input type="password" placeholder={t("auth.new_password")} value={pass} onChange={e=>setPass(e.target.value)}
             style={{background:"#0f172a",border:"1.5px solid #334155",borderRadius:"10px",padding:"10px 14px",fontSize:"14px",color:"#f1f5f9",outline:"none"}}/>
-          <input type="password" placeholder="Repetir contraseña" value={pass2} onChange={e=>setPass2(e.target.value)}
+          <input type="password" placeholder={t("auth.repeat_password")} value={pass2} onChange={e=>setPass2(e.target.value)}
             style={{background:"#0f172a",border:"1.5px solid #334155",borderRadius:"10px",padding:"10px 14px",fontSize:"14px",color:"#f1f5f9",outline:"none"}}
             onKeyDown={e=>e.key==="Enter"&&submit()}/>
           {error&&<div style={{color:"#f87171",fontSize:"12px",textAlign:"center"}}>{error}</div>}
           {info&&<div style={{color:"#4ade80",fontSize:"12px",textAlign:"center"}}>{info}</div>}
           <button onClick={submit} disabled={loading}
             style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"11px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>
-            {loading?"Guardando...":"Guardar contraseña"}
+            {loading?t("quiniela.saving"):t("auth.save_pass")}
           </button>
-          <button onClick={onCancel} style={{background:"transparent",color:"var(--fx-muted2)",border:"none",fontSize:"12px",cursor:"pointer"}}>Cancelar</button>
+          <button onClick={onCancel} style={{background:"transparent",color:"var(--fx-muted2)",border:"none",fontSize:"12px",cursor:"pointer"}}>{t("common.cancel")}</button>
         </div>
       </div>
     </div>
@@ -6953,14 +6954,14 @@ export default function App(){
           </div>
 
           {/* 🔄 Recargar */}
-          <button onClick={()=>loadAll(true)} title="Recargar datos" style={{background:"transparent",color:"var(--fx-muted2)",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px",flexShrink:0}}>🔄</button>
+          <button onClick={()=>loadAll(true)} title={t("header.reload")} style={{background:"transparent",color:"var(--fx-muted2)",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px",flexShrink:0}}>🔄</button>
 
           {/* 🔔 Notificaciones */}
           {user&&<div style={{position:"relative",flexShrink:0}}>
             <button onClick={()=>{setShowNotifs(!showNotifs);if(!showNotifs)markRead();}} style={{background:"transparent",color:notifCount>0?"#f59e0b":"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px",position:"relative"}}>🔔{notifCount>0&&<span style={{position:"absolute",top:"2px",right:"4px",background:"#ef4444",color:"#fff",fontSize:"9px",fontWeight:800,borderRadius:"50%",width:"16px",height:"16px",display:"flex",alignItems:"center",justifyContent:"center"}}>{notifCount>9?"9+":notifCount}</span>}</button>
             {showNotifs&&<><div onClick={()=>setShowNotifs(false)} style={{position:"fixed",inset:0,zIndex:99}}/><div style={{position:"absolute",left:0,top:"calc(100% + 8px)",background:"#1e293b",borderRadius:"12px",padding:"12px",boxShadow:"0 10px 40px rgba(0,0,0,0.5)",zIndex:100,width:"300px",maxHeight:"400px",overflowY:"auto",border:"1px solid #334155"}}>
-              <div style={{fontWeight:800,fontSize:"14px",color:"#f1f5f9",marginBottom:"8px"}}>Notificaciones</div>
-              {notificaciones.length===0&&<div style={{fontSize:"12px",color:"var(--fx-muted)",padding:"16px 0",textAlign:"center"}}>Sin notificaciones</div>}
+              <div style={{fontWeight:800,fontSize:"14px",color:"#f1f5f9",marginBottom:"8px"}}>{t("header.notif_title")}</div>
+              {notificaciones.length===0&&<div style={{fontSize:"12px",color:"var(--fx-muted)",padding:"16px 0",textAlign:"center"}}>{t("header.notif_empty")}</div>}
               {notificaciones.map(n=><div key={n.id} style={{padding:"8px",borderRadius:"8px",background:n.leida?"transparent":"rgba(147,51,234,0.1)",marginBottom:"4px"}}>
                 <div style={{fontSize:"12px",fontWeight:700,color:"#f1f5f9"}}>{n.titulo}</div>
                 {n.cuerpo&&<div style={{fontSize:"11px",color:"var(--fx-muted2)"}}>{n.cuerpo}</div>}
@@ -6970,7 +6971,7 @@ export default function App(){
           </div>}
 
           {/* Logo */}
-          <div className="bfdb-logo" onClick={()=>{setTab("home");window.history.pushState({},"","/");}} title="Inicio" style={{display:"flex",alignItems:"center",cursor:"pointer",flex:1,justifyContent:"center"}}>
+          <div className="bfdb-logo" onClick={()=>{setTab("home");window.history.pushState({},"","/");}} title={t("header.home")} style={{display:"flex",alignItems:"center",cursor:"pointer",flex:1,justifyContent:"center"}}>
             <img src="/icon-home.png" alt="La Basketneta" style={{height:"36px",objectFit:"contain"}} />
           </div>
 
@@ -6985,23 +6986,23 @@ export default function App(){
           {/* 👤 Admin / Usuario */}
           {user
             ?<div style={{position:"relative",flexShrink:0}}>
-              <button onClick={()=>setShowUserMenu(!showUserMenu)} style={{background:isAdmin?"rgba(249,115,22,0.15)":"rgba(147,51,234,0.15)",color:isAdmin?"#c084fc":"#a78bfa",border:`1.5px solid ${isAdmin?"rgba(249,115,22,0.3)":"rgba(147,51,234,0.3)"}`,borderRadius:"10px",padding:"5px 10px",cursor:"pointer",fontSize:"12px",fontWeight:700}}>{isAdmin?"🔐 Admin":"👤"}</button>
+              <button onClick={()=>setShowUserMenu(!showUserMenu)} style={{background:isAdmin?"rgba(249,115,22,0.15)":"rgba(147,51,234,0.15)",color:isAdmin?"#c084fc":"#a78bfa",border:`1.5px solid ${isAdmin?"rgba(249,115,22,0.3)":"rgba(147,51,234,0.3)"}`,borderRadius:"10px",padding:"5px 10px",cursor:"pointer",fontSize:"12px",fontWeight:700}}>{isAdmin?t("header.admin_chip"):"👤"}</button>
               {showUserMenu&&<>
                 <div onClick={()=>setShowUserMenu(false)} style={{position:"fixed",inset:0,zIndex:99}}/>
                 <div style={{position:"absolute",right:0,top:"calc(100% + 8px)",background:"#1e293b",borderRadius:"12px",padding:"16px",boxShadow:"0 10px 40px rgba(0,0,0,0.5)",zIndex:100,minWidth:"220px",border:"1px solid #334155"}}>
                   <div style={{fontSize:"13px",fontWeight:700,color:"#f1f5f9",marginBottom:"4px"}}>{user.user_metadata?.full_name||user.email.split("@")[0]}</div>
                   <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginBottom:"4px"}}>{user.email}</div>
-                  {isAdmin&&<div style={{fontSize:"10px",color:"#c084fc",fontWeight:700,marginBottom:"8px"}}>Administrador</div>}
+                  {isAdmin&&<div style={{fontSize:"10px",color:"#c084fc",fontWeight:700,marginBottom:"8px"}}>{t("header.admin_role")}</div>}
                   <div style={{height:"1px",background:"#334155",margin:"8px 0"}}/>
                   <button onClick={()=>{setShowPerfil(true);setShowUserMenu(false);}}
                     style={{width:"100%",background:"rgba(147,51,234,0.2)",color:"#a78bfa",border:"1px solid rgba(147,51,234,0.4)",borderRadius:"8px",padding:"8px",fontWeight:700,fontSize:"12px",cursor:"pointer",marginBottom:"8px"}}>
-                    👤 Mi perfil
+                    {t("header.my_profile")}
                   </button>
                   <button onClick={()=>{setShowLogros(true);setShowUserMenu(false);}}
                     style={{width:"100%",background:"rgba(234,179,8,0.15)",color:"#fde047",border:"1px solid rgba(234,179,8,0.3)",borderRadius:"8px",padding:"8px",fontWeight:700,fontSize:"12px",cursor:"pointer",marginBottom:"8px"}}>
-                    🏆 Mis logros
+                    {t("header.my_achievements")}
                   </button>
-                  <button onClick={togglePush} style={{width:"100%",background:pushEnabled?"rgba(34,197,94,0.15)":"rgba(147,51,234,0.15)",color:pushEnabled?"#4ade80":"#a78bfa",border:`1px solid ${pushEnabled?"rgba(34,197,94,0.3)":"rgba(147,51,234,0.3)"}`,borderRadius:"8px",padding:"8px",fontWeight:700,fontSize:"12px",cursor:"pointer",marginBottom:"8px"}}>{pushEnabled?"🔔 Notificaciones activadas":"🔕 Activar notificaciones"}</button>
+                  <button onClick={togglePush} style={{width:"100%",background:pushEnabled?"rgba(34,197,94,0.15)":"rgba(147,51,234,0.15)",color:pushEnabled?"#4ade80":"#a78bfa",border:`1px solid ${pushEnabled?"rgba(34,197,94,0.3)":"rgba(147,51,234,0.3)"}`,borderRadius:"8px",padding:"8px",fontWeight:700,fontSize:"12px",cursor:"pointer",marginBottom:"8px"}}>{pushEnabled?t("header.push_on"):t("header.push_off")}</button>
                   <button onClick={()=>setTema(tema==="oscuro"?"claro":"oscuro")} style={{width:"100%",background:"rgba(148,163,184,0.15)",color:"#cbd5e1",border:"1px solid rgba(148,163,184,0.3)",borderRadius:"8px",padding:"8px",fontWeight:700,fontSize:"12px",cursor:"pointer",marginBottom:"8px"}}>{tema==="oscuro"?"☀️ Tema claro":"🌙 Tema oscuro"}</button>
                   <button onClick={()=>{handleLogout();setShowUserMenu(false);}} style={{width:"100%",background:"#ef4444",color:"#fff",border:"none",borderRadius:"8px",padding:"8px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>{t("menu.logout")}</button>
                 </div>
