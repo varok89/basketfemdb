@@ -6449,16 +6449,27 @@ export default function App(){
     const TAB_TITLES={home:t("title.home"),jugadoras:t("title.jugadoras"),equipos:t("title.equipos"),ligas:t("title.ligas"),coaches:t("title.coaches"),ranking_fiba:t("title.ranking_fiba"),partidos:t("title.partidos"),quiniela:t("title.quiniela"),comparar:t("title.comparar"),favoritos:t("title.favoritos"),privacidad:t("title.privacidad")};
     const parts=window.location.pathname.split("/").filter(Boolean);
     let title="La Basketneta", desc="Base de datos del baloncesto femenino: jugadoras, equipos, ligas y estadísticas de todo el mundo.";
+    let ogTipo=null, ogId=null;
     const [seg,id]=parts;
-    if(seg==="jugadoras"&&id){const p=players.find(x=>x.id_jugadora===id);if(p){title=`${p.nombre} · La Basketneta`;desc=`Ficha de ${p.nombre}${p.posicion?` (${p.posicion})`:""}${p.nacionalidad?` · ${p.nacionalidad}`:""}. Trayectoria, estadísticas y palmarés en La Basketneta.`;}else if(TAB_TITLES.jugadoras){title=`${TAB_TITLES.jugadoras} · La Basketneta`;}}
-    else if(seg==="equipos"&&id){const e=equipos.find(x=>x.id_equipo===id);if(e){title=`${e.nombre} · La Basketneta`;desc=`Plantilla, palmarés y últimos fichajes de ${e.nombre}${e.ciudad?` (${e.ciudad})`:""}. Ficha completa en La Basketneta.`;}else{title=`${TAB_TITLES.equipos} · La Basketneta`;}}
+    if(seg==="jugadoras"&&id){const p=players.find(x=>x.id_jugadora===id);if(p){title=`${p.nombre} · La Basketneta`;desc=`Ficha de ${p.nombre}${p.posicion?` (${p.posicion})`:""}${p.nacionalidad?` · ${p.nacionalidad}`:""}. Trayectoria, estadísticas y palmarés en La Basketneta.`;ogTipo="jugadora";ogId=id;}else if(TAB_TITLES.jugadoras){title=`${TAB_TITLES.jugadoras} · La Basketneta`;}}
+    else if(seg==="equipos"&&id){const e=equipos.find(x=>x.id_equipo===id);if(e){title=`${e.nombre} · La Basketneta`;desc=`Plantilla, palmarés y últimos fichajes de ${e.nombre}${e.ciudad?` (${e.ciudad})`:""}. Ficha completa en La Basketneta.`;ogTipo="equipo";ogId=id;}else{title=`${TAB_TITLES.equipos} · La Basketneta`;}}
     else if(seg==="ligas"&&id){const l=ligas.find(x=>x.id_liga===id);if(l){title=`${l.nombre} · La Basketneta`;desc=`Clasificación, jornadas y equipos de ${l.nombre}${l.pais?` (${l.pais})`:""}. Todo el detalle en La Basketneta.`;}else{title=`${TAB_TITLES.ligas} · La Basketneta`;}}
     else if(seg==="coaches"&&id){const c=coaches?.find(x=>x.id_coach===id);if(c){title=`${c.nombre} · La Basketneta`;desc=`Trayectoria de ${c.nombre} como entrenador/a en La Basketneta.`;}else{title=`${TAB_TITLES.coaches} · La Basketneta`;}}
+    else if(seg==="partidos"&&parts[1]==="partido"&&parts[2]){ogTipo="partido";ogId=parts[2];}
     else if(seg&&TAB_TITLES[seg]){title=`${TAB_TITLES[seg]} · La Basketneta`;}
     document.title=title;
-    let m=document.querySelector('meta[name="description"]');
-    if(!m){m=document.createElement("meta");m.name="description";document.head.appendChild(m);}
-    m.setAttribute("content",desc);
+    const setMeta=(sel,attr,name,content)=>{let m=document.querySelector(sel);if(!m){m=document.createElement("meta");m.setAttribute(attr,name);document.head.appendChild(m);}m.setAttribute("content",content);};
+    setMeta('meta[name="description"]',"name","description",desc);
+    const ogImg=ogTipo?`${window.location.origin}/api/og?tipo=${ogTipo}&id=${encodeURIComponent(ogId)}`:`${window.location.origin}/api/og`;
+    setMeta('meta[property="og:title"]',"property","og:title",title);
+    setMeta('meta[property="og:description"]',"property","og:description",desc);
+    setMeta('meta[property="og:image"]',"property","og:image",ogImg);
+    setMeta('meta[property="og:url"]',"property","og:url",window.location.href);
+    setMeta('meta[property="og:type"]',"property","og:type","website");
+    setMeta('meta[name="twitter:card"]',"name","twitter:card","summary_large_image");
+    setMeta('meta[name="twitter:title"]',"name","twitter:title",title);
+    setMeta('meta[name="twitter:description"]',"name","twitter:description",desc);
+    setMeta('meta[name="twitter:image"]',"name","twitter:image",ogImg);
   },[urlTick,players,equipos,ligas,coaches,lang]);
   useEffect(()=>{
     const html=document.documentElement;
