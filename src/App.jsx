@@ -5505,8 +5505,8 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
     <div className="bfdb-container" style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
       <div style={{background:"var(--fx-card)",borderRadius:"16px",padding:"40px 24px",border:"1px solid var(--fx-border)",textAlign:"center"}}>
         <div style={{fontSize:"48px",marginBottom:"12px"}}>⭐</div>
-        <div style={{fontWeight:800,fontSize:"18px",color:"var(--fx-text)",marginBottom:"8px"}}>Aún no tienes favoritos</div>
-        <div style={{fontSize:"14px",color:"var(--fx-muted2)",maxWidth:"400px",margin:"0 auto"}}>Marca jugadoras, equipos o ligas con la estrella ☆ en sus fichas para ver aquí sus próximos partidos, resultados y fichajes.</div>
+        <div style={{fontWeight:800,fontSize:"18px",color:"var(--fx-text)",marginBottom:"8px"}}>{t("favs.empty_title")}</div>
+        <div style={{fontSize:"14px",color:"var(--fx-muted2)",maxWidth:"400px",margin:"0 auto"}}>{t("favs.empty_desc")}</div>
       </div>
     </div>
   );
@@ -5598,7 +5598,7 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
     <div className="bfdb-container" style={{maxWidth:"880px",margin:"0 auto",padding:"20px"}}>
       {/* Filtros */}
       <div style={{display:"flex",gap:"8px",marginBottom:"20px",flexWrap:"wrap"}}>
-        {[["todo","⭐ Todo"],["jugadora","👩‍🏀 Jugadoras"],["equipo","🏟️ Equipos"],["liga","🏆 Ligas"]].map(([k,label])=>(
+        {[["todo","⭐ "+t("favs.filter.all")],["jugadora","👩‍🏀 "+t("favs.jugadoras")],["equipo","🏟️ "+t("favs.equipos")],["liga","🏆 "+t("favs.ligas")]].map(([k,label])=>(
           <button key={k} onClick={()=>setFiltro(k)} style={{background:filtro===k?"#9333ea":"#fff",color:filtro===k?"#fff":"#475569",border:filtro===k?"none":"1.5px solid var(--fx-border)",borderRadius:"20px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",transition:"all 0.15s"}}>{label}</button>
         ))}
       </div>
@@ -5705,6 +5705,7 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
 
 /* ── LoginModal ─────────────────────────────────────────── */
 function LoginModal({onLogin,onGoogleLogin,onForgot,onClose,loading,error,info,mode,setMode}){
+  const t = useT();
   const [email,setEmail]=useState("");
   const [pass,setPass]=useState("");
   const isReg=mode==="register";
@@ -5716,42 +5717,42 @@ function LoginModal({onLogin,onGoogleLogin,onForgot,onClose,loading,error,info,m
       <div style={{background:"#1e293b",borderRadius:"20px",padding:"32px",width:"340px",boxShadow:"0 20px 60px rgba(0,0,0,0.5)"}}>
         <div style={{textAlign:"center",marginBottom:"24px"}}>
           <div style={{fontSize:"32px",marginBottom:"8px"}}>🏀</div>
-          <div style={{fontWeight:800,fontSize:"18px",color:"#f1f5f9"}}>{isForgot?"Recuperar contraseña":isReg?"Crear cuenta":"Iniciar sesión"}</div>
-          <div style={{fontSize:"12px",color:"var(--fx-muted2)",marginTop:"4px"}}>{isForgot?"Te enviaremos un email para restablecerla":"Guarda tus jugadoras y equipos favoritos"}</div>
+          <div style={{fontWeight:800,fontSize:"18px",color:"#f1f5f9"}}>{isForgot?t("auth.title.forgot"):isReg?t("auth.title.register"):t("auth.title.login")}</div>
+          <div style={{fontSize:"12px",color:"var(--fx-muted2)",marginTop:"4px"}}>{isForgot?t("auth.sub.forgot"):t("auth.sub.login")}</div>
         </div>
         {!isForgot&&<>
           <button onClick={onGoogleLogin}
             style={{width:"100%",background:"var(--fx-card)",color:"var(--fx-text)",border:"none",borderRadius:"10px",padding:"11px",fontWeight:700,fontSize:"14px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",marginBottom:"16px"}}>
             <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-            Continuar con Google
+            {t("auth.google")}
           </button>
           <div style={{display:"flex",alignItems:"center",gap:"12px",margin:"16px 0"}}>
-            <div style={{flex:1,height:"1px",background:"#334155"}}/><span style={{color:"var(--fx-muted)",fontSize:"12px"}}>o</span><div style={{flex:1,height:"1px",background:"#334155"}}/>
+            <div style={{flex:1,height:"1px",background:"#334155"}}/><span style={{color:"var(--fx-muted)",fontSize:"12px"}}>{t("auth.or")}</span><div style={{flex:1,height:"1px",background:"#334155"}}/>
           </div>
         </>}
         <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
-          <input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}
+          <input type="email" placeholder={t("auth.email")} value={email} onChange={e=>setEmail(e.target.value)}
             style={{background:"#0f172a",border:"1.5px solid #334155",borderRadius:"10px",padding:"10px 14px",fontSize:"14px",color:"#f1f5f9",outline:"none"}}
             onKeyDown={e=>e.key==="Enter"&&submit()}/>
-          {!isForgot&&<input type="password" placeholder="Contraseña" value={pass} onChange={e=>setPass(e.target.value)}
+          {!isForgot&&<input type="password" placeholder={t("auth.password")} value={pass} onChange={e=>setPass(e.target.value)}
             style={{background:"#0f172a",border:"1.5px solid #334155",borderRadius:"10px",padding:"10px 14px",fontSize:"14px",color:"#f1f5f9",outline:"none"}}
             onKeyDown={e=>e.key==="Enter"&&submit()}/>}
           {error&&<div style={{color:"#f87171",fontSize:"12px",textAlign:"center"}}>{error}</div>}
           {info&&<div style={{color:"#4ade80",fontSize:"12px",textAlign:"center"}}>{info}</div>}
           <button onClick={submit} disabled={loading}
             style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"11px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>
-            {loading?"...":(isForgot?"Enviar email":isReg?"Crear cuenta":"Entrar")}
+            {loading?"...":(isForgot?t("auth.send_email"):isReg?t("auth.register"):t("auth.enter"))}
           </button>
         </div>
         {!isReg&&!isForgot&&<div style={{textAlign:"center",marginTop:"12px",fontSize:"12px"}}>
-          <span onClick={()=>setMode("forgot")} style={{color:"#a78bfa",cursor:"pointer",fontWeight:600}}>¿Olvidaste tu contraseña?</span>
+          <span onClick={()=>setMode("forgot")} style={{color:"#a78bfa",cursor:"pointer",fontWeight:600}}>{t("auth.forgot")}</span>
         </div>}
         <div style={{textAlign:"center",marginTop:"16px",fontSize:"12px",color:"var(--fx-muted2)"}}>
-          {isForgot?<span onClick={()=>setMode("login")} style={{color:"#a78bfa",cursor:"pointer",fontWeight:700}}>← Volver</span>:
-           isReg?<>¿Ya tienes cuenta? <span onClick={()=>setMode("login")} style={{color:"#a78bfa",cursor:"pointer",fontWeight:700}}>Inicia sesión</span></>:
-                 <>¿No tienes cuenta? <span onClick={()=>setMode("register")} style={{color:"#a78bfa",cursor:"pointer",fontWeight:700}}>Regístrate</span></>}
+          {isForgot?<span onClick={()=>setMode("login")} style={{color:"#a78bfa",cursor:"pointer",fontWeight:700}}>{t("common.back")}</span>:
+           isReg?<>{t("auth.have_account")} <span onClick={()=>setMode("login")} style={{color:"#a78bfa",cursor:"pointer",fontWeight:700}}>{t("auth.have_account_login")}</span></>:
+                 <>{t("auth.no_account")} <span onClick={()=>setMode("register")} style={{color:"#a78bfa",cursor:"pointer",fontWeight:700}}>{t("auth.register_link")}</span></>}
         </div>
-        <div style={{textAlign:"center",marginTop:"12px"}}><a href="/privacidad" target="_blank" style={{fontSize:"11px",color:"var(--fx-muted)",textDecoration:"none"}}>Política de privacidad</a></div>
+        <div style={{textAlign:"center",marginTop:"12px"}}><a href="/privacidad" target="_blank" style={{fontSize:"11px",color:"var(--fx-muted)",textDecoration:"none"}}>{t("auth.privacy")}</a></div>
       </div>
     </div>
   );
