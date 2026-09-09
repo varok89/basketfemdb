@@ -1381,7 +1381,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                     <div style={{marginTop:"8px"}}>
                       <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px"}}>
                         <div style={{flex:1,height:"1px",background:"#e2e8f0"}}/>
-                        <span style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",whiteSpace:"nowrap"}}>Próximos</span>
+                        <span style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",whiteSpace:"nowrap"}}>{t("teams.next")}</span>
                         <div style={{flex:1,height:"1px",background:"#e2e8f0"}}/>
                       </div>
                       <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
@@ -1395,7 +1395,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                     <div style={{marginTop:"8px"}}>
                       <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px"}}>
                         <div style={{flex:1,height:"1px",background:"#e2e8f0"}}/>
-                        <span style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",whiteSpace:"nowrap"}}>Últimos resultados</span>
+                        <span style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted2)",whiteSpace:"nowrap"}}>{t("teams.last_results")}</span>
                         <div style={{flex:1,height:"1px",background:"#e2e8f0"}}/>
                       </div>
                       <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
@@ -2567,7 +2567,7 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
       <h1 style={{fontWeight:800,fontSize:"20px",color:"var(--fx-text)",margin:"0 0 20px"}}>🏆 Clasificación</h1>
       {(()=>{
         const tabs=modoLiga
-          ?[...(multiGrupo?grupos.map((g,i)=>[`grp${i}`,g.nombre]):[["grupos","Clasificación"]]),...(hayPlayoffs?[["final","Playoffs"]]:[])]
+          ?[...(multiGrupo?grupos.map((g,i)=>[`grp${i}`,g.nombre]):[["grupos",t("teams.classification")]]),...(hayPlayoffs?[["final",t("teams.playoffs")]]:[])]
           :[...(hayPreviaIV?[["previa","Fase previa"]]:[]),...(grupos.length?[["grupos","Group Phase"]]:[]),...(hayCL1316?[["cl1316","Class. 13-16"]]:[]),...(hayCL912?[["cl912","Class. 9-12"]]:[]),...(hayCL58?[["cl58","Class. 5-8"]]:[]),...((hayKO||hayBracketIV)?[["final","Bracket"]]:[]),...(hayStanding?[["standing","🏅 Standing"]]:[])];
         if(tabs.length<=1)return null;
         return(
@@ -3998,7 +3998,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
               </div>
               <div style={{borderTop:"1px solid var(--fx-border2)",paddingTop:"10px"}}>
                 {lastEq?(<>
-                  <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginBottom:"4px"}}>Último equipo</div>
+                  <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginBottom:"4px"}}>{t("teams.last_team")}</div>
                   <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                     <TeamBadge team={lastEq} size={26}/>
                     <div>
@@ -4165,6 +4165,7 @@ function DuplicateSquadForm({initial,ligas,ligaMap,eq,onSave,onCancel,saving}){
 
 /* ── TeamsView ───────────────────────────────────────────── */
 function CalendarioEquipo({idEquipo,temporada,equipos,ligas,equiposNombres,onGoToPartido,onGoToLeague}){
+  const t = useT();
   const [games,setGames]=useState(null);
   const [open,setOpen]=useState(false);
   const [shown,setShown]=useState(5);
@@ -4209,7 +4210,7 @@ function CalendarioEquipo({idEquipo,temporada,equipos,ligas,equiposNombres,onGoT
       {prox&&(()=>{const rv=rdata(prox);const local=prox.id_equipo_local===idEquipo;const liga=(ligas||[]).find(l=>l.id_liga===prox.id_liga);return(
         <div onClick={()=>onGoToPartido&&onGoToPartido(prox.id)} style={{...card,cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",borderLeft:"4px solid #9333ea"}}>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontSize:"11px",fontWeight:700,color:"#9333ea",textTransform:"uppercase",letterSpacing:"0.04em",marginBottom:"5px"}}>Próximo partido{prox.notas?` · ${prox.notas}`:""}</div>
+            <div style={{fontSize:"11px",fontWeight:700,color:"#9333ea",textTransform:"uppercase",letterSpacing:"0.04em",marginBottom:"5px"}}>{t("teams.next_game")}{prox.notas?` · ${prox.notas}`:""}</div>
             <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:liga?"5px":0}}>
               <span style={{fontSize:"12px"}}>{local?"🏠":"✈️"}</span>
               {rv.escudo&&<img loading="lazy" decoding="async" src={rv.escudo} alt="" style={{width:24,height:24,objectFit:"contain"}}/>}
@@ -4230,7 +4231,7 @@ function CalendarioEquipo({idEquipo,temporada,equipos,ligas,equiposNombres,onGoT
         </button>
         {open&&<div style={{marginTop:"12px"}}>
           {games.slice(0,shown).map(fila)}
-          {shown<games.length&&<button onClick={()=>setShown(s=>s+5)} style={{marginTop:"10px",width:"100%",padding:"9px",borderRadius:"10px",border:"1px solid var(--fx-border)",background:"var(--fx-hover)",color:"var(--fx-muted)",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>Ver más ({games.length-shown})</button>}
+          {shown<games.length&&<button onClick={()=>setShown(s=>s+5)} style={{marginTop:"10px",width:"100%",padding:"9px",borderRadius:"10px",border:"1px solid var(--fx-border)",background:"var(--fx-hover)",color:"var(--fx-muted)",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>{t("home.ver_mas",{n:games.length-shown})}</button>}
         </div>}
       </div>
     </>
@@ -4556,7 +4557,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
         <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom: showPlantilla?"16px":"0",flexWrap:"wrap",gap:"10px"}}>
             <button onClick={()=>setShowPlantilla(v=>!v)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",padding:0}}>
-              <h2 style={{fontWeight:700,fontSize:"17px",color:"var(--fx-text)",margin:0}}>Plantilla <span style={{color:"var(--fx-muted2)",fontWeight:400,fontSize:"14px"}}>({squad.length})</span></h2>
+              <h2 style={{fontWeight:700,fontSize:"17px",color:"var(--fx-text)",margin:0}}>{t("teams.header.plantilla")} <span style={{color:"var(--fx-muted2)",fontWeight:400,fontSize:"14px"}}>({squad.length})</span></h2>
               <span style={{fontSize:"13px",color:"var(--fx-muted2)",transition:"transform 0.2s",display:"inline-block",transform:showPlantilla?"rotate(180deg)":"rotate(0deg)"}}>▼</span>
             </button>
             {showPlantilla&&<div style={{display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}>
@@ -4581,7 +4582,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
               </select>}
             </div>}
           </div>
-          {showPlantilla&&(squad.length===0?<div style={{textAlign:"center",padding:"30px",color:"var(--fx-muted2)"}}>Sin jugadoras para esta temporada</div>
+          {showPlantilla&&(squad.length===0?<div style={{textAlign:"center",padding:"30px",color:"var(--fx-muted2)"}}>{t("teams.no_players_season")}</div>
             :<div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
               {squad.map(({player},i)=>(
                 <div key={i} onClick={()=>onGoToPlayer(player.id_jugadora,{tab:"equipos",id:selId,label:eq?.nombre})}
@@ -4616,7 +4617,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
           <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginTop:"14px"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom: showPalmares?"14px":"0"}}>
               <button onClick={()=>setShowPalmares(v=>!v)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",padding:0}}>
-                <h2 style={{fontWeight:700,fontSize:"17px",color:"var(--fx-text)",margin:0}}>🏆 Palmarés <span style={{color:"var(--fx-muted2)",fontWeight:400,fontSize:"14px"}}>({(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length})</span></h2>
+                <h2 style={{fontWeight:700,fontSize:"17px",color:"var(--fx-text)",margin:0}}>🏆 {t("teams.header.palmares")} <span style={{color:"var(--fx-muted2)",fontWeight:400,fontSize:"14px"}}>({(palmares||[]).filter(p=>p.id_equipo===eq.id_equipo).length})</span></h2>
                 <span style={{fontSize:"13px",color:"var(--fx-muted2)",transition:"transform 0.2s",display:"inline-block",transform:showPalmares?"rotate(180deg)":"rotate(0deg)"}}>▼</span>
               </button>
               {isAdmin&&<button onClick={()=>setPalModal("add")} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Título</button>}
@@ -5023,7 +5024,7 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
             </div>
           </div>
           {teamsInLeague.length===0
-            ?<div style={{textAlign:"center",padding:"40px",color:"var(--fx-muted2)"}}><div style={{fontSize:"32px",marginBottom:"10px"}}>🏟️</div><div>Sin equipos para esta temporada</div></div>
+            ?<div style={{textAlign:"center",padding:"40px",color:"var(--fx-muted2)"}}><div style={{fontSize:"32px",marginBottom:"10px"}}>🏟️</div><div>{t("teams.no_teams_season")}</div></div>
             :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:"10px"}}>
               {teamsInLeague.map(eq=>{
                 const esCampeon=(palmares||[]).some(p=>p.id_liga===selId&&p.id_equipo===eq.id_equipo&&p.temporada===effectiveYear);
@@ -5403,7 +5404,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
               </div>
               <div style={{borderTop:"1px solid var(--fx-border2)",paddingTop:"10px"}}>
                 {lastEq?(<>
-                  <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginBottom:"4px"}}>Último equipo</div>
+                  <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginBottom:"4px"}}>{t("teams.last_team")}</div>
                   <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                     <TeamBadge team={lastEq} size={26}/>
                     <div>
@@ -5431,11 +5432,11 @@ function Landing({onEnter,players,equipos,ligas,coaches,tempCoach,palmares,regEx
         <div style={{marginBottom:"28px"}}>
           <img src="/icon-home.png" alt="La Basketneta" style={{height:"120px",objectFit:"contain"}}/>
         </div>
-        <div style={{fontSize:"14px",color:"var(--fx-muted2)",marginBottom:"36px",fontWeight:500}}>Base de datos del baloncesto femenino</div>
+        <div style={{fontSize:"14px",color:"var(--fx-muted2)",marginBottom:"36px",fontWeight:500}}>{t("landing.tagline")}</div>
         {players&&<div style={{background:"rgba(255,255,255,0.04)",borderRadius:"14px",padding:"16px 20px",marginBottom:"16px",border:"1px solid rgba(255,255,255,0.07)"}}>
-          <div style={{fontWeight:700,fontSize:"12px",color:"var(--fx-muted2)",marginBottom:"12px",textTransform:"uppercase",letterSpacing:"0.5px"}}>La Basketneta en números</div>
+          <div style={{fontWeight:700,fontSize:"12px",color:"var(--fx-muted2)",marginBottom:"12px",textTransform:"uppercase",letterSpacing:"0.5px"}}>{t("landing.stats_title")}</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:"8px"}}>
-            {[["👩‍🏀",(players||[]).length,"Jugadoras"],["🏟️",(equipos||[]).length,"Equipos"],["🏆",(ligas||[]).length,"Ligas"],["🗂️",((players||[]).length+(equipos||[]).length+(ligas||[]).length+(coaches||[]).length+(tempCoach||[]).length+(palmares||[]).length+(regExtra||0)).toLocaleString("es"),"Registros"]].map(([icon,val,label])=>(
+            {[["👩‍🏀",(players||[]).length,t("landing.stats.jugadoras")],["🏟️",(equipos||[]).length,t("landing.stats.equipos")],["🏆",(ligas||[]).length,t("landing.stats.ligas")],["🗂️",((players||[]).length+(equipos||[]).length+(ligas||[]).length+(coaches||[]).length+(tempCoach||[]).length+(palmares||[]).length+(regExtra||0)).toLocaleString("es"),t("landing.stats.registros")]].map(([icon,val,label])=>(
               <div key={label} style={{textAlign:"center",padding:"8px 4px"}}>
                 <div style={{fontSize:"14px"}}>{icon}</div>
                 <div style={{fontSize:"18px",fontWeight:800,color:"#f1f5f9"}}>{typeof val==="number"?val.toLocaleString("es"):val}</div>
@@ -5445,19 +5446,19 @@ function Landing({onEnter,players,equipos,ligas,coaches,tempCoach,palmares,regEx
           </div>
         </div>}
         <div style={{background:"rgba(255,255,255,0.04)",borderRadius:"14px",padding:"16px 20px",marginBottom:"24px",border:"1px solid rgba(255,255,255,0.07)",textAlign:"left"}}>
-          <div style={{fontWeight:700,fontSize:"12px",color:"var(--fx-muted2)",marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Aviso legal</div>
+          <div style={{fontWeight:700,fontSize:"12px",color:"var(--fx-muted2)",marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.5px"}}>{t("landing.legal_title")}</div>
           <p style={{fontSize:"12px",color:"var(--fx-muted)",lineHeight:"1.6",margin:0}}>
-            Los datos mostrados en esta aplicación son de carácter público y han sido obtenidos de fuentes oficiales como webs de federaciones deportivas. Esta plataforma no tiene ánimo de lucro y su uso es exclusivamente informativo. Si eres jugadora, entrenadora o representante de algún club y deseas solicitar la modificación o eliminación de tus datos, contacta con nosotros en <span style={{color:"#9333ea",fontWeight:600}}>labasketneta@gmail.com</span>.
+            {(()=>{const raw=t("landing.legal_body",{mail:"__MAIL__"});const [a,b]=raw.split("__MAIL__");return<>{a}<span style={{color:"#9333ea",fontWeight:600}}>labasketneta@gmail.com</span>{b}</>;})()}
           </p>
         </div>
         <button onClick={onEnter}
           style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"14px",padding:"14px 40px",fontSize:"15px",fontWeight:800,cursor:"pointer",width:"100%",letterSpacing:"0.3px",transition:"all 0.15s"}}
           onMouseEnter={e=>e.currentTarget.style.background="#7c3aed"}
           onMouseLeave={e=>e.currentTarget.style.background="#9333ea"}>
-          Entrar a la base de datos →
+          {t("landing.enter")}
         </button>
         <div style={{fontSize:"11px",color:"var(--fx-label)",marginTop:"12px"}}>
-          Al acceder aceptas el uso informativo de los datos según se describe arriba.
+          {t("landing.accept")}
         </div>
       </div>
     </div>
