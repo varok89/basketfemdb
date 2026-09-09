@@ -768,7 +768,7 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
             );})}
         </tbody>
       </table>
-      <div style={{fontSize:"10px",color:"#cbd5e1",marginTop:"8px"}}><span style={{display:"inline-block",width:"3px",height:"10px",background:"#9333ea",borderRadius:"1px",verticalAlign:"middle",marginRight:"4px"}}></span>Titular · toca una columna para ordenar</div>
+      <div style={{fontSize:"10px",color:"#cbd5e1",marginTop:"8px"}}><span style={{display:"inline-block",width:"3px",height:"10px",background:"#9333ea",borderRadius:"1px",verticalAlign:"middle",marginRight:"4px"}}></span>{t("boxscore.starter_hint")}</div>
     </div>
   );
 }
@@ -1220,7 +1220,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
         </select>
         <select value={filtroEquipo} onChange={e=>setFiltroEquipo(e.target.value)}
           style={{flex:"1 1 180px",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:"var(--fx-label)",background:"var(--fx-card)",outline:"none"}}>
-          <option value="">Todos los equipos</option>
+          <option value="">{t("partidos.all_teams")}</option>
           {equiposConPartidos.map(e=><option key={e.id_equipo} value={e.id_equipo}>{e.nombre}</option>)}
         </select>
         {hayLive&&<button onClick={()=>setSoloLive(v=>!v)} title="Ver solo partidos en juego" style={{border:soloLive?"1.5px solid #ef4444":"1.5px solid #fecaca",borderRadius:"10px",padding:"9px 14px",fontSize:"13px",fontWeight:700,cursor:"pointer",background:soloLive?"#ef4444":"#fef2f2",color:soloLive?"#fff":"#b91c1c",display:"inline-flex",alignItems:"center",gap:"6px"}}><span style={{width:8,height:8,borderRadius:"50%",background:soloLive?"#fff":"#ef4444",display:"inline-block",boxShadow:soloLive?"none":"0 0 0 3px rgba(239,68,68,0.2)"}}/>🔴 Solo live</button>}
@@ -1354,7 +1354,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                             <span style={{fontSize:"11px",color:"var(--fx-muted2)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{fmtRango(j.games)}</span>
                             <span style={{flex:1}}/>
                             {j.enJuego&&<span style={{width:8,height:8,borderRadius:"50%",background:"#ef4444",flexShrink:0,boxShadow:"0 0 0 3px rgba(239,68,68,0.2)",display:"inline-block"}}/>}
-                            {j.proxima&&!j.enJuego&&<span style={{background:"#f59e0b",color:"#fff",borderRadius:"20px",padding:"2px 10px",fontSize:"10px",fontWeight:800,flexShrink:0}}>Próxima</span>}
+                            {j.proxima&&!j.enJuego&&<span style={{background:"#f59e0b",color:"#fff",borderRadius:"20px",padding:"2px 10px",fontSize:"10px",fontWeight:800,flexShrink:0}}>{t("partidos.next_matchday")}</span>}
                             <span style={{fontSize:"16px",color:"var(--fx-muted2)",transform:open?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s",flexShrink:0}}>›</span>
                           </div>
                           {open&&(
@@ -1427,7 +1427,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
               <div onClick={()=>setArchivoOpen(o=>!o)}
                 style={{display:"flex",alignItems:"center",gap:"10px",padding:"14px 16px",cursor:"pointer",userSelect:"none",background:"#eef2f7",borderRadius:"14px"}}>
                 <span style={{fontSize:"18px"}}>🗄️</span>
-                <span style={{fontWeight:800,fontSize:"14px",color:"var(--fx-label)",flex:1}}>Competiciones finalizadas</span>
+                <span style={{fontWeight:800,fontSize:"14px",color:"var(--fx-label)",flex:1}}>{t("partidos.finished_comps")}</span>
                 <span style={{background:"#dbe2ea",color:"var(--fx-muted)",borderRadius:"20px",padding:"2px 10px",fontSize:"12px",fontWeight:700}}>{finalizadas.length}</span>
                 <span style={{fontSize:"18px",color:"var(--fx-muted2)",transform:archivoOpen?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>›</span>
               </div>
@@ -3084,7 +3084,7 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
           </>):q.length>=2?(
             <div style={{textAlign:"center",padding:"40px 20px",color:"var(--fx-muted)",fontSize:"14px"}}>{t("search.empty")}</div>
           ):(
-            <div style={{textAlign:"center",padding:"40px 20px",color:"var(--fx-muted)",fontSize:"14px"}}>Escribe al menos 2 caracteres</div>
+            <div style={{textAlign:"center",padding:"40px 20px",color:"var(--fx-muted)",fontSize:"14px"}}>{t("search.hint_2chars")}</div>
           )}
         </div>
       </div>
@@ -3948,7 +3948,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
         <input style={{flex:"1 1 200px",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 14px",fontSize:"13px",color:"var(--fx-text)",outline:"none",background:"var(--fx-card)",height:"40px",boxSizing:"border-box"}}
           placeholder={t("players.search")} value={search} onChange={e=>setSearch(e.target.value)}/>
         <select style={{flex:"0 0 auto",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterPos?"#9333ea":"#475569",background:"var(--fx-card)",outline:"none",height:"40px",fontWeight:filterPos?700:400}} value={filterPos} onChange={e=>setFilterPos(e.target.value)}>
-          <option value="">Posición</option>
+          <option value="">{t("players.filter.position")}</option>
           {POSITIONS.map(p=><option key={p}>{p}</option>)}
         </select>
         <select style={{flex:"0 0 auto",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterLiga?"#9333ea":"#475569",background:"var(--fx-card)",outline:"none",height:"40px",fontWeight:filterLiga?700:400}} value={filterLiga} onChange={e=>setFilterLiga(e.target.value)}>
@@ -3956,7 +3956,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           {allLigasPlayer.map(l=><option key={l} value={l}>{l}</option>)}
         </select>
         <select style={{flex:"0 0 auto",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterTemp?"#9333ea":"#475569",background:"var(--fx-card)",outline:"none",height:"40px",fontWeight:filterTemp?700:400}} value={filterTemp} onChange={e=>setFilterTemp(e.target.value)}>
-          <option value="">Temporada</option>
+          <option value="">{t("players.filter.season")}</option>
           {allTemps.map(t=><option key={t} value={t}>{t}</option>)}
         </select>
         <StatusDropdown filterStatus={filterStatus} setFilterStatus={setFilterStatus}/>
@@ -4008,7 +4008,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
                       <div style={{fontSize:"11px",color:"var(--fx-muted2)"}}>{ligaMap[last.id_liga]?.nombre||last.id_liga}</div>
                     </div>
                   </div>
-                </>):<div style={{fontSize:"12px",color:"#cbd5e1",fontStyle:"italic"}}>Sin temporadas</div>}
+                </>):<div style={{fontSize:"12px",color:"#cbd5e1",fontStyle:"italic"}}>{t("players.sin_temporadas")}</div>}
               </div>
               <div style={{marginTop:"10px",fontSize:"12px",color:"#9333ea",fontWeight:600}}>{(p.seasons||[]).length} temporada{(p.seasons||[]).length!==1?"s":""}</div>
             </div>
@@ -4723,7 +4723,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
           {allLeagues.map(l=><option key={l} value={l}>{l}</option>)}
         </select>
         <select value={filterSeason||""} onChange={e=>setFilterSeason(e.target.value||null)} style={{flex:"0 0 auto",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"13px",color:filterSeason?"#9333ea":"#475569",background:"var(--fx-card)",outline:"none",height:"40px",fontWeight:filterSeason?700:400}}>
-          <option value="">Temporada</option>
+          <option value="">{t("players.filter.season")}</option>
           {allSeasons.map(s=><option key={s} value={s}>{s}{s===latestSeason?" (actual)":""}</option>)}
         </select>
         <PaisDropdown allPaises={allPaisesEq} filterPais={filterPais} setFilterPais={setFilterPais} placeholder="País"/>
@@ -5276,7 +5276,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
                 })()}
               </div>
               <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"10px"}}>
-                {isExPlayer&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"12px",fontWeight:700,padding:"3px 10px",borderRadius:"20px"}}>Ex jugadora</span>}
+                {isExPlayer&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"12px",fontWeight:700,padding:"3px 10px",borderRadius:"20px"}}>{t("players.ex_player")}</span>}
                 {(coach.nacionalidad||coach.nacionalidad2)&&(
                   <span style={{background:"var(--fx-hover)",color:"var(--fx-label)",fontSize:"12px",fontWeight:600,padding:"3px 10px",borderRadius:"20px",display:"inline-flex",alignItems:"center",gap:"4px"}}>
                     {coach.nacionalidad&&<FlagImg country={coach.nacionalidad}/>}
@@ -5402,7 +5402,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
                     {coach.nacionalidad2&&<FlagImg country={coach.nacionalidad2}/>}
                   </div>
                 </div>
-                {isExPlayer&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"10px",fontWeight:700,padding:"2px 7px",borderRadius:"20px",flexShrink:0}}>ex jugadora</span>}
+                {isExPlayer&&<span style={{background:"#dbeafe",color:"#1d4ed8",fontSize:"10px",fontWeight:700,padding:"2px 7px",borderRadius:"20px",flexShrink:0}}>{t("players.ex_player").toLowerCase()}</span>}
               </div>
               <div style={{borderTop:"1px solid var(--fx-border2)",paddingTop:"10px"}}>
                 {lastEq?(<>
@@ -5414,7 +5414,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
                       <div style={{fontSize:"11px",color:"var(--fx-muted2)"}}>{lastLig?.nombre||lastSeason.id_liga}</div>
                     </div>
                   </div>
-                </>):<div style={{fontSize:"12px",color:"#cbd5e1",fontStyle:"italic"}}>Sin temporadas</div>}
+                </>):<div style={{fontSize:"12px",color:"#cbd5e1",fontStyle:"italic"}}>{t("players.sin_temporadas")}</div>}
               </div>
               <div style={{marginTop:"10px",fontSize:"12px",color:"#3b82f6",fontWeight:600}}>{coachSeasons.length} temporada{coachSeasons.length!==1?"s":""}</div>
             </div>
