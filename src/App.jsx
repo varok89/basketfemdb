@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } fro
 import { supabase, callFn, fetchAll } from "./lib/supabaseClient";
 import { LOGROS, LOGROS_BY_SLUG, CATEGORIAS, initLogros, registrarEvento, onLogroDesbloqueado, getEstadoLogros } from "./lib/logros";
 import { AVATAR_PRESETS, UserAvatar } from "./lib/avatar";
+import { useT, useLang, setLang, locale } from "./lib/i18n";
 
 const CalidadModal = lazy(() => import("./views/CalidadModal"));
 const RankingFibaView = lazy(() => import("./views/RankingFibaView"));
@@ -6250,6 +6251,8 @@ function GridSkel({n=12,cards=true}){
 
 /* ── App ─────────────────────────────────────────────────── */
 export default function App(){
+  const t = useT();
+  const lang = useLang();
   const [players,setPlayers] = useState([]);
   const [equipos,setEquipos] = useState([]);
   const [ligas,setLigas]     = useState([]);
@@ -6347,7 +6350,7 @@ export default function App(){
     return()=>{window.history.pushState=origPush;window.removeEventListener("popstate",onPop);};
   },[]);
   useEffect(()=>{
-    const TAB_TITLES={home:"Últimos fichajes",jugadoras:"Jugadoras",equipos:"Equipos",ligas:"Ligas",coaches:"Cuerpo técnico",ranking_fiba:"Ranking FIBA",partidos:"Partidos",quiniela:"Quiniela · Mundial 2026",comparar:"Comparar jugadoras",favoritos:"Tus favoritos",privacidad:"Privacidad"};
+    const TAB_TITLES={home:t("title.home"),jugadoras:t("title.jugadoras"),equipos:t("title.equipos"),ligas:t("title.ligas"),coaches:t("title.coaches"),ranking_fiba:t("title.ranking_fiba"),partidos:t("title.partidos"),quiniela:t("title.quiniela"),comparar:t("title.comparar"),favoritos:t("title.favoritos"),privacidad:t("title.privacidad")};
     const parts=window.location.pathname.split("/").filter(Boolean);
     let title="La Basketneta", desc="Base de datos del baloncesto femenino: jugadoras, equipos, ligas y estadísticas de todo el mundo.";
     const [seg,id]=parts;
@@ -6360,7 +6363,7 @@ export default function App(){
     let m=document.querySelector('meta[name="description"]');
     if(!m){m=document.createElement("meta");m.name="description";document.head.appendChild(m);}
     m.setAttribute("content",desc);
-  },[urlTick,players,equipos,ligas,coaches]);
+  },[urlTick,players,equipos,ligas,coaches,lang]);
   useEffect(()=>{
     const html=document.documentElement;
     if(tema==="oscuro") html.setAttribute("data-bfdb-tema","dark"); else html.removeAttribute("data-bfdb-tema");
@@ -6783,7 +6786,7 @@ export default function App(){
     return()=>window.removeEventListener("popstate",onPopState);
   },[]);
 
-  const TABS=[["home","✍️","Mercado"],...(user?[["favoritos","⭐","Favoritos"]]:[]),["jugadoras","👩‍🏀","Jugadoras"],["equipos","🏟️","Equipos"],["ligas","🏆","Ligas"],["cuerpo_tecnico","📋","Cuerpo Técnico"],["ranking_fiba","🌐","Ranking FIBA"],["partidos","📺","Ver partidos"],["comparar","⚖️","Comparar"],["quiniela","🎯","Quiniela"]];
+  const TABS=[["home","✍️",t("tab.home")],...(user?[["favoritos","⭐",t("tab.favoritos")]]:[]),["jugadoras","👩‍🏀",t("tab.jugadoras")],["equipos","🏟️",t("tab.equipos")],["ligas","🏆",t("tab.ligas")],["cuerpo_tecnico","📋",t("tab.cuerpo_tecnico")],["ranking_fiba","🌐",t("tab.ranking_fiba")],["partidos","📺",t("tab.partidos")],["comparar","⚖️",t("tab.comparar")],["quiniela","🎯",t("tab.quiniela")]];
 
   // Alertas rápidas de calidad de datos (solo admin, sobre datos ya cargados)
   const calidadAlertas=useMemo(()=>{
@@ -6913,14 +6916,17 @@ export default function App(){
               ))}
               <div style={{height:"1px",background:"#334155",margin:"6px 0"}}/>
               {isAdmin&&<button onClick={()=>{setShowCalidad(true);setMenuOpen(false);}} title={calidadAlertas?`${calidadAlertas.foto} sin foto · ${calidadAlertas.nac} sin nacionalidad · ${calidadAlertas.esc} escudos rotos`:""} style={{display:"flex",alignItems:"center",gap:"10px",width:"100%",background:"transparent",color:"#cbd5e1",border:"none",borderRadius:"8px",padding:"10px 14px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>
-                <span style={{fontSize:"16px"}}>🩺</span>Calidad de datos
+                <span style={{fontSize:"16px"}}>🩺</span>{t("menu.calidad")}
                 {calidadAlertas&&calidadAlertas.total>0&&<span style={{marginLeft:"auto",background:"#ef4444",color:"#fff",borderRadius:"10px",padding:"1px 7px",fontSize:"10px",fontWeight:800}}>{calidadAlertas.total>999?"999+":calidadAlertas.total}</span>}
               </button>}
               {isAdmin&&<button onClick={()=>{setShowAnalytics(true);setMenuOpen(false);}} style={{display:"flex",alignItems:"center",gap:"10px",width:"100%",background:"transparent",color:"#cbd5e1",border:"none",borderRadius:"8px",padding:"10px 14px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>
-                <span style={{fontSize:"16px"}}>📊</span>Analytics
+                <span style={{fontSize:"16px"}}>📊</span>{t("menu.analytics")}
               </button>}
               <button onClick={()=>{setShowLanding(true);setMenuOpen(false);}} style={{display:"flex",alignItems:"center",gap:"10px",width:"100%",background:"transparent",color:"#cbd5e1",border:"none",borderRadius:"8px",padding:"10px 14px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>
-                <span style={{fontSize:"16px"}}>ℹ️</span>Información
+                <span style={{fontSize:"16px"}}>ℹ️</span>{t("menu.info")}
+              </button>
+              <button onClick={()=>{setLang(lang==="es"?"en":"es");setMenuOpen(false);}} style={{display:"flex",alignItems:"center",gap:"10px",width:"100%",background:"transparent",color:"#cbd5e1",border:"none",borderRadius:"8px",padding:"10px 14px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>
+                <span style={{fontSize:"16px"}}>{lang==="es"?"🇬🇧":"🇪🇸"}</span>{t("lang.switch_to_other")}
               </button>
             </div></>}
           </div>
@@ -6997,9 +7003,9 @@ export default function App(){
           ?<Suspense fallback={<GridSkel n={8} cards={false}/>}><QuinielaView user={user} equipos={equipos} onAbrirPerfil={setVerPerfilAlias} isAdmin={isAdmin}/></Suspense>
           :<div style={{maxWidth:"420px",margin:"48px auto",padding:"24px",background:"var(--fx-card)",borderRadius:"16px",textAlign:"center",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
             <div style={{fontSize:"38px",marginBottom:"8px"}}>🎯</div>
-            <h3 style={{margin:"0 0 6px",color:"var(--fx-text)",fontSize:"18px",fontWeight:800}}>Quiniela · Mundial 2026</h3>
-            <p style={{color:"var(--fx-muted)",fontSize:"14px",margin:"0 0 16px"}}>Para hacer tu quiniela y competir en el ranking necesitas iniciar sesión.</p>
-            <button onClick={()=>setShowLogin(true)} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"11px 24px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>Iniciar sesión</button>
+            <h3 style={{margin:"0 0 6px",color:"var(--fx-text)",fontSize:"18px",fontWeight:800}}>{t("quiniela.title")}</h3>
+            <p style={{color:"var(--fx-muted)",fontSize:"14px",margin:"0 0 16px"}}>{t("quiniela.gate")}</p>
+            <button onClick={()=>setShowLogin(true)} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"11px 24px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>{t("menu.login")}</button>
           </div>)}
         {!showPrivacidad&&!showPerfil&&tab==="comparar"&&<Suspense fallback={<GridSkel n={3} cards={false}/>}><ComparadorView players={players} equipos={equipos} ligas={ligas} equiposNombres={equiposNombres} onGoToPlayer={(id)=>goToPlayer(id,{tab:"comparar",label:"Comparar"})}/></Suspense>}
         {!showPrivacidad&&!showPerfil&&tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} mvps={mvps} equiposNombres={equiposNombres} openClasiKey={openClasiKey} onClearClasi={()=>setOpenClasiKey(null)} partidosSub={partidosSub} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id,year)=>goToTeam(id,year||null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})} onGoToPlayer={(id)=>goToPlayer(id,{tab:"partidos",label:"Ver partidos"})}/>}

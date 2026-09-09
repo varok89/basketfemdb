@@ -1,13 +1,15 @@
 import { useMemo, useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { useT, useLang, locale } from "../lib/i18n";
 
-const ZONAS = [
-  { key: "Mundo",    label: "🌍 Mundo" },
-  { key: "Africa",   label: "🌍 África" },
-  { key: "Americas", label: "🌎 Américas" },
-  { key: "Asia",     label: "🌏 Asia" },
-  { key: "Europe",   label: "🌍 Europa" },
-];
+const ZONA_KEYS_LIST = ["Mundo", "Africa", "Americas", "Asia", "Europe"];
+const ZONA_I18N = {
+  Mundo: "ranking.zone.world",
+  Africa: "ranking.zone.africa",
+  Americas: "ranking.zone.americas",
+  Asia: "ranking.zone.asia",
+  Europe: "ranking.zone.europe",
+};
 
 const HEADER_STYLE = {
   display: "grid", gridTemplateColumns: "60px 1fr 90px 80px",
@@ -23,9 +25,12 @@ const ROW_STYLE = {
   borderBottom: "1px solid var(--fx-border2)", cursor: "pointer",
 };
 
-const ZONA_KEYS = new Set(ZONAS.map(z => z.key));
+const ZONA_KEYS = new Set(ZONA_KEYS_LIST);
 
 export default function RankingFibaView({ equipos, isAdmin, onGoToTeam, onReload }) {
+  const t = useT();
+  const lang = useLang();
+  const ZONAS = ZONA_KEYS_LIST.map(k => ({ key: k, label: t(ZONA_I18N[k]) }));
   const [zona, setZonaRaw] = useState(() => {
     try {
       const q = new URLSearchParams(window.location.search).get("zona");
@@ -88,13 +93,13 @@ export default function RankingFibaView({ equipos, isAdmin, onGoToTeam, onReload
     <div style={{ maxWidth: "980px", margin: "0 auto", padding: "16px", fontFamily: "system-ui,sans-serif" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px", flexWrap: "wrap", gap: "10px" }}>
         <div>
-          <h1 style={{ fontWeight: 800, fontSize: "22px", color: "var(--fx-text)", margin: 0 }}>🌐 Ranking FIBA</h1>
-          {updated && <div style={{ fontSize: "12px", color: "var(--fx-muted)", marginTop: "4px" }}>Última actualización: {updated.toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" })}</div>}
+          <h1 style={{ fontWeight: 800, fontSize: "22px", color: "var(--fx-text)", margin: 0 }}>{t("ranking.title")}</h1>
+          {updated && <div style={{ fontSize: "12px", color: "var(--fx-muted)", marginTop: "4px" }}>{t("ranking.updated", { fecha: updated.toLocaleDateString(locale(lang), { year: "numeric", month: "long", day: "numeric" }) })}</div>}
         </div>
         {isAdmin && (
           <button onClick={actualizar} disabled={busy}
             style={{ background: busy ? "#94a3b8" : "#9333ea", color: "#fff", border: "none", borderRadius: "10px", padding: "9px 16px", fontWeight: 700, fontSize: "13px", cursor: busy ? "wait" : "pointer" }}>
-            {busy ? "Actualizando…" : "🔄 Actualizar ranking"}
+            {busy ? t("ranking.updating") : t("ranking.update")}
           </button>
         )}
       </div>
@@ -116,15 +121,15 @@ export default function RankingFibaView({ equipos, isAdmin, onGoToTeam, onReload
 
       {rows.length === 0 ? (
         <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--fx-muted2)", background: "var(--fx-card)", borderRadius: "14px" }}>
-          Sin datos de ranking para esta zona.{isAdmin && " Pulsa \"Actualizar ranking\" arriba."}
+          {t("ranking.empty")}{isAdmin && t("ranking.empty.admin")}
         </div>
       ) : (
         <div style={{ background: "var(--fx-card)", borderRadius: "14px", overflow: "hidden", boxShadow: "0 1px 6px rgba(0,0,0,0.05)" }}>
           <div style={HEADER_STYLE}>
-            <div style={{ textAlign: "center" }}>#</div>
-            <div>País</div>
-            <div style={{ textAlign: "right" }}>Puntos</div>
-            <div style={{ textAlign: "right" }}>Zona</div>
+            <div style={{ textAlign: "center" }}>{t("ranking.col.rank")}</div>
+            <div>{t("ranking.col.country")}</div>
+            <div style={{ textAlign: "right" }}>{t("ranking.col.points")}</div>
+            <div style={{ textAlign: "right" }}>{t("ranking.col.zone")}</div>
           </div>
           {rows.map(e => (
             <div key={e.id_equipo} onClick={() => onGoToTeam && onGoToTeam(e.id_equipo)} style={ROW_STYLE}>

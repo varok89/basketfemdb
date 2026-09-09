@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { useT } from "../lib/i18n";
 
 /* Comparador de 2-3 jugadoras lado a lado. Reutiliza el patron de fetch a
    partido_boxscore de StatsJugadora en App.jsx. Radar SVG a mano (6 ejes),
@@ -98,6 +99,7 @@ function Radar({datasets, size=260}){
 }
 
 function PickerModal({players, equiposNombres, exclude, onPick, onClose}){
+  const t = useT();
   const [q,setQ]=useState("");
   const list=useMemo(()=>{
     const term=q.trim().toLowerCase();
@@ -111,12 +113,12 @@ function PickerModal({players, equiposNombres, exclude, onPick, onClose}){
     <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1200,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"40px 12px"}}>
       <div onClick={e=>e.stopPropagation()} style={{background:"var(--fx-card)",borderRadius:"14px",width:"100%",maxWidth:"420px",boxShadow:"0 20px 60px rgba(0,0,0,0.4)",overflow:"hidden"}}>
         <div style={{padding:"14px 16px",borderBottom:"1px solid var(--fx-border)",display:"flex",gap:"10px",alignItems:"center"}}>
-          <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Buscar jugadora…" style={{flex:1,padding:"10px 12px",border:"1.5px solid var(--fx-border)",borderRadius:"10px",fontSize:"14px",background:"var(--fx-card)",color:"var(--fx-text)"}}/>
+          <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder={t("comp.search")} style={{flex:1,padding:"10px 12px",border:"1.5px solid var(--fx-border)",borderRadius:"10px",fontSize:"14px",background:"var(--fx-card)",color:"var(--fx-text)"}}/>
           <button onClick={onClose} style={{background:"none",border:"none",fontSize:"22px",cursor:"pointer",color:"var(--fx-muted2)"}}>×</button>
         </div>
         <div style={{maxHeight:"60vh",overflowY:"auto"}}>
-          {q.trim().length<2&&<div style={{padding:"20px",textAlign:"center",color:"var(--fx-muted2)",fontSize:"13px"}}>Escribe al menos 2 letras.</div>}
-          {q.trim().length>=2&&list.length===0&&<div style={{padding:"20px",textAlign:"center",color:"var(--fx-muted2)",fontSize:"13px"}}>Sin resultados.</div>}
+          {q.trim().length<2&&<div style={{padding:"20px",textAlign:"center",color:"var(--fx-muted2)",fontSize:"13px"}}>{t("comp.search_hint")}</div>}
+          {q.trim().length>=2&&list.length===0&&<div style={{padding:"20px",textAlign:"center",color:"var(--fx-muted2)",fontSize:"13px"}}>{t("comp.search_empty")}</div>}
           {list.map(p=>{
             const eqN=equiposNombres?.[p.id_equipo]||p.id_equipo||"";
             return (
@@ -136,18 +138,19 @@ function PickerModal({players, equiposNombres, exclude, onPick, onClose}){
 }
 
 function SlotCard({slot, idx, onOpen, onClear}){
+  const t = useT();
   if(!slot){
     return (
       <button onClick={onOpen} style={{background:"var(--fx-card)",border:"2px dashed var(--fx-border)",borderRadius:"14px",padding:"28px 12px",cursor:"pointer",color:"var(--fx-muted)",fontSize:"13px",fontWeight:700,minHeight:"140px",minWidth:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"6px"}}>
         <div style={{fontSize:"28px"}}>➕</div>
-        Añadir jugadora
+        {t("comp.add")}
       </button>
     );
   }
   const {player}=slot;
   return (
     <div style={{background:"var(--fx-card)",borderRadius:"14px",padding:"14px 12px",boxShadow:"0 1px 6px rgba(0,0,0,0.06)",position:"relative",textAlign:"center",minHeight:"140px",minWidth:0,borderTop:`4px solid ${COLORS[idx]}`}}>
-      <button onClick={onClear} title="Quitar" style={{position:"absolute",top:6,right:8,background:"transparent",border:"none",fontSize:"18px",cursor:"pointer",color:"var(--fx-muted2)"}}>×</button>
+      <button onClick={onClear} title={t("comp.remove")} style={{position:"absolute",top:6,right:8,background:"transparent",border:"none",fontSize:"18px",cursor:"pointer",color:"var(--fx-muted2)"}}>×</button>
       {player.foto
         ? <img src={player.foto} alt="" style={{width:64,height:64,borderRadius:"50%",objectFit:"cover",border:`2px solid ${COLORS[idx]}`}}/>
         : <div style={{width:64,height:64,borderRadius:"50%",background:"var(--fx-hover)",margin:"0 auto"}}/>}
@@ -158,6 +161,7 @@ function SlotCard({slot, idx, onOpen, onClear}){
 }
 
 export default function ComparadorView({players, equipos, ligas, equiposNombres, onGoToPlayer}){
+  const t = useT();
   const [slots,setSlots]=useState([null,null,null]);
   const [pickerFor,setPickerFor]=useState(null);
   const [loading,setLoading]=useState(false);
@@ -205,8 +209,8 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
   return (
     <div style={{maxWidth:"980px",margin:"0 auto",padding:"16px",fontFamily:"system-ui,sans-serif"}}>
       <div style={{marginBottom:"16px"}}>
-        <h1 style={{fontWeight:800,fontSize:"22px",color:"var(--fx-text)",margin:0}}>⚖️ Comparar jugadoras</h1>
-        <p style={{color:"var(--fx-muted)",fontSize:"13px",margin:"4px 0 0"}}>Elige hasta 3 jugadoras y una temporada para verlas lado a lado.</p>
+        <h1 style={{fontWeight:800,fontSize:"22px",color:"var(--fx-text)",margin:0}}>{t("comp.title")}</h1>
+        <p style={{color:"var(--fx-muted)",fontSize:"13px",margin:"4px 0 0"}}>{t("comp.subtitle")}</p>
       </div>
 
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px",marginBottom:"20px"}}>
@@ -215,7 +219,7 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
         ))}
       </div>
 
-      {loading && <div style={{textAlign:"center",padding:"20px",color:"var(--fx-muted)"}}>Cargando estadísticas…</div>}
+      {loading && <div style={{textAlign:"center",padding:"20px",color:"var(--fx-muted)"}}>{t("comp.loading")}</div>}
 
       {activos.length>0 && (
         <>
@@ -231,10 +235,10 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
                       <select value={s.tempSel||""} onChange={e=>setSlotField(i,"tempSel",e.target.value)} style={{width:"100%",padding:"6px 8px",borderRadius:"8px",border:"1px solid var(--fx-border)",fontSize:"12px",background:"var(--fx-card)",color:"var(--fx-text)",marginBottom:"6px"}}>
                         {temps.map(t=><option key={t} value={t}>{t}</option>)}
                       </select>
-                    ):<div style={{fontSize:"11px",color:"var(--fx-muted2)"}}>Sin datos de partido</div>}
+                    ):<div style={{fontSize:"11px",color:"var(--fx-muted2)"}}>{t("comp.no_data")}</div>}
                     {compsTemp.length>1 && (
                       <select value={s.compSel} onChange={e=>setSlotField(i,"compSel",e.target.value)} style={{width:"100%",padding:"6px 8px",borderRadius:"8px",border:"1px solid var(--fx-border)",fontSize:"12px",background:"var(--fx-card)",color:"var(--fx-text)"}}>
-                        <option value="ALL">Todas las comp.</option>
+                        <option value="ALL">{t("comp.all_comps")}</option>
                         {compsTemp.map(c=><option key={c} value={c}>{ligaMap[c]?.nombre||c}</option>)}
                       </select>
                     )}
@@ -248,7 +252,7 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
             <table style={{width:"100%",borderCollapse:"collapse",minWidth:"320px"}}>
               <thead>
                 <tr>
-                  <th style={{textAlign:"left",fontSize:"11px",color:"var(--fx-muted)",padding:"6px 4px"}}>Métrica</th>
+                  <th style={{textAlign:"left",fontSize:"11px",color:"var(--fx-muted)",padding:"6px 4px"}}>{t("comp.metric")}</th>
                   {activos.map(({s,i})=>(
                     <th key={i} style={{textAlign:"center",fontSize:"11px",color:COLORS[i],padding:"6px 4px",fontWeight:800}}>
                       {s.player.nombre.split(" ").slice(-1)[0]}
@@ -299,7 +303,7 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
 
           {stats.some(s=>s) && (
             <div style={{background:"var(--fx-card)",borderRadius:"14px",padding:"14px",boxShadow:"0 1px 6px rgba(0,0,0,0.05)"}}>
-              <div style={{fontSize:"12px",fontWeight:800,color:"var(--fx-muted)",marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Perfil comparado</div>
+              <div style={{fontSize:"12px",fontWeight:800,color:"var(--fx-muted)",marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.5px"}}>{t("comp.profile")}</div>
               <Radar datasets={activos.map(({s,i})=>({color:COLORS[i], values:stats[i]||{}}))}/>
               <div style={{display:"flex",gap:"14px",justifyContent:"center",flexWrap:"wrap",marginTop:"10px"}}>
                 {activos.map(({s,i})=>(
@@ -309,7 +313,7 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
                   </div>
                 ))}
               </div>
-              <div style={{fontSize:"10px",color:"var(--fx-muted2)",textAlign:"center",marginTop:"6px"}}>Los ejes se normalizan al máximo entre las jugadoras comparadas.</div>
+              <div style={{fontSize:"10px",color:"var(--fx-muted2)",textAlign:"center",marginTop:"6px"}}>{t("comp.radar_note")}</div>
             </div>
           )}
         </>

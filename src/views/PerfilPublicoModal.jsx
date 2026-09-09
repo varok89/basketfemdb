@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { LOGROS_BY_SLUG } from "../lib/logros";
 import { MedallaCard } from "./Medalla";
+import { useT, useLang, locale } from "../lib/i18n";
 
 /* Perfil público: solo alias + avatar + miembro desde + logros desbloqueados.
    Cero información adicional (email, favoritos, historial, etc). */
 export default function PerfilPublicoModal({alias, onClose}){
+  const t = useT();
+  const lang = useLang();
   const [data,setData]=useState(null);
   const [err,setErr]=useState(null);
 
@@ -14,7 +17,7 @@ export default function PerfilPublicoModal({alias, onClose}){
       const {data:d, error} = await supabase.rpc("perfil_publico",{p_alias:alias});
       if(error){ setErr(error.message); return; }
       const row = Array.isArray(d)? d[0] : d;
-      if(!row){ setErr("Alias no encontrado"); return; }
+      if(!row){ setErr(t("perfil.not_found")); return; }
       setData(row);
     })();
   },[alias]);
@@ -30,7 +33,7 @@ export default function PerfilPublicoModal({alias, onClose}){
     <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"16px",fontFamily:"system-ui,sans-serif"}}>
       <div onClick={e=>e.stopPropagation()} style={{background: "var(--fx-card)",borderRadius:"18px",maxWidth:"560px",width:"100%",maxHeight:"92vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.4)"}}>
         <div style={{padding:"14px 18px",borderBottom:"1px solid var(--fx-border)",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,background: "var(--fx-card)",zIndex:1}}>
-          <div style={{fontSize:"14px",fontWeight:700,color: "var(--fx-muted)"}}>Perfil público</div>
+          <div style={{fontSize:"14px",fontWeight:700,color: "var(--fx-muted)"}}>{t("perfil.title")}</div>
           <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:"22px",cursor:"pointer",color: "var(--fx-muted2)"}}>×</button>
         </div>
 
@@ -48,17 +51,17 @@ export default function PerfilPublicoModal({alias, onClose}){
               <div style={{fontSize:"20px",fontWeight:800,color: "var(--fx-text)",marginTop:"12px"}}>{data.alias}</div>
               {miembroDesde && (
                 <div style={{fontSize:"12px",color: "var(--fx-muted)",marginTop:"4px"}}>
-                  Miembro desde {miembroDesde.toLocaleDateString("es-ES",{year:"numeric",month:"long",day:"numeric"})}
+                  {t("perfil.miembro_desde",{fecha: miembroDesde.toLocaleDateString(locale(lang),{year:"numeric",month:"long",day:"numeric"})})}
                 </div>
               )}
             </div>
 
             <div style={{padding:"14px 20px 24px"}}>
               <div style={{fontSize:"12px",fontWeight:800,color: "var(--fx-muted)",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:"10px"}}>
-                🏆 Logros ({logros.length})
+                {t("perfil.logros",{n:logros.length})}
               </div>
               {logros.length===0
-                ? <div style={{padding:"24px",textAlign:"center",color: "var(--fx-muted2)",fontSize:"13px",background: "var(--fx-hover)",borderRadius:"10px"}}>Todavía sin logros desbloqueados.</div>
+                ? <div style={{padding:"24px",textAlign:"center",color: "var(--fx-muted2)",fontSize:"13px",background: "var(--fx-hover)",borderRadius:"10px"}}>{t("perfil.logros.empty")}</div>
                 : (
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:"10px"}}>
                     {logros.map(l=>(
