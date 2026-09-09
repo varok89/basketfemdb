@@ -2284,6 +2284,7 @@ function WNBABracketAuto({globalRanked, playoffPartidos, equipoMap, onOpenPartid
 }
 
 function WNBAClasificacion({psLiga, equipoMap, temporada, onOpenPartido, onGoToTeam, onBack}){
+  const t = useT();
   const [tab,setTab]=useState("global");
   const [liveOverrides,setLiveOverrides]=useState({});
   // Auto-refresh cada 90s si estamos en la temporada en curso
@@ -2321,7 +2322,7 @@ function WNBAClasificacion({psLiga, equipoMap, temporada, onOpenPartido, onGoToT
     <div style={{maxWidth:"900px",margin:"0 auto",padding:"16px",fontFamily:"system-ui,sans-serif"}}>
       <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"15px",cursor:"pointer",padding:"0 0 16px"}}>← Volver</button>
       <h1 style={{fontWeight:800,fontSize:"20px",color:"var(--fx-text)",margin:"0 0 6px"}}>🏆 WNBA {temporada}</h1>
-      <p style={{fontSize:"12px",color:"var(--fx-muted2)",margin:"0 0 14px"}}>Clasificación por %V con desempates oficiales WNBA (H2H → V vs top-8 → V vs top-4 → dif.). Verde: puestos 1-8 (playoffs).</p>
+      <p style={{fontSize:"12px",color:"var(--fx-muted2)",margin:"0 0 14px"}}>{t("partidos.wnba_tiebreaker")}</p>
       <div style={{display:"flex",gap:"6px",marginBottom:"14px",flexWrap:"wrap"}}>
         {tabBtn("global","Global")}
         {tabBtn("east","🌅 East")}
@@ -2397,7 +2398,7 @@ function PlayoffBracket({psLiga,equipoMap,soloPrevia,onOpenPartido,showAscenso})
   const hayBracket=dieci.length||octavos.length||cuartos.length||semis.length||finalAsc.length;
 
   if(!finalCampeones.length&&!hayBracket)return(
-    <p style={{color:"var(--fx-muted2)",textAlign:"center",paddingTop:"40px"}}>El cuadro se rellenará cuando avance la competición.</p>
+    <p style={{color:"var(--fx-muted2)",textAlign:"center",paddingTop:"40px"}}>{t("partidos.bracket_pending")}</p>
   );
 
   const AscLabel=({serie})=>{if(!showAscenso)return null;const w=winnerOf(serie);const t=w&&equipoMap[w];if(!t)return null;return(
@@ -2684,7 +2685,7 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
           {!zl.ascenso&&<><span style={{display:"inline-block",width:10,height:10,background:"#9333ea",borderRadius:"3px",verticalAlign:"middle",marginRight:"4px"}}/> Playoffs (1º-{PLAYOFF_PUESTOS}º)</>}
           {COPA_PUESTOS>0&&<><span style={{display:"inline-block",width:10,height:10,background:"#f59e0b",borderRadius:"3px",verticalAlign:"middle",margin:"0 4px 0 14px"}}/>{COPA_LABEL}</>}
           <span style={{display:"inline-block",width:10,height:10,background:"#ef4444",borderRadius:"3px",verticalAlign:"middle",margin:"0 4px 0 14px"}}/> Descenso
-          <br/>Criterios de desempate FEB: enfrentamientos particulares → diferencia particular → diferencia general → puntos anotados
+          <br/>{t("partidos.feb_tiebreaker")}
         </div>
       ):(
         <div style={{fontSize:"11px",color:"var(--fx-muted2)",textAlign:"center",marginTop:"8px"}}>
@@ -6862,8 +6863,8 @@ export default function App(){
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--fx-hover)",fontFamily:"system-ui,sans-serif",padding:"20px"}}>
       <div style={{background:"#fee2e2",border:"1.5px solid #fecaca",borderRadius:"14px",padding:"24px",maxWidth:"500px",color:"#b91c1c",fontSize:"14px",textAlign:"center"}}>
         <div style={{fontSize:"36px",marginBottom:"12px"}}>❌</div>
-        <strong>Error de conexión</strong><br/>{error}
-        <button onClick={loadAll} style={{marginTop:"16px",background:"#ef4444",color:"#fff",border:"none",borderRadius:"8px",padding:"10px 20px",cursor:"pointer",fontWeight:700,fontSize:"13px",display:"block",margin:"16px auto 0"}}>Reintentar</button>
+        <strong>{t("common.err_connection")}</strong><br/>{error}
+        <button onClick={loadAll} style={{marginTop:"16px",background:"#ef4444",color:"#fff",border:"none",borderRadius:"8px",padding:"10px 20px",cursor:"pointer",fontWeight:700,fontSize:"13px",display:"block",margin:"16px auto 0"}}>{t("common.retry")}</button>
       </div>
     </div>
   );
