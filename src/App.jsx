@@ -4217,6 +4217,102 @@ function DuplicateSquadForm({initial,ligas,ligaMap,eq,onSave,onCancel,saving}){
 }
 
 /* ── TeamsView ───────────────────────────────────────────── */
+/* Records de un equipo en una temporada: racha ult.5, +/-, top anotador,
+   mejor victoria y peor derrota. Consulta partidos + partido_boxscore. */
+function RecordsEquipo({idEquipo, temporada, players, equipos, onGoToPlayer}){
+  const t = useT();
+  const [data,setData]=useState(null);
+  useEffect(()=>{
+    if(!idEquipo||!temporada)return;
+    let cancel=false; setData(null);
+    (async()=>{
+      const [{data:parts},{data:boxes}]=await Promise.all([
+        supabase.from("partidos").select("id,fecha_hora,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante").or(`id_equipo_local.eq.${idEquipo},id_equipo_visitante.eq.${idEquipo}`).eq("temporada",temporada),
+        supabase.from("partido_boxscore").select("id_jugadora,id_equipo,puntos,partidos!inner(temporada,id_equipo_local,id_equipo_visitante)").eq("id_equipo",idEquipo).eq("partidos.temporada",temporada),
+      ]);
+      if(!cancel)setData({parts:parts||[],boxes:boxes||[]});
+    })();
+    return ()=>{cancel=true;};
+  },[idEquipo,temporada]);
+
+  const stats=useMemo(()=>{
+    if(!data)return null;
+    const played=data.parts.filter(p=>p.resultado_local!=null&&p.resultado_visitante!=null)
+      .sort((a,b)=>(a.fecha_hora||"").localeCompare(b.fecha_hora||""));
+    if(!played.length)return null;
+    const pf=p=>p.id_equipo_local===idEquipo?p.resultado_local:p.resultado_visitante;
+    const pc=p=>p.id_equipo_local===idEquipo?p.resultado_visitante:p.resultado_local;
+    let v=0,d=0,plus=0,minus=0;
+    played.forEach(p=>{const a=Number(pf(p))||0,b=Number(pc(p))||0;plus+=a;minus+=b;if(a>b)v++;else d++;});
+    const last5=played.slice(-5);
+    const bestWin=[...played].filter(p=>Number(pf(p))>Number(pc(p))).sort((a,b)=>((Number(pf(b))-Number(pc(b)))-(Number(pf(a))-Number(pc(a)))))[0];
+    const worstLoss=[...played].filter(p=>Number(pf(p))<Number(pc(p))).sort((a,b)=>((Number(pc(b))-Number(pf(b)))-(Number(pc(a))-Number(pf(a)))))[0];
+    // Top anotador
+    const byPlayer={};
+    data.boxes.forEach(b=>{const k=b.id_jugadora;if(!k)return;if(!byPlayer[k])byPlayer[k]={id_jugadora:k,pj:0,pts:0};byPlayer[k].pj++;byPlayer[k].pts+=Number(b.puntos)||0;});
+    const topScorer=Object.values(byPlayer).filter(b=>b.pj>=3).map(b=>({...b,avg:b.pts/b.pj})).sort((a,b)=>b.avg-a.avg)[0]||null;
+    return {v,d,plus,minus,diff:plus-minus,last5,bestWin,worstLoss,topScorer,pj:played.length};
+  },[data,idEquipo]);
+
+  if(!data||!stats)return null;
+
+  const playerMap=useMemo(()=>{const m={};(players||[]).forEach(p=>m[p.id_jugadora]=p);return m;},[players]);
+  const eqMap=useMemo(()=>{const m={};(equipos||[]).forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
+  const rivalName=(p)=>{const id=p.id_equipo_local===idEquipo?p.id_equipo_visitante:p.id_equipo_local;return eqMap[id]?.nombre||id;};
+  const scoreLabel=(p)=>{const a=p.id_equipo_local===idEquipo?p.resultado_local:p.resultado_visitante;const b=p.id_equipo_local===idEquipo?p.resultado_visitante:p.resultado_local;return `${a}-${b}`;};
+
+  const cardBg={background:"var(--fx-hover)",borderRadius:"12px",padding:"12px",display:"flex",flexDirection:"column",gap:"6px"};
+  const label={fontSize:"10px",fontWeight:800,color:"#9333ea",textTransform:"uppercase",letterSpacing:"0.5px"};
+  const value={fontSize:"20px",fontWeight:900,color:"var(--fx-text)"};
+
+  return (
+    <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"20px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
+      <div style={{fontSize:"12px",fontWeight:800,color:"var(--fx-muted)",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:"12px"}}>{t("records.team_title")} · {temporada}</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:"10px"}}>
+        <div style={cardBg}>
+          <div style={label}>{t("records.record")}</div>
+          <div style={{...value,color:"var(--fx-text)"}}>{stats.v}V–{stats.d}D <span style={{fontSize:"12px",fontWeight:600,color:"var(--fx-muted)"}}>({Math.round(stats.v*100/stats.pj)}%)</span></div>
+        </div>
+        <div style={cardBg}>
+          <div style={label}>{t("records.plusminus")}</div>
+          <div style={{...value,color:stats.diff>=0?"#16a34a":"#dc2626"}}>{stats.diff>=0?"+":""}{stats.diff}</div>
+          <div style={{fontSize:"10px",color:"var(--fx-muted)"}}>{stats.plus} · {stats.minus}</div>
+        </div>
+        <div style={cardBg}>
+          <div style={label}>{t("records.streak")}</div>
+          <div style={{display:"flex",gap:"3px",marginTop:"2px"}}>
+            {stats.last5.map((p,i)=>{const win=Number((p.id_equipo_local===idEquipo?p.resultado_local:p.resultado_visitante))>Number((p.id_equipo_local===idEquipo?p.resultado_visitante:p.resultado_local));return <span key={i} style={{width:22,height:22,borderRadius:"6px",background:win?"#16a34a":"#dc2626",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"11px",fontWeight:800}}>{win?"V":"D"}</span>;})}
+          </div>
+        </div>
+        {stats.topScorer&&(()=>{const p=playerMap[stats.topScorer.id_jugadora];return (
+          <div style={{...cardBg,cursor:p?"pointer":"default"}} onClick={()=>p&&onGoToPlayer&&onGoToPlayer(p.id_jugadora)}>
+            <div style={label}>{t("records.top_scorer_team")}</div>
+            <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
+              {p?.foto?<img loading="lazy" decoding="async" src={p.foto} alt="" style={{width:26,height:26,borderRadius:"50%",objectFit:"cover"}}/>:null}
+              <span style={{fontSize:"13px",fontWeight:700,color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p?.nombre||stats.topScorer.id_jugadora}</span>
+              <span style={{marginLeft:"auto",fontSize:"16px",fontWeight:900,color:"var(--fx-text)"}}>{stats.topScorer.avg.toFixed(1)}</span>
+            </div>
+          </div>
+        );})()}
+        {stats.bestWin&&(
+          <div style={cardBg}>
+            <div style={label}>{t("records.best_win")}</div>
+            <div style={{fontSize:"13px",fontWeight:700,color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>vs {rivalName(stats.bestWin)}</div>
+            <div style={{fontSize:"16px",fontWeight:900,color:"#16a34a"}}>{scoreLabel(stats.bestWin)}</div>
+          </div>
+        )}
+        {stats.worstLoss&&(
+          <div style={cardBg}>
+            <div style={label}>{t("records.worst_loss")}</div>
+            <div style={{fontSize:"13px",fontWeight:700,color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>vs {rivalName(stats.worstLoss)}</div>
+            <div style={{fontSize:"16px",fontWeight:900,color:"#dc2626"}}>{scoreLabel(stats.worstLoss)}</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CalendarioEquipo({idEquipo,temporada,equipos,ligas,equiposNombres,onGoToPartido,onGoToLeague}){
   const t = useT();
   const [games,setGames]=useState(null);
@@ -4621,6 +4717,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
             })()}
           </div>
         </div>
+        {effectiveYear&&<RecordsEquipo idEquipo={eq.id_equipo} temporada={effectiveYear} players={players} equipos={equipos} onGoToPlayer={onGoToPlayer}/>}
         <CalendarioEquipo idEquipo={eq.id_equipo} temporada={effectiveYear} equipos={equipos} ligas={ligas} equiposNombres={equiposNombres} onGoToPartido={onGoToPartido} onGoToLeague={onGoToLeague}/>
         <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom: showPlantilla?"16px":"0",flexWrap:"wrap",gap:"10px"}}>
