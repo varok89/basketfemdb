@@ -5796,6 +5796,7 @@ function ResetPasswordModal({onSave,onCancel,loading,error,info}){
 
 /* ── PerfilView (vista dedicada de perfil) ───────────────── */
 function PerfilView({user,favoritos,onClose,onLogout}){
+  const t = useT();
   const [alias,setAlias]=useState("");
   const [aliasMsg,setAliasMsg]=useState("");
   const [savingAlias,setSavingAlias]=useState(false);
@@ -5821,20 +5822,20 @@ function PerfilView({user,favoritos,onClose,onLogout}){
 
   const saveAvatar=async(val)=>{
     const {error}=await supabase.from("perfiles").update({avatar:val}).eq("id",user.id);
-    if(error){setAvatarMsg("Error");return;}
-    setAvatar(val);setAvatarMsg("Avatar actualizado ✓");setTimeout(()=>setAvatarMsg(""),1500);
+    if(error){setAvatarMsg(t("common.error"));return;}
+    setAvatar(val);setAvatarMsg(t("profile.avatar_ok"));setTimeout(()=>setAvatarMsg(""),1500);
   };
 
   const subirFoto=async(e)=>{
     const f=e.target.files?.[0];e.target.value="";
     if(!f) return;
-    if(!f.type.startsWith("image/")){setAvatarMsg("No es imagen");return;}
-    if(f.size>2*1024*1024){setAvatarMsg("Máx 2 MB");return;}
+    if(!f.type.startsWith("image/")){setAvatarMsg(t("profile.err_no_img"));return;}
+    if(f.size>2*1024*1024){setAvatarMsg(t("profile.err_size"));return;}
     setUploading(true);
     const ext=(f.name.split(".").pop()||"png").toLowerCase();
     const path=`${user.id}/avatar_${Date.now()}.${ext}`;
     const {error:upErr}=await supabase.storage.from("avatars").upload(path,f,{cacheControl:"3600",upsert:false});
-    if(upErr){setUploading(false);setAvatarMsg("Error subida: "+upErr.message);return;}
+    if(upErr){setUploading(false);setAvatarMsg(t("profile.err_upload")+": "+upErr.message);return;}
     const {data:{publicUrl}}=supabase.storage.from("avatars").getPublicUrl(path);
     await saveAvatar(publicUrl);
     setUploading(false);
@@ -5845,7 +5846,7 @@ function PerfilView({user,favoritos,onClose,onLogout}){
     const v=(alias||"").trim().slice(0,24);
     const {error}=await supabase.from("perfiles").update({alias:v||null}).eq("id",user.id);
     setSavingAlias(false);
-    setAliasMsg(error?"Error":"Guardado ✓");setTimeout(()=>setAliasMsg(""),1500);
+    setAliasMsg(error?t("common.error"):t("profile.saved"));setTimeout(()=>setAliasMsg(""),1500);
   };
 
   const eliminarCuenta=async()=>{
@@ -5870,7 +5871,7 @@ function PerfilView({user,favoritos,onClose,onLogout}){
   return(
     <div style={{maxWidth:"640px",margin:"0 auto",padding:"12px"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
-        <h2 style={{margin:0,fontSize:"20px",fontWeight:800,color:"var(--fx-text)"}}>👤 Mi perfil</h2>
+        <h2 style={{margin:0,fontSize:"20px",fontWeight:800,color:"var(--fx-text)"}}>👤 {t("profile.title")}</h2>
         <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:"20px",cursor:"pointer",color:"var(--fx-muted)"}}>✕</button>
       </div>
 
@@ -5885,7 +5886,7 @@ function PerfilView({user,favoritos,onClose,onLogout}){
 
       {/* selector de avatar */}
       <div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",marginBottom:"14px"}}>
-        <div style={{fontSize:"12px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"10px"}}>Tu avatar</div>
+        <div style={{fontSize:"12px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"10px"}}>{t("profile.your_avatar")}</div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(52px,1fr))",gap:"8px",marginBottom:"12px"}}>
           {AVATAR_PRESETS.map(p=>{
             const sel=avatar===`preset:${p.k}`;
@@ -5899,46 +5900,46 @@ function PerfilView({user,favoritos,onClose,onLogout}){
         </div>
         <div style={{display:"flex",gap:"8px",flexWrap:"wrap"}}>
           <label style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:uploading?"wait":"pointer",opacity:uploading?0.6:1}}>
-            {uploading?"Subiendo…":"📷 Subir foto"}
+            {uploading?t("profile.uploading"):t("profile.upload")}
             <input type="file" accept="image/*" onChange={subirFoto} disabled={uploading} style={{display:"none"}}/>
           </label>
           {(avatar||user.user_metadata?.avatar_url)&&(
             <button onClick={()=>saveAvatar(null)}
               style={{background:"var(--fx-card)",color:"var(--fx-muted)",border:"1px solid var(--fx-border)",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
-              Usar el de Google
+              {t("profile.use_google")}
             </button>
           )}
         </div>
-        {avatarMsg&&<div style={{fontSize:"11px",color:avatarMsg.startsWith("Error")||avatarMsg.startsWith("No")||avatarMsg.startsWith("Máx")?"#dc2626":"#16a34a",marginTop:"8px",fontWeight:700}}>{avatarMsg}</div>}
-        <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginTop:"6px"}}>Elige un preset, sube tu foto (máx 2 MB) o vuelve al avatar de Google.</div>
+        {avatarMsg&&<div style={{fontSize:"11px",color:/error|not|max|máx/i.test(avatarMsg)?"#dc2626":"#16a34a",marginTop:"8px",fontWeight:700}}>{avatarMsg}</div>}
+        <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginTop:"6px"}}>{t("profile.avatar_hint")}</div>
       </div>
 
       {/* alias */}
       <div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",marginBottom:"14px"}}>
-        <div style={{fontSize:"12px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"6px"}}>Alias en el ranking de la quiniela</div>
+        <div style={{fontSize:"12px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"6px"}}>{t("profile.alias_label")}</div>
         <div style={{display:"flex",gap:"8px"}}>
           <input type="text" maxLength={24} value={alias} onChange={e=>setAlias(e.target.value)}
             placeholder={nombreReal}
             style={{flex:1,padding:"8px 10px",borderRadius:"8px",border:"1px solid #cbd5e1",fontSize:"13px"}}/>
           <button onClick={guardarAlias} disabled={savingAlias}
             style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"8px",padding:"8px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:savingAlias?0.6:1}}>
-            Guardar
+            {t("profile.save")}
           </button>
         </div>
         {aliasMsg&&<div style={{fontSize:"11px",color:"#16a34a",marginTop:"6px",fontWeight:700}}>{aliasMsg}</div>}
-        <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginTop:"6px"}}>Déjalo vacío para usar tu nombre.</div>
+        <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginTop:"6px"}}>{t("profile.alias_hint")}</div>
       </div>
 
       {/* stats */}
       <div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",marginBottom:"14px"}}>
-        <div style={{fontSize:"12px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"10px"}}>Tu actividad</div>
+        <div style={{fontSize:"12px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"10px"}}>{t("profile.activity")}</div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:"10px"}}>
           {[
-            {n:favCount.jugadoras,l:"⭐ Jugadoras",c:"#9333ea"},
-            {n:favCount.equipos,l:"🏀 Equipos",c:"#9333ea"},
-            {n:favCount.ligas,l:"🏆 Ligas",c:"#9333ea"},
-            {n:counts.basketneta,l:"🏀 Pronóstico",c:"#0891b2"},
-            {n:counts.bola,l:"🔮 Bola",c:"#0891b2"},
+            {n:favCount.jugadoras,l:t("profile.stat.players"),c:"#9333ea"},
+            {n:favCount.equipos,l:t("profile.stat.teams"),c:"#9333ea"},
+            {n:favCount.ligas,l:t("profile.stat.leagues"),c:"#9333ea"},
+            {n:counts.basketneta,l:t("profile.stat.predict"),c:"#0891b2"},
+            {n:counts.bola,l:t("profile.stat.ball"),c:"#0891b2"},
           ].map(s=>(
             <div key={s.l} style={{background:"var(--fx-hover)",borderRadius:"10px",padding:"10px",textAlign:"center"}}>
               <div style={{fontSize:"22px",fontWeight:800,color:s.c,lineHeight:1}}>{s.n}</div>
@@ -5952,33 +5953,33 @@ function PerfilView({user,favoritos,onClose,onLogout}){
       <div style={{marginBottom:"14px"}}>
         <button onClick={onLogout}
           style={{width:"100%",background:"var(--fx-card)",color:"var(--fx-text)",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"12px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>
-          Cerrar sesión
+          {t("menu.logout")}
         </button>
       </div>
 
       {/* zona peligrosa */}
       <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:"12px",padding:"14px"}}>
-        <div style={{fontSize:"12px",fontWeight:800,color:"#991b1b",marginBottom:"6px"}}>⚠ Zona peligrosa</div>
+        <div style={{fontSize:"12px",fontWeight:800,color:"#991b1b",marginBottom:"6px"}}>{t("profile.danger")}</div>
         <div style={{fontSize:"12px",color:"#7f1d1d",marginBottom:"10px"}}>
-          Borra permanentemente tu cuenta, alias, favoritos y predicciones. No se puede deshacer.
+          {t("profile.danger_desc")}
         </div>
         {confirmStep===0&&(
           <button onClick={()=>setConfirmStep(1)}
             style={{background:"var(--fx-card)",color:"#991b1b",border:"1px solid #fca5a5",borderRadius:"8px",padding:"8px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
-            🗑 Eliminar mi cuenta
+            {t("profile.delete")}
           </button>
         )}
         {confirmStep===1&&(
           <div>
-            <div style={{fontSize:"12px",color:"#7f1d1d",fontWeight:700,marginBottom:"8px"}}>¿Seguro? Vamos al paso 2 de 2.</div>
+            <div style={{fontSize:"12px",color:"#7f1d1d",fontWeight:700,marginBottom:"8px"}}>{t("profile.confirm_step2")}</div>
             <div style={{display:"flex",gap:"8px"}}>
               <button onClick={()=>{setConfirmStep(2);setConfirmText("");}}
                 style={{background:"#dc2626",color:"#fff",border:"none",borderRadius:"8px",padding:"8px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
-                Continuar
+                {t("profile.continue")}
               </button>
               <button onClick={()=>setConfirmStep(0)}
                 style={{background:"var(--fx-card)",color:"var(--fx-muted)",border:"1px solid var(--fx-border)",borderRadius:"8px",padding:"8px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
-                Cancelar
+                {t("common.cancel")}
               </button>
             </div>
           </div>
@@ -5986,7 +5987,7 @@ function PerfilView({user,favoritos,onClose,onLogout}){
         {confirmStep===2&&(
           <div>
             <div style={{fontSize:"12px",color:"#7f1d1d",fontWeight:700,marginBottom:"6px"}}>
-              Escribe <code style={{background:"#fee2e2",padding:"1px 6px",borderRadius:"4px"}}>ELIMINAR</code> para confirmar.
+              {(()=>{const raw=t("profile.type_confirm",{word:"__W__"});const[a,b]=raw.split("__W__");return<>{a}<code style={{background:"#fee2e2",padding:"1px 6px",borderRadius:"4px"}}>ELIMINAR</code>{b}</>;})()}
             </div>
             <input type="text" value={confirmText} onChange={e=>setConfirmText(e.target.value)}
               placeholder="ELIMINAR"
@@ -5995,12 +5996,12 @@ function PerfilView({user,favoritos,onClose,onLogout}){
               <button onClick={eliminarCuenta}
                 disabled={confirmText!=="ELIMINAR"||deleting}
                 style={{background:confirmText==="ELIMINAR"?"#dc2626":"#fca5a5",color:"#fff",border:"none",borderRadius:"8px",padding:"8px 14px",fontWeight:800,fontSize:"12px",cursor:confirmText==="ELIMINAR"?"pointer":"not-allowed",opacity:deleting?0.6:1}}>
-                {deleting?"Eliminando…":"🗑 Eliminar definitivamente"}
+                {deleting?t("profile.deleting"):t("profile.delete_final")}
               </button>
               <button onClick={()=>{setConfirmStep(0);setConfirmText("");}}
                 disabled={deleting}
                 style={{background:"var(--fx-card)",color:"var(--fx-muted)",border:"1px solid var(--fx-border)",borderRadius:"8px",padding:"8px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
-                Cancelar
+                {t("common.cancel")}
               </button>
             </div>
             {deleteErr&&<div style={{fontSize:"11px",color:"#991b1b",marginTop:"6px",fontWeight:700}}>{deleteErr}</div>}
