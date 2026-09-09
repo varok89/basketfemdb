@@ -34,7 +34,7 @@ export default function PerfilPublicoModal({alias, onClose}){
       <div onClick={e=>e.stopPropagation()} style={{background: "var(--fx-card)",borderRadius:"18px",maxWidth:"560px",width:"100%",maxHeight:"92vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.4)"}}>
         <div style={{padding:"14px 18px",borderBottom:"1px solid var(--fx-border)",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,background: "var(--fx-card)",zIndex:1}}>
           <div style={{fontSize:"14px",fontWeight:700,color: "var(--fx-muted)"}}>{t("perfil.title")}</div>
-          <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:"22px",cursor:"pointer",color: "var(--fx-muted2)"}}>×</button>
+          <button onClick={onClose} aria-label={t("common.close")} title={t("common.close")} style={{background:"transparent",border:"none",fontSize:"22px",cursor:"pointer",color: "var(--fx-muted2)"}}>×</button>
         </div>
 
         {err && <div style={{padding:"30px",textAlign:"center",color:"#ef4444",fontSize:"13px"}}>{err}</div>}

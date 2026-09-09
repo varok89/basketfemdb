@@ -30,7 +30,7 @@ export default function LogrosModal({onClose}){
             <div style={{fontSize:"18px",fontWeight:800,color: "var(--fx-text)"}}>{t("header.my_achievements")}</div>
             <div style={{fontSize:"12px",color: "var(--fx-muted)",marginTop:"2px"}}>{conseguidos} / {total} · {pct}%</div>
           </div>
-          <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:"22px",cursor:"pointer",color: "var(--fx-muted2)"}}>×</button>
+          <button onClick={onClose} aria-label={t("common.close")} title={t("common.close")} style={{background:"transparent",border:"none",fontSize:"22px",cursor:"pointer",color: "var(--fx-muted2)"}}>×</button>
         </div>
 
         <div style={{padding:"14px 20px 24px"}}>

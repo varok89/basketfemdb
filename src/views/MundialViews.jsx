@@ -549,7 +549,7 @@ function VerPrediccionesModal({target,equipos,onClose}){
               <div style={{fontSize:"11px",color:"var(--fx-muted2)"}}>{t("verpred.subtitle")}</div>
             </div>
           </div>
-          <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:"22px",cursor:"pointer",color:"var(--fx-muted)"}}>✕</button>
+          <button onClick={onClose} aria-label={t("common.close")} title={t("common.close")} style={{background:"transparent",border:"none",fontSize:"22px",cursor:"pointer",color:"var(--fx-muted)"}}>✕</button>
         </div>
 
         {err&&<div style={{background:"#fef2f2",color:"#991b1b",padding:"10px",borderRadius:"8px",fontSize:"12px"}}>{err}</div>}

@@ -114,7 +114,7 @@ function PickerModal({players, equiposNombres, exclude, onPick, onClose}){
       <div onClick={e=>e.stopPropagation()} style={{background:"var(--fx-card)",borderRadius:"14px",width:"100%",maxWidth:"420px",boxShadow:"0 20px 60px rgba(0,0,0,0.4)",overflow:"hidden"}}>
         <div style={{padding:"14px 16px",borderBottom:"1px solid var(--fx-border)",display:"flex",gap:"10px",alignItems:"center"}}>
           <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder={t("comp.search")} style={{flex:1,padding:"10px 12px",border:"1.5px solid var(--fx-border)",borderRadius:"10px",fontSize:"14px",background:"var(--fx-card)",color:"var(--fx-text)"}}/>
-          <button onClick={onClose} style={{background:"none",border:"none",fontSize:"22px",cursor:"pointer",color:"var(--fx-muted2)"}}>×</button>
+          <button onClick={onClose} aria-label={t("common.close")} title={t("common.close")} style={{background:"none",border:"none",fontSize:"22px",cursor:"pointer",color:"var(--fx-muted2)"}}>×</button>
         </div>
         <div style={{maxHeight:"60vh",overflowY:"auto"}}>
           {q.trim().length<2&&<div style={{padding:"20px",textAlign:"center",color:"var(--fx-muted2)",fontSize:"13px"}}>{t("comp.search_hint")}</div>}

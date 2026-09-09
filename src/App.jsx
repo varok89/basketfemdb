@@ -38,6 +38,22 @@ if (!document.getElementById("bfdb-styles")) {
       border-radius: 8px;
       display: inline-block;
     }
+    /* Accesibilidad: outline visible en navegación con teclado (no con ratón) */
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible,
+    [role="button"]:focus-visible,
+    [tabindex]:focus-visible {
+      outline: 2px solid #9333ea;
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+    /* Elementos ya con outline propio (login modal, etc.) no se doblan */
+    input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline-offset: 0;
+    }
   `;
   document.head.appendChild(s);
 }
@@ -536,7 +552,7 @@ function PhotoLightbox({photo,onClose}){
   if(!photo) return null;
   return (
     <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",padding:"24px",cursor:"zoom-out"}}>
-      <button onClick={onClose} style={{position:"absolute",top:"16px",right:"20px",background:"rgba(255,255,255,0.15)",border:"none",borderRadius:"50%",width:"40px",height:"40px",color:"#fff",fontSize:"22px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+      <button onClick={onClose} aria-label="Cerrar" title="Cerrar" style={{position:"absolute",top:"16px",right:"20px",background:"rgba(255,255,255,0.15)",border:"none",borderRadius:"50%",width:"40px",height:"40px",color:"#fff",fontSize:"22px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
       <img src={photo} alt="" onClick={e=>e.stopPropagation()} style={{maxWidth:"90vw",maxHeight:"85vh",borderRadius:"12px",objectFit:"contain",boxShadow:"0 20px 60px rgba(0,0,0,0.5)",cursor:"default"}}/>
     </div>
   );
@@ -548,13 +564,30 @@ const posStyle=p=>{const [bg,color]=POS_C[p]||["#f1f5f9","#475569"];return{backg
 const inp={width:"100%",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"14px",color:"var(--fx-text)",outline:"none",boxSizing:"border-box",background:"var(--fx-card)"};
 
 function Fld({label,children}){return <div style={{marginBottom:"14px"}}><label style={{display:"block",fontSize:"12px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"6px",textTransform:"uppercase",letterSpacing:"0.5px"}}>{label}</label>{children}</div>;}
+function Breadcrumbs({items}){
+  return (
+    <nav aria-label="Breadcrumb" style={{marginBottom:"12px",fontSize:"13px",display:"flex",alignItems:"center",flexWrap:"wrap",gap:"2px"}}>
+      {items.filter(Boolean).map((it,i,arr)=>{
+        const last=i===arr.length-1;
+        return (
+          <span key={i} style={{display:"inline-flex",alignItems:"center",gap:"2px"}}>
+            {i>0&&<span style={{margin:"0 4px",color:"var(--fx-muted2)"}}>›</span>}
+            {it.onClick&&!last
+              ? <button onClick={it.onClick} style={{background:"none",border:"none",color:"#9333ea",cursor:"pointer",padding:0,fontSize:"inherit",fontWeight:600}}>{it.label}</button>
+              : <span style={{color:last?"var(--fx-text)":"var(--fx-muted)",fontWeight:last?700:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"220px",display:"inline-block"}}>{it.label}</span>}
+          </span>
+        );
+      })}
+    </nav>
+  );
+}
 
 function Modal({title,onClose,children}){return(
   <div style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
     <div style={{background:"var(--fx-card)",borderRadius:"20px",boxShadow:"0 20px 60px rgba(0,0,0,0.3)",width:"100%",maxWidth:"500px",maxHeight:"92vh",overflowY:"auto"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"20px 24px",borderBottom:"1px solid var(--fx-border)"}}>
         <h2 style={{fontWeight:700,fontSize:"18px",color:"var(--fx-text)",margin:0}}>{title}</h2>
-        <button onClick={onClose} style={{background:"none",border:"none",fontSize:"26px",color:"var(--fx-muted2)",cursor:"pointer",lineHeight:1}}>×</button>
+        <button onClick={onClose} aria-label="Cerrar" title="Cerrar" style={{background:"none",border:"none",fontSize:"26px",color:"var(--fx-muted2)",cursor:"pointer",lineHeight:1}}>×</button>
       </div>
       <div style={{padding:"24px"}}>{children}</div>
     </div>
@@ -3755,8 +3788,12 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
 
   if(selected) return(
     <div style={{maxWidth:"700px",margin:"0 auto",padding:"20px"}}>
+      <Breadcrumbs items={[
+        {label:t("tab.home"),onClick:()=>onGoToTab&&onGoToTab("home")},
+        {label:t("tab.jugadoras"),onClick:()=>{setSelId(null);setActiveTipo(null);}},
+        {label:selected.nombre}
+      ]}/>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
-        {(()=>{const prev=navHistory&&navHistory.length>0?navHistory[navHistory.length-1]:null;return prev?(<button onClick={onGoBack} style={{background:"none",border:"none",color:"#c084fc",fontSize:"15px",cursor:"pointer",fontWeight:600,padding:0}}>← Volver a {prev.label}</button>):(<button onClick={()=>{setSelId(null);setActiveTipo(null);}} style={{background:"none",border:"none",color:"#c084fc",fontSize:"15px",cursor:"pointer",fontWeight:600,padding:0}}>← Volver</button>);})()}
         <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
           <button onClick={()=>{
             const url=`${window.location.origin}/jugadoras/${selected.id_jugadora}`;
@@ -4484,8 +4521,12 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
     const {eq}=selected;
     return(
       <div style={{maxWidth:"720px",margin:"0 auto",padding:"20px"}}>
+        <Breadcrumbs items={[
+          {label:t("tab.home"),onClick:()=>onGoToTab&&onGoToTab("home")},
+          {label:t("tab.equipos"),onClick:()=>{setSelId(null);setSelYear(null);}},
+          {label:eq.nombre}
+        ]}/>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}}>
-          {(()=>{const prev=navHistory&&navHistory.length>0?navHistory[navHistory.length-1]:null;return prev?(<button onClick={onGoBack} style={{background:"none",border:"none",color:"#c084fc",fontSize:"15px",cursor:"pointer",fontWeight:600,padding:0}}>← Volver a {prev.label}</button>):(<button onClick={()=>{setSelId(null);setSelYear(null);}} style={{background:"none",border:"none",color:"#c084fc",fontSize:"15px",cursor:"pointer",fontWeight:600,padding:0}}>← Volver</button>);})()}
           <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
             <button onClick={()=>{
               const url=`${window.location.origin}/equipos/${eq.id_equipo}`;
@@ -4977,8 +5018,12 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
     const [bg,color]=TIPO_COLORS[selected.tipo]||["#f1f5f9","#475569"];
     return(
       <div style={{maxWidth:"720px",margin:"0 auto",padding:"20px"}}>
+        <Breadcrumbs items={[
+          {label:t("tab.home"),onClick:()=>onGoToTab&&onGoToTab("home")},
+          {label:t("tab.ligas"),onClick:()=>{setSelId(null);setSelYear(null);}},
+          {label:selected.nombre}
+        ]}/>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}}>
-          {(()=>{const prev=navHistory&&navHistory.length>0?navHistory[navHistory.length-1]:null;return prev?(<button onClick={onGoBack} style={{background:"none",border:"none",color:"#c084fc",fontSize:"15px",cursor:"pointer",fontWeight:600,padding:0}}>← Volver a {prev.label}</button>):(<button onClick={()=>{setSelId(null);setSelYear(null);}} style={{background:"none",border:"none",color:"#c084fc",fontSize:"15px",cursor:"pointer",fontWeight:600,padding:0}}>← Volver</button>);})()}
           {isAdmin&&<div style={{display:"flex",gap:"8px"}}>
             <button onClick={()=>setLigaModal("edit")} style={{background:"var(--fx-hover)",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"var(--fx-label)"}}>✏️ Editar</button>
             <button onClick={()=>setDelLiga(true)} style={{background:"#fee2e2",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#ef4444"}}>🗑️</button>
@@ -5227,8 +5272,12 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
     const age=coach.fecha_nac?Math.floor((new Date()-new Date(coach.fecha_nac))/(365.25*24*3600*1000)):null;
     return(
       <div style={{maxWidth:"880px",margin:"0 auto",padding:"20px",display:"flex",flexDirection:"column",gap:"16px"}}>
+        <Breadcrumbs items={[
+          {label:t("tab.home"),onClick:()=>onGoToTab&&onGoToTab("home")},
+          {label:t("tab.cuerpo_tecnico"),onClick:()=>setSelId(null)},
+          {label:coach.nombre}
+        ]}/>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"8px"}}>
-        {(()=>{const prev=navHistory&&navHistory.length>0?navHistory[navHistory.length-1]:null;return prev?(<button onClick={onGoBack} style={{background:"transparent",border:"none",color:"#9333ea",fontWeight:700,fontSize:"14px",cursor:"pointer",padding:"4px 0"}}>← Volver a {prev.label}</button>):(<button onClick={()=>setSelId(null)} style={{background:"transparent",border:"none",color:"#9333ea",fontWeight:700,fontSize:"14px",cursor:"pointer",padding:"4px 0"}}>← Volver</button>);})()}
         <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
           <button onClick={()=>{
             const url=`${window.location.origin}/coaches/${coach.id_coach}`;
@@ -5876,7 +5925,7 @@ function PerfilView({user,favoritos,onClose,onLogout}){
     <div style={{maxWidth:"640px",margin:"0 auto",padding:"12px"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
         <h2 style={{margin:0,fontSize:"20px",fontWeight:800,color:"var(--fx-text)"}}>👤 {t("profile.title")}</h2>
-        <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:"20px",cursor:"pointer",color:"var(--fx-muted)"}}>✕</button>
+        <button onClick={onClose} aria-label={t("common.close")} title={t("common.close")} style={{background:"transparent",border:"none",fontSize:"20px",cursor:"pointer",color:"var(--fx-muted)"}}>✕</button>
       </div>
 
       {/* cabecera con avatar */}

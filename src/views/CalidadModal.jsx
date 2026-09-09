@@ -1092,7 +1092,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
             <h2 style={{fontWeight:800,fontSize:"18px",color: "var(--fx-text)",margin:0}}>🩺 Calidad de datos</h2>
             <p style={{fontSize:"12px",color: "var(--fx-muted2)",margin:"4px 0 0"}}>Revisión de integridad de la base de datos</p>
           </div>
-          <button onClick={onClose} style={{background:"none",border:"none",fontSize:"22px",color: "var(--fx-muted2)",cursor:"pointer"}}>×</button>
+          <button onClick={onClose} aria-label="Cerrar" title="Cerrar" style={{background:"none",border:"none",fontSize:"22px",color: "var(--fx-muted2)",cursor:"pointer"}}>×</button>
         </div>
         <div style={{padding:"0 24px 12px",borderBottom:"1px solid var(--fx-border2)"}}>
           <div style={{display:"flex",gap:"4px",marginBottom:"8px",flexWrap:"wrap"}}>
