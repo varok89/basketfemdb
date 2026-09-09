@@ -3582,18 +3582,31 @@ function StatsJugadora({idJugadora,equipos,ligas,equiposNombres,onOpenPartido}){
 
 function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,onGoToTeam,onGoToCoach,openPlayerId,onClearPlayer,isAdmin,onGoToTab,navHistory,onGoBack,equiposNombres,setPlayers,setTempCoach,onGoToPartido,regExtra,isFavFn,onToggleFav}){
   const t = useT();
-  const [search,setSearch]         = useState("");
-  const [filterPos,setFilterPos]   = useState("");
-  const [filterNacs,setFilterNacs] = useState(new Set());
-  const [filterLiga,setFilterLiga] = useState("");
-  const [filterTemp,setFilterTemp] = useState("");
-  const [filterStatus,setFilterStatus] = useState("");
+  const _q=(()=>{try{return new URLSearchParams(window.location.search);}catch{return new URLSearchParams();}})();
+  const [search,setSearch]         = useState(_q.get("q")||"");
+  const [filterPos,setFilterPos]   = useState(_q.get("pos")||"");
+  const [filterNacs,setFilterNacs] = useState(()=>{const n=_q.get("nac");return n?new Set(n.split(",").filter(Boolean)):new Set();});
+  const [filterLiga,setFilterLiga] = useState(_q.get("liga")||"");
+  const [filterTemp,setFilterTemp] = useState(_q.get("temp")||"");
+  const [filterStatus,setFilterStatus] = useState(_q.get("status")||"");
   const [selId,setSelId]           = useState(openPlayerId||null);
   const [shareMsg,setShareMsg]     = useState(false);
   const [lightboxPhoto,setLightboxPhoto] = useState(null);
   const [visibleCount,setVisibleCount] = useState(60);
   const loadMoreRef = useRef(null);
-  useEffect(()=>{const seg='jugadoras';window.history.replaceState({},"",selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
+  useEffect(()=>{
+    const seg='jugadoras';
+    if(selId){window.history.replaceState({},"",`/${seg}/${selId}`);return;}
+    const params=new URLSearchParams();
+    if(search) params.set("q",search);
+    if(filterPos) params.set("pos",filterPos);
+    if(filterNacs.size) params.set("nac",[...filterNacs].join(","));
+    if(filterLiga) params.set("liga",filterLiga);
+    if(filterTemp) params.set("temp",filterTemp);
+    if(filterStatus) params.set("status",filterStatus);
+    const qs=params.toString();
+    window.history.replaceState({},"",`/${seg}${qs?"?"+qs:""}`);
+  },[selId,search,filterPos,filterNacs,filterLiga,filterTemp,filterStatus]);
   const [modal,setModal]           = useState(null);
   const [editSeason,setEditSeason] = useState(null);
   const [renewSeason,setRenewSeason] = useState(null);
@@ -4280,15 +4293,26 @@ function CalendarioEquipo({idEquipo,temporada,equipos,ligas,equiposNombres,onGoT
 
 function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlayer,onGoToCoach,onGoToLeague,openTeamId,openTeamYear,onClearTeam,isAdmin,onReload,onGoToTab,navHistory,onGoBack,equiposNombres,setEquipos,setEquiposNombres,setPlayers,setPalmares,regExtra,onGoToPartido,isFavFn,onToggleFav}){
   const t = useT();
-  const [search,setSearch]             = useState("");
-  const [filterLeague,setFilterLeague] = useState("");
-  const [filterSeason,setFilterSeason] = useState(null);
-  const [filterTipo,setFilterTipo]     = useState("");
+  const _q=(()=>{try{return new URLSearchParams(window.location.search);}catch{return new URLSearchParams();}})();
+  const [search,setSearch]             = useState(_q.get("q")||"");
+  const [filterLeague,setFilterLeague] = useState(_q.get("liga")||"");
+  const [filterSeason,setFilterSeason] = useState(_q.get("temp")||null);
+  const [filterTipo,setFilterTipo]     = useState(_q.get("tipo")||"");
   const [selId,setSelId]               = useState(openTeamId||null);
   const [shareMsg,setShareMsg]         = useState(false);
   const [visibleCount,setVisibleCount] = useState(60);
   const loadMoreRef = useRef(null);
-  useEffect(()=>{const seg='equipos';window.history.replaceState({},"",selId?`/${seg}/${selId}`:`/${seg}`);},[selId]);
+  useEffect(()=>{
+    const seg='equipos';
+    if(selId){window.history.replaceState({},"",`/${seg}/${selId}`);return;}
+    const params=new URLSearchParams();
+    if(search) params.set("q",search);
+    if(filterLeague) params.set("liga",filterLeague);
+    if(filterSeason) params.set("temp",filterSeason);
+    if(filterTipo) params.set("tipo",filterTipo);
+    const qs=params.toString();
+    window.history.replaceState({},"",`/${seg}${qs?"?"+qs:""}`);
+  },[selId,search,filterLeague,filterSeason,filterTipo]);
   const [selYear,setSelYear]           = useState(null);
   const [selLiga,setSelLiga]           = useState(null);
   const [teamModal,setTeamModal]       = useState(null);
