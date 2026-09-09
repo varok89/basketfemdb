@@ -4291,10 +4291,11 @@ function RecordsEquipo({idEquipo, temporada, players, equipos, onGoToPlayer}){
     return {v,d,plus,minus,diff:plus-minus,last5,bestWin,worstLoss,topScorer,pj:played.length};
   },[data,idEquipo]);
 
-  if(!data||!stats)return null;
-
   const playerMap=useMemo(()=>{const m={};(players||[]).forEach(p=>m[p.id_jugadora]=p);return m;},[players]);
   const eqMap=useMemo(()=>{const m={};(equipos||[]).forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
+
+  if(!data||!stats)return null;
+
   const rivalName=(p)=>{const id=p.id_equipo_local===idEquipo?p.id_equipo_visitante:p.id_equipo_local;return eqMap[id]?.nombre||id;};
   const scoreLabel=(p)=>{const a=p.id_equipo_local===idEquipo?p.resultado_local:p.resultado_visitante;const b=p.id_equipo_local===idEquipo?p.resultado_visitante:p.resultado_local;return `${a}-${b}`;};
 
