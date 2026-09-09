@@ -472,6 +472,13 @@ function BasketnetaView({user,equipos,cierre}){
 }
 
 function VerPrediccionesModal({target,equipos,onClose}){
+  const t = useT();
+  const bnLabel = (slot) => {
+    if (slot==="final_36") return t("bn.match.final");
+    if (slot==="br_35") return t("bn.match.br");
+    const [ronda,n] = slot.split("_");
+    return t("bn.match."+ronda, {n});
+  };
   const [data,setData]=useState(null);
   const [err,setErr]=useState("");
   const [jugMap,setJugMap]=useState({});
@@ -522,7 +529,7 @@ function VerPrediccionesModal({target,equipos,onClose}){
   const bnBySlot={};(data?.basketneta||[]).forEach(b=>{bnBySlot[b.slot]=b;});
   const boByPreg={};(data?.bola||[]).forEach(b=>{boByPreg[b.pregunta_id]=b.respuesta_ids||[];});
 
-  const preguntaLabel={campeon:"🏆 Campeón",mvp:"⭐ MVP",top_scorer:"🎯 Máxima anotadora",joven:"🌱 Mejor joven",quinteto:"🖐️ Quinteto ideal",t3pct:"🏹 Mejor % T3",robos:"🥷 Más robos"};
+  const preguntaLabel={campeon:t("verpred.q.campeon"),mvp:t("verpred.q.mvp"),top_scorer:t("verpred.q.top_scorer"),joven:t("verpred.q.joven"),quinteto:t("verpred.q.quinteto"),t3pct:t("verpred.q.t3pct"),robos:t("verpred.q.robos")};
 
   const marcar=(pick,correctList)=>{
     if(!correctList||correctList.length===0)return {};
@@ -539,7 +546,7 @@ function VerPrediccionesModal({target,equipos,onClose}){
             <UserAvatar avatar={target.avatar} googleUrl={target.google} nombre={target.nombre} size={40}/>
             <div>
               <div style={{fontSize:"16px",fontWeight:800,color:"var(--fx-text)"}}>{target.nombre}</div>
-              <div style={{fontSize:"11px",color:"var(--fx-muted2)"}}>Predicciones · Mundial 2026</div>
+              <div style={{fontSize:"11px",color:"var(--fx-muted2)"}}>{t("verpred.subtitle")}</div>
             </div>
           </div>
           <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:"22px",cursor:"pointer",color:"var(--fx-muted)"}}>✕</button>
@@ -547,11 +554,11 @@ function VerPrediccionesModal({target,equipos,onClose}){
 
         {err&&<div style={{background:"#fef2f2",color:"#991b1b",padding:"10px",borderRadius:"8px",fontSize:"12px"}}>{err}</div>}
         {!data&&!err&&<div style={{padding:"12px",display:"flex",flexDirection:"column",gap:"8px"}}>{Array.from({length:6}).map((_,i)=><div key={i} className="bfdb-skel" style={{width:"100%",height:"36px",borderRadius:"6px"}}/>)}</div>}
-        {data&&!data.cerrado&&<div style={{background:"#fef3c7",color:"#92400e",padding:"12px",borderRadius:"8px",fontSize:"12px"}}>La quiniela aún no está cerrada — solo podrás ver las predicciones de otros cuando empiece el primer partido.</div>}
+        {data&&!data.cerrado&&<div style={{background:"#fef3c7",color:"#92400e",padding:"12px",borderRadius:"8px",fontSize:"12px"}}>{t("verpred.not_closed")}</div>}
 
         {data?.cerrado&&(<>
           <div style={{marginTop:"6px"}}>
-            <div style={{fontSize:"13px",fontWeight:800,color:"var(--fx-text)",marginBottom:"8px"}}>🏀 Pronóstico (Basketneta)</div>
+            <div style={{fontSize:"13px",fontWeight:800,color:"var(--fx-text)",marginBottom:"8px"}}>{t("verpred.section.bn")}</div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:"8px",marginBottom:"12px"}}>
               {["A","B","C","D"].map(g=>(
                 <div key={g} style={{border:"1px solid var(--fx-border)",borderRadius:"8px",padding:"8px"}}>
@@ -572,11 +579,10 @@ function VerPrediccionesModal({target,equipos,onClose}){
               ))}
             </div>
             <div style={{border:"1px solid var(--fx-border)",borderRadius:"8px",padding:"10px"}}>
-              <div style={{fontSize:"11px",fontWeight:800,color:"var(--fx-muted)",marginBottom:"8px"}}>BRACKET</div>
+              <div style={{fontSize:"11px",fontWeight:800,color:"var(--fx-muted)",marginBottom:"8px"}}>{t("verpred.bracket")}</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px",fontSize:"12px"}}>
-                {[["playin_25","Play-in #25"],["playin_26","Play-in #26"],["playin_27","Play-in #27"],["playin_28","Play-in #28"],
-                  ["qf_29","Cuartos #29"],["qf_30","Cuartos #30"],["qf_31","Cuartos #31"],["qf_32","Cuartos #32"],
-                  ["sf_33","Semi #33"],["sf_34","Semi #34"],["br_35","3er puesto"],["final_36","🏆 Final"]].map(([slot,lab])=>{
+                {["playin_25","playin_26","playin_27","playin_28","qf_29","qf_30","qf_31","qf_32","sf_33","sf_34","br_35","final_36"].map(slot=>{
+                  const lab=slot==="final_36"?"🏆 "+t("bn.match.final"):bnLabel(slot);
                     const s=bnBySlot[slot];
                     const correcto=res.bracket&&res.bracket[slot];
                     const mk=correcto?marcar(s?.id_equipo,[correcto]):null;
@@ -592,7 +598,7 @@ function VerPrediccionesModal({target,equipos,onClose}){
           </div>
 
           <div style={{marginTop:"14px"}}>
-            <div style={{fontSize:"13px",fontWeight:800,color:"var(--fx-text)",marginBottom:"8px"}}>🔮 Bola de cristal</div>
+            <div style={{fontSize:"13px",fontWeight:800,color:"var(--fx-text)",marginBottom:"8px"}}>{t("verpred.section.bola")}</div>
             <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
               {["campeon","mvp","top_scorer","joven","quinteto","t3pct","robos"].map(pid=>{
                 const ids=boByPreg[pid]||[];
