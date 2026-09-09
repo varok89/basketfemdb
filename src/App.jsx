@@ -564,6 +564,43 @@ const posStyle=p=>{const [bg,color]=POS_C[p]||["#f1f5f9","#475569"];return{backg
 const inp={width:"100%",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 12px",fontSize:"14px",color:"var(--fx-text)",outline:"none",boxSizing:"border-box",background:"var(--fx-card)"};
 
 function Fld({label,children}){return <div style={{marginBottom:"14px"}}><label style={{display:"block",fontSize:"12px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"6px",textTransform:"uppercase",letterSpacing:"0.5px"}}>{label}</label>{children}</div>;}
+/* Boton "Suscribir al calendario": abre popover con 3 opciones (Google
+   Calendar, iOS/Apple Calendar via webcal, copiar enlace). Endpoint
+   /api/calendar devuelve un .ics dinamico con los partidos. */
+function CalendarSubscribeBtn({tipo, id, temporada}){
+  const t = useT();
+  const [open,setOpen]=useState(false);
+  const [copied,setCopied]=useState(false);
+  const ref=useRef();
+  useEffect(()=>{
+    if(!open)return;
+    const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
+    document.addEventListener("mousedown",h);
+    return ()=>document.removeEventListener("mousedown",h);
+  },[open]);
+  const qs=new URLSearchParams({tipo,id}); if(temporada)qs.set("temporada",temporada);
+  const httpsUrl=`${window.location.origin}/api/calendar?${qs.toString()}`;
+  const webcalUrl=httpsUrl.replace(/^https?:/,"webcal:");
+  const googleUrl=`https://calendar.google.com/calendar/render?cid=${encodeURIComponent(webcalUrl)}`;
+  const copyLink=async()=>{
+    try{ await navigator.clipboard.writeText(httpsUrl); setCopied(true); setTimeout(()=>setCopied(false),1800); }catch{}
+  };
+  return (
+    <div ref={ref} style={{position:"relative"}}>
+      <button onClick={()=>setOpen(o=>!o)} title={t("cal.subscribe")} style={{background:"var(--fx-hover)",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"7px 12px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"var(--fx-label)",display:"inline-flex",alignItems:"center",gap:"6px"}}>📅 {t("cal.subscribe")}</button>
+      {open&&(
+        <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,zIndex:50,background:"var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"12px",boxShadow:"0 10px 30px rgba(0,0,0,0.15)",minWidth:"260px",padding:"6px"}}>
+          <a href={googleUrl} target="_blank" rel="noopener" onClick={()=>setOpen(false)} style={{display:"flex",alignItems:"center",gap:"8px",padding:"9px 12px",borderRadius:"8px",fontSize:"13px",color:"var(--fx-text)",textDecoration:"none",fontWeight:600}} onMouseEnter={e=>e.currentTarget.style.background="var(--fx-hover)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>🗓 {t("cal.google")}</a>
+          <a href={webcalUrl} onClick={()=>setOpen(false)} style={{display:"flex",alignItems:"center",gap:"8px",padding:"9px 12px",borderRadius:"8px",fontSize:"13px",color:"var(--fx-text)",textDecoration:"none",fontWeight:600}} onMouseEnter={e=>e.currentTarget.style.background="var(--fx-hover)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>🍎 {t("cal.apple")}</a>
+          <button onClick={copyLink} style={{display:"flex",alignItems:"center",gap:"8px",padding:"9px 12px",borderRadius:"8px",fontSize:"13px",color:"var(--fx-text)",background:"none",border:"none",cursor:"pointer",fontWeight:600,width:"100%",textAlign:"left"}} onMouseEnter={e=>e.currentTarget.style.background="var(--fx-hover)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>{copied?"✓ "+t("cal.copied"):"🔗 "+t("cal.copy")}</button>
+          <a href={httpsUrl} download style={{display:"flex",alignItems:"center",gap:"8px",padding:"9px 12px",borderRadius:"8px",fontSize:"13px",color:"var(--fx-text)",textDecoration:"none",fontWeight:600}} onMouseEnter={e=>e.currentTarget.style.background="var(--fx-hover)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>📥 {t("cal.download")}</a>
+          <div style={{fontSize:"10px",color:"var(--fx-muted2)",padding:"6px 12px 4px"}}>{t("cal.hint")}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Breadcrumbs({items}){
   return (
     <nav aria-label="Breadcrumb" style={{marginBottom:"12px",fontSize:"13px",display:"flex",alignItems:"center",flexWrap:"wrap",gap:"2px"}}>
@@ -4658,6 +4695,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
               if(navigator.share){navigator.share({title:eq.nombre,text:shareTextEq,url}).catch(()=>{});}
               else{navigator.clipboard.writeText(url);setShareMsg(true);setTimeout(()=>setShareMsg(false),2000);}
             }} style={{background:"var(--fx-hover)",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"var(--fx-label)"}}>📤 Compartir</button>
+            <CalendarSubscribeBtn tipo="equipo" id={eq.id_equipo}/>
             {shareMsg&&<span style={{fontSize:"12px",color:"#16a34a",fontWeight:600}}>¡Enlace copiado!</span>}
             {isAdmin&&<>
             <button onClick={()=>setTeamModal("editTeam")} style={{background:"var(--fx-hover)",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"var(--fx-label)"}}>✏️ Editar</button>
@@ -5224,7 +5262,8 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
           {label:t("tab.ligas"),onClick:()=>{setSelId(null);setSelYear(null);}},
           {label:selected.nombre}
         ]}/>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px",flexWrap:"wrap",gap:"8px"}}>
+          <CalendarSubscribeBtn tipo="liga" id={selected.id_liga} temporada={effectiveYear}/>
           {isAdmin&&<div style={{display:"flex",gap:"8px"}}>
             <button onClick={()=>setLigaModal("edit")} style={{background:"var(--fx-hover)",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"var(--fx-label)"}}>✏️ Editar</button>
             <button onClick={()=>setDelLiga(true)} style={{background:"#fee2e2",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"#ef4444"}}>🗑️</button>

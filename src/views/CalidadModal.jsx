@@ -1147,28 +1147,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                 </label>
                 <button onClick={runScraper} disabled={scBusy||!scLiga||!scSlug.trim()} style={{background:scBusy||!scLiga||!scSlug.trim()?"#cbd5e1":(scDry?"#0f172a":"#9333ea"),color:"#fff",border:"none",borderRadius:"10px",padding:"11px 20px",fontWeight:700,fontSize:"13px",cursor:scBusy||!scLiga||!scSlug.trim()?"default":"pointer"}}>{scBusy?"Scrapeando… (puede tardar)":(scDry?"▶ Probar":"⬇️ Scrapear boxscores")}</button>
               </div>
-              {scRes&&(
-                <div style={{marginTop:"16px",background: "var(--fx-hover)",border:"1px solid var(--fx-border)",borderRadius:"12px",padding:"14px"}}>
-                  {scRes.error?<div style={{color:"#ef4444",fontSize:"13px"}}>❌ {scRes.error}</div>:(
-                    <div style={{fontSize:"13px",color:"#334155"}}>
-                      <div style={{fontWeight:700,marginBottom:"4px"}}>{scRes.dry?"🔎 Prueba · ":"✅ "}Partidos: {scRes.partidos}{scRes.creados>0?` · Creados: ${scRes.creados}`:""}{scRes.notas_rellenadas>0?` · Notas: ${scRes.notas_rellenadas}`:""}{scRes.parciales_escritos>0?` · Parciales: ${scRes.parciales_escritos}`:""} · Hechos: {scRes.hechos} · Saltados: {scRes.saltados} · Filas: {scRes.filas}{scRes.via_global>0?` · Global: ${scRes.via_global}`:""}{scRes.plantilla_altas>0?` · Altas plantilla: ${scRes.plantilla_altas}`:""}</div>
-                      {scRes.progreso&&<div style={{fontSize:"12px",color: "var(--fx-muted)",marginBottom:"4px"}}>{scBusy?"⏳ Procesando por lotes… ":"Lotes completados: "}{scRes.progreso}{scRes.dry?" (en Prueba solo se procesa el primer lote)":""}</div>}
-                      {scRes.colisiones&&scRes.colisiones.length>0&&<div style={{marginTop:"8px",color:"#dc2626",fontSize:"12px"}}><b>Colisiones ({scRes.colisiones.length})</b> — dos jugadoras del acta apuntan a la misma ficha, ese partido no se guardó: {scRes.colisiones.join("  ·  ")}</div>}
-                      {scRes.sin_mapear_equipos&&scRes.sin_mapear_equipos.length>0&&<div style={{marginTop:"8px",color:"#dc2626",fontSize:"12px"}}><b>Equipos sin mapear ({scRes.sin_mapear_equipos.length})</b> — no se creó ese partido; revisa el nombre del equipo: {scRes.sin_mapear_equipos.join("  ·  ")}</div>}
-                      {scRes.creados_detalle&&scRes.creados_detalle.length>0&&<div style={{marginTop:"8px",fontSize:"12px",color:"#0f766e"}}><b>Partidos {scRes.dry?"a crear":"creados"} ({scRes.creados_detalle.length}):</b><ul style={{margin:"4px 0 0",paddingLeft:"18px",maxHeight:"140px",overflowY:"auto"}}>{scRes.creados_detalle.map(function(d,i){return <li key={i} style={{marginBottom:"2px"}}>{d}</li>;})}</ul></div>}
-                      {scRes.mensaje&&<div style={{color: "var(--fx-muted)"}}>{scRes.mensaje}</div>}
-                      {scRes.sin_mapear&&scRes.sin_mapear.length>0&&(function(){
-                        // Las entradas vienen como "idPartido EQUIPO Nombre": agrupamos por jugadora
-                        var m={};
-                        scRes.sin_mapear.forEach(function(s){var k=String(s).replace(/^\S+\s+/,"");m[k]=(m[k]||0)+1;});
-                        var ks=Object.keys(m).sort();
-                        return <div style={{marginTop:"8px",color:"#b45309",fontSize:"12px"}}><b>Jugadoras sin mapear ({ks.length})</b> — crea o corrige su ficha y vuelve a lanzar: {ks.map(function(k){return k+(m[k]>1?" ("+m[k]+" partidos)":"");}).join("  ·  ")}</div>;
-                      })()}
-                      {scRes.detalles&&scRes.detalles.length>0&&<ul style={{margin:"8px 0 0",paddingLeft:"18px",maxHeight:"200px",overflowY:"auto"}}>{scRes.detalles.map(function(d,i){return <li key={i} style={{fontSize:"12px",color: "var(--fx-muted)",marginBottom:"2px"}}>{d}</li>;})}</ul>}
-                    </div>
-                  )}
-                </div>
-              )}
+              {scRes&&<ScraperResult res={scRes} busy={scBusy}/>}
             </div>
           )}
           {tab==="feb-fichas"&&(
@@ -2078,6 +2057,70 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* Presenta el resultado de un scraper con chips coloreados + secciones
+   colapsables. Usa <details> nativo, cero JS de estado. */
+function ScraperResult({res,busy}){
+  if(res.error) return <div style={{marginTop:"16px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:"12px",padding:"14px",color:"#b91c1c",fontSize:"13px",fontWeight:600}}>❌ {res.error}</div>;
+  const dry=!!res.dry;
+  const chip=(label,value,color)=>{
+    if(!value||value===0)return null;
+    return <span key={label} style={{display:"inline-flex",alignItems:"center",gap:"5px",background:color+"22",color,border:"1px solid "+color+"55",borderRadius:"999px",padding:"4px 10px",fontSize:"12px",fontWeight:700}}>{label}: <b>{value}</b></span>;
+  };
+  const section=(title,items,color,note)=>{
+    if(!items||!items.length)return null;
+    return (
+      <details style={{marginTop:"8px",border:"1px solid "+color+"33",borderRadius:"10px",background:color+"11"}}>
+        <summary style={{cursor:"pointer",padding:"8px 12px",fontWeight:700,fontSize:"12px",color,listStyle:"none",display:"flex",alignItems:"center",gap:"6px"}}>
+          <span style={{fontSize:"13px"}}>▸</span>{title} <span style={{background:color,color:"#fff",borderRadius:"999px",padding:"1px 8px",fontSize:"10px"}}>{items.length}</span>
+        </summary>
+        <div style={{padding:"6px 12px 10px"}}>
+          {note&&<div style={{fontSize:"11px",color:"var(--fx-muted)",marginBottom:"6px",fontStyle:"italic"}}>{note}</div>}
+          <ul style={{margin:0,paddingLeft:"18px",maxHeight:"200px",overflowY:"auto"}}>
+            {items.map((d,i)=><li key={i} style={{fontSize:"12px",color:"var(--fx-text)",marginBottom:"2px"}}>{d}</li>)}
+          </ul>
+        </div>
+      </details>
+    );
+  };
+  // Preparar sin_mapear agrupadas por jugadora
+  var sinMapearJugs=null;
+  if(res.sin_mapear&&res.sin_mapear.length){
+    var m={};res.sin_mapear.forEach(function(s){var k=String(s).replace(/^\S+\s+/,"");m[k]=(m[k]||0)+1;});
+    sinMapearJugs=Object.keys(m).sort().map(function(k){return k+(m[k]>1?" ("+m[k]+" partidos)":"");});
+  }
+  return (
+    <div style={{marginTop:"16px",background:"var(--fx-hover)",border:"1px solid var(--fx-border)",borderRadius:"12px",padding:"14px"}}>
+      {/* Cabecera + estado */}
+      <div style={{display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap",marginBottom:"10px"}}>
+        <span style={{fontSize:"14px",fontWeight:800,color:dry?"#7c3aed":"#16a34a"}}>{dry?"🔎 Prueba (dry-run)":"✅ Aplicado"}</span>
+        {res.progreso&&<span style={{fontSize:"11px",color:"var(--fx-muted)"}}>{busy?"⏳ Procesando… ":"Lotes: "}{res.progreso}{dry?" (solo primer lote)":""}</span>}
+      </div>
+      {/* Chips de counts */}
+      <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"6px"}}>
+        {chip("Partidos",res.partidos,"#0891b2")}
+        {chip("Creados",res.creados,"#16a34a")}
+        {chip("Notas rellenadas",res.notas_rellenadas,"#16a34a")}
+        {chip("Parciales",res.parciales_escritos,"#0891b2")}
+        {chip("Filas boxscore",res.filas,"#0891b2")}
+        {chip("Hechos",res.hechos,"#7c3aed")}
+        {chip("Saltados",res.saltados,"#94a3b8")}
+        {chip("Global",res.via_global,"#7c3aed")}
+        {chip("Altas plantilla",res.plantilla_altas,"#16a34a")}
+        {res.colisiones&&res.colisiones.length>0&&chip("Colisiones",res.colisiones.length,"#dc2626")}
+        {res.sin_mapear_equipos&&res.sin_mapear_equipos.length>0&&chip("Equipos sin mapear",res.sin_mapear_equipos.length,"#dc2626")}
+        {sinMapearJugs&&chip("Jugadoras sin mapear",sinMapearJugs.length,"#b45309")}
+      </div>
+      {res.mensaje&&<div style={{fontSize:"12px",color:"var(--fx-muted)",marginTop:"6px"}}>{res.mensaje}</div>}
+      {/* Secciones colapsables */}
+      {section((dry?"🆕 Partidos a crear":"🆕 Partidos creados"),res.creados_detalle,"#16a34a")}
+      {section("⚠️ Equipos sin mapear",res.sin_mapear_equipos,"#dc2626","No se creó el partido; revisa el nombre del equipo")}
+      {section("⚠️ Colisiones (dos jugadoras del acta apuntan a la misma ficha)",res.colisiones,"#dc2626","Ese partido no se guardó")}
+      {section("👤 Jugadoras sin mapear",sinMapearJugs,"#b45309","Crea o corrige su ficha y vuelve a lanzar")}
+      {section("📋 Detalles",res.detalles,"#64748b")}
     </div>
   );
 }
