@@ -9,19 +9,19 @@ import { useT } from "../lib/i18n";
 const N=v=>{if(typeof v==="string"&&v.indexOf(":")>=0){const p=v.split(":");return (parseInt(p[0],10)||0)+(parseInt(p[1],10)||0)/60;}return Number(v)||0;};
 
 const METRICAS=[
-  {k:"pts",lbl:"PTS"},
-  {k:"reb",lbl:"REB"},
-  {k:"ast",lbl:"AST"},
-  {k:"rob",lbl:"ROB"},
-  {k:"tap",lbl:"TAP"},
-  {k:"val",lbl:"VAL"},
-  {k:"min",lbl:"MIN"},
-  {k:"per",lbl:"PER"},
+  {k:"pts",lbl:"PTS",desc:"Puntos por partido"},
+  {k:"reb",lbl:"REB",desc:"Rebotes por partido (ofensivos + defensivos)"},
+  {k:"ast",lbl:"AST",desc:"Asistencias por partido"},
+  {k:"rob",lbl:"ROB",desc:"Robos de balón por partido"},
+  {k:"tap",lbl:"TAP",desc:"Tapones por partido"},
+  {k:"val",lbl:"VAL",desc:"Valoración media (fórmula FIBA de eficiencia)"},
+  {k:"min",lbl:"MIN",desc:"Minutos por partido"},
+  {k:"per",lbl:"PER",desc:"Pérdidas por partido (menos es mejor)"},
 ];
 const PCTS=[
-  {k:"tc",lbl:"%TC"},
-  {k:"t3",lbl:"%T3"},
-  {k:"tl",lbl:"%TL"},
+  {k:"tc",lbl:"%TC",desc:"Porcentaje de tiros de campo (anotados/intentados)"},
+  {k:"t3",lbl:"%T3",desc:"Porcentaje de triples"},
+  {k:"tl",lbl:"%TL",desc:"Porcentaje de tiros libres"},
 ];
 const RADAR_KEYS=["pts","reb","ast","rob","tap","val"];
 const COLORS=["#9333ea","#0ea5e9","#f97316","#16a34a"];
@@ -30,14 +30,14 @@ const INIT_SLOTS=2;
 
 /* Equipos: enteros para PJ/V/D, resto 1 decimal. best null = no resaltar. */
 const METRICAS_EQ=[
-  {k:"pj",  lbl:"PJ",   fmt:v=>v,                                          best:null},
-  {k:"v",   lbl:"V",    fmt:v=>v,                                          best:"max"},
-  {k:"d",   lbl:"D",    fmt:v=>v,                                          best:"min"},
-  {k:"pctV",lbl:"%V",   fmt:v=>v==null?"—":v.toFixed(1)+"%",               best:"max"},
-  {k:"pfg", lbl:"PF/g", fmt:v=>v==null?"—":v.toFixed(1),                   best:"max"},
-  {k:"pcg", lbl:"PC/g", fmt:v=>v==null?"—":v.toFixed(1),                   best:"min"},
-  {k:"dif", lbl:"+/-",  fmt:v=>v==null?"—":(v>0?"+":"")+v,                 best:"max"},
-  {k:"difg",lbl:"+/-/g",fmt:v=>v==null?"—":(v>0?"+":"")+v.toFixed(1),      best:"max"},
+  {k:"pj",  lbl:"PJ",   desc:"Partidos jugados (con resultado)",                        fmt:v=>v,                                          best:null},
+  {k:"v",   lbl:"V",    desc:"Victorias",                                               fmt:v=>v,                                          best:"max"},
+  {k:"d",   lbl:"D",    desc:"Derrotas",                                                fmt:v=>v,                                          best:"min"},
+  {k:"pctV",lbl:"%V",   desc:"Porcentaje de victorias sobre partidos jugados",          fmt:v=>v==null?"—":v.toFixed(1)+"%",               best:"max"},
+  {k:"pfg", lbl:"PF/g", desc:"Puntos a favor por partido (media)",                      fmt:v=>v==null?"—":v.toFixed(1),                   best:"max"},
+  {k:"pcg", lbl:"PC/g", desc:"Puntos en contra por partido (media, menos es mejor)",   fmt:v=>v==null?"—":v.toFixed(1),                   best:"min"},
+  {k:"dif", lbl:"+/-",  desc:"Diferencia total de puntos en la temporada (PF − PC)",   fmt:v=>v==null?"—":(v>0?"+":"")+v,                 best:"max"},
+  {k:"difg",lbl:"+/-/g",desc:"Diferencia de puntos por partido (media)",                fmt:v=>v==null?"—":(v>0?"+":"")+v.toFixed(1),      best:"max"},
 ];
 
 function agregarBox(rows){
@@ -383,7 +383,7 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
                     const best=(!m.best||!validos.length)?null:(m.best==="min"?Math.min(...validos):Math.max(...validos));
                     return (
                       <tr key={m.k} style={{borderTop:"1px solid var(--fx-border2)"}}>
-                        <td style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600}}>{m.lbl}</td>
+                        <td title={m.desc} style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600,cursor:"help",textDecoration:"underline dotted var(--fx-muted2)",textUnderlineOffset:"3px"}}>{m.lbl}</td>
                         {vals.map((v,i)=>(
                           <td key={i} style={{textAlign:"center",fontSize:"13px",padding:"6px 4px",fontWeight:v!=null&&v===best?800:500,color:v!=null&&v===best?COLORS[i]:"var(--fx-text)"}}>
                             {v==null?"—":m.fmt(v)}
@@ -395,7 +395,7 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
                 ) : (
                   <>
                     <tr>
-                      <td style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600}}>PJ</td>
+                      <td title="Partidos jugados con boxscore" style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600,cursor:"help",textDecoration:"underline dotted var(--fx-muted2)",textUnderlineOffset:"3px"}}>PJ</td>
                       {stats.map((st,i)=>(
                         <td key={i} style={{textAlign:"center",fontSize:"13px",padding:"6px 4px",color:"var(--fx-text)"}}>{st?.pj||"—"}</td>
                       ))}
@@ -406,7 +406,7 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
                       const best=validos.length?(m.k==="per"?Math.min(...validos):Math.max(...validos)):null;
                       return (
                         <tr key={m.k} style={{borderTop:"1px solid var(--fx-border2)"}}>
-                          <td style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600}}>{m.lbl}</td>
+                          <td title={m.desc} style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600,cursor:"help",textDecoration:"underline dotted var(--fx-muted2)",textUnderlineOffset:"3px"}}>{m.lbl}</td>
                           {vals.map((v,i)=>(
                             <td key={i} style={{textAlign:"center",fontSize:"13px",padding:"6px 4px",fontWeight:v!=null&&v===best?800:500,color:v!=null&&v===best?COLORS[i]:"var(--fx-text)"}}>
                               {v==null?"—":v.toFixed(1)}
@@ -421,7 +421,7 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
                       const best=validos.length?Math.max(...validos):null;
                       return (
                         <tr key={m.k} style={{borderTop:"1px solid var(--fx-border2)"}}>
-                          <td style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600}}>{m.lbl}</td>
+                          <td title={m.desc} style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600,cursor:"help",textDecoration:"underline dotted var(--fx-muted2)",textUnderlineOffset:"3px"}}>{m.lbl}</td>
                           {vals.map((v,i)=>(
                             <td key={i} style={{textAlign:"center",fontSize:"13px",padding:"6px 4px",fontWeight:v!=null&&v===best?800:500,color:v!=null&&v===best?COLORS[i]:"var(--fx-text)"}}>
                               {v==null?"—":v.toFixed(1)+"%"}
