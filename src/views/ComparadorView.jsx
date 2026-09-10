@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useT } from "../lib/i18n";
 
-/* Comparador de 2-3 jugadoras lado a lado. Reutiliza el patron de fetch a
-   partido_boxscore de StatsJugadora en App.jsx. Radar SVG a mano (6 ejes),
-   sin libreria — YAGNI. */
+/* Comparador de 2-3 jugadoras o equipos lado a lado. Toggle en el header:
+   - modo "jugadoras": fetch a partido_boxscore, promedios por partido + radar SVG.
+   - modo "equipos": fetch a partidos, PJ/V/D/PF/PC/DIF. Sin radar. */
 
 const N=v=>{if(typeof v==="string"&&v.indexOf(":")>=0){const p=v.split(":");return (parseInt(p[0],10)||0)+(parseInt(p[1],10)||0)/60;}return Number(v)||0;};
 
@@ -26,6 +26,18 @@ const PCTS=[
 const RADAR_KEYS=["pts","reb","ast","rob","tap","val"];
 const COLORS=["#9333ea","#0ea5e9","#f97316"];
 
+/* Equipos: enteros para PJ/V/D, resto 1 decimal. best null = no resaltar. */
+const METRICAS_EQ=[
+  {k:"pj",  lbl:"PJ",   fmt:v=>v,                                          best:null},
+  {k:"v",   lbl:"V",    fmt:v=>v,                                          best:"max"},
+  {k:"d",   lbl:"D",    fmt:v=>v,                                          best:"min"},
+  {k:"pctV",lbl:"%V",   fmt:v=>v==null?"—":v.toFixed(1)+"%",               best:"max"},
+  {k:"pfg", lbl:"PF/g", fmt:v=>v==null?"—":v.toFixed(1),                   best:"max"},
+  {k:"pcg", lbl:"PC/g", fmt:v=>v==null?"—":v.toFixed(1),                   best:"min"},
+  {k:"dif", lbl:"+/-",  fmt:v=>v==null?"—":(v>0?"+":"")+v,                 best:"max"},
+  {k:"difg",lbl:"+/-/g",fmt:v=>v==null?"—":(v>0?"+":"")+v.toFixed(1),      best:"max"},
+];
+
 function agregarBox(rows){
   if(!rows||!rows.length)return null;
   const s=(k)=>rows.reduce((a,x)=>a+N(x[k]),0);
@@ -45,6 +57,28 @@ function agregarBox(rows){
     tc:pct("tc_anotados","tc_intentados"),
     t3:pct("t3_anotados","t3_intentados"),
     tl:pct("tl_anotados","tl_intentados"),
+  };
+}
+
+function agregarEquipo(rows, idEquipo){
+  if(!rows||!rows.length)return null;
+  const jugados=rows.filter(p=>p.resultado_local!=null&&p.resultado_visitante!=null);
+  if(!jugados.length)return null;
+  let v=0,d=0,pf=0,pc=0;
+  jugados.forEach(p=>{
+    const a=Number(p.id_equipo_local===idEquipo?p.resultado_local:p.resultado_visitante)||0;
+    const b=Number(p.id_equipo_local===idEquipo?p.resultado_visitante:p.resultado_local)||0;
+    pf+=a; pc+=b;
+    if(a>b)v++; else if(b>a)d++;
+  });
+  const pj=jugados.length;
+  return {
+    pj, v, d,
+    pctV: pj?v*100/pj:null,
+    pfg:  pj?pf/pj:null,
+    pcg:  pj?pc/pj:null,
+    dif:  pf-pc,
+    difg: pj?(pf-pc)/pj:null,
   };
 }
 
@@ -98,28 +132,34 @@ function Radar({datasets, size=260}){
   );
 }
 
-function PickerModal({players, equiposNombres, exclude, onPick, onClose}){
+function PickerModal({modo, players, equipos, equiposNombres, exclude, onPick, onClose}){
   const t = useT();
   const [q,setQ]=useState("");
   const list=useMemo(()=>{
     const term=q.trim().toLowerCase();
     if(!term)return [];
+    if(modo==="equipos"){
+      return (equipos||[])
+        .filter(e=>!exclude.has(e.id_equipo))
+        .filter(e=>(e.nombre||"").toLowerCase().includes(term))
+        .slice(0,30);
+    }
     return (players||[])
       .filter(p=>!exclude.has(p.id_jugadora))
       .filter(p=>(p.nombre||"").toLowerCase().includes(term))
       .slice(0,30);
-  },[players,q,exclude]);
+  },[modo,players,equipos,q,exclude]);
   return (
     <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1200,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"40px 12px"}}>
       <div onClick={e=>e.stopPropagation()} style={{background:"var(--fx-card)",borderRadius:"14px",width:"100%",maxWidth:"420px",boxShadow:"0 20px 60px rgba(0,0,0,0.4)",overflow:"hidden"}}>
         <div style={{padding:"14px 16px",borderBottom:"1px solid var(--fx-border)",display:"flex",gap:"10px",alignItems:"center"}}>
-          <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder={t("comp.search")} style={{flex:1,padding:"10px 12px",border:"1.5px solid var(--fx-border)",borderRadius:"10px",fontSize:"14px",background:"var(--fx-card)",color:"var(--fx-text)"}}/>
+          <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder={modo==="equipos"?"Buscar equipo…":t("comp.search")} style={{flex:1,padding:"10px 12px",border:"1.5px solid var(--fx-border)",borderRadius:"10px",fontSize:"14px",background:"var(--fx-card)",color:"var(--fx-text)"}}/>
           <button onClick={onClose} aria-label={t("common.close")} title={t("common.close")} style={{background:"none",border:"none",fontSize:"22px",cursor:"pointer",color:"var(--fx-muted2)"}}>×</button>
         </div>
         <div style={{maxHeight:"60vh",overflowY:"auto"}}>
           {q.trim().length<2&&<div style={{padding:"20px",textAlign:"center",color:"var(--fx-muted2)",fontSize:"13px"}}>{t("comp.search_hint")}</div>}
           {q.trim().length>=2&&list.length===0&&<div style={{padding:"20px",textAlign:"center",color:"var(--fx-muted2)",fontSize:"13px"}}>{t("comp.search_empty")}</div>}
-          {list.map(p=>{
+          {modo==="jugadoras"&&list.map(p=>{
             const eqN=equiposNombres?.[p.id_equipo]||p.id_equipo||"";
             return (
               <button key={p.id_jugadora} onClick={()=>onPick(p)} style={{display:"flex",alignItems:"center",gap:"10px",width:"100%",padding:"10px 14px",border:"none",background:"transparent",cursor:"pointer",borderBottom:"1px solid var(--fx-border2)",textAlign:"left"}}>
@@ -131,13 +171,24 @@ function PickerModal({players, equiposNombres, exclude, onPick, onClose}){
               </button>
             );
           })}
+          {modo==="equipos"&&list.map(e=>(
+            <button key={e.id_equipo} onClick={()=>onPick(e)} style={{display:"flex",alignItems:"center",gap:"10px",width:"100%",padding:"10px 14px",border:"none",background:"transparent",cursor:"pointer",borderBottom:"1px solid var(--fx-border2)",textAlign:"left"}}>
+              {e.escudo
+                ? <img loading="lazy" className={e.tipo==="seleccion"?"bfdb-flag-bg":undefined} src={e.escudo} alt="" style={{width:36,height:36,borderRadius:"6px",objectFit:"contain",background:"var(--fx-hover)"}}/>
+                : <div style={{width:36,height:36,borderRadius:"6px",background:"var(--fx-hover)"}}/>}
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:"13px",color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.nombre}</div>
+                <div style={{fontSize:"11px",color:"var(--fx-muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.pais||"—"}{e.tipo==="seleccion"?" · Selección":""}</div>
+              </div>
+            </button>
+          ))}
         </div>
       </div>
     </div>
   );
 }
 
-function SlotCard({slot, idx, onOpen, onClear}){
+function SlotCard({modo, slot, idx, onOpen, onClear}){
   const t = useT();
   if(!slot){
     return (
@@ -147,21 +198,30 @@ function SlotCard({slot, idx, onOpen, onClear}){
       </button>
     );
   }
-  const {player}=slot;
+  const entity=modo==="equipos"?slot.team:slot.player;
+  const nombre=entity?.nombre||"";
+  const foto=modo==="equipos"?entity?.escudo:entity?.foto;
+  const isSel=modo==="equipos"&&entity?.tipo==="seleccion";
+  const sub=modo==="equipos"
+    ? (entity?.pais||"—")+(isSel?" · Selección":"")
+    : (entity?.posicion||"—")+(entity?.altura?` · ${entity.altura}m`:"");
   return (
     <div style={{background:"var(--fx-card)",borderRadius:"14px",padding:"14px 12px",boxShadow:"0 1px 6px rgba(0,0,0,0.06)",position:"relative",textAlign:"center",minHeight:"140px",minWidth:0,borderTop:`4px solid ${COLORS[idx]}`}}>
       <button onClick={onClear} title={t("comp.remove")} style={{position:"absolute",top:6,right:8,background:"transparent",border:"none",fontSize:"18px",cursor:"pointer",color:"var(--fx-muted2)"}}>×</button>
-      {player.foto
-        ? <img src={player.foto} alt="" style={{width:64,height:64,borderRadius:"50%",objectFit:"cover",border:`2px solid ${COLORS[idx]}`}}/>
-        : <div style={{width:64,height:64,borderRadius:"50%",background:"var(--fx-hover)",margin:"0 auto"}}/>}
-      <div style={{fontWeight:800,fontSize:"13px",color:"var(--fx-text)",marginTop:"8px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{player.nombre}</div>
-      <div style={{fontSize:"11px",color:"var(--fx-muted)",marginTop:"2px"}}>{player.posicion||"—"}{player.altura?` · ${player.altura}m`:""}</div>
+      {foto
+        ? <img className={isSel?"bfdb-flag-bg":undefined} src={foto} alt="" style={modo==="equipos"
+            ? {width:64,height:64,borderRadius:"10px",objectFit:"contain",border:`2px solid ${COLORS[idx]}`,background:"var(--fx-hover)"}
+            : {width:64,height:64,borderRadius:"50%",objectFit:"cover",border:`2px solid ${COLORS[idx]}`}}/>
+        : <div style={{width:64,height:64,borderRadius:modo==="equipos"?"10px":"50%",background:"var(--fx-hover)",margin:"0 auto"}}/>}
+      <div style={{fontWeight:800,fontSize:"13px",color:"var(--fx-text)",marginTop:"8px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nombre}</div>
+      <div style={{fontSize:"11px",color:"var(--fx-muted)",marginTop:"2px"}}>{sub}</div>
     </div>
   );
 }
 
-export default function ComparadorView({players, equipos, ligas, equiposNombres, onGoToPlayer}){
+export default function ComparadorView({players, equipos, ligas, equiposNombres, onGoToPlayer, onGoToTeam}){
   const t = useT();
+  const [modo,setModo]=useState("jugadoras"); // "jugadoras" | "equipos"
   const [slots,setSlots]=useState([null,null,null]);
   const [pickerFor,setPickerFor]=useState(null);
   const [loading,setLoading]=useState(false);
@@ -170,7 +230,15 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
     window.history.replaceState({},"","/comparar");
   },[]);
 
-  async function pickForSlot(idx, player){
+  // Cambiar de modo limpia los slots (los datos no son compatibles).
+  const switchModo=(nuevo)=>{
+    if(nuevo===modo)return;
+    setModo(nuevo);
+    setSlots([null,null,null]);
+    setPickerFor(null);
+  };
+
+  async function pickJugadora(idx, player){
     setPickerFor(null);
     setLoading(true);
     const {data}=await supabase.from("partido_boxscore")
@@ -182,6 +250,22 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
     setSlots(prev=>{
       const next=[...prev];
       next[idx]={player,rows,tempSel:temps[0]||null,compSel:"ALL"};
+      return next;
+    });
+  }
+
+  async function pickEquipo(idx, team){
+    setPickerFor(null);
+    setLoading(true);
+    const {data}=await supabase.from("partidos")
+      .select("id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante")
+      .or(`id_equipo_local.eq.${team.id_equipo},id_equipo_visitante.eq.${team.id_equipo}`);
+    setLoading(false);
+    const rows=data||[];
+    const temps=[...new Set(rows.map(x=>x.temporada))].sort((a,b)=>String(b).localeCompare(String(a)));
+    setSlots(prev=>{
+      const next=[...prev];
+      next[idx]={team,rows,tempSel:temps[0]||null,compSel:"ALL"};
       return next;
     });
   }
@@ -198,12 +282,18 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
   const clearSlot=idx=>setSlots(prev=>{const next=[...prev];next[idx]=null;return next;});
 
   const activos=slots.map((s,i)=>({s,i})).filter(x=>x.s);
-  const excludeSet=new Set(activos.map(x=>x.s.player.id_jugadora));
+  const excludeSet=new Set(activos.map(x=>modo==="equipos"?x.s.team.id_equipo:x.s.player.id_jugadora));
   const ligaMap=useMemo(()=>{const m={};(ligas||[]).forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
 
   const stats=activos.map(({s})=>{
     const r=s.rows.filter(x=>x.temporada===s.tempSel && (s.compSel==="ALL"||x.id_liga===s.compSel));
-    return agregarBox(r);
+    return modo==="equipos" ? agregarEquipo(r, s.team.id_equipo) : agregarBox(r);
+  });
+
+  const btnTab=(active)=>({
+    border:"none", borderRadius:"10px", padding:"7px 14px", fontSize:"13px", fontWeight:700,
+    cursor:"pointer", background:active?"#9333ea":"var(--fx-card)", color:active?"#fff":"var(--fx-muted)",
+    boxShadow:active?"none":"0 1px 4px rgba(0,0,0,0.06)"
   });
 
   return (
@@ -213,9 +303,14 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
         <p style={{color:"var(--fx-muted)",fontSize:"13px",margin:"4px 0 0"}}>{t("comp.subtitle")}</p>
       </div>
 
+      <div style={{display:"flex",gap:"8px",marginBottom:"14px"}}>
+        <button onClick={()=>switchModo("jugadoras")} style={btnTab(modo==="jugadoras")}>👤 Jugadoras</button>
+        <button onClick={()=>switchModo("equipos")} style={btnTab(modo==="equipos")}>🏟️ Equipos</button>
+      </div>
+
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px",marginBottom:"20px"}}>
         {[0,1,2].map(i=>(
-          <SlotCard key={i} slot={slots[i]} idx={i} onOpen={()=>setPickerFor(i)} onClear={()=>clearSlot(i)}/>
+          <SlotCard key={i} modo={modo} slot={slots[i]} idx={i} onOpen={()=>setPickerFor(i)} onClear={()=>clearSlot(i)}/>
         ))}
       </div>
 
@@ -228,12 +323,13 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
               {activos.map(({s,i})=>{
                 const temps=[...new Set(s.rows.map(x=>x.temporada))].sort((a,b)=>String(b).localeCompare(String(a)));
                 const compsTemp=[...new Set(s.rows.filter(x=>x.temporada===s.tempSel).map(x=>x.id_liga))];
+                const nombre=modo==="equipos"?s.team.nombre:s.player.nombre;
                 return (
                   <div key={i} style={{borderLeft:`3px solid ${COLORS[i]}`,paddingLeft:"10px"}}>
-                    <div style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"6px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.player.nombre}</div>
+                    <div style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"6px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nombre}</div>
                     {temps.length>0?(
                       <select value={s.tempSel||""} onChange={e=>setSlotField(i,"tempSel",e.target.value)} style={{width:"100%",padding:"6px 8px",borderRadius:"8px",border:"1px solid var(--fx-border)",fontSize:"12px",background:"var(--fx-card)",color:"var(--fx-text)",marginBottom:"6px"}}>
-                        {temps.map(t=><option key={t} value={t}>{t}</option>)}
+                        {temps.map(tt=><option key={tt} value={tt}>{tt}</option>)}
                       </select>
                     ):<div style={{fontSize:"11px",color:"var(--fx-muted2)"}}>{t("comp.no_data")}</div>}
                     {compsTemp.length>1 && (
@@ -253,58 +349,80 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
               <thead>
                 <tr>
                   <th style={{textAlign:"left",fontSize:"11px",color:"var(--fx-muted)",padding:"6px 4px"}}>{t("comp.metric")}</th>
-                  {activos.map(({s,i})=>(
-                    <th key={i} style={{textAlign:"center",fontSize:"11px",color:COLORS[i],padding:"6px 4px",fontWeight:800}}>
-                      {s.player.nombre.split(" ").slice(-1)[0]}
-                    </th>
-                  ))}
+                  {activos.map(({s,i})=>{
+                    const nombre=modo==="equipos"?s.team.nombre:s.player.nombre;
+                    const label=modo==="equipos"?nombre:nombre.split(" ").slice(-1)[0];
+                    return (
+                      <th key={i} style={{textAlign:"center",fontSize:"11px",color:COLORS[i],padding:"6px 4px",fontWeight:800}}>{label}</th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600}}>PJ</td>
-                  {stats.map((st,i)=>(
-                    <td key={i} style={{textAlign:"center",fontSize:"13px",padding:"6px 4px",color:"var(--fx-text)"}}>{st?.pj||"—"}</td>
-                  ))}
-                </tr>
-                {METRICAS.map(m=>{
-                  const vals=stats.map(st=>st?.[m.k]);
-                  const validos=vals.filter(v=>v!=null);
-                  const best=validos.length?(m.k==="per"?Math.min(...validos):Math.max(...validos)):null;
-                  return (
-                    <tr key={m.k} style={{borderTop:"1px solid var(--fx-border2)"}}>
-                      <td style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600}}>{m.lbl}</td>
-                      {vals.map((v,i)=>(
-                        <td key={i} style={{textAlign:"center",fontSize:"13px",padding:"6px 4px",fontWeight:v!=null&&v===best?800:500,color:v!=null&&v===best?COLORS[i]:"var(--fx-text)"}}>
-                          {v==null?"—":v.toFixed(1)}
-                        </td>
+                {modo==="equipos" ? (
+                  METRICAS_EQ.map(m=>{
+                    const vals=stats.map(st=>st?.[m.k]);
+                    const validos=vals.filter(v=>v!=null);
+                    const best=(!m.best||!validos.length)?null:(m.best==="min"?Math.min(...validos):Math.max(...validos));
+                    return (
+                      <tr key={m.k} style={{borderTop:"1px solid var(--fx-border2)"}}>
+                        <td style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600}}>{m.lbl}</td>
+                        {vals.map((v,i)=>(
+                          <td key={i} style={{textAlign:"center",fontSize:"13px",padding:"6px 4px",fontWeight:v!=null&&v===best?800:500,color:v!=null&&v===best?COLORS[i]:"var(--fx-text)"}}>
+                            {v==null?"—":m.fmt(v)}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <>
+                    <tr>
+                      <td style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600}}>PJ</td>
+                      {stats.map((st,i)=>(
+                        <td key={i} style={{textAlign:"center",fontSize:"13px",padding:"6px 4px",color:"var(--fx-text)"}}>{st?.pj||"—"}</td>
                       ))}
                     </tr>
-                  );
-                })}
-                {PCTS.map(m=>{
-                  const vals=stats.map(st=>st?.[m.k]);
-                  const validos=vals.filter(v=>v!=null);
-                  const best=validos.length?Math.max(...validos):null;
-                  return (
-                    <tr key={m.k} style={{borderTop:"1px solid var(--fx-border2)"}}>
-                      <td style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600}}>{m.lbl}</td>
-                      {vals.map((v,i)=>(
-                        <td key={i} style={{textAlign:"center",fontSize:"13px",padding:"6px 4px",fontWeight:v!=null&&v===best?800:500,color:v!=null&&v===best?COLORS[i]:"var(--fx-text)"}}>
-                          {v==null?"—":v.toFixed(1)+"%"}
-                        </td>
-                      ))}
-                    </tr>
-                  );
-                })}
+                    {METRICAS.map(m=>{
+                      const vals=stats.map(st=>st?.[m.k]);
+                      const validos=vals.filter(v=>v!=null);
+                      const best=validos.length?(m.k==="per"?Math.min(...validos):Math.max(...validos)):null;
+                      return (
+                        <tr key={m.k} style={{borderTop:"1px solid var(--fx-border2)"}}>
+                          <td style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600}}>{m.lbl}</td>
+                          {vals.map((v,i)=>(
+                            <td key={i} style={{textAlign:"center",fontSize:"13px",padding:"6px 4px",fontWeight:v!=null&&v===best?800:500,color:v!=null&&v===best?COLORS[i]:"var(--fx-text)"}}>
+                              {v==null?"—":v.toFixed(1)}
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                    {PCTS.map(m=>{
+                      const vals=stats.map(st=>st?.[m.k]);
+                      const validos=vals.filter(v=>v!=null);
+                      const best=validos.length?Math.max(...validos):null;
+                      return (
+                        <tr key={m.k} style={{borderTop:"1px solid var(--fx-border2)"}}>
+                          <td style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600}}>{m.lbl}</td>
+                          {vals.map((v,i)=>(
+                            <td key={i} style={{textAlign:"center",fontSize:"13px",padding:"6px 4px",fontWeight:v!=null&&v===best?800:500,color:v!=null&&v===best?COLORS[i]:"var(--fx-text)"}}>
+                              {v==null?"—":v.toFixed(1)+"%"}
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </>
+                )}
               </tbody>
             </table>
           </div>
 
-          {stats.some(s=>s) && (
+          {modo==="jugadoras" && stats.some(s=>s) && (
             <div style={{background:"var(--fx-card)",borderRadius:"14px",padding:"14px",boxShadow:"0 1px 6px rgba(0,0,0,0.05)"}}>
               <div style={{fontSize:"12px",fontWeight:800,color:"var(--fx-muted)",marginBottom:"8px",textTransform:"uppercase",letterSpacing:"0.5px"}}>{t("comp.profile")}</div>
-              <Radar datasets={activos.map(({s,i})=>({color:COLORS[i], values:stats[i]||{}}))}/>
+              <Radar datasets={activos.map(({i})=>({color:COLORS[i], values:stats[i]||{}}))}/>
               <div style={{display:"flex",gap:"14px",justifyContent:"center",flexWrap:"wrap",marginTop:"10px"}}>
                 {activos.map(({s,i})=>(
                   <div key={i} style={{display:"flex",alignItems:"center",gap:"6px",fontSize:"12px",color:"var(--fx-text)"}}>
@@ -316,12 +434,23 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
               <div style={{fontSize:"10px",color:"var(--fx-muted2)",textAlign:"center",marginTop:"6px"}}>{t("comp.radar_note")}</div>
             </div>
           )}
+
+          {modo==="equipos" && (
+            <div style={{display:"flex",gap:"14px",justifyContent:"center",flexWrap:"wrap",marginTop:"6px"}}>
+              {activos.map(({s,i})=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:"6px",fontSize:"12px",color:"var(--fx-text)"}}>
+                  <span style={{width:12,height:12,borderRadius:3,background:COLORS[i],display:"inline-block"}}/>
+                  <button onClick={()=>onGoToTeam&&onGoToTeam(s.team.id_equipo)} style={{background:"none",border:"none",padding:0,color:"var(--fx-text)",cursor:"pointer",fontWeight:700,textDecoration:"underline"}}>{s.team.nombre}</button>
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
 
       {pickerFor!==null && (
-        <PickerModal players={players} equiposNombres={equiposNombres} exclude={excludeSet}
-          onPick={p=>pickForSlot(pickerFor,p)} onClose={()=>setPickerFor(null)}/>
+        <PickerModal modo={modo} players={players} equipos={equipos} equiposNombres={equiposNombres} exclude={excludeSet}
+          onPick={p=>modo==="equipos"?pickEquipo(pickerFor,p):pickJugadora(pickerFor,p)} onClose={()=>setPickerFor(null)}/>
       )}
     </div>
   );

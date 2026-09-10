@@ -7256,7 +7256,7 @@ export default function App(){
             <p style={{color:"var(--fx-muted)",fontSize:"14px",margin:"0 0 16px"}}>{t("quiniela.gate")}</p>
             <button onClick={()=>setShowLogin(true)} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"11px 24px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>{t("menu.login")}</button>
           </div>)}
-        {!showPrivacidad&&!showPerfil&&tab==="comparar"&&<Suspense fallback={<GridSkel n={3} cards={false}/>}><ComparadorView players={players} equipos={equipos} ligas={ligas} equiposNombres={equiposNombres} onGoToPlayer={(id)=>goToPlayer(id,{tab:"comparar",label:"Comparar"})}/></Suspense>}
+        {!showPrivacidad&&!showPerfil&&tab==="comparar"&&<Suspense fallback={<GridSkel n={3} cards={false}/>}><ComparadorView players={players} equipos={equipos} ligas={ligas} equiposNombres={equiposNombres} onGoToPlayer={(id)=>goToPlayer(id,{tab:"comparar",label:"Comparar"})} onGoToTeam={(id)=>goToTeam(id,null,{tab:"comparar",label:"Comparar"})}/></Suspense>}
         {!showPrivacidad&&!showPerfil&&tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} mvps={mvps} equiposNombres={equiposNombres} openClasiKey={openClasiKey} onClearClasi={()=>setOpenClasiKey(null)} partidosSub={partidosSub} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id,year)=>goToTeam(id,year||null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})} onGoToPlayer={(id)=>goToPlayer(id,{tab:"partidos",label:"Ver partidos"})}/>}
       </div>
     </div>
