@@ -14,7 +14,7 @@ function FlagSelect({value,options,onChange,disabled,placeholder,size}){
   const filtered=nq?options.filter(o=>norm(o.label).includes(nq)):options;
   const flag=url=>url
     ?<img loading="lazy" decoding="async" src={url} alt="" style={{width:fw,height:fh,objectFit:"contain",flexShrink:0}}/>
-    :<span style={{width:fw,height:fh,background:"#e2e8f0",borderRadius:2,flexShrink:0}}/>;
+    :<span style={{width:fw,height:fh,background:"var(--fx-border)",borderRadius:2,flexShrink:0}}/>;
   const toggle=()=>{if(disabled)return;setOpen(o=>{const nv=!o;if(nv)setQ("");return nv;});};
   return(
     <div style={{position:"relative",flex:1,minWidth:0}}>
@@ -41,7 +41,7 @@ function FlagSelect({value,options,onChange,disabled,placeholder,size}){
             {filtered.map(o=>(
               <div key={o.id} onClick={()=>{onChange(o.id);setOpen(false);}}
                 style={{display:"flex",alignItems:"center",gap:"6px",padding:"6px 8px",fontSize:"12px",cursor:"pointer",borderBottom:"1px solid #f8fafc"}}
-                onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
+                onMouseEnter={e=>e.currentTarget.style.background="var(--fx-hover)"}
                 onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
                 {flag(o.flagUrl)}
                 <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{o.label}</span>
@@ -126,7 +126,7 @@ function BolaCristalView({user,equipos,cierre}){
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
-      <div style={{background:cerrado?"#fef2f2":"#f0fdf4",border:`1px solid ${cerrado?"#fecaca":"#bbf7d0"}`,borderRadius:"12px",padding:"12px 14px",fontSize:"12px",color:cerrado?"#991b1b":"#166534"}}>
+      <div style={{background:cerrado?"var(--fx-red-bg)":"var(--fx-green-bg)",border:`1px solid ${cerrado?"var(--fx-red-border)":"#bbf7d0"}`,borderRadius:"12px",padding:"12px 14px",fontSize:"12px",color:cerrado?"var(--fx-red-text)":"var(--fx-green-text)"}}>
         {cerrado
           ?<><b>{t("bola.closed_status")}</b> {t("bola.closed_full",{fecha:cierre?new Date(cierre).toLocaleString(locale(),{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"})}</>
           :<><b>{t("bola.open_status")}</b> {t("bola.open_full",{fecha:cierre?": "+new Date(cierre).toLocaleString(locale(),{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):""})}</>}
@@ -296,7 +296,7 @@ function BasketnetaView({user,equipos,cierre}){
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
-      <div style={{background:cerrado?"#fef2f2":"#f0fdf4",border:`1px solid ${cerrado?"#fecaca":"#bbf7d0"}`,borderRadius:"12px",padding:"12px 14px",fontSize:"12px",color:cerrado?"#991b1b":"#166534"}}>
+      <div style={{background:cerrado?"var(--fx-red-bg)":"var(--fx-green-bg)",border:`1px solid ${cerrado?"var(--fx-red-border)":"#bbf7d0"}`,borderRadius:"12px",padding:"12px 14px",fontSize:"12px",color:cerrado?"var(--fx-red-text)":"var(--fx-green-text)"}}>
         {cerrado
           ?<><b>{t("bn.closed_status")}</b> {t("bn.closed_full",{fecha:cierre?new Date(cierre).toLocaleString(locale(),{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"})}</>
           :<><b>{t("bn.open_status")}</b> {t("bn.open_full")}</>}
@@ -305,15 +305,15 @@ function BasketnetaView({user,equipos,cierre}){
       <div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
         <div style={{fontSize:"15px",fontWeight:800,color:"var(--fx-text)",marginBottom:"4px"}}>{t("bn.order_groups")}</div>
         <div style={{fontSize:"11px",color:"var(--fx-muted)",marginBottom:"10px"}}>
-          <span style={{color:"#166534",fontWeight:700}}>{t("bn.pos1_note")}</span>{t("bn.pos1_desc")}
-          <span style={{color:"#a16207",fontWeight:700}}>{t("bn.pos23_note")}</span>{t("bn.pos23_desc")}
-          <span style={{color:"#b91c1c",fontWeight:700}}>{t("bn.pos4_note")}</span>{t("bn.pos4_desc")}
+          <span style={{color:"var(--fx-green-text)",fontWeight:700}}>{t("bn.pos1_note")}</span>{t("bn.pos1_desc")}
+          <span style={{color:"var(--fx-amber-text)",fontWeight:700}}>{t("bn.pos23_note")}</span>{t("bn.pos23_desc")}
+          <span style={{color:"var(--fx-red-text)",fontWeight:700}}>{t("bn.pos4_note")}</span>{t("bn.pos4_desc")}
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:"10px"}}>
           {BN_GRUPOS.map(g=>{
             const total=gruposMap[g]||[];
-            const bgPos={1:"#dcfce7",2:"#fef3c7",3:"#fef3c7",4:"#fee2e2"};
-            const numPos={1:"#166534",2:"#a16207",3:"#a16207",4:"#b91c1c"};
+            const bgPos={1:"var(--fx-green-bg)",2:"var(--fx-amber-hover)",3:"var(--fx-amber-hover)",4:"var(--fx-red-bg)"};
+            const numPos={1:"var(--fx-green-text)",2:"var(--fx-amber-text)",3:"var(--fx-amber-text)",4:"var(--fx-red-text)"};
             return(
               <div key={g} style={{border:"1px solid var(--fx-border)",borderRadius:"10px",padding:"8px"}}>
                 <div style={{fontSize:"11px",fontWeight:800,color:"var(--fx-muted)",marginBottom:"6px",textAlign:"center"}}>{t("bn.group",{letra:g})}</div>
@@ -342,16 +342,16 @@ function BasketnetaView({user,equipos,cierre}){
         {(()=>{
           const teamBtn=(id,activo)=>({
             display:"flex",alignItems:"center",gap:"5px",width:"100%",textAlign:"left",padding:"5px 7px",
-            background:activo?"#9333ea":id?"#f8fafc":"#f1f5f9",
+            background:activo?"#9333ea":id?"var(--fx-hover)":"#f1f5f9",
             color:activo?"#fff":id?"#1e293b":"#94a3b8",
-            border:`1px solid ${activo?"#9333ea":"#e2e8f0"}`,
+            border:`1px solid ${activo?"#9333ea":"var(--fx-border)"}`,
             borderRadius:"5px",fontSize:"11px",fontWeight:activo?800:600,
             cursor:id&&!cerrado?"pointer":"not-allowed",
             marginBottom:"3px"
           });
           const flagImg=id=>{
             const url=escDe(id);
-            if(!url) return <span style={{width:16,height:12,background:"#e2e8f0",borderRadius:2,flexShrink:0}}/>;
+            if(!url) return <span style={{width:16,height:12,background:"var(--fx-border)",borderRadius:2,flexShrink:0}}/>;
             return <img loading="lazy" decoding="async" src={url} alt="" style={{width:16,height:12,objectFit:"contain",flexShrink:0}}/>;
           };
           const teamLabel=id=>(
@@ -508,7 +508,7 @@ function VerPrediccionesModal({target,equipos,onClose}){
 
   const flag=url=>url
     ?<img loading="lazy" decoding="async" src={url} alt="" style={{width:16,height:12,objectFit:"contain",flexShrink:0}}/>
-    :<span style={{width:16,height:12,background:"#e2e8f0",borderRadius:2,flexShrink:0,display:"inline-block"}}/>;
+    :<span style={{width:16,height:12,background:"var(--fx-border)",borderRadius:2,flexShrink:0,display:"inline-block"}}/>;
 
   const teamPill=id=>id?(
     <span style={{display:"inline-flex",alignItems:"center",gap:"5px",background:"var(--fx-hover)",color:"var(--fx-text)",border:"1px solid var(--fx-border)",borderRadius:"6px",padding:"3px 7px",fontSize:"12px",fontWeight:600}}>
@@ -552,9 +552,9 @@ function VerPrediccionesModal({target,equipos,onClose}){
           <button onClick={onClose} aria-label={t("common.close")} title={t("common.close")} style={{background:"transparent",border:"none",fontSize:"22px",cursor:"pointer",color:"var(--fx-muted)"}}>✕</button>
         </div>
 
-        {err&&<div style={{background:"#fef2f2",color:"#991b1b",padding:"10px",borderRadius:"8px",fontSize:"12px"}}>{err}</div>}
+        {err&&<div style={{background:"var(--fx-red-bg)",color:"var(--fx-red-text)",padding:"10px",borderRadius:"8px",fontSize:"12px"}}>{err}</div>}
         {!data&&!err&&<div style={{padding:"12px",display:"flex",flexDirection:"column",gap:"8px"}}>{Array.from({length:6}).map((_,i)=><div key={i} className="bfdb-skel" style={{width:"100%",height:"36px",borderRadius:"6px"}}/>)}</div>}
-        {data&&!data.cerrado&&<div style={{background:"#fef3c7",color:"#92400e",padding:"12px",borderRadius:"8px",fontSize:"12px"}}>{t("verpred.not_closed")}</div>}
+        {data&&!data.cerrado&&<div style={{background:"var(--fx-amber-hover)",color:"#92400e",padding:"12px",borderRadius:"8px",fontSize:"12px"}}>{t("verpred.not_closed")}</div>}
 
         {data?.cerrado&&(<>
           <div style={{marginTop:"6px"}}>
@@ -565,12 +565,12 @@ function VerPrediccionesModal({target,equipos,onClose}){
                   <div style={{fontSize:"11px",fontWeight:800,color:"var(--fx-muted)",marginBottom:"6px",textAlign:"center"}}>{t("bn.group",{letra:g})}</div>
                   {[1,2,3,4].map(pos=>{
                     const s=bnBySlot[`grupo_${g}_${pos}`];
-                    const bgPos={1:"#dcfce7",2:"#fef3c7",3:"#fef3c7",4:"#fee2e2"}[pos];
+                    const bgPos={1:"var(--fx-green-bg)",2:"var(--fx-amber-hover)",3:"var(--fx-amber-hover)",4:"var(--fx-red-bg)"}[pos];
                     const correcto=res.grupos&&res.grupos[`grupo_${g}_${pos}`];
                     const mk=correcto?marcar(s?.id_equipo,[correcto]):null;
                     return(
                       <div key={pos} style={{display:"flex",alignItems:"center",gap:"6px",padding:"3px 6px",background:mk?mk.background:bgPos,border:mk?mk.border:"2px solid transparent",borderRadius:"6px",marginBottom:"3px",fontSize:"12px"}}>
-                        <b style={{width:"16px",color:"#334155"}}>{pos}º</b>
+                        <b style={{width:"16px",color:"var(--fx-text)"}}>{pos}º</b>
                         {s?<div style={{display:"flex",alignItems:"center",gap:"5px",overflow:"hidden"}}>{flag(escDe(s.id_equipo))}<span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.nombre||s.id_equipo}</span></div>:<span style={{color:"var(--fx-muted2)"}}>—</span>}
                       </div>
                     );
@@ -587,7 +587,7 @@ function VerPrediccionesModal({target,equipos,onClose}){
                     const correcto=res.bracket&&res.bracket[slot];
                     const mk=correcto?marcar(s?.id_equipo,[correcto]):null;
                     return(
-                      <div key={slot} style={{display:"flex",alignItems:"center",gap:"6px",padding:"4px 6px",background:mk?mk.background:(slot==="final_36"?"#fef3c7":"#f8fafc"),border:mk?mk.border:"2px solid transparent",borderRadius:"6px"}}>
+                      <div key={slot} style={{display:"flex",alignItems:"center",gap:"6px",padding:"4px 6px",background:mk?mk.background:(slot==="final_36"?"var(--fx-amber-hover)":"var(--fx-hover)"),border:mk?mk.border:"2px solid transparent",borderRadius:"6px"}}>
                         <span style={{fontSize:"10px",color:"var(--fx-muted)",fontWeight:700,minWidth:"78px"}}>{lab}</span>
                         {s?teamPill(s.id_equipo):<span style={{color:"var(--fx-muted2)",fontSize:"11px"}}>—</span>}
                       </div>
@@ -702,7 +702,7 @@ function ResultadosOficialesAdmin(){
   };
   return(
     <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
-      <div style={{background:terminado?"#f0fdf4":"#fef3c7",border:`1px solid ${terminado?"#bbf7d0":"#fde68a"}`,borderRadius:"12px",padding:"12px 14px",fontSize:"13px",color:terminado?"#166534":"#92400e"}}>
+      <div style={{background:terminado?"var(--fx-green-bg)":"var(--fx-amber-hover)",border:`1px solid ${terminado?"#bbf7d0":"var(--fx-amber-border)"}`,borderRadius:"12px",padding:"12px 14px",fontSize:"13px",color:terminado?"var(--fx-green-text)":"#92400e"}}>
         {terminado
           ?<>✅ <b>El Mundial ha terminado.</b> Los picks automáticos ya se están evaluando. Rellena aquí los premios oficiales (MVP, Mejor Joven y Quinteto Ideal) que anuncie FIBA para completar la puntuación de bola de cristal.</>
           :<>⏳ <b>El Mundial aún no ha terminado.</b> Los premios oficiales (MVP, Mejor Joven, Quinteto) se rellenan aquí cuando FIBA los anuncie tras la final. Los puntos de bola de cristal solo se dan cuando finalice el torneo.</>}
@@ -731,7 +731,7 @@ export default function QuinielaView({user,equipos,onAbrirPerfil,isAdmin}){
     setRank(r||[]);
   })();},[user.id,tab]);
 
-  const btnStyle=a=>({background:a?"#9333ea":"#f8fafc",color:a?"#fff":"#64748b",border:a?"none":"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"});
+  const btnStyle=a=>({background:a?"#9333ea":"var(--fx-hover)",color:a?"#fff":"#64748b",border:a?"none":"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"});
 
   return(
     <div style={{maxWidth:"820px",margin:"0 auto",padding:"12px"}}>
@@ -756,7 +756,7 @@ export default function QuinielaView({user,equipos,onAbrirPerfil,isAdmin}){
 
       {tab==="ranking"&&(
         <div style={{background:"var(--fx-card)",borderRadius:"12px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
-          <div style={{padding:"12px 14px",background:"#faf5ff",fontSize:"12px",color:"#6b21a8",borderBottom:"1px solid #e9d5ff",borderRadius:"12px 12px 0 0"}}>
+          <div style={{padding:"12px 14px",background:"var(--fx-lila-bg)",fontSize:"12px",color:"#6b21a8",borderBottom:"1px solid #e9d5ff",borderRadius:"12px 12px 0 0"}}>
             {t("quiniela.rank.note")}
           </div>
           <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
@@ -779,11 +779,11 @@ export default function QuinielaView({user,equipos,onAbrirPerfil,isAdmin}){
                 return(
                 <tr key={r.user_id}
                   onClick={onClick}
-                  style={{borderTop:"1px solid var(--fx-border2)",background:r.user_id===user.id?"#faf5ff":undefined,cursor:cerrado?"pointer":"default"}}
+                  style={{borderTop:"1px solid var(--fx-border2)",background:r.user_id===user.id?"var(--fx-lila-bg)":undefined,cursor:cerrado?"pointer":"default"}}
                   onMouseEnter={e=>{if(cerrado)e.currentTarget.style.background="#f5f3ff";}}
-                  onMouseLeave={e=>{e.currentTarget.style.background=r.user_id===user.id?"#faf5ff":"";}}
+                  onMouseLeave={e=>{e.currentTarget.style.background=r.user_id===user.id?"var(--fx-lila-bg)":"";}}
                   title={cerrado?t("quiniela.rank.view_pred"):undefined}>
-                  <td style={{padding:"10px 14px",fontWeight:700,color:i===0?"#eab308":i===1?"#94a3b8":i===2?"#c2410c":"#64748b"}}>{i+1}</td>
+                  <td style={{padding:"10px 14px",fontWeight:700,color:i===0?"#eab308":i===1?"#94a3b8":i===2?"var(--fx-amber-text)":"#64748b"}}>{i+1}</td>
                   <td style={{padding:"8px 14px",fontWeight:600,color:"var(--fx-text)"}}>
                     <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                       <UserAvatar avatar={r.avatar} googleUrl={google} nombre={r.nombre} size={28}/>

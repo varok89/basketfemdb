@@ -1101,7 +1101,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               var totalCount=g.items.reduce(function(a,t){return a+t.count;},0);
               return(
                 <button key={gi} onClick={function(){setTab(g.items[0].key);}}
-                  style={{background:active?"#9333ea":"#f8fafc",color:active?"#fff":"#64748b",border:active?"none":"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"7px 14px",cursor:"pointer",fontSize:"12px",fontWeight:700,whiteSpace:"nowrap"}}>
+                  style={{background:active?"#9333ea":"var(--fx-hover)",color:active?"#fff":"#64748b",border:active?"none":"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"7px 14px",cursor:"pointer",fontSize:"12px",fontWeight:700,whiteSpace:"nowrap"}}>
                   {g.title}
                   {totalCount>0&&<span style={{display:"inline-block",marginLeft:"4px",background:active?"rgba(255,255,255,0.3)":"#ef4444",color:"#fff",borderRadius:"10px",padding:"0 5px",fontSize:"9px"}}>{totalCount}</span>}
                 </button>
@@ -1111,7 +1111,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           <div style={{display:"flex",gap:"4px",flexWrap:"wrap"}}>
             {(CAL_GROUPS.find(function(g){return g.items.some(function(t){return t.key===tab;});})||CAL_GROUPS[0]).items.map(function(t){return(
               <button key={t.key} onClick={function(){setTab(t.key);}}
-                style={{background:tab===t.key?"#fff7ed":"transparent",border:tab===t.key?"1.5px solid #fed7aa":"1.5px solid transparent",borderRadius:"8px",padding:"5px 10px",cursor:"pointer",fontSize:"11px",fontWeight:700,color:tab===t.key?"#c2410c":"#94a3b8",whiteSpace:"nowrap"}}>
+                style={{background:tab===t.key?"var(--fx-amber-bg)":"transparent",border:tab===t.key?"1.5px solid #fed7aa":"1.5px solid transparent",borderRadius:"8px",padding:"5px 10px",cursor:"pointer",fontSize:"11px",fontWeight:700,color:tab===t.key?"var(--fx-amber-text)":"#94a3b8",whiteSpace:"nowrap"}}>
                 {t.label}
                 {t.count>0&&<span style={{display:"inline-block",marginLeft:"3px",background:"#ef4444",color:"#fff",borderRadius:"10px",padding:"0 5px",fontSize:"9px"}}>{t.count}</span>}
               </button>
@@ -1153,7 +1153,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           {tab==="feb-fichas"&&(
             <div>
               <p style={{color: "var(--fx-muted)",fontSize:"13px",marginBottom:"14px"}}>Rellena <b>fecha_nac, altura, posición y nacionalidad</b> de jugadoras que tienen <code>id_feb</code> pero les faltan datos, scrapeando su ficha oficial en baloncestoenvivo.feb.es. Cada lote agrupa por partido para optimizar créditos de ScraperAPI.</p>
-              <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:"10px",padding:"10px 12px",marginBottom:"12px",fontSize:"12px",color:"#9a3412"}}>
+              <div style={{background:"var(--fx-amber-bg)",border:"1px solid #fed7aa",borderRadius:"10px",padding:"10px 12px",marginBottom:"12px",fontSize:"12px",color:"#9a3412"}}>
                 📊 <b>{febPend==null?"…":febPend}</b> jugadoras pendientes con <code>id_feb</code> y sin <code>fecha_nac</code>.
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
@@ -1172,10 +1172,10 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               {febRes&&(
                 <div style={{marginTop:"16px",background: "var(--fx-hover)",border:"1px solid var(--fx-border)",borderRadius:"12px",padding:"14px"}}>
                   {febRes.error?<div style={{color:"#ef4444",fontSize:"13px"}}>❌ {febRes.error}</div>:(
-                    <div style={{fontSize:"13px",color:"#334155"}}>
+                    <div style={{fontSize:"13px",color:"var(--fx-text)"}}>
                       <div style={{fontWeight:700,marginBottom:"4px"}}>{febDry?"🔎 Prueba · ":"✅ "}Candidatas: {febRes.candidatas} · Partidos scrapeados: {febRes.partidos_scrapeados} · Actualizadas: {febRes.fichas_actualizadas}{febRes.iter>1?` · Lotes: ${febRes.iter}`:""}</div>
                       {febRes.errores&&febRes.errores.length>0&&<div style={{marginTop:"8px",color:"#dc2626",fontSize:"12px"}}><b>Errores ({febRes.errores.length})</b>: {febRes.errores.join(" · ")}</div>}
-                      {febRes.resultados&&febRes.resultados.length>0&&<ul style={{margin:"8px 0 0",paddingLeft:"18px",maxHeight:"260px",overflowY:"auto",fontSize:"12px"}}>{febRes.resultados.slice(0,120).map(function(r,i){return <li key={i} style={{marginBottom:"3px",color:r.error?"#b45309":"#0f766e"}}>{r.nombre} → {r.fecha_nac||"—"} · {r.altura_cm||"—"}cm · {r.posicion||"—"} · {r.nacionalidad||"—"}{r.error?` (${r.error})`:""}</li>;})}</ul>}
+                      {febRes.resultados&&febRes.resultados.length>0&&<ul style={{margin:"8px 0 0",paddingLeft:"18px",maxHeight:"260px",overflowY:"auto",fontSize:"12px"}}>{febRes.resultados.slice(0,120).map(function(r,i){return <li key={i} style={{marginBottom:"3px",color:r.error?"var(--fx-amber-text)":"#0f766e"}}>{r.nombre} → {r.fecha_nac||"—"} · {r.altura_cm||"—"}cm · {r.posicion||"—"} · {r.nacionalidad||"—"}{r.error?` (${r.error})`:""}</li>;})}</ul>}
                     </div>
                   )}
                 </div>
@@ -1204,7 +1204,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                 {carrInfo&&!carrInfo.error&&<button onClick={()=>carrCargar(true)} disabled={!!carrBusy} style={{background:"#64748b",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="dry"?"Dry run...":"🧪 Dry run"}</button>}
                 {carrInfo&&!carrInfo.error&&<button onClick={()=>carrCargar(false)} disabled={!!carrBusy} style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="cargar"?"Cargando...":"🚀 Cargar carreras"}</button>}
               </div>
-              <div style={{padding:"10px 12px",background:"#faf5ff",border:"1px solid #e9d5ff",borderRadius:"10px",marginBottom:"12px"}}>
+              <div style={{padding:"10px 12px",background:"var(--fx-lila-bg)",border:"1px solid #e9d5ff",borderRadius:"10px",marginBottom:"12px"}}>
                 <div style={{fontSize:"12px",fontWeight:700,color:"#7c3aed",marginBottom:"6px"}}>🌐 Modo liga completa ({carrEquiposLiga.length} equipos en {carrTemp})</div>
                 <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
                   <button onClick={ligaAnalizar} disabled={!!carrBusy||!carrEquiposLiga.length} style={{background:"#7c3aed",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy||!carrEquiposLiga.length?0.5:1}}>{carrBusy==="liga_info"?"Analizando...":"🔍 Analizar TODA la liga"}</button>
@@ -1238,7 +1238,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                             <td style={{padding:"4px 6px",textAlign:"center",color:nFaltan?"#0ea5e9":"#94a3b8",fontWeight:nFaltan?700:400}}>{nFaltan}</td>
                             <td style={{padding:"4px 6px",textAlign:"center",fontSize:"10px",color:e.error?"#ef4444":e.creadas!=null?"#16a34a":"#94a3b8"}}>{e.error?"❌ "+e.error:e.creadas!=null?"✅ "+e.creadas+"+"+e.adjuntadas:"—"}</td>
                           </tr>,
-                          nFaltan>0&&<tr key={i+"-d"}><td colSpan={6} style={{padding:"2px 8px 6px 20px",background:"#fafafa",fontSize:"10px",color: "var(--fx-label)"}}>
+                          nFaltan>0&&<tr key={i+"-d"}><td colSpan={6} style={{padding:"2px 8px 6px 20px",background:"var(--fx-hover)",fontSize:"10px",color: "var(--fx-label)"}}>
                             <div style={{fontWeight:700,color:"#0ea5e9",marginBottom:"2px"}}>Faltan en BD:</div>
                             {e.solo_en_espn_obj.map((s,k)=><span key={k} style={{display:"inline-block",marginRight:"10px"}}>
                               <a href={"https://www.espn.com/wnba/player/_/id/"+s.id} target="_blank" rel="noreferrer" style={{color:"#0ea5e9",textDecoration:"none"}}>{s.nombre}</a>
@@ -1251,7 +1251,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                   </table>
                 </div>}
               </div>
-              {carrInfo&&(carrInfo.error?<div style={{background:"#fef2f2",border:"1px solid #fecaca",color:"#dc2626",padding:"10px",borderRadius:"10px",fontSize:"13px"}}>❌ {carrInfo.error}</div>:
+              {carrInfo&&(carrInfo.error?<div style={{background:"var(--fx-red-bg)",border:"1px solid #fecaca",color:"#dc2626",padding:"10px",borderRadius:"10px",fontSize:"13px"}}>❌ {carrInfo.error}</div>:
                 <div style={{background: "var(--fx-hover)",border:"1px solid var(--fx-border)",borderRadius:"10px",padding:"12px",marginBottom:"12px"}}>
                   <div style={{fontSize:"13px",marginBottom:"8px"}}><b>{carrInfo.equipo}</b> · BD: {carrInfo.bd_total} · ESPN: {carrInfo.espn_total} · Ya con id_espn: {carrInfo.ya_con_espn} · A mapear: {carrInfo.mapeados}</div>
                   {carrInfo.roster&&carrInfo.roster.length>0&&<div style={{maxHeight:"180px",overflowY:"auto",fontSize:"12px"}}>
@@ -1340,7 +1340,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               {llenoResults&&!llenoResults.error&&(
                 <div>
                   <div style={{display:"flex",gap:"8px",marginBottom:"14px",alignItems:"center",flexWrap:"wrap"}}>
-                    <div style={{fontSize:"13px",color:"#334155"}}>
+                    <div style={{fontSize:"13px",color:"var(--fx-text)"}}>
                       Con diferencias: <b>{llenoResults.conDiff.length}</b> · Sin cambios: <b>{llenoResults.sinDiff.length}</b> · Errores: <b>{llenoResults.errores.length}</b>
                     </div>
                     <button onClick={function(){setLlenoResults(null);setLlenoApplyRes(null);}}
@@ -1375,7 +1375,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                           <div style={{display:"flex",flexWrap:"wrap",gap:"6px"}}>
                             {cambios.map(function(campo){
                               const d=e.diffs[campo];
-                              const bg=d.soloAviso?"#fef3c7":"#dbeafe";
+                              const bg=d.soloAviso?"var(--fx-amber-hover)":"var(--fx-blue-bg)";
                               const fg=d.soloAviso?"#92400e":"#1e40af";
                               return(
                                 <div key={campo} style={{background:bg,color:fg,padding:"3px 8px",borderRadius:"6px",fontSize:"11px",fontWeight:700}}>
@@ -1392,7 +1392,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                     )}
                   </div>
                   {llenoApplyRes&&(
-                    <div style={{marginTop:"14px",padding:"12px",background:llenoApplyRes.error?"#fef2f2":"#f0fdf4",borderRadius:"10px",border:"1px solid "+(llenoApplyRes.error?"#fecaca":"#bbf7d0"),fontSize:"13px"}}>
+                    <div style={{marginTop:"14px",padding:"12px",background:llenoApplyRes.error?"var(--fx-red-bg)":"var(--fx-green-bg)",borderRadius:"10px",border:"1px solid "+(llenoApplyRes.error?"var(--fx-red-border)":"#bbf7d0"),fontSize:"13px"}}>
                       {llenoApplyRes.error?<>❌ {llenoApplyRes.error}</>:<>✅ Aplicadas <b>{llenoApplyRes.ok}</b> jugadoras · <b>{llenoApplyRes.campos}</b> campos actualizados</>}
                     </div>
                   )}
@@ -1519,7 +1519,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                     </div>
                   )}
                   {fibaApplyRes&&(
-                    <div style={{marginTop:"14px",padding:"12px",background:fibaApplyRes.error?"#fef2f2":"#f0fdf4",borderRadius:"10px",border:"1px solid "+(fibaApplyRes.error?"#fecaca":"#bbf7d0"),fontSize:"13px"}}>
+                    <div style={{marginTop:"14px",padding:"12px",background:fibaApplyRes.error?"var(--fx-red-bg)":"var(--fx-green-bg)",borderRadius:"10px",border:"1px solid "+(fibaApplyRes.error?"var(--fx-red-border)":"#bbf7d0"),fontSize:"13px"}}>
                       {fibaApplyRes.error?<>❌ {fibaApplyRes.error}</>:<>✅ Aplicadas: <b>{fibaApplyRes.ok}</b> · Errores: <b>{fibaApplyRes.err}</b> · Lote: <code style={{fontSize:"10px"}}>{fibaApplyRes.batchId?.slice(0,8)}…</code></>}
                     </div>
                   )}
@@ -1553,12 +1553,12 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                 return(
                   <div style={{display:"flex",gap:"6px",marginBottom:"14px",flexWrap:"wrap"}}>
                     <button onClick={function(){setIssueFilter("");}}
-                      style={{background:issueFilter===""?"#9333ea":"#f8fafc",color:issueFilter===""?"#fff":"#64748b",border:"1px solid "+(issueFilter===""?"#9333ea":"#e2e8f0"),borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>
+                      style={{background:issueFilter===""?"#9333ea":"var(--fx-hover)",color:issueFilter===""?"#fff":"#64748b",border:"1px solid "+(issueFilter===""?"#9333ea":"var(--fx-border)"),borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>
                       Todos ({incompletas[subTab].length})
                     </button>
                     {issueKeys.map(function(iss){return(
                       <button key={iss} onClick={function(){setIssueFilter(iss);}}
-                        style={{background:issueFilter===iss?"#9333ea":"#f8fafc",color:issueFilter===iss?"#fff":"#64748b",border:"1px solid "+(issueFilter===iss?"#9333ea":"#e2e8f0"),borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>
+                        style={{background:issueFilter===iss?"#9333ea":"var(--fx-hover)",color:issueFilter===iss?"#fff":"#64748b",border:"1px solid "+(issueFilter===iss?"#9333ea":"var(--fx-border)"),borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>
                         {iss} ({allIssues[iss]})
                       </button>
                     );})}
@@ -1575,8 +1575,8 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                     return(
                     <div key={item.tipo+item.id} onClick={function(){item.onGo&&item.onGo(item.id);onClose();}}
                       style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background: "var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)",cursor:"pointer",gap:"10px"}}
-                      onMouseEnter={function(e){e.currentTarget.style.background="#fff7ed";}}
-                      onMouseLeave={function(e){e.currentTarget.style.background="#f8fafc";}}>
+                      onMouseEnter={function(e){e.currentTarget.style.background="var(--fx-amber-bg)";}}
+                      onMouseLeave={function(e){e.currentTarget.style.background="var(--fx-hover)";}}>
                       <div style={{display:"flex",alignItems:"center",gap:"10px",minWidth:0}}>
                         <span style={{fontSize:"16px",flexShrink:0}}>{icon}</span>
                         <div style={{minWidth:0}}>
@@ -1585,7 +1585,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                         </div>
                       </div>
                       <div style={{display:"flex",gap:"4px",flexWrap:"wrap",justifyContent:"flex-end",maxWidth:"50%",flexShrink:0}}>
-                        {item.issues.map(function(iss){return <span key={iss} style={{background:"#fee2e2",color:"#ef4444",borderRadius:"8px",padding:"2px 8px",fontSize:"10px",fontWeight:700}}>{iss}</span>;})}
+                        {item.issues.map(function(iss){return <span key={iss} style={{background:"var(--fx-red-bg)",color:"#ef4444",borderRadius:"8px",padding:"2px 8px",fontSize:"10px",fontWeight:700}}>{iss}</span>;})}
                       </div>
                     </div>
                   );})}
@@ -1601,7 +1601,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                 var fkey=group[0].id_jugadora+group[0].temporada;
                 return(
                 <div key={i} style={{border:"1.5px solid #fed7aa",borderRadius:"12px",overflow:"hidden"}}>
-                  <div style={{background:"#fff7ed",padding:"8px 14px",fontSize:"12px",fontWeight:700,color:"#c2410c",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div style={{background:"var(--fx-amber-bg)",padding:"8px 14px",fontSize:"12px",fontWeight:700,color:"var(--fx-amber-text)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                     <span>{group[0].nombre} — {group[0].temporada}</span>
                     <button onClick={function(){fixDuplicate(group);}} disabled={fixing===fkey}
                       style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:"8px",padding:"3px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>
@@ -1651,15 +1651,15 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                       if(!groups.length)return null;
                       return groups.map(function(group,gi){return(
                         <div key={tipo+gi} style={{border:"1.5px solid #fed7aa",borderRadius:"14px",overflow:"hidden"}}>
-                          <div style={{background:"#fff7ed",padding:"8px 14px",fontSize:"12px",fontWeight:700,color:"#c2410c",borderBottom:"1px solid #fed7aa",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                          <div style={{background:"var(--fx-amber-bg)",padding:"8px 14px",fontSize:"12px",fontWeight:700,color:"var(--fx-amber-text)",borderBottom:"1px solid #fed7aa",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                             <span>{icon} {group.items.length} coincidencias</span>
                             <div style={{display:"flex",gap:"4px"}}>
                               {isAdmin&&tipo==="jugadoras"&&<button onClick={function(){setMergeTarget({tipo:tipo,items:group.items,keepIdx:null});}} title="Fusionar registros"
-                                style={{background:"#eff6ff",border:"1.5px solid #93c5fd",borderRadius:"8px",padding:"3px 10px",fontSize:"11px",fontWeight:700,color:"#2563eb",cursor:"pointer"}}>
+                                style={{background:"var(--fx-blue-bg)",border:"1.5px solid #93c5fd",borderRadius:"8px",padding:"3px 10px",fontSize:"11px",fontWeight:700,color:"#2563eb",cursor:"pointer"}}>
                                 🔗 Fusionar
                               </button>}
                               {isAdmin&&tipo==="equipos"&&<button onClick={function(){setMergeTarget({tipo:tipo,items:group.items,keepIdx:null});}} title="Fusionar registros"
-                                style={{background:"#eff6ff",border:"1.5px solid #93c5fd",borderRadius:"8px",padding:"3px 10px",fontSize:"11px",fontWeight:700,color:"#2563eb",cursor:"pointer"}}>
+                                style={{background:"var(--fx-blue-bg)",border:"1.5px solid #93c5fd",borderRadius:"8px",padding:"3px 10px",fontSize:"11px",fontWeight:700,color:"#2563eb",cursor:"pointer"}}>
                                 🔗 Fusionar
                               </button>}
                               <button onClick={function(){ignoreGroup(tipo,group);}} title="Marcar como falso positivo"
@@ -1699,7 +1699,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                                   )}
                                 </div>
                                 {isAdmin&&<button onClick={function(){setDupDelTarget({tipo:tipo,id:it[idKeyMap[tipo]],nombre:it.nombre});}} title="Eliminar esta ficha"
-                                  style={{background:"#fee2e2",border:"none",borderRadius:"8px",padding:"5px 9px",fontSize:"12px",cursor:"pointer",color:"#ef4444",flexShrink:0}}>🗑️</button>}
+                                  style={{background:"var(--fx-red-bg)",border:"none",borderRadius:"8px",padding:"5px 9px",fontSize:"12px",cursor:"pointer",color:"#ef4444",flexShrink:0}}>🗑️</button>}
                               </div>
                             </div>
                           );})}
@@ -1723,7 +1723,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                     var seasons=it.seasons||[];
                     return(
                       <div key={i} onClick={function(){setMergeTarget(Object.assign({},mergeTarget,{keepIdx:i}));}}
-                        style={{border:selected?"2px solid #9333ea":"1.5px solid var(--fx-border)",borderRadius:"12px",padding:"12px",cursor:"pointer",background:selected?"#faf5ff":"#fff"}}>
+                        style={{border:selected?"2px solid #9333ea":"1.5px solid var(--fx-border)",borderRadius:"12px",padding:"12px",cursor:"pointer",background:selected?"var(--fx-lila-bg)":"#fff"}}>
                         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                           <div>
                             <div style={{fontWeight:700,fontSize:"14px",color: "var(--fx-text)"}}>{it.nombre}</div>
@@ -1759,7 +1759,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                 <div key={tabla} style={{background: "var(--fx-hover)",borderRadius:"12px",padding:"14px",border:"1px solid var(--fx-border)"}}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"8px"}}>
                     <span style={{fontWeight:700,fontSize:"14px",color: "var(--fx-text)",textTransform:"capitalize"}}>{tabla.replace("_"," ")}</span>
-                    <span style={{background:info.total>0?"#dbeafe":"#dcfce7",color:info.total>0?"#1d4ed8":"#16a34a",borderRadius:"8px",padding:"2px 10px",fontSize:"12px",fontWeight:700}}>
+                    <span style={{background:info.total>0?"var(--fx-blue-bg)":"var(--fx-green-bg)",color:info.total>0?"var(--fx-blue-text)":"#16a34a",borderRadius:"8px",padding:"2px 10px",fontSize:"12px",fontWeight:700}}>
                       {info.total>0?info.total+" huecos":"Sin huecos"}
                     </span>
                   </div>
@@ -1784,7 +1784,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                 <div style={{textAlign:"center",padding:"40px 0"}}>
                   <div style={{fontSize:"36px",marginBottom:"10px"}}>⏳</div>
                   <p style={{color: "var(--fx-muted)",fontSize:"13px"}}>Comprobando {brokenInfo.progress} de {brokenInfo.total}…</p>
-                  <div style={{width:"100%",maxWidth:"260px",height:"6px",background:"#e2e8f0",borderRadius:"4px",margin:"10px auto 0",overflow:"hidden"}}>
+                  <div style={{width:"100%",maxWidth:"260px",height:"6px",background:"var(--fx-border)",borderRadius:"4px",margin:"10px auto 0",overflow:"hidden"}}>
                     <div style={{height:"100%",background:"#9333ea",width:(brokenInfo.total?Math.round(brokenInfo.progress/brokenInfo.total*100):0)+"%",transition:"width 0.2s"}}/>
                   </div>
                 </div>
@@ -1803,8 +1803,8 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                       return(
                       <div key={item.tipo+item.id} onClick={function(){item.onGo&&item.onGo(item.id);onClose();}}
                         style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background: "var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)",cursor:"pointer",gap:"10px"}}
-                        onMouseEnter={function(e){e.currentTarget.style.background="#fff7ed";}}
-                        onMouseLeave={function(e){e.currentTarget.style.background="#f8fafc";}}>
+                        onMouseEnter={function(e){e.currentTarget.style.background="var(--fx-amber-bg)";}}
+                        onMouseLeave={function(e){e.currentTarget.style.background="var(--fx-hover)";}}>
                         <div style={{display:"flex",alignItems:"center",gap:"10px",minWidth:0}}>
                           <span style={{fontSize:"16px",flexShrink:0}}>{icon}</span>
                           <div style={{minWidth:0}}>
@@ -1812,7 +1812,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                             <div style={{fontSize:"10px",color: "var(--fx-muted2)",fontFamily:"monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"260px"}}>{item.url}</div>
                           </div>
                         </div>
-                        <span style={{background:"#fee2e2",color:"#ef4444",borderRadius:"8px",padding:"2px 8px",fontSize:"10px",fontWeight:700,flexShrink:0}}>Roto</span>
+                        <span style={{background:"var(--fx-red-bg)",color:"#ef4444",borderRadius:"8px",padding:"2px 8px",fontSize:"10px",fontWeight:700,flexShrink:0}}>Roto</span>
                       </div>
                     );})}
                   </div>
@@ -1834,7 +1834,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                           <div key={item.valor} style={{padding:"10px 14px",background: "var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)"}}>
                             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"10px"}}>
                               <span style={{fontWeight:700,fontSize:"14px",color: "var(--fx-text)"}}>"{item.valor}"</span>
-                              <span style={{background:"#fee2e2",color:"#ef4444",borderRadius:"8px",padding:"2px 8px",fontSize:"10px",fontWeight:700,flexShrink:0}}>{item.count} jugadora{item.count!==1?"s":""}</span>
+                              <span style={{background:"var(--fx-red-bg)",color:"#ef4444",borderRadius:"8px",padding:"2px 8px",fontSize:"10px",fontWeight:700,flexShrink:0}}>{item.count} jugadora{item.count!==1?"s":""}</span>
                             </div>
                             <div style={{display:"flex",flexWrap:"wrap",gap:"6px",marginTop:"6px"}}>
                               {item.players.map(function(p){return(
@@ -1873,8 +1873,8 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                         {nacInfo.nacDup.map(function(p){return(
                           <div key={p.id_jugadora} onClick={function(){onGoToPlayer&&onGoToPlayer(p.id_jugadora);onClose();}}
                             style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background: "var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)",cursor:"pointer",gap:"10px"}}
-                            onMouseEnter={function(e){e.currentTarget.style.background="#fff7ed";}}
-                            onMouseLeave={function(e){e.currentTarget.style.background="#f8fafc";}}>
+                            onMouseEnter={function(e){e.currentTarget.style.background="var(--fx-amber-bg)";}}
+                            onMouseLeave={function(e){e.currentTarget.style.background="var(--fx-hover)";}}>
                             <span style={{fontWeight:700,fontSize:"14px",color: "var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</span>
                             <span style={{fontSize:"11px",color: "var(--fx-muted2)",flexShrink:0}}>"{p.nacionalidad}" + "{p.nacionalidad2}"</span>
                           </div>
@@ -1898,9 +1898,9 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                     {fotosPlaceholder.jug.map(function(p){return(
                       <div key={p.id_jugadora} onClick={function(){onGoToPlayer&&onGoToPlayer(p.id_jugadora);onClose();}}
                         style={{display:"flex",alignItems:"center",gap:"12px",padding:"8px 14px",background: "var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)",cursor:"pointer"}}
-                        onMouseEnter={function(e){e.currentTarget.style.background="#fff7ed";}}
-                        onMouseLeave={function(e){e.currentTarget.style.background="#f8fafc";}}>
-                        <img loading="lazy" decoding="async" src={p.foto} alt="" style={{width:34,height:34,borderRadius:"50%",objectFit:"cover",flexShrink:0,background:"#e2e8f0"}}/>
+                        onMouseEnter={function(e){e.currentTarget.style.background="var(--fx-amber-bg)";}}
+                        onMouseLeave={function(e){e.currentTarget.style.background="var(--fx-hover)";}}>
+                        <img loading="lazy" decoding="async" src={p.foto} alt="" style={{width:34,height:34,borderRadius:"50%",objectFit:"cover",flexShrink:0,background:"var(--fx-border)"}}/>
                         <div style={{minWidth:0}}>
                           <div style={{fontWeight:700,fontSize:"14px",color: "var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div>
                           <div style={{fontSize:"11px",color: "var(--fx-muted2)",fontFamily:"monospace"}}>{p.id_jugadora}</div>
@@ -1917,9 +1917,9 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                     {fotosPlaceholder.tec.map(function(c){return(
                       <div key={c.id_coach} onClick={function(){onGoToCoach&&onGoToCoach(c.id_coach);onClose();}}
                         style={{display:"flex",alignItems:"center",gap:"12px",padding:"8px 14px",background: "var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)",cursor:"pointer"}}
-                        onMouseEnter={function(e){e.currentTarget.style.background="#fff7ed";}}
-                        onMouseLeave={function(e){e.currentTarget.style.background="#f8fafc";}}>
-                        <img loading="lazy" decoding="async" src={c.foto} alt="" style={{width:34,height:34,borderRadius:"50%",objectFit:"cover",flexShrink:0,background:"#e2e8f0"}}/>
+                        onMouseEnter={function(e){e.currentTarget.style.background="var(--fx-amber-bg)";}}
+                        onMouseLeave={function(e){e.currentTarget.style.background="var(--fx-hover)";}}>
+                        <img loading="lazy" decoding="async" src={c.foto} alt="" style={{width:34,height:34,borderRadius:"50%",objectFit:"cover",flexShrink:0,background:"var(--fx-border)"}}/>
                         <div style={{minWidth:0}}>
                           <div style={{fontWeight:700,fontSize:"14px",color: "var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.nombre}</div>
                           <div style={{fontSize:"11px",color: "var(--fx-muted2)",fontFamily:"monospace"}}>{c.id_coach}</div>
@@ -2064,7 +2064,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
 /* Presenta el resultado de un scraper con chips coloreados + secciones
    colapsables. Usa <details> nativo, cero JS de estado. */
 function ScraperResult({res,busy}){
-  if(res.error) return <div style={{marginTop:"16px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:"12px",padding:"14px",color:"#b91c1c",fontSize:"13px",fontWeight:600}}>❌ {res.error}</div>;
+  if(res.error) return <div style={{marginTop:"16px",background:"var(--fx-red-bg)",border:"1px solid #fecaca",borderRadius:"12px",padding:"14px",color:"var(--fx-red-text)",fontSize:"13px",fontWeight:600}}>❌ {res.error}</div>;
   const dry=!!res.dry;
   const chip=(label,value,color)=>{
     if(!value||value===0)return null;
@@ -2112,14 +2112,14 @@ function ScraperResult({res,busy}){
         {chip("Altas plantilla",res.plantilla_altas,"#16a34a")}
         {res.colisiones&&res.colisiones.length>0&&chip("Colisiones",res.colisiones.length,"#dc2626")}
         {res.sin_mapear_equipos&&res.sin_mapear_equipos.length>0&&chip("Equipos sin mapear",res.sin_mapear_equipos.length,"#dc2626")}
-        {sinMapearJugs&&chip("Jugadoras sin mapear",sinMapearJugs.length,"#b45309")}
+        {sinMapearJugs&&chip("Jugadoras sin mapear",sinMapearJugs.length,"var(--fx-amber-text)")}
       </div>
       {res.mensaje&&<div style={{fontSize:"12px",color:"var(--fx-muted)",marginTop:"6px"}}>{res.mensaje}</div>}
       {/* Secciones colapsables */}
       {section((dry?"🆕 Partidos a crear":"🆕 Partidos creados"),res.creados_detalle,"#16a34a")}
       {section("⚠️ Equipos sin mapear",res.sin_mapear_equipos,"#dc2626","No se creó el partido; revisa el nombre del equipo")}
       {section("⚠️ Colisiones (dos jugadoras del acta apuntan a la misma ficha)",res.colisiones,"#dc2626","Ese partido no se guardó")}
-      {section("👤 Jugadoras sin mapear",sinMapearJugs,"#b45309","Crea o corrige su ficha y vuelve a lanzar")}
+      {section("👤 Jugadoras sin mapear",sinMapearJugs,"var(--fx-amber-text)","Crea o corrige su ficha y vuelve a lanzar")}
       {section("📋 Detalles",res.detalles,"#64748b")}
     </div>
   );

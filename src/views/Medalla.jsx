@@ -1,10 +1,10 @@
 import { useId } from "react";
 
 const COLORES = {
-  bienvenida:    {c1:"#fecaca", c2:"#dc2626", c3:"#7f1d1d"},
+  bienvenida:    {c1:"var(--fx-red-border)", c2:"#dc2626", c3:"#7f1d1d"},
   exploracion:   {c1:"#bbf7d0", c2:"#16a34a", c3:"#14532d"},
   quiniela:      {c1:"#ddd6fe", c2:"#7c3aed", c3:"#3b0764"},
-  fidelidad:     {c1:"#bfdbfe", c2:"#2563eb", c3:"#1e3a8a"},
+  fidelidad:     {c1:"var(--fx-blue-border)", c2:"#2563eb", c3:"#1e3a8a"},
   coleccionismo: {c1:"#fbcfe8", c2:"#ec4899", c3:"#831843"},
   secretos:      {c1:"#334155", c2:"#0f172a", c3:"#020617"},
 };

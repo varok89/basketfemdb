@@ -75,6 +75,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
   --fx-shadow:0 1px 6px rgba(0,0,0,0.07);
   --fx-shadow-hover:0 4px 16px rgba(147,51,234,0.15);
   --fx-brand:#9333ea; --fx-brand2:#c084fc;
+  /* Acentos con paleta clara y su variante dark: */
+  --fx-amber-bg:#fffbeb;  --fx-amber-border:#fed7aa;  --fx-amber-text:#b45309;  --fx-amber-hover:#fef3c7;  --fx-amber-hover-border:#f59e0b;
+  --fx-red-bg:#fee2e2;    --fx-red-border:#fecaca;    --fx-red-text:#b91c1c;
+  --fx-green-bg:#dcfce7;  --fx-green-border:#bbf7d0;  --fx-green-text:#15803d;
+  --fx-blue-bg:#dbeafe;   --fx-blue-border:#bfdbfe;   --fx-blue-text:#1d4ed8;
+  --fx-lila-bg:#faf5ff;   --fx-lila-border:#e9d5ff;   --fx-lila-text:#7c3aed;
 }
 html[data-bfdb-tema="dark"] .bfdb-app-root {
   --fx-bg:#0f172a; --fx-card:#1e293b; --fx-hover:#1a2434;
@@ -84,6 +90,12 @@ html[data-bfdb-tema="dark"] .bfdb-app-root {
   --fx-shadow:0 1px 6px rgba(0,0,0,0.4);
   --fx-shadow-hover:0 4px 16px rgba(147,51,234,0.35);
   --fx-brand:#c084fc; --fx-brand2:#9333ea;
+  /* Acentos en dark: fondos con transparencia sobre fx-card, textos vivos. */
+  --fx-amber-bg:rgba(251,191,36,0.12);  --fx-amber-border:rgba(251,191,36,0.35);  --fx-amber-text:#fbbf24;  --fx-amber-hover:rgba(251,191,36,0.22);  --fx-amber-hover-border:#fbbf24;
+  --fx-red-bg:rgba(239,68,68,0.15);     --fx-red-border:rgba(239,68,68,0.35);     --fx-red-text:#fca5a5;
+  --fx-green-bg:rgba(34,197,94,0.15);   --fx-green-border:rgba(34,197,94,0.35);   --fx-green-text:#86efac;
+  --fx-blue-bg:rgba(59,130,246,0.15);   --fx-blue-border:rgba(59,130,246,0.35);   --fx-blue-text:#93c5fd;
+  --fx-lila-bg:rgba(147,51,234,0.15);   --fx-lila-border:rgba(147,51,234,0.35);   --fx-lila-text:#c084fc;
   background: var(--fx-bg) !important;
 }
 html[data-bfdb-tema="dark"]      { background: #0f172a; }
