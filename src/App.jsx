@@ -462,7 +462,7 @@ function TeamBadge({team,size=44}){
   const {bg}=teamColors(team?.nombre||"");
   const ini=teamInitials(team?.nombre||"");
   const fs=size<36?9:size<50?12:16;
-  if(team?.escudo) return <img loading="lazy" decoding="async" src={team.escudo} alt={team.nombre} style={{width:size,height:size,borderRadius:"8px",objectFit:"contain",flexShrink:0,border:"1px solid var(--fx-border)",background:"var(--fx-card)",boxSizing:"border-box"}} onError={e=>e.target.style.display="none"}/>;  return <div style={{width:size,height:size,borderRadius:"50%",background:bg,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:fs,flexShrink:0,boxShadow:"0 2px 6px rgba(0,0,0,0.2)"}}>{ini}</div>;
+  if(team?.escudo) return <img loading="lazy" decoding="async" className={team?.tipo==="seleccion"?"bfdb-flag-bg":undefined} src={team.escudo} alt={team.nombre} style={{width:size,height:size,borderRadius:"8px",objectFit:"contain",flexShrink:0,border:"1px solid var(--fx-border)",background:"var(--fx-card)",boxSizing:"border-box"}} onError={e=>e.target.style.display="none"}/>;  return <div style={{width:size,height:size,borderRadius:"50%",background:bg,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:fs,flexShrink:0,boxShadow:"0 2px 6px rgba(0,0,0,0.2)"}}>{ini}</div>;
 }
 
 function LeagueBadge({liga,size=60}){
@@ -4244,7 +4244,16 @@ function RecordsEquipo({idEquipo, temporada, players, equipos, onGoToPlayer}){
   const playerMap=useMemo(()=>{const m={};(players||[]).forEach(p=>m[p.id_jugadora]=p);return m;},[players]);
   const eqMap=useMemo(()=>{const m={};(equipos||[]).forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
 
-  if(!data||!stats)return null;
+  if(!data)return null;
+  if(!stats)return (
+    <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"20px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
+      <button onClick={()=>setOpen(v=>!v)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",padding:0,width:"100%",marginBottom:open?"12px":0}}>
+        <h2 style={{fontWeight:700,fontSize:"17px",color:"var(--fx-text)",margin:0}}>{t("records.team_title")} <span style={{fontSize:"13px",fontWeight:500,color:"var(--fx-muted2)"}}>· {temporada}</span></h2>
+        <span style={{fontSize:"13px",color:"var(--fx-muted2)",display:"inline-block",transform:open?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>▼</span>
+      </button>
+      {open&&<div style={{fontSize:"13px",color:"var(--fx-muted)",textAlign:"center",padding:"20px 0"}}>Aún no hay partidos jugados en esta temporada.</div>}
+    </div>
+  );
 
   const rivalName=(p)=>{const id=p.id_equipo_local===idEquipo?p.id_equipo_visitante:p.id_equipo_local;return eqMap[id]?.nombre||id;};
   const scoreLabel=(p)=>{const a=p.id_equipo_local===idEquipo?p.resultado_local:p.resultado_visitante;const b=p.id_equipo_local===idEquipo?p.resultado_visitante:p.resultado_local;return `${a}-${b}`;};
@@ -5035,6 +5044,7 @@ function CoachSeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
 function RecordsLiga({idLiga, temporada, players, equipos, onGoToPlayer, onGoToTeam}){
   const t = useT();
   const [rows,setRows]=useState(null);
+  const [open,setOpen]=useState(false);
   useEffect(()=>{
     if(!idLiga||!temporada)return;
     let cancel=false; setRows(null);
@@ -5074,7 +5084,6 @@ function RecordsLiga({idLiga, temporada, players, equipos, onGoToPlayer, onGoToT
   const eqMap=useMemo(()=>{const m={};(equipos||[]).forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
 
   if(rows===null)return null;
-  if(!records)return null;
 
   const card=(label,r,valueLabel)=>{
     if(!r)return null;
@@ -5097,14 +5106,49 @@ function RecordsLiga({idLiga, temporada, players, equipos, onGoToPlayer, onGoToT
 
   return (
     <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"20px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
-      <div style={{fontSize:"12px",fontWeight:800,color:"var(--fx-muted)",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:"12px"}}>{t("records.title")} · {temporada}</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:"10px"}}>
-        {card(t("records.pts"),records.pts,records.pts?records.pts.v.toFixed(1):"—")}
-        {card(t("records.reb"),records.reb,records.reb?records.reb.v.toFixed(1):"—")}
-        {card(t("records.ast"),records.ast,records.ast?records.ast.v.toFixed(1):"—")}
-        {card(t("records.val"),records.val,records.val?records.val.v.toFixed(1):"—")}
-        {records.topGame&&card(t("records.top_game"),{id_jugadora:records.topGame.id_jugadora,id_equipo:records.topGame.id_equipo},records.topGame.puntos+" pts")}
-      </div>
+      <button onClick={()=>setOpen(v=>!v)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",padding:0,width:"100%",marginBottom:open?"12px":0}}>
+        <h2 style={{fontWeight:700,fontSize:"17px",color:"var(--fx-text)",margin:0}}>{t("records.title")} <span style={{fontSize:"13px",fontWeight:500,color:"var(--fx-muted2)"}}>· {temporada}</span></h2>
+        <span style={{fontSize:"13px",color:"var(--fx-muted2)",display:"inline-block",transform:open?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>▼</span>
+      </button>
+      {open&&(!records?(
+        <div style={{fontSize:"13px",color:"var(--fx-muted)",textAlign:"center",padding:"20px 0"}}>Aún no hay estadísticas de esta temporada.</div>
+      ):(
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:"10px"}}>
+          {card(t("records.pts"),records.pts,records.pts?records.pts.v.toFixed(1):"—")}
+          {card(t("records.reb"),records.reb,records.reb?records.reb.v.toFixed(1):"—")}
+          {card(t("records.ast"),records.ast,records.ast?records.ast.v.toFixed(1):"—")}
+          {card(t("records.val"),records.val,records.val?records.val.v.toFixed(1):"—")}
+          {records.topGame&&card(t("records.top_game"),{id_jugadora:records.topGame.id_jugadora,id_equipo:records.topGame.id_equipo},records.topGame.puntos+" pts")}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CampeonesPorTemporada({pal, equipoMap, effectiveYear, selId, selectedNombre, onGoToTeam}){
+  const [open,setOpen]=useState(false);
+  return (
+    <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginTop:"14px"}}>
+      <button onClick={()=>setOpen(v=>!v)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",padding:0,width:"100%",marginBottom:open?"14px":0}}>
+        <h2 style={{fontWeight:700,fontSize:"17px",color:"var(--fx-text)",margin:0}}>🏆 Campeones por temporada <span style={{color:"var(--fx-muted2)",fontWeight:400,fontSize:"14px"}}>({pal.length})</span></h2>
+        <span style={{fontSize:"13px",color:"var(--fx-muted2)",display:"inline-block",transform:open?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>▼</span>
+      </button>
+      {open&&<div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+        {pal.map((p,i)=>{
+          const eq=equipoMap[p.id_equipo];
+          return(
+            <div key={i} onClick={()=>onGoToTeam(eq?.id_equipo,effectiveYear,{tab:"ligas",id:selId,label:selectedNombre})}
+              style={{display:"flex",alignItems:"center",gap:"14px",padding:"10px 14px",background:"var(--fx-amber-bg)",borderRadius:"12px",border:"1.5px solid var(--fx-amber-border)",cursor:"pointer",transition:"all 0.15s"}}
+              onMouseEnter={e=>{e.currentTarget.style.background="var(--fx-amber-hover)";e.currentTarget.style.borderColor="var(--fx-amber-hover-border)";}}
+              onMouseLeave={e=>{e.currentTarget.style.background="var(--fx-amber-bg)";e.currentTarget.style.borderColor="var(--fx-amber-border)";}}>
+              <span style={{fontWeight:800,fontSize:"14px",color:"var(--fx-amber-text)",minWidth:"72px"}}>{p.temporada}</span>
+              <TeamBadge team={eq} size={32}/>
+              <span style={{fontWeight:700,fontSize:"14px",color:"var(--fx-text)"}}>{eq?.nombre||p.id_equipo}</span>
+              {eq?.pais&&<span style={{marginLeft:"auto",display:"flex",alignItems:"center"}}><FlagImg country={eq.pais}/></span>}
+            </div>
+          );
+        })}
+      </div>}
     </div>
   );
 }
@@ -5290,27 +5334,7 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
         {(()=>{
           const pal=(palmares||[]).filter(p=>p.id_liga===selId).sort((a,b)=>b.temporada.localeCompare(a.temporada));
           if(!pal.length)return null;
-          return(
-            <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginTop:"14px"}}>
-              <h2 style={{fontWeight:700,fontSize:"17px",color:"var(--fx-text)",margin:"0 0 14px"}}>🏆 Campeones por temporada <span style={{color:"var(--fx-muted2)",fontWeight:400,fontSize:"14px"}}>({pal.length})</span></h2>
-              <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
-                {pal.map((p,i)=>{
-                  const eq=equipoMap[p.id_equipo];
-                  return(
-                    <div key={i} onClick={()=>onGoToTeam(eq?.id_equipo,effectiveYear,{tab:"ligas",id:selId,label:selected?.nombre})}
-                      style={{display:"flex",alignItems:"center",gap:"14px",padding:"10px 14px",background:"var(--fx-amber-bg)",borderRadius:"12px",border:"1.5px solid #fed7aa",cursor:"pointer",transition:"all 0.15s"}}
-                      onMouseEnter={e=>{e.currentTarget.style.background="var(--fx-amber-hover)";e.currentTarget.style.borderColor="#f59e0b";}}
-                      onMouseLeave={e=>{e.currentTarget.style.background="var(--fx-amber-bg)";e.currentTarget.style.borderColor="var(--fx-amber-border)";}}>
-                      <span style={{fontWeight:800,fontSize:"14px",color:"var(--fx-amber-text)",minWidth:"72px"}}>{p.temporada}</span>
-                      <TeamBadge team={eq} size={32}/>
-                      <span style={{fontWeight:700,fontSize:"14px",color:"var(--fx-text)"}}>{eq?.nombre||p.id_equipo}</span>
-                      {eq?.pais&&<span style={{marginLeft:"auto",display:"flex",alignItems:"center"}}><FlagImg country={eq.pais}/></span>}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
+          return <CampeonesPorTemporada pal={pal} equipoMap={equipoMap} effectiveYear={effectiveYear} selId={selId} selectedNombre={selected?.nombre} onGoToTeam={onGoToTeam}/>;
         })()}
       </div>
     );
@@ -5334,7 +5358,6 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
         </select>
         <PaisDropdown allPaises={allPaisesLiga} filterPais={filterPais} setFilterPais={setFilterPais} placeholder="País"/>
         {isAdmin&&<button onClick={()=>setLigaModal("add")} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"10px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",whiteSpace:"nowrap"}}>+ Liga</button>}
-      </div>
       </div>
       {GRUPOS.map(([tipo,label])=>{
         const items=ligasByTipo[tipo]||[];
@@ -5779,7 +5802,8 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
     const proxs=(partidos||[]).filter(p=>(p.id_equipo_local===eid||p.id_equipo_visitante===eid)&&p.resultado_local==null&&p.fecha_hora&&new Date(p.fecha_hora)>hoy).sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
     const ultPartido=ults.find(p=>!esAmistoso(p))||ults[0];
     const proxPartido=proxs.find(p=>!esAmistoso(p))||proxs[0];
-    const ultFichaje=players.flatMap(pl=>(pl.seasons||[]).filter(ss=>ss.id_equipo===eid).map(ss=>({player:pl,...ss}))).sort((a,b)=>{
+    // Las selecciones no tienen "fichajes" (son convocatorias), no aplica.
+    const ultFichaje=eq.tipo==="seleccion"?null:players.flatMap(pl=>(pl.seasons||[]).filter(ss=>ss.id_equipo===eid).map(ss=>({player:pl,...ss}))).sort((a,b)=>{
       const ta=(a.temporada||"").replace("-",".");const tb=(b.temporada||"").replace("-",".");
       if(ta!==tb)return tb.localeCompare(ta);
       return(b.id||0)-(a.id||0);

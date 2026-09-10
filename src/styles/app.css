@@ -104,5 +104,5 @@ html[data-bfdb-tema="dark"] body { background: #0f172a; }
 
 /* Logos/escudos/fotos con fondo transparente sobre tema oscuro:
    fondo blanco sutil para que no se pierdan. */
-html[data-bfdb-tema="dark"] .bfdb-app-root img:not([src*="flagcdn"]):not([src*="flagpedia"]):not([src*="flagsapi"]):not([src*="icon-home"]) { background:#fff !important; }
+html[data-bfdb-tema="dark"] .bfdb-app-root img:not([src*="flagcdn"]):not([src*="flagpedia"]):not([src*="flagsapi"]):not([src*="icon-home"]):not(.bfdb-flag-bg) { background:#fff !important; }
 html[data-bfdb-tema="dark"] .bfdb-app-root .bfdb-logo img { background: transparent !important; }
