@@ -67,7 +67,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 }
 
 /* ── Tokens de tema (fuente única de verdad) ── */
-.bfdb-app-root {
+/* En :root para que modales/portales fuera del árbol .bfdb-app-root los vean. */
+:root {
   --fx-bg:#f1f5f9; --fx-card:#fff; --fx-hover:#f8fafc;
   --fx-text:#1e293b; --fx-muted:#64748b; --fx-muted2:#94a3b8; --fx-label:#475569;
   --fx-border:#e2e8f0; --fx-border2:#f1f5f9;
@@ -82,7 +83,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
   --fx-blue-bg:#dbeafe;   --fx-blue-border:#bfdbfe;   --fx-blue-text:#1d4ed8;
   --fx-lila-bg:#faf5ff;   --fx-lila-border:#e9d5ff;   --fx-lila-text:#7c3aed;
 }
-html[data-bfdb-tema="dark"] .bfdb-app-root {
+html[data-bfdb-tema="dark"] {
   --fx-bg:#0f172a; --fx-card:#1e293b; --fx-hover:#1a2434;
   --fx-text:#f1f5f9; --fx-muted:#94a3b8; --fx-muted2:#64748b; --fx-label:#cbd5e1;
   --fx-border:#334155; --fx-border2:#1e293b;
