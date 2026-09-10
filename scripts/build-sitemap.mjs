@@ -2,11 +2,11 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 const SITE = "https://labasketneta.app";
-const URL = process.env.REACT_APP_SUPABASE_URL;
-const KEY = process.env.REACT_APP_SUPABASE_KEY;
+const URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const KEY = process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_KEY;
 
 if (!URL || !KEY) {
-  console.warn("[sitemap] Falta REACT_APP_SUPABASE_URL o REACT_APP_SUPABASE_KEY. Genero solo URLs base.");
+  console.warn("[sitemap] Falta SUPABASE_URL o SUPABASE_KEY. Genero solo URLs base.");
 }
 
 async function fetchAllIds(table, idCol) {

@@ -2,18 +2,23 @@
   "name": "basketfemdb",
   "version": "1.0.1",
   "private": true,
+  "type": "module",
   "dependencies": {
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-scripts": "5.0.1",
     "@supabase/supabase-js": "^2.39.0",
     "@vercel/analytics": "^1.5.0",
     "@sentry/react": "^8.47.0",
     "@vercel/og": "^0.6.5"
   },
+  "devDependencies": {
+    "vite": "^5.4.10",
+    "@vitejs/plugin-react": "^4.3.4"
+  },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "node scripts/build-sitemap.mjs && node scripts/build-with-sentry.mjs"
+    "dev": "vite",
+    "build": "node scripts/build-sitemap.mjs && node scripts/build-with-sentry.mjs",
+    "preview": "vite preview"
   },
   "browserslist": {
     "production": [">0.2%", "not dead", "not op_mini all"],
