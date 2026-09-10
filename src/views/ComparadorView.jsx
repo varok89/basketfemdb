@@ -194,7 +194,7 @@ function SlotCard({modo, slot, idx, onOpen, onClear}){
     return (
       <button onClick={onOpen} style={{background:"var(--fx-card)",border:"2px dashed var(--fx-border)",borderRadius:"14px",padding:"28px 12px",cursor:"pointer",color:"var(--fx-muted)",fontSize:"13px",fontWeight:700,minHeight:"140px",minWidth:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"6px"}}>
         <div style={{fontSize:"28px"}}>➕</div>
-        {t("comp.add")}
+        {modo==="equipos"?"Añadir equipo":t("comp.add")}
       </button>
     );
   }
@@ -203,7 +203,7 @@ function SlotCard({modo, slot, idx, onOpen, onClear}){
   const foto=modo==="equipos"?entity?.escudo:entity?.foto;
   const isSel=modo==="equipos"&&entity?.tipo==="seleccion";
   const sub=modo==="equipos"
-    ? (entity?.pais||"—")+(isSel?" · Selección":"")
+    ? (isSel?"Selección":(entity?.pais||"—"))
     : (entity?.posicion||"—")+(entity?.altura?` · ${entity.altura}m`:"");
   return (
     <div style={{background:"var(--fx-card)",borderRadius:"14px",padding:"14px 12px",boxShadow:"0 1px 6px rgba(0,0,0,0.06)",position:"relative",textAlign:"center",minHeight:"140px",minWidth:0,borderTop:`4px solid ${COLORS[idx]}`}}>
@@ -299,8 +299,8 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
   return (
     <div style={{maxWidth:"980px",margin:"0 auto",padding:"16px",fontFamily:"system-ui,sans-serif"}}>
       <div style={{marginBottom:"16px"}}>
-        <h1 style={{fontWeight:800,fontSize:"22px",color:"var(--fx-text)",margin:0}}>{t("comp.title")}</h1>
-        <p style={{color:"var(--fx-muted)",fontSize:"13px",margin:"4px 0 0"}}>{t("comp.subtitle")}</p>
+        <h1 style={{fontWeight:800,fontSize:"22px",color:"var(--fx-text)",margin:0}}>{modo==="equipos"?"Comparar equipos":t("comp.title")}</h1>
+        <p style={{color:"var(--fx-muted)",fontSize:"13px",margin:"4px 0 0"}}>{modo==="equipos"?"Elige hasta 3 equipos y una temporada para verlos lado a lado.":t("comp.subtitle")}</p>
       </div>
 
       <div style={{display:"flex",gap:"8px",marginBottom:"14px"}}>
