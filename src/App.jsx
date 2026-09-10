@@ -2802,7 +2802,7 @@ function PlayerForm({initial,onSave,onCancel,saving}){
     </div>
     <div style={{display:"flex",gap:"10px",marginTop:"8px"}}>
       <button onClick={onCancel} style={{flex:1,border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"11px",color:"var(--fx-muted)",background:"var(--fx-card)",cursor:"pointer",fontWeight:600}}>Cancelar</button>
-      <button onClick={()=>f.nombre.trim()&&onSave(f)} disabled={saving||!f.nombre.trim()} style={{flex:1,background:f.nombre.trim()?"#9333ea":"#fed7aa",color:"#fff",border:"none",borderRadius:"10px",padding:"11px",cursor:f.nombre.trim()?"pointer":"not-allowed",fontWeight:700}}>{saving?"Guardando...":"Guardar"}</button>
+      <button onClick={()=>String(f.nombre||"").trim()&&onSave(f)} disabled={saving||!String(f.nombre||"").trim()} style={{flex:1,background:String(f.nombre||"").trim()?"#9333ea":"#fed7aa",color:"#fff",border:"none",borderRadius:"10px",padding:"11px",cursor:String(f.nombre||"").trim()?"pointer":"not-allowed",fontWeight:700}}>{saving?"Guardando...":"Guardar"}</button>
     </div>
   </div>);}
 
@@ -3743,7 +3743,8 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     try{
       const allJIds=players.map(p=>parseInt((p.id_jugadora||"J0").slice(1))).filter(n=>!isNaN(n));
       const newId=firstFreeId(allJIds,"J",0);
-      const newPlayer={id_jugadora:newId,nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,fecha_fallecimiento:f.fecha_fallecimiento||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null,id_espn:f.id_espn?.trim()||null,fiba_person_id:f.fiba_person_id?.trim()||null,id_feb:f.id_feb?.trim()||null};
+      const trim=v=>String(v??"").trim()||null;
+      const newPlayer={id_jugadora:newId,nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,fecha_fallecimiento:f.fecha_fallecimiento||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null,id_espn:trim(f.id_espn),fiba_person_id:trim(f.fiba_person_id),id_feb:trim(f.id_feb)};
       const{error}=await supabase.from("jugadoras").insert(newPlayer);
       if(error)throw error;
       setPlayers(prev=>[...prev,{...newPlayer,seasons:[]}].sort((a,b)=>(a.id_jugadora||"").localeCompare(b.id_jugadora||"")));
@@ -3753,7 +3754,8 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   };
   const updPlayer=async f=>{
     setSaving(true);
-    const payload={nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,fecha_fallecimiento:f.fecha_fallecimiento||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null,id_espn:f.id_espn?.trim()||null,fiba_person_id:f.fiba_person_id?.trim()||null,id_feb:f.id_feb?.trim()||null};
+    const trim=v=>String(v??"").trim()||null;
+    const payload={nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,fecha_fallecimiento:f.fecha_fallecimiento||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null,id_espn:trim(f.id_espn),fiba_person_id:trim(f.fiba_person_id),id_feb:trim(f.id_feb)};
     const timeout=new Promise((_,r)=>setTimeout(()=>r(new Error("Timeout guardando (8s). Reintenta.")),8000));
     try{
       // Refresca la sesion si el token esta al caer para evitar colgar el update
@@ -4259,6 +4261,7 @@ function DuplicateSquadForm({initial,ligas,ligaMap,eq,onSave,onCancel,saving}){
 function RecordsEquipo({idEquipo, temporada, players, equipos, onGoToPlayer}){
   const t = useT();
   const [data,setData]=useState(null);
+  const [open,setOpen]=useState(false);
   useEffect(()=>{
     if(!idEquipo||!temporada)return;
     let cancel=false; setData(null);
@@ -4305,8 +4308,11 @@ function RecordsEquipo({idEquipo, temporada, players, equipos, onGoToPlayer}){
 
   return (
     <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"20px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"14px"}}>
-      <div style={{fontSize:"12px",fontWeight:800,color:"var(--fx-muted)",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:"12px"}}>{t("records.team_title")} · {temporada}</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:"10px"}}>
+      <button onClick={()=>setOpen(v=>!v)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",padding:0,width:"100%",marginBottom:open?"12px":0}}>
+        <h2 style={{fontWeight:700,fontSize:"17px",color:"var(--fx-text)",margin:0}}>{t("records.team_title")} <span style={{fontSize:"13px",fontWeight:500,color:"var(--fx-muted2)"}}>· {temporada}</span></h2>
+        <span style={{fontSize:"13px",color:"var(--fx-muted2)",display:"inline-block",transform:open?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>▼</span>
+      </button>
+      {open&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:"10px"}}>
         <div style={cardBg}>
           <div style={label}>{t("records.record")}</div>
           <div style={{...value,color:"var(--fx-text)"}}>{stats.v}V–{stats.d}D <span style={{fontSize:"12px",fontWeight:600,color:"var(--fx-muted)"}}>({Math.round(stats.v*100/stats.pj)}%)</span></div>
@@ -4346,7 +4352,7 @@ function RecordsEquipo({idEquipo, temporada, players, equipos, onGoToPlayer}){
             <div style={{fontSize:"16px",fontWeight:900,color:"#dc2626"}}>{scoreLabel(stats.worstLoss)}</div>
           </div>
         )}
-      </div>
+      </div>}
     </div>
   );
 }
