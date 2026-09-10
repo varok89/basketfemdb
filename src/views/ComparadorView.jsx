@@ -24,7 +24,9 @@ const PCTS=[
   {k:"tl",lbl:"%TL"},
 ];
 const RADAR_KEYS=["pts","reb","ast","rob","tap","val"];
-const COLORS=["#9333ea","#0ea5e9","#f97316"];
+const COLORS=["#9333ea","#0ea5e9","#f97316","#16a34a"];
+const MAX_SLOTS=4;
+const INIT_SLOTS=2;
 
 /* Equipos: enteros para PJ/V/D, resto 1 decimal. best null = no resaltar. */
 const METRICAS_EQ=[
@@ -222,7 +224,7 @@ function SlotCard({modo, slot, idx, onOpen, onClear}){
 export default function ComparadorView({players, equipos, ligas, equiposNombres, onGoToPlayer, onGoToTeam}){
   const t = useT();
   const [modo,setModo]=useState("jugadoras"); // "jugadoras" | "equipos"
-  const [slots,setSlots]=useState([null,null,null]);
+  const [slots,setSlots]=useState(Array(INIT_SLOTS).fill(null));
   const [pickerFor,setPickerFor]=useState(null);
   const [loading,setLoading]=useState(false);
 
@@ -234,9 +236,11 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
   const switchModo=(nuevo)=>{
     if(nuevo===modo)return;
     setModo(nuevo);
-    setSlots([null,null,null]);
+    setSlots(Array(INIT_SLOTS).fill(null));
     setPickerFor(null);
   };
+
+  const addSlot=()=>setSlots(prev=>prev.length<MAX_SLOTS?[...prev,null]:prev);
 
   async function pickJugadora(idx, player){
     setPickerFor(null);
@@ -279,7 +283,11 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
     });
   };
 
-  const clearSlot=idx=>setSlots(prev=>{const next=[...prev];next[idx]=null;return next;});
+  const clearSlot=idx=>setSlots(prev=>{
+    // Si hay mas de INIT_SLOTS, elimino el slot del array. Si son los base, solo lo vacio.
+    if(prev.length>INIT_SLOTS)return prev.filter((_,i)=>i!==idx);
+    const next=[...prev];next[idx]=null;return next;
+  });
 
   const activos=slots.map((s,i)=>({s,i})).filter(x=>x.s);
   const excludeSet=new Set(activos.map(x=>modo==="equipos"?x.s.team.id_equipo:x.s.player.id_jugadora));
@@ -308,11 +316,20 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
         <button onClick={()=>switchModo("equipos")} style={btnTab(modo==="equipos")}>🏟️ Equipos</button>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px",marginBottom:"20px"}}>
-        {[0,1,2].map(i=>(
-          <SlotCard key={i} modo={modo} slot={slots[i]} idx={i} onOpen={()=>setPickerFor(i)} onClear={()=>clearSlot(i)}/>
+      <div style={{display:"grid",gridTemplateColumns:`repeat(${slots.length},1fr)`,gap:"10px",marginBottom:slots.length<MAX_SLOTS?"10px":"20px"}}>
+        {slots.map((s,i)=>(
+          <SlotCard key={i} modo={modo} slot={s} idx={i} onOpen={()=>setPickerFor(i)} onClear={()=>clearSlot(i)}/>
         ))}
       </div>
+      {slots.length<MAX_SLOTS&&(
+        <div style={{textAlign:"center",marginBottom:"20px"}}>
+          <button onClick={addSlot} title={modo==="equipos"?"Añadir equipo":"Añadir jugadora"}
+            style={{background:"var(--fx-card)",border:"1.5px dashed var(--fx-border)",borderRadius:"999px",padding:"6px 14px",cursor:"pointer",color:"var(--fx-muted)",fontSize:"12px",fontWeight:700,display:"inline-flex",alignItems:"center",gap:"6px"}}>
+            <span style={{fontSize:"14px",lineHeight:1}}>+</span>
+            {modo==="equipos"?"Añadir equipo":"Añadir jugadora"}
+          </button>
+        </div>
+      )}
 
       {loading && <div style={{textAlign:"center",padding:"20px",color:"var(--fx-muted)"}}>{t("comp.loading")}</div>}
 
