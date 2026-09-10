@@ -5392,6 +5392,7 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
