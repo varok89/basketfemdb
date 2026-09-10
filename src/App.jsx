@@ -12,52 +12,6 @@ const PrivacidadView = lazy(() => import("./views/PrivacidadView"));
 const QuinielaView = lazy(() => import("./views/MundialViews"));
 const ComparadorView = lazy(() => import("./views/ComparadorView"));
 
-/* inject bounce keyframe once */
-if (!document.getElementById("bfdb-styles")) {
-  const s = document.createElement("style");
-  s.id = "bfdb-styles";
-  s.textContent = `
-    @keyframes bounce {
-      0%,100% { transform: translateY(0) scaleX(1) scaleY(1); animation-timing-function: cubic-bezier(0.215,0.61,0.355,1); }
-      40%      { transform: translateY(-32px) scaleX(0.95) scaleY(1.05); animation-timing-function: cubic-bezier(0.755,0.05,0.855,0.06); }
-      70%      { transform: translateY(-16px) scaleX(0.95) scaleY(1.05); animation-timing-function: cubic-bezier(0.755,0.05,0.855,0.06); }
-      90%      { transform: translateY(-4px); }
-    }
-    @keyframes shadow {
-      0%,100% { transform: scaleX(1); opacity: 0.3; }
-      40%,70%  { transform: scaleX(0.5); opacity: 0.1; }
-    }
-    @keyframes bfdb-shimmer {
-      0% { background-position: -400px 0; }
-      100% { background-position: 400px 0; }
-    }
-    .bfdb-skel {
-      background: linear-gradient(90deg, var(--fx-hover) 0%, var(--fx-border2) 50%, var(--fx-hover) 100%);
-      background-size: 800px 100%;
-      animation: bfdb-shimmer 1.4s linear infinite;
-      border-radius: 8px;
-      display: inline-block;
-    }
-    /* Accesibilidad: outline visible en navegación con teclado (no con ratón) */
-    button:focus-visible,
-    a:focus-visible,
-    input:focus-visible,
-    select:focus-visible,
-    textarea:focus-visible,
-    [role="button"]:focus-visible,
-    [tabindex]:focus-visible {
-      outline: 2px solid #9333ea;
-      outline-offset: 2px;
-      border-radius: 4px;
-    }
-    /* Elementos ya con outline propio (login modal, etc.) no se doblan */
-    input:focus-visible, select:focus-visible, textarea:focus-visible {
-      outline-offset: 0;
-    }
-  `;
-  document.head.appendChild(s);
-}
-
 const POSITIONS  = ["Base","Escolta","Alero","Ala-Pívot","Pívot"];
 const TIPO_LABELS = { liga:"Liga", copacont:"Copa Continental", copadom:"Copa Nacional", internacional:"Internacional" };
 function getCurrentSeason(players){
@@ -1005,13 +959,6 @@ function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,
 }
 
 /* ── PartidosView ────────────────────────────────────────── */
-// Inyectar keyframe de pulso para el borde rojo "EN JUEGO" una sola vez
-if(typeof document!=="undefined"&&!document.getElementById("partido-pulse")){
-  const s=document.createElement("style");s.id="partido-pulse";
-  s.textContent=`@keyframes partidoPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)}50%{box-shadow:0 0 0 6px rgba(239,68,68,0)}}`;
-  document.head.appendChild(s);
-}
-
 function getPartidoEstado(p){
   const now=new Date();
   const fh=new Date(p.fecha_hora);
@@ -7178,60 +7125,6 @@ export default function App(){
   );
 
   return(<>
-    <style>{`
-      /* ── Mobile responsive ── */
-      @media (max-width: 640px) {
-        .bfdb-header-inner { height: auto !important; flex-wrap: wrap; padding: 6px 8px !important; gap: 4px !important; }
-        .bfdb-logo { margin-right: 0 !important; flex: 1; }
-        .bfdb-header-actions { display: flex; align-items: center; gap: 2px; }
-        .bfdb-tabs { order: 3; width: 100%; display: flex; justify-content: space-around; padding-bottom: 4px; }
-        .bfdb-tabs button { flex: 1; font-size: 16px !important; padding: 8px 4px !important; }
-        .bfdb-tab-label { display: none !important; }
-        .bfdb-supabase-badge { display: none !important; }
-        .bfdb-global-search { display: none !important; }
-        .bfdb-mobile-search-btn { display: flex !important; align-items: center; }
-        .bfdb-stats-grid { grid-template-columns: repeat(3,1fr) !important; gap: 6px !important; }
-        .bfdb-stats-grid > div { padding: 10px 4px !important; }
-        .bfdb-stats-grid > div > div:first-child { font-size: 16px !important; }
-        .bfdb-stats-grid > div > div:nth-child(2) { font-size: 16px !important; }
-        .bfdb-cards-grid { grid-template-columns: 1fr !important; }
-        .bfdb-player-badges { flex-direction: row !important; flex-wrap: wrap; gap: 3px !important; max-width: 120px; }
-        .bfdb-player-card-right { flex-shrink: 0; max-width: 140px; }
-        .bfdb-player-badges span { font-size: 10px !important; padding: 2px 5px !important; }
-        .bfdb-filter-row { gap: 6px !important; }
-        .bfdb-filter-row select, .bfdb-filter-row input { flex: 1 1 calc(50% - 3px) !important; min-width: 0 !important; font-size: 12px !important; padding: 8px 8px !important; }
-        .bfdb-container { padding: 10px !important; }
-        .bfdb-status-dropdown, .bfdb-nac-dropdown { flex: 1 1 calc(50% - 3px) !important; min-width: 0 !important; }
-        .bfdb-status-dropdown > div:first-child, .bfdb-nac-dropdown > div:first-child { min-width: 0 !important; font-size: 12px !important; padding: 8px 8px !important; }
-      }
-      /* ── Tema (variables CSS) ── */
-      .bfdb-app-root{
-        --fx-bg:#f1f5f9;--fx-card:#fff;--fx-hover:#f8fafc;
-        --fx-text:#1e293b;--fx-muted:#64748b;--fx-muted2:#94a3b8;--fx-label:#475569;
-        --fx-border:#e2e8f0;--fx-border2:#f1f5f9;
-        --fx-pill:#fff7ed;
-        --fx-shadow:0 1px 6px rgba(0,0,0,0.07);
-        --fx-shadow-hover:0 4px 16px rgba(147,51,234,0.15);
-        --fx-brand:#9333ea;--fx-brand2:#c084fc;
-      }
-      html[data-bfdb-tema="dark"] .bfdb-app-root{
-        --fx-bg:#0f172a;--fx-card:#1e293b;--fx-hover:#1a2434;
-        --fx-text:#f1f5f9;--fx-muted:#94a3b8;--fx-muted2:#64748b;--fx-label:#cbd5e1;
-        --fx-border:#334155;--fx-border2:#1e293b;
-        --fx-pill:#422006;
-        --fx-shadow:0 1px 6px rgba(0,0,0,0.4);
-        --fx-shadow-hover:0 4px 16px rgba(147,51,234,0.35);
-        --fx-brand:#c084fc;--fx-brand2:#9333ea;
-        background:var(--fx-bg)!important;
-      }
-      html[data-bfdb-tema="dark"]{background:#0f172a;}
-      html[data-bfdb-tema="dark"] body{background:#0f172a;}
-      /* Logos/escudos/fotos con fondo transparente sobre tema oscuro:
-         les damos un fondo blanco sutil para que no se pierdan.
-         Las fotos reales cubren el fondo, asi que no se afectan. */
-      html[data-bfdb-tema="dark"] .bfdb-app-root img:not([src*="flagcdn"]):not([src*="flagpedia"]):not([src*="flagsapi"]):not([src*="icon-home"]){background:#fff !important;}
-      html[data-bfdb-tema="dark"] .bfdb-app-root .bfdb-logo img{background:transparent !important;}
-    `}</style>
     <div className="bfdb-app-root" style={{minHeight:"100vh",background:"var(--fx-hover)",color:"var(--fx-text)",fontFamily:"system-ui,-apple-system,sans-serif",overflowX:"hidden"}}>
       <div style={{background:"#0f172a",color:"#fff",padding:"0 20px",position:"sticky",top:0,zIndex:10,boxShadow:"0 2px 16px rgba(0,0,0,0.4)"}}>
         <div className="bfdb-header-inner" style={{maxWidth:"880px",margin:"0 auto",display:"flex",alignItems:"center",gap:"8px",height:"56px"}}>

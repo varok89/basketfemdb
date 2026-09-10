@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { inject } from '@vercel/analytics';
 import * as Sentry from '@sentry/react';
+import './styles/app.css';
 
 if (window.location.hostname !== 'localhost') {
   Sentry.init({
