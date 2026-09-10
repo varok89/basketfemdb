@@ -2595,7 +2595,7 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
             {tabs.map(([k,lbl])=>(
               <button key={k} onClick={()=>{setVista(k);onVistaChange&&onVistaChange(k);}}
                 style={{border:"none",borderRadius:"10px",padding:"8px 16px",fontSize:"13px",fontWeight:700,cursor:"pointer",
-                  background:vista===k?"#9333ea":"#fff",color:vista===k?"#fff":"#64748b",boxShadow:vista===k?"none":"0 1px 4px rgba(0,0,0,0.06)"}}>{lbl}</button>
+                  background:vista===k?"#9333ea":"var(--fx-card)",color:vista===k?"#fff":"var(--fx-muted)",boxShadow:vista===k?"none":"0 1px 4px rgba(0,0,0,0.06)"}}>{lbl}</button>
             ))}
           </div>
         );
@@ -2643,8 +2643,8 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
         if(!modoLiga&&vista!=="grupos")return null;
         return(
         <div key={nombre} style={{background:"var(--fx-card)",borderRadius:"16px",overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"16px"}}>
-          <div style={{background:"#f5f3ff",padding:"10px 16px",borderBottom:"1px solid #e9d5ff"}}>
-            <span style={{fontWeight:800,fontSize:"14px",color:"#7c3aed"}}>{nombre}</span>
+          <div style={{background:"var(--fx-lila-bg)",padding:"10px 16px",borderBottom:"1px solid var(--fx-lila-border)"}}>
+            <span style={{fontWeight:800,fontSize:"14px",color:"var(--fx-lila-text)"}}>{nombre}</span>
           </div>
           <div style={{overflowX:"auto"}}>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:"12px"}}>
@@ -2668,7 +2668,7 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
                   const zonaPOAsc=modoLiga&&zl.playoffAsc&&!zonaAsc&&i<zl.playoffAsc;
                   const zonaPO=modoLiga&&!zonaAsc&&!zonaPOAsc&&i<PLAYOFF_PUESTOS;
                   const zonaDesc=modoLiga&&i>=eqs.length-DESCENSO_PUESTOS;
-                  const fondo=modoLiga?(zonaDesc?"var(--fx-red-bg)":zonaAsc?"#ecfdf5":zonaPOAsc?"var(--fx-blue-bg)":zonaPO?"var(--fx-lila-bg)":"#fff"):(i===0?"var(--fx-lila-bg)":i<2?"#fffbff":"#fff");
+                  const fondo=modoLiga?(zonaDesc?"var(--fx-red-bg)":zonaAsc?"var(--fx-green-bg)":zonaPOAsc?"var(--fx-blue-bg)":zonaPO?"var(--fx-lila-bg)":"transparent"):(i===0?"var(--fx-lila-bg)":i<2?"var(--fx-lila-bg)":"transparent");
                   const borde=modoLiga?(zonaDesc?"3px solid #ef4444":zonaAsc?"3px solid #16a34a":zonaPOAsc?"3px solid #2563eb":zonaPO?"3px solid #9333ea":"3px solid transparent"):undefined;
                   return(
                     <tr key={eq.id} onClick={()=>onGoToTeam&&onGoToTeam(eq.id,temporada)}
@@ -2676,7 +2676,7 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
                       <td style={{padding:"10px 12px",fontWeight:700,color:zonaDesc?"#ef4444":zonaAsc?"#16a34a":zonaPOAsc?"#2563eb":zonaPO&&modoLiga?"#9333ea":"#94a3b8"}}>{i+1}</td>
                       <td style={{padding:"10px 12px"}}>
                         <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                          {team?.escudo&&<img loading="lazy" decoding="async" src={team.escudo} alt="" style={{width:22,height:22,objectFit:"contain"}}/>}
+                          {team?.escudo&&<img loading="lazy" decoding="async" className={team?.tipo==="seleccion"?"bfdb-flag-bg":undefined} src={team.escudo} alt="" style={{width:22,height:22,objectFit:"contain"}}/>}
                           <span style={{fontWeight:600,color:"var(--fx-text)",whiteSpace:"nowrap"}}>{team?.nombre||eq.id}</span>
                         </div>
                       </td>

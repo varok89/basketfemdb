@@ -13,7 +13,7 @@ function FlagSelect({value,options,onChange,disabled,placeholder,size}){
   const nq=norm(q);
   const filtered=nq?options.filter(o=>norm(o.label).includes(nq)):options;
   const flag=url=>url
-    ?<img loading="lazy" decoding="async" src={url} alt="" style={{width:fw,height:fh,objectFit:"contain",flexShrink:0}}/>
+    ?<img loading="lazy" decoding="async" className="bfdb-flag-bg" src={url} alt="" style={{width:fw,height:fh,objectFit:"contain",flexShrink:0}}/>
     :<span style={{width:fw,height:fh,background:"var(--fx-border)",borderRadius:2,flexShrink:0}}/>;
   const toggle=()=>{if(disabled)return;setOpen(o=>{const nv=!o;if(nv)setQ("");return nv;});};
   return(
@@ -352,7 +352,7 @@ function BasketnetaView({user,equipos,cierre}){
           const flagImg=id=>{
             const url=escDe(id);
             if(!url) return <span style={{width:16,height:12,background:"var(--fx-border)",borderRadius:2,flexShrink:0}}/>;
-            return <img loading="lazy" decoding="async" src={url} alt="" style={{width:16,height:12,objectFit:"contain",flexShrink:0}}/>;
+            return <img loading="lazy" decoding="async" className="bfdb-flag-bg" src={url} alt="" style={{width:16,height:12,objectFit:"contain",flexShrink:0}}/>;
           };
           const teamLabel=id=>(
             <>
@@ -507,7 +507,7 @@ function VerPrediccionesModal({target,equipos,onClose}){
   const escDe=id=>eqEsc[id];
 
   const flag=url=>url
-    ?<img loading="lazy" decoding="async" src={url} alt="" style={{width:16,height:12,objectFit:"contain",flexShrink:0}}/>
+    ?<img loading="lazy" decoding="async" className="bfdb-flag-bg" src={url} alt="" style={{width:16,height:12,objectFit:"contain",flexShrink:0}}/>
     :<span style={{width:16,height:12,background:"var(--fx-border)",borderRadius:2,flexShrink:0,display:"inline-block"}}/>;
 
   const teamPill=id=>id?(
