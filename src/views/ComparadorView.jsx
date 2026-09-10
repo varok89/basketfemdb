@@ -38,6 +38,9 @@ const METRICAS_EQ=[
   {k:"pcg", lbl:"PC/g", desc:"Puntos en contra por partido (media, menos es mejor)",   fmt:v=>v==null?"—":v.toFixed(1),                   best:"min"},
   {k:"dif", lbl:"+/-",  desc:"Diferencia total de puntos en la temporada (PF − PC)",   fmt:v=>v==null?"—":(v>0?"+":"")+v,                 best:"max"},
   {k:"difg",lbl:"+/-/g",desc:"Diferencia de puntos por partido (media)",                fmt:v=>v==null?"—":(v>0?"+":"")+v.toFixed(1),      best:"max"},
+  {k:"pctT2",lbl:"%T2", desc:"Porcentaje de tiros de 2 (agregado de todos los boxscores del equipo)", fmt:v=>v==null?"—":v.toFixed(1)+"%", best:"max"},
+  {k:"pctT3",lbl:"%T3", desc:"Porcentaje de triples (agregado de todos los boxscores del equipo)",    fmt:v=>v==null?"—":v.toFixed(1)+"%", best:"max"},
+  {k:"pctTL",lbl:"%TL", desc:"Porcentaje de tiros libres (agregado de todos los boxscores del equipo)", fmt:v=>v==null?"—":v.toFixed(1)+"%", best:"max"},
 ];
 
 function agregarBox(rows){
@@ -62,7 +65,7 @@ function agregarBox(rows){
   };
 }
 
-function agregarEquipo(rows, idEquipo){
+function agregarEquipo(rows, idEquipo, boxes){
   if(!rows||!rows.length)return null;
   const jugados=rows.filter(p=>p.resultado_local!=null&&p.resultado_visitante!=null);
   if(!jugados.length)return null;
@@ -74,6 +77,18 @@ function agregarEquipo(rows, idEquipo){
     if(a>b)v++; else if(b>a)d++;
   });
   const pj=jugados.length;
+  // Porcentajes de tiro: agregado de todos los boxscores (T2 = TC − T3).
+  let pctT2=null,pctT3=null,pctTL=null;
+  if(boxes&&boxes.length){
+    const s=(k)=>boxes.reduce((a,x)=>a+(Number(x[k])||0),0);
+    const tca=s("tc_anotados"),tci=s("tc_intentados");
+    const t3a=s("t3_anotados"),t3i=s("t3_intentados");
+    const tla=s("tl_anotados"),tli=s("tl_intentados");
+    const t2a=tca-t3a, t2i=tci-t3i;
+    pctT2 = t2i>0 ? t2a*100/t2i : null;
+    pctT3 = t3i>0 ? t3a*100/t3i : null;
+    pctTL = tli>0 ? tla*100/tli : null;
+  }
   return {
     pj, v, d,
     pctV: pj?v*100/pj:null,
@@ -81,6 +96,7 @@ function agregarEquipo(rows, idEquipo){
     pcg:  pj?pc/pj:null,
     dif:  pf-pc,
     difg: pj?(pf-pc)/pj:null,
+    pctT2, pctT3, pctTL,
   };
 }
 
@@ -261,15 +277,22 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
   async function pickEquipo(idx, team){
     setPickerFor(null);
     setLoading(true);
-    const {data}=await supabase.from("partidos")
-      .select("id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante")
-      .or(`id_equipo_local.eq.${team.id_equipo},id_equipo_visitante.eq.${team.id_equipo}`);
+    const [{data:parts},{data:boxRaw}]=await Promise.all([
+      supabase.from("partidos")
+        .select("id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante")
+        .or(`id_equipo_local.eq.${team.id_equipo},id_equipo_visitante.eq.${team.id_equipo}`),
+      supabase.from("partido_boxscore")
+        .select("id_partido,id_equipo,tc_anotados,tc_intentados,t3_anotados,t3_intentados,tl_anotados,tl_intentados,partidos!inner(temporada,id_liga)")
+        .eq("id_equipo",team.id_equipo),
+    ]);
     setLoading(false);
-    const rows=data||[];
+    const rows=parts||[];
+    // Flatten temporada+id_liga desde partidos!inner para filtrar luego.
+    const boxes=(boxRaw||[]).map(b=>({...b, temporada:b.partidos?.temporada, id_liga:b.partidos?.id_liga}));
     const temps=[...new Set(rows.map(x=>x.temporada))].sort((a,b)=>String(b).localeCompare(String(a)));
     setSlots(prev=>{
       const next=[...prev];
-      next[idx]={team,rows,tempSel:temps[0]||null,compSel:"ALL"};
+      next[idx]={team,rows,boxes,tempSel:temps[0]||null,compSel:"ALL"};
       return next;
     });
   }
@@ -295,7 +318,11 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
 
   const stats=activos.map(({s})=>{
     const r=s.rows.filter(x=>x.temporada===s.tempSel && (s.compSel==="ALL"||x.id_liga===s.compSel));
-    return modo==="equipos" ? agregarEquipo(r, s.team.id_equipo) : agregarBox(r);
+    if(modo==="equipos"){
+      const b=(s.boxes||[]).filter(x=>x.temporada===s.tempSel && (s.compSel==="ALL"||x.id_liga===s.compSel));
+      return agregarEquipo(r, s.team.id_equipo, b);
+    }
+    return agregarBox(r);
   });
 
   const btnTab=(active)=>({

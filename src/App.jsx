@@ -4215,7 +4215,7 @@ function RecordsEquipo({idEquipo, temporada, players, equipos, onGoToPlayer}){
     (async()=>{
       const [{data:parts},{data:boxes}]=await Promise.all([
         supabase.from("partidos").select("id,fecha_hora,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante").or(`id_equipo_local.eq.${idEquipo},id_equipo_visitante.eq.${idEquipo}`).eq("temporada",temporada),
-        supabase.from("partido_boxscore").select("id_jugadora,id_equipo,puntos,partidos!inner(temporada,id_equipo_local,id_equipo_visitante)").eq("id_equipo",idEquipo).eq("partidos.temporada",temporada),
+        supabase.from("partido_boxscore").select("id_jugadora,id_equipo,puntos,tc_anotados,tc_intentados,t3_anotados,t3_intentados,tl_anotados,tl_intentados,partidos!inner(temporada,id_equipo_local,id_equipo_visitante)").eq("id_equipo",idEquipo).eq("partidos.temporada",temporada),
       ]);
       if(!cancel)setData({parts:parts||[],boxes:boxes||[]});
     })();
@@ -4238,7 +4238,20 @@ function RecordsEquipo({idEquipo, temporada, players, equipos, onGoToPlayer}){
     const byPlayer={};
     data.boxes.forEach(b=>{const k=b.id_jugadora;if(!k)return;if(!byPlayer[k])byPlayer[k]={id_jugadora:k,pj:0,pts:0};byPlayer[k].pj++;byPlayer[k].pts+=Number(b.puntos)||0;});
     const topScorer=Object.values(byPlayer).filter(b=>b.pj>=3).map(b=>({...b,avg:b.pts/b.pj})).sort((a,b)=>b.avg-a.avg)[0]||null;
-    return {v,d,plus,minus,diff:plus-minus,last5,bestWin,worstLoss,topScorer,pj:played.length};
+    // Porcentajes de tiro agregando todos los boxscores del equipo
+    const sh={tca:0,tci:0,t3a:0,t3i:0,tla:0,tli:0};
+    data.boxes.forEach(b=>{
+      sh.tca+=Number(b.tc_anotados)||0; sh.tci+=Number(b.tc_intentados)||0;
+      sh.t3a+=Number(b.t3_anotados)||0; sh.t3i+=Number(b.t3_intentados)||0;
+      sh.tla+=Number(b.tl_anotados)||0; sh.tli+=Number(b.tl_intentados)||0;
+    });
+    const t2a=sh.tca-sh.t3a, t2i=sh.tci-sh.t3i;
+    const shooting={
+      t2:{a:t2a, i:t2i, pct:t2i>0?t2a*100/t2i:null},
+      t3:{a:sh.t3a, i:sh.t3i, pct:sh.t3i>0?sh.t3a*100/sh.t3i:null},
+      tl:{a:sh.tla, i:sh.tli, pct:sh.tli>0?sh.tla*100/sh.tli:null},
+    };
+    return {v,d,plus,minus,diff:plus-minus,last5,bestWin,worstLoss,topScorer,shooting,pj:played.length};
   },[data,idEquipo]);
 
   const playerMap=useMemo(()=>{const m={};(players||[]).forEach(p=>m[p.id_jugadora]=p);return m;},[players]);
@@ -4306,6 +4319,27 @@ function RecordsEquipo({idEquipo, temporada, players, equipos, onGoToPlayer}){
             <div style={label}>{t("records.worst_loss")}</div>
             <div style={{fontSize:"13px",fontWeight:700,color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>vs {rivalName(stats.worstLoss)}</div>
             <div style={{fontSize:"16px",fontWeight:900,color:"#dc2626"}}>{scoreLabel(stats.worstLoss)}</div>
+          </div>
+        )}
+        {stats.shooting?.t2?.pct!=null&&(
+          <div style={cardBg} title="Porcentaje de tiros de 2 (TC anotados − T3 anotados / TC intentados − T3 intentados)">
+            <div style={label}>%T2</div>
+            <div style={{...value,color:"var(--fx-text)"}}>{stats.shooting.t2.pct.toFixed(1)}%</div>
+            <div style={{fontSize:"10px",color:"var(--fx-muted)"}}>{stats.shooting.t2.a}/{stats.shooting.t2.i}</div>
+          </div>
+        )}
+        {stats.shooting?.t3?.pct!=null&&(
+          <div style={cardBg} title="Porcentaje de triples (T3 anotados / T3 intentados)">
+            <div style={label}>%T3</div>
+            <div style={{...value,color:"var(--fx-text)"}}>{stats.shooting.t3.pct.toFixed(1)}%</div>
+            <div style={{fontSize:"10px",color:"var(--fx-muted)"}}>{stats.shooting.t3.a}/{stats.shooting.t3.i}</div>
+          </div>
+        )}
+        {stats.shooting?.tl?.pct!=null&&(
+          <div style={cardBg} title="Porcentaje de tiros libres (TL anotados / TL intentados)">
+            <div style={label}>%TL</div>
+            <div style={{...value,color:"var(--fx-text)"}}>{stats.shooting.tl.pct.toFixed(1)}%</div>
+            <div style={{fontSize:"10px",color:"var(--fx-muted)"}}>{stats.shooting.tl.a}/{stats.shooting.tl.i}</div>
           </div>
         )}
       </div>}
