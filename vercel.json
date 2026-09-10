@@ -1,7 +1,27 @@
 {
   "rewrites": [
-    { "source": "/jugadoras/:id", "destination": "/api/jugadora/:id" },
-    { "source": "/equipos/:id", "destination": "/api/equipo/:id" },
+    {
+      "source": "/jugadoras/:id",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(bot|facebook|twitter|slack|whatsapp|discord|linkedin|pinterest|telegram|embed|preview|scanner|crawler|spider|monitor).*"
+        }
+      ],
+      "destination": "/api/jugadora/:id"
+    },
+    {
+      "source": "/equipos/:id",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(bot|facebook|twitter|slack|whatsapp|discord|linkedin|pinterest|telegram|embed|preview|scanner|crawler|spider|monitor).*"
+        }
+      ],
+      "destination": "/api/equipo/:id"
+    },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
