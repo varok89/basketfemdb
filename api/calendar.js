@@ -9,8 +9,8 @@
 
 const { createClient } = require("@supabase/supabase-js");
 
-const SUPA_URL = process.env.REACT_APP_SUPABASE_URL;
-const SUPA_KEY = process.env.REACT_APP_SUPABASE_KEY;
+const SUPA_URL = process.env.SUPABASE_URL;
+const SUPA_KEY = process.env.SUPABASE_KEY;
 
 function escapeIcs(s) {
   return String(s || "")

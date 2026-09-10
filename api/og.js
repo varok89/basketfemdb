@@ -10,8 +10,8 @@ import { createClient } from "@supabase/supabase-js";
 
 export const config = { runtime: "edge" };
 
-const SUPA_URL = process.env.REACT_APP_SUPABASE_URL;
-const SUPA_KEY = process.env.REACT_APP_SUPABASE_KEY;
+const SUPA_URL = process.env.SUPABASE_URL;
+const SUPA_KEY = process.env.SUPABASE_KEY;
 const BRAND = "#9333ea";
 const BG = "#0f172a";
 
