@@ -13,7 +13,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "node scripts/build-sitemap.mjs && react-scripts build"
+    "build": "node scripts/build-sitemap.mjs && node scripts/build-with-sentry.mjs"
   },
   "browserslist": {
     "production": [">0.2%", "not dead", "not op_mini all"],
