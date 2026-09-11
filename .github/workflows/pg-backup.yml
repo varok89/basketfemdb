@@ -28,7 +28,7 @@ jobs:
           set -eo pipefail
           STAMP=$(date -u +%Y%m%d-%H%M)
           OUT="basketfemdb-${STAMP}.sql.gz"
-          pg_dump "$DB_URL" \
+          /usr/lib/postgresql/17/bin/pg_dump "$DB_URL" \
             --clean --if-exists --no-owner --no-privileges \
             --exclude-schema='auth' --exclude-schema='storage' --exclude-schema='realtime' \
             --exclude-schema='supabase_functions' --exclude-schema='vault' --exclude-schema='pgsodium' --exclude-schema='pgsodium_masks' \
