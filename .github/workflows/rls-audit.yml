@@ -18,10 +18,15 @@ jobs:
           PAT: ${{ secrets.SUPABASE_PAT }}
           REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
-          set -euo pipefail
-          curl -sSf -H "Authorization: Bearer $PAT" \
-            "https://api.supabase.com/v1/projects/$REF/advisors?type=security" > advisors.json
-          jq '.' advisors.json > /dev/null  # validate JSON
+          set -eo pipefail
+          echo "PAT length: ${#PAT}   REF: '$REF'"
+          STATUS=$(curl -sS -o advisors.json -w '%{http_code}' \
+            -H "Authorization: Bearer $PAT" \
+            "https://api.supabase.com/v1/projects/$REF/advisors?type=security")
+          echo "HTTP $STATUS"
+          echo "--- response ---"; cat advisors.json; echo
+          if [ "$STATUS" != "200" ]; then exit 1; fi
+          jq '.' advisors.json > /dev/null
           echo "count=$(jq '[.lints[].count] | add // 0' advisors.json)" >> "$GITHUB_ENV"
 
       - name: Render markdown body
