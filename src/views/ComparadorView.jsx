@@ -38,6 +38,10 @@ const METRICAS_EQ=[
   {k:"pctT2",lbl:"%T2", desc:"Porcentaje de tiros de 2 (agregado de todos los boxscores del equipo)", fmt:v=>v==null?"—":v.toFixed(1)+"%", best:"max"},
   {k:"pctT3",lbl:"%T3", desc:"Porcentaje de triples (agregado de todos los boxscores del equipo)",    fmt:v=>v==null?"—":v.toFixed(1)+"%", best:"max"},
   {k:"pctTL",lbl:"%TL", desc:"Porcentaje de tiros libres (agregado de todos los boxscores del equipo)", fmt:v=>v==null?"—":v.toFixed(1)+"%", best:"max"},
+  {k:"rog", lbl:"REBO/g",desc:"Rebotes ofensivos por partido (media del equipo)",  fmt:v=>v==null?"—":v.toFixed(1), best:"max"},
+  {k:"rdg", lbl:"REBD/g",desc:"Rebotes defensivos por partido (media del equipo)", fmt:v=>v==null?"—":v.toFixed(1), best:"max"},
+  {k:"astg",lbl:"AST/g", desc:"Asistencias por partido (media del equipo)",        fmt:v=>v==null?"—":v.toFixed(1), best:"max"},
+  {k:"robg",lbl:"ROB/g", desc:"Robos por partido (media del equipo)",              fmt:v=>v==null?"—":v.toFixed(1), best:"max"},
 ];
 
 function agregarBox(rows){
