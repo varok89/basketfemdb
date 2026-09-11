@@ -1,0 +1,71 @@
+name: RLS / Security audit
+
+on:
+  schedule:
+    - cron: '0 8 * * 1'  # lunes 08:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch advisors
+        env:
+          PAT: ${{ secrets.SUPABASE_PAT }}
+          REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          set -euo pipefail
+          curl -sSf -H "Authorization: Bearer $PAT" \
+            "https://api.supabase.com/v1/projects/$REF/advisors?type=security" > advisors.json
+          jq '.' advisors.json > /dev/null  # validate JSON
+          echo "count=$(jq '[.lints[].count] | add // 0' advisors.json)" >> "$GITHUB_ENV"
+
+      - name: Render markdown body
+        run: |
+          {
+            echo "🩺 **Snapshot semanal** del Supabase Security Advisor · $(date -u +%Y-%m-%dT%H:%MZ)"
+            echo
+            echo "Total findings: **${count}**"
+            echo
+            jq -r '
+              .lints[] |
+              "### \(.title) · `\(.level)` · \(.count) hallazgo(s)\n\n" +
+              "- Regla: `\(.name)` — [remediation](\(.remediation))\n" +
+              (.findings | map("  - \(.detail)") | join("\n")) + "\n"
+            ' advisors.json
+            echo
+            echo "---"
+            echo "_Auto-generado por [rls-audit.yml](../blob/main/.github/workflows/rls-audit.yml). Cierra este issue si todos los findings son aceptados; se re-abrirá si el conteo cambia._"
+          } > body.md
+          cat body.md
+
+      - name: Upsert issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COUNT: ${{ env.count }}
+        run: |
+          set -euo pipefail
+          TITLE="🩺 RLS / Security audit — ${COUNT} finding(s)"
+          # Busca issue existente por label (abierto o cerrado)
+          NUM=$(gh issue list --label rls-audit --state all --limit 1 --json number -q '.[0].number' || true)
+          if [ -z "$NUM" ]; then
+            if [ "$COUNT" -gt 0 ]; then
+              gh label create rls-audit --color BFD4F2 --description "Supabase security advisors" 2>/dev/null || true
+              gh issue create --title "$TITLE" --body-file body.md --label rls-audit
+            else
+              echo "Sin findings y sin issue previo — nada que hacer."
+            fi
+            exit 0
+          fi
+          # Existe: actualizamos body y título, reabrimos si estaba cerrado y count>0
+          gh issue edit "$NUM" --title "$TITLE" --body-file body.md
+          STATE=$(gh issue view "$NUM" --json state -q .state)
+          if [ "$COUNT" -gt 0 ] && [ "$STATE" = "CLOSED" ]; then
+            gh issue reopen "$NUM" --comment "El conteo de findings cambió a $COUNT. Reabierto por el audit semanal."
+          elif [ "$COUNT" -eq 0 ] && [ "$STATE" = "OPEN" ]; then
+            gh issue close "$NUM" --comment "0 findings de seguridad. Cerrado por el audit semanal."
+          fi
