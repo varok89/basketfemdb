@@ -74,8 +74,8 @@ function agregarEquipo(rows, idEquipo, boxes){
     if(a>b)v++; else if(b>a)d++;
   });
   const pj=jugados.length;
-  // Porcentajes de tiro: agregado de todos los boxscores (T2 = TC − T3).
-  let pctT2=null,pctT3=null,pctTL=null;
+  // Porcentajes de tiro y contadores por partido: agregado de todos los boxscores (T2 = TC − T3).
+  let pctT2=null,pctT3=null,pctTL=null,rog=null,rdg=null,astg=null,robg=null;
   if(boxes&&boxes.length){
     const s=(k)=>boxes.reduce((a,x)=>a+(Number(x[k])||0),0);
     const tca=s("tc_anotados"),tci=s("tc_intentados");
@@ -85,6 +85,12 @@ function agregarEquipo(rows, idEquipo, boxes){
     pctT2 = t2i>0 ? t2a*100/t2i : null;
     pctT3 = t3i>0 ? t3a*100/t3i : null;
     pctTL = tli>0 ? tla*100/tli : null;
+    if(pj){
+      rog  = s("reb_ofensivos")/pj;
+      rdg  = s("reb_defensivos")/pj;
+      astg = s("asistencias")/pj;
+      robg = s("robos")/pj;
+    }
   }
   return {
     pj, v, d,
@@ -94,6 +100,7 @@ function agregarEquipo(rows, idEquipo, boxes){
     dif:  pf-pc,
     difg: pj?(pf-pc)/pj:null,
     pctT2, pctT3, pctTL,
+    rog, rdg, astg, robg,
   };
 }
 
@@ -279,7 +286,7 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
         .select("id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante")
         .or(`id_equipo_local.eq.${team.id_equipo},id_equipo_visitante.eq.${team.id_equipo}`),
       supabase.from("partido_boxscore")
-        .select("id_partido,id_equipo,tc_anotados,tc_intentados,t3_anotados,t3_intentados,tl_anotados,tl_intentados,partidos!inner(temporada,id_liga)")
+        .select("id_partido,id_equipo,tc_anotados,tc_intentados,t3_anotados,t3_intentados,tl_anotados,tl_intentados,reb_ofensivos,reb_defensivos,asistencias,robos,partidos!inner(temporada,id_liga)")
         .eq("id_equipo",team.id_equipo),
     ]);
     setLoading(false);
@@ -407,7 +414,7 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
                     const best=(!m.best||!validos.length)?null:(m.best==="min"?Math.min(...validos):Math.max(...validos));
                     return (
                       <tr key={m.k} style={{borderTop:"1px solid var(--fx-border2)"}}>
-                        <td title={m.desc} style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600,cursor:"help",textDecoration:"underline dotted var(--fx-muted2)",textUnderlineOffset:"3px"}}>{m.lbl}</td>
+                        <td title={m.desc} onClick={()=>alert(`${m.lbl}: ${m.desc}`)} style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600,cursor:"help",textDecoration:"underline dotted var(--fx-muted2)",textUnderlineOffset:"3px"}}>{m.lbl}</td>
                         {vals.map((v,i)=>(
                           <td key={i} style={{textAlign:"center",fontSize:"13px",padding:"6px 4px",fontWeight:v!=null&&v===best?800:500,color:v!=null&&v===best?COLORS[i]:"var(--fx-text)"}}>
                             {v==null?"—":m.fmt(v)}
@@ -419,7 +426,7 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
                 ) : (
                   <>
                     <tr>
-                      <td title="Partidos jugados con boxscore" style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600,cursor:"help",textDecoration:"underline dotted var(--fx-muted2)",textUnderlineOffset:"3px"}}>PJ</td>
+                      <td title="Partidos jugados con boxscore" onClick={()=>alert("PJ: Partidos jugados con boxscore")} style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600,cursor:"help",textDecoration:"underline dotted var(--fx-muted2)",textUnderlineOffset:"3px"}}>PJ</td>
                       {stats.map((st,i)=>(
                         <td key={i} style={{textAlign:"center",fontSize:"13px",padding:"6px 4px",color:"var(--fx-text)"}}>{st?.pj||"—"}</td>
                       ))}
@@ -430,7 +437,7 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
                       const best=validos.length?(m.k==="per"?Math.min(...validos):Math.max(...validos)):null;
                       return (
                         <tr key={m.k} style={{borderTop:"1px solid var(--fx-border2)"}}>
-                          <td title={m.desc} style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600,cursor:"help",textDecoration:"underline dotted var(--fx-muted2)",textUnderlineOffset:"3px"}}>{m.lbl}</td>
+                          <td title={m.desc} onClick={()=>alert(`${m.lbl}: ${m.desc}`)} style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600,cursor:"help",textDecoration:"underline dotted var(--fx-muted2)",textUnderlineOffset:"3px"}}>{m.lbl}</td>
                           {vals.map((v,i)=>(
                             <td key={i} style={{textAlign:"center",fontSize:"13px",padding:"6px 4px",fontWeight:v!=null&&v===best?800:500,color:v!=null&&v===best?COLORS[i]:"var(--fx-text)"}}>
                               {v==null?"—":v.toFixed(1)}
@@ -445,7 +452,7 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
                       const best=validos.length?Math.max(...validos):null;
                       return (
                         <tr key={m.k} style={{borderTop:"1px solid var(--fx-border2)"}}>
-                          <td title={m.desc} style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600,cursor:"help",textDecoration:"underline dotted var(--fx-muted2)",textUnderlineOffset:"3px"}}>{m.lbl}</td>
+                          <td title={m.desc} onClick={()=>alert(`${m.lbl}: ${m.desc}`)} style={{fontSize:"12px",color:"var(--fx-muted)",padding:"6px 4px",fontWeight:600,cursor:"help",textDecoration:"underline dotted var(--fx-muted2)",textUnderlineOffset:"3px"}}>{m.lbl}</td>
                           {vals.map((v,i)=>(
                             <td key={i} style={{textAlign:"center",fontSize:"13px",padding:"6px 4px",fontWeight:v!=null&&v===best?800:500,color:v!=null&&v===best?COLORS[i]:"var(--fx-text)"}}>
                               {v==null?"—":v.toFixed(1)+"%"}
