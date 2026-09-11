@@ -13,35 +13,78 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch advisors
+      - name: Run security lints against Postgres
         env:
           PAT: ${{ secrets.SUPABASE_PAT }}
           REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
           set -eo pipefail
-          echo "PAT length: ${#PAT}   REF: '$REF'"
-          STATUS=$(curl -sS -o advisors.json -w '%{http_code}' \
+          # Query inline que replica los checks del splinter/supabase-lint sin
+          # depender de esquemas internos. Devuelve una fila con un JSON
+          # `summary` que agrupa conteos por categoría.
+          read -r -d '' SQL <<'EOF' || true
+          SELECT jsonb_build_object(
+            'rls_disabled', (
+              SELECT count(*) FROM pg_class c
+              JOIN pg_namespace n ON c.relnamespace=n.oid
+              WHERE n.nspname='public' AND c.relkind='r' AND NOT c.relrowsecurity
+            ),
+            'rls_enabled_no_policy', (
+              SELECT count(*) FROM pg_class c
+              JOIN pg_namespace n ON c.relnamespace=n.oid
+              WHERE n.nspname='public' AND c.relkind='r' AND c.relrowsecurity
+              AND NOT EXISTS (SELECT 1 FROM pg_policy pol WHERE pol.polrelid=c.oid)
+            ),
+            'function_search_path_mutable', (
+              SELECT count(*) FROM pg_proc p
+              JOIN pg_namespace n ON p.pronamespace=n.oid
+              WHERE n.nspname='public' AND p.prokind='f'
+              AND NOT COALESCE((SELECT bool_or(cfg LIKE 'search_path=%') FROM unnest(p.proconfig) AS cfg), false)
+            ),
+            'security_definer_functions_public', (
+              SELECT count(*) FROM pg_proc p
+              JOIN pg_namespace n ON p.pronamespace=n.oid
+              WHERE n.nspname='public' AND p.prosecdef=true
+            ),
+            'extensions_in_public', (
+              SELECT count(*) FROM pg_extension e
+              JOIN pg_namespace n ON e.extnamespace=n.oid
+              WHERE n.nspname='public' AND e.extname NOT IN ('plpgsql')
+            ),
+            'security_definer_views', (
+              SELECT count(*) FROM pg_views v
+              JOIN pg_class c ON c.relname=v.viewname
+              JOIN pg_namespace ns ON c.relnamespace=ns.oid AND ns.nspname=v.schemaname
+              WHERE v.schemaname='public' AND EXISTS (
+                SELECT 1 FROM unnest(c.reloptions) opt WHERE opt LIKE 'security_barrier=%' OR opt = 'security_invoker=false'
+              )
+            )
+          ) AS summary;
+          EOF
+          BODY=$(jq -n --arg q "$SQL" '{query:$q}')
+          STATUS=$(curl -sS -o resp.json -w '%{http_code}' -X POST \
             -H "Authorization: Bearer $PAT" \
-            "https://api.supabase.com/v1/projects/$REF/advisors?type=security")
+            -H "Content-Type: application/json" \
+            -d "$BODY" \
+            "https://api.supabase.com/v1/projects/$REF/database/query")
           echo "HTTP $STATUS"
-          echo "--- response ---"; cat advisors.json; echo
-          if [ "$STATUS" != "200" ]; then exit 1; fi
-          jq '.' advisors.json > /dev/null
-          echo "count=$(jq '[.lints[].count] | add // 0' advisors.json)" >> "$GITHUB_ENV"
+          echo "--- response ---"; cat resp.json; echo
+          if [ "$STATUS" != "201" ] && [ "$STATUS" != "200" ]; then exit 1; fi
+          # response is [{"summary": {...}}]
+          jq '.[0].summary' resp.json > summary.json
+          TOTAL=$(jq '[.[]] | add // 0' summary.json)
+          echo "count=$TOTAL" >> "$GITHUB_ENV"
 
       - name: Render markdown body
         run: |
           {
-            echo "🩺 **Snapshot semanal** del Supabase Security Advisor · $(date -u +%Y-%m-%dT%H:%MZ)"
+            echo "🩺 **Snapshot semanal** de seguridad · $(date -u +%Y-%m-%dT%H:%MZ)"
             echo
             echo "Total findings: **${count}**"
             echo
-            jq -r '
-              .lints[] |
-              "### \(.title) · `\(.level)` · \(.count) hallazgo(s)\n\n" +
-              "- Regla: `\(.name)` — [remediation](\(.remediation))\n" +
-              (.findings | map("  - \(.detail)") | join("\n")) + "\n"
-            ' advisors.json
+            echo "| Check | Count |"
+            echo "|---|---:|"
+            jq -r 'to_entries[] | "| `\(.key)` | \(.value) |"' summary.json
             echo
             echo "---"
             echo "_Auto-generado por [rls-audit.yml](../blob/main/.github/workflows/rls-audit.yml). Cierra este issue si todos los findings son aceptados; se re-abrirá si el conteo cambia._"
@@ -53,24 +96,22 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COUNT: ${{ env.count }}
         run: |
-          set -euo pipefail
+          set -eo pipefail
           TITLE="🩺 RLS / Security audit — ${COUNT} finding(s)"
-          # Busca issue existente por label (abierto o cerrado)
           NUM=$(gh issue list --label rls-audit --state all --limit 1 --json number -q '.[0].number' || true)
           if [ -z "$NUM" ]; then
             if [ "$COUNT" -gt 0 ]; then
-              gh label create rls-audit --color BFD4F2 --description "Supabase security advisors" 2>/dev/null || true
+              gh label create rls-audit --color BFD4F2 --description "Supabase security snapshot" 2>/dev/null || true
               gh issue create --title "$TITLE" --body-file body.md --label rls-audit
             else
               echo "Sin findings y sin issue previo — nada que hacer."
             fi
             exit 0
           fi
-          # Existe: actualizamos body y título, reabrimos si estaba cerrado y count>0
           gh issue edit "$NUM" --title "$TITLE" --body-file body.md
           STATE=$(gh issue view "$NUM" --json state -q .state)
           if [ "$COUNT" -gt 0 ] && [ "$STATE" = "CLOSED" ]; then
-            gh issue reopen "$NUM" --comment "El conteo de findings cambió a $COUNT. Reabierto por el audit semanal."
+            gh issue reopen "$NUM" --comment "Conteo cambió a $COUNT. Reabierto."
           elif [ "$COUNT" -eq 0 ] && [ "$STATE" = "OPEN" ]; then
-            gh issue close "$NUM" --comment "0 findings de seguridad. Cerrado por el audit semanal."
+            gh issue close "$NUM" --comment "0 findings. Cerrado."
           fi
