@@ -146,20 +146,15 @@ function JornadaTab({user, equipos, jornadas, jornadaN, setJornadaN, misPreds, r
     }
   };
 
-  const btnLV = (activo) => ({
-    background: activo ? "#9333ea" : "var(--fx-hover)",
-    color: activo ? "#fff" : "var(--fx-muted)",
-    border: activo ? "none" : "1px solid var(--fx-border)",
-    borderRadius: "8px", padding: "6px 12px", fontWeight: 800, fontSize: "13px",
-    cursor: cerrada ? "not-allowed" : "pointer", minWidth: "36px",
+  const eqBtn = (id, activo, onClick) => ({
+    display: "flex", alignItems: "center", gap: "6px", minWidth: 0, flex: 1,
+    background: activo ? "rgba(147,51,234,0.14)" : "var(--fx-hover)",
+    border: activo ? "2px solid #9333ea" : "1.5px solid var(--fx-border)",
+    borderRadius: "10px", padding: "8px 10px",
+    cursor: cerrada ? "not-allowed" : "pointer",
+    opacity: cerrada && !activo ? 0.6 : 1,
+    transition: "all 0.15s",
   });
-
-  const pillEq = (id) => (
-    <span style={{display:"inline-flex",alignItems:"center",gap:"6px",overflow:"hidden"}}>
-      {escMap[id] && <img loading="lazy" decoding="async" src={escMap[id]} alt="" style={{width:20,height:20,objectFit:"contain",flexShrink:0}}/>}
-      <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontSize:"13px",fontWeight:700,color:"var(--fx-text)"}}>{eqMap[id] || id}</span>
-    </span>
-  );
 
   const idxActual = jornadas.findIndex(j => j.n === jornadaN);
   const prev = idxActual > 0 ? jornadas[idxActual - 1] : null;
@@ -190,24 +185,27 @@ function JornadaTab({user, equipos, jornadas, jornadaN, setJornadaN, misPreds, r
           const jugado = p.resultado_local != null && p.resultado_visitante != null;
           return (
             <div key={p.id} style={{background:"var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"10px",padding:"10px 12px",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px",fontSize:"11px",color:"var(--fx-muted2)",marginBottom:"6px"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px",fontSize:"11px",color:"var(--fx-muted2)",marginBottom:"8px"}}>
                 <span>{fmtFecha(p.fecha_hora)}</span>
                 {jugado && <span style={{fontWeight:800,color:"var(--fx-text)",fontSize:"12px"}}>{p.resultado_local}-{p.resultado_visitante}</span>}
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",alignItems:"center",gap:"8px",marginBottom:"10px"}}>
-                {pillEq(p.id_equipo_local)}
-                <span style={{fontSize:"11px",color:"var(--fx-muted2)"}}>vs</span>
-                <div style={{textAlign:"right"}}>{pillEq(p.id_equipo_visitante)}</div>
-              </div>
-              <div style={{display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}>
-                <button disabled={cerrada} onClick={() => setDraft(p.id,{ganador:"L"})} style={btnLV(d.ganador==="L")} title={eqMap[p.id_equipo_local]}>1</button>
-                <button disabled={cerrada} onClick={() => setDraft(p.id,{ganador:"V"})} style={btnLV(d.ganador==="V")} title={eqMap[p.id_equipo_visitante]}>2</button>
+              <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                <div style={{flex:1,display:"flex",alignItems:"center",gap:"6px",minWidth:0}}>
+                  <button disabled={cerrada} onClick={() => setDraft(p.id,{ganador:"L"})} style={eqBtn(p.id_equipo_local, d.ganador==="L")} title={eqMap[p.id_equipo_local]}>
+                    {escMap[p.id_equipo_local] && <img loading="lazy" decoding="async" src={escMap[p.id_equipo_local]} alt="" style={{width:22,height:22,objectFit:"contain",flexShrink:0}}/>}
+                    <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontSize:"13px",fontWeight:700,color:"var(--fx-text)",textAlign:"left"}}>{eqMap[p.id_equipo_local] || p.id_equipo_local}</span>
+                  </button>
+                  <span style={{fontSize:"10px",color:"var(--fx-muted2)",flexShrink:0}}>vs</span>
+                  <button disabled={cerrada} onClick={() => setDraft(p.id,{ganador:"V"})} style={eqBtn(p.id_equipo_visitante, d.ganador==="V")} title={eqMap[p.id_equipo_visitante]}>
+                    {escMap[p.id_equipo_visitante] && <img loading="lazy" decoding="async" src={escMap[p.id_equipo_visitante]} alt="" style={{width:22,height:22,objectFit:"contain",flexShrink:0}}/>}
+                    <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontSize:"13px",fontWeight:700,color:"var(--fx-text)",textAlign:"left"}}>{eqMap[p.id_equipo_visitante] || p.id_equipo_visitante}</span>
+                  </button>
+                </div>
                 <input type="number" min="1" max="199" value={d.diferencia}
                   disabled={cerrada}
                   onChange={e => setDraft(p.id, {diferencia: e.target.value.replace(/[^\d]/g,"")})}
                   placeholder={t("endesa.diff.placeholder")}
-                  style={{width:"70px",padding:"6px 8px",border:"1.5px solid var(--fx-border)",borderRadius:"8px",fontSize:"14px",fontWeight:700,textAlign:"center",background: cerrada ? "var(--fx-hover)" : "var(--fx-card)", color:"var(--fx-text)"}}/>
-                <span style={{fontSize:"11px",color:"var(--fx-muted2)"}}>{t("endesa.diff.hint")}</span>
+                  style={{width:"58px",padding:"8px 6px",border:"1.5px solid var(--fx-border)",borderRadius:"10px",fontSize:"14px",fontWeight:800,textAlign:"center",background: cerrada ? "var(--fx-hover)" : "var(--fx-card)", color:"var(--fx-text)",flexShrink:0}}/>
               </div>
             </div>
           );
