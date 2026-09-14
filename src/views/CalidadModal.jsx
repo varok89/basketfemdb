@@ -209,8 +209,17 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
         var isFebL=["L001","L002","L003","L017","L074"].includes(carrLiga);
         var isFibaL=["L004","L005","L027","L055","L056","L060","L058","L057","L059","L067","L071","L075","L076","L083","L091","L099","L079","L096","L087","L077","L093","L078","L080","L081","L082","L085","L104","L105","L110"].includes(carrLiga);
         if(["L007","L022","L098"].includes(carrLiga)){
-          j=await callFn("cargar-carrera-lfb-jugadora",{id_jugadora:p.id_jugadora,temporada:carrTemp,dry:false});
-          log[log.length-1]={jugadora:p.nombre,estado:j.error?"❌ "+j.error:"✅ box:"+(j.boxscores||0)+" partidos+:"+(j.creados||0)+(j.sin_rival?.length?" ⚠️sin_rival:"+j.sin_rival.length:"")};
+          j=await callFn("cargar-carrera-lfb-jugadora",{id_jugadora:p.id_jugadora,id_liga:carrLiga,temporada:carrTemp,dry:false});
+          var estadoLfb;
+          if(j.ok===false){
+            var motivosLfb={no_encontrada:"⏭ jugadora no existe",sin_id_lfb:"⏭ sin id_lfb",sin_temporadas:"⏭ sin temporadas",scrape_error:"⏭ scrape fallo ("+(j.status||"?")+")",sin_partidos_liga:"⏭ sin partidos de "+carrLiga+" en ficha"};
+            estadoLfb=motivosLfb[j.motivo]||("⏭ "+(j.motivo||j.error||"skip"));
+          } else if(j.error){
+            estadoLfb="❌ "+j.error;
+          } else {
+            estadoLfb="✅ box:"+(j.boxscores||0)+" partidos+:"+(j.creados||0)+(j.sin_rival?.length?" ⚠️sin_rival:"+j.sin_rival.length:"");
+          }
+          log[log.length-1]={jugadora:p.nombre,estado:estadoLfb};
         } else if(isFebL){
           j=await callFn("cargar-carrera-feb-jugadora",{id_jugadora:p.id_jugadora,id_liga:carrLiga,temporada:carrTemp,dry:false});
           log[log.length-1]={jugadora:p.nombre,estado:j.error?"❌ "+j.error:"✅ box:"+(j.total_boxscores||0)+" pendientes:"+(j.pendientes||0)+"/"+(j.partidos_totales||0)};
