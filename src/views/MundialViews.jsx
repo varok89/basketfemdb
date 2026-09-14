@@ -781,7 +781,7 @@ function HistoricoRanking({torneo,user,equipos,onAbrirPerfil}){
 
 export default function QuinielaView({user,equipos,onAbrirPerfil}){
   const t = useT();
-  const [tab,setTab]=useState("euroliga");
+  const [tab,setTab]=useState("endesa");
   const [torneos,setTorneos]=useState([]);
   const [torneoSel,setTorneoSel]=useState(null);
   const [logos,setLogos]=useState({});
@@ -812,8 +812,8 @@ export default function QuinielaView({user,equipos,onAbrirPerfil}){
         <div style={{fontSize:"12px",color:"var(--fx-muted)",marginTop:"3px"}}>{t("quiniela.hub.sub")}</div>
       </div>
       <div style={{display:"flex",gap:"6px",marginBottom:"12px",flexWrap:"wrap"}}>
-        <button onClick={()=>{setTab("euroliga");setTorneoSel(null);}}  style={btnStyle(tab==="euroliga")}>{t("quiniela.tab.euroliga")}</button>
         <button onClick={()=>{setTab("endesa");setTorneoSel(null);}}    style={btnStyle(tab==="endesa")}>{t("quiniela.tab.endesa")}</button>
+        <button onClick={()=>{setTab("euroliga");setTorneoSel(null);}}  style={btnStyle(tab==="euroliga")}>{t("quiniela.tab.euroliga")}</button>
         <button onClick={()=>{setTab("historico");setTorneoSel(null);}} style={btnStyle(tab==="historico")}>{t("quiniela.tab.historico")}</button>
       </div>
 
