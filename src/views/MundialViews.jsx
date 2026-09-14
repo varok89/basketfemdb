@@ -715,95 +715,124 @@ function ResultadosOficialesAdmin(){
   );
 }
 
-export default function QuinielaView({user,equipos,onAbrirPerfil,isAdmin}){
+function HistoricoRanking({torneo,user,equipos,onAbrirPerfil}){
   const t = useT();
-  const [cierre,setCierre]=useState(null);
-  const [rank,setRank]=useState([]);
-  const [tab,setTab]=useState("basketneta");
   const [verUser,setVerUser]=useState(null);
+  const rank=Array.isArray(torneo?.ranking_final)?torneo.ranking_final:[];
+  return(
+    <div style={{background:"var(--fx-card)",borderRadius:"12px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+      <div style={{padding:"12px 14px",background:"var(--fx-lila-bg)",fontSize:"12px",color:"#6b21a8",borderBottom:"1px solid #e9d5ff",borderRadius:"12px 12px 0 0",display:"flex",alignItems:"center",gap:"10px"}}>
+        {torneo.logo_url&&<img src={torneo.logo_url} alt="" style={{height:"28px",width:"auto",objectFit:"contain"}}/>}
+        <div>
+          <div style={{fontWeight:800}}>{torneo.nombre}</div>
+          <div style={{fontSize:"11px",opacity:0.8}}>{t("quiniela.hist.final_ranking")}</div>
+        </div>
+      </div>
+      <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
+      <table style={{width:"100%",minWidth:"520px",borderCollapse:"collapse",fontSize:"14px"}}>
+        <thead style={{background:"var(--fx-hover)"}}>
+          <tr>
+            <th style={{padding:"10px 14px",textAlign:"left",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>#</th>
+            <th style={{padding:"10px 14px",textAlign:"left",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("quiniela.rank.user")}</th>
+            <th style={{padding:"10px 14px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("quiniela.rank.bn")}</th>
+            <th style={{padding:"10px 14px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("quiniela.rank.bola")}</th>
+            <th style={{padding:"10px 14px",textAlign:"right",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("quiniela.rank.pts")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rank.length===0&&<tr><td colSpan={5} style={{padding:"24px",textAlign:"center",color:"var(--fx-muted2)"}}>{t("quiniela.rank.empty")}</td></tr>}
+          {rank.map((r,i)=>{
+            const google=r.user_id===user.id?user.user_metadata?.avatar_url:null;
+            const medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":null;
+            return(
+            <tr key={r.user_id}
+              onClick={()=>setVerUser({user_id:r.user_id,nombre:r.nombre,avatar:r.avatar,google})}
+              style={{borderTop:"1px solid var(--fx-border2)",background:r.user_id===user.id?"var(--fx-lila-bg)":undefined,cursor:"pointer"}}
+              onMouseEnter={e=>{e.currentTarget.style.background="#f5f3ff";}}
+              onMouseLeave={e=>{e.currentTarget.style.background=r.user_id===user.id?"var(--fx-lila-bg)":"";}}
+              title={t("quiniela.rank.view_pred")}>
+              <td style={{padding:"10px 14px",fontWeight:700,color:i===0?"#eab308":i===1?"#94a3b8":i===2?"var(--fx-amber-text)":"#64748b"}}>{medal||(i+1)}</td>
+              <td style={{padding:"8px 14px",fontWeight:600,color:"var(--fx-text)"}}>
+                <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                  <UserAvatar avatar={r.avatar} googleUrl={google} nombre={r.nombre} size={28}/>
+                  <span
+                    onClick={e=>{e.stopPropagation();if(onAbrirPerfil&&r.alias)onAbrirPerfil(r.alias);}}
+                    style={{cursor:(onAbrirPerfil&&r.alias)?"pointer":"default",textDecoration:(onAbrirPerfil&&r.alias)?"underline":"none",textDecorationColor:"#c084fc",textUnderlineOffset:"3px"}}
+                    title={r.alias?t("quiniela.rank.view_profile"):undefined}>
+                    {r.nombre}{r.user_id===user.id?t("quiniela.rank.you"):""}
+                  </span>
+                  <span style={{fontSize:"11px",color:"#9333ea",marginLeft:"4px"}}>👁</span>
+                </div>
+              </td>
+              <td style={{padding:"10px 14px",textAlign:"center",color:"var(--fx-muted)"}}>{r.basketneta_slots}/28</td>
+              <td style={{padding:"10px 14px",textAlign:"center",color:"var(--fx-muted)"}}>{r.bola_slots}/7</td>
+              <td style={{padding:"10px 14px",textAlign:"right",fontWeight:800,color:"#9333ea",fontSize:"16px"}}>{r.puntos}</td>
+            </tr>
+          );})}
+        </tbody>
+      </table>
+      </div>
+      {verUser&&<VerPrediccionesModal target={verUser} equipos={equipos} onClose={()=>setVerUser(null)}/>}
+    </div>
+  );
+}
+
+export default function QuinielaView({user,equipos,onAbrirPerfil}){
+  const t = useT();
+  const [tab,setTab]=useState("endesa");
+  const [torneos,setTorneos]=useState([]);
+  const [torneoSel,setTorneoSel]=useState(null);
+  const [ligaLogo,setLigaLogo]=useState(null);
 
   useEffect(()=>{(async()=>{
-    const {data:ps}=await supabase.from("partidos")
-      .select("fecha_hora").eq("id_liga","L055").eq("temporada","2026");
-    const fechas=(ps||[]).map(p=>p.fecha_hora).filter(Boolean).sort();
-    setCierre(fechas[0]||null);
-    const {data:r}=await supabase.rpc("quiniela_ranking_mundial");
-    setRank(r||[]);
-  })();},[user.id,tab]);
+    const {data:tor}=await supabase.from("quinielas_archivadas")
+      .select("id_liga,temporada,nombre,logo_url,fecha_fin,ranking_final")
+      .order("fecha_fin",{ascending:false});
+    setTorneos(tor||[]);
+    if(tor&&tor.length) setTorneoSel(tor[0]);
+    const {data:l}=await supabase.from("ligas").select("logo").eq("id_liga","L001").maybeSingle();
+    setLigaLogo(l?.logo||null);
+  })();},[]);
 
   const btnStyle=a=>({background:a?"#9333ea":"var(--fx-hover)",color:a?"#fff":"#64748b",border:a?"none":"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"});
 
   return(
     <div style={{maxWidth:"820px",margin:"0 auto",padding:"12px"}}>
       <div style={{background:"var(--fx-card)",borderRadius:"16px",padding:"16px 18px",marginBottom:"14px",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
-        <h2 style={{margin:0,fontSize:"18px",fontWeight:800,color:"var(--fx-text)"}}>{t("quiniela.title")}</h2>
-        <div style={{fontSize:"12px",color:"var(--fx-muted)",marginTop:"3px"}}>
-          {t("quiniela.sub")}
-        </div>
+        <h2 style={{margin:0,fontSize:"18px",fontWeight:800,color:"var(--fx-text)"}}>{t("quiniela.hub.title")}</h2>
+        <div style={{fontSize:"12px",color:"var(--fx-muted)",marginTop:"3px"}}>{t("quiniela.hub.sub")}</div>
       </div>
       <div style={{display:"flex",gap:"6px",marginBottom:"12px",flexWrap:"wrap"}}>
-        <button onClick={()=>setTab("basketneta")} style={btnStyle(tab==="basketneta")}>{t("quiniela.tab.basketneta")}</button>
-        <button onClick={()=>setTab("bola")}       style={btnStyle(tab==="bola")}>{t("quiniela.tab.bola")}</button>
-        <button onClick={()=>setTab("ranking")}    style={btnStyle(tab==="ranking")}>{t("quiniela.tab.ranking")}</button>
-        {isAdmin&&<button onClick={()=>setTab("admin")} style={btnStyle(tab==="admin")}>{t("quiniela.tab.admin")}</button>}
+        <button onClick={()=>setTab("endesa")}    style={btnStyle(tab==="endesa")}>{t("quiniela.tab.endesa")}</button>
+        <button onClick={()=>setTab("historico")} style={btnStyle(tab==="historico")}>{t("quiniela.tab.historico")}</button>
       </div>
 
-      {tab==="basketneta"&&<BasketnetaView user={user} equipos={equipos} cierre={cierre}/>}
-      {tab==="bola"&&<BolaCristalView user={user} equipos={equipos} cierre={cierre}/>}
-      {tab==="admin"&&isAdmin&&<ResultadosOficialesAdmin/>}
+      {tab==="endesa"&&(
+        <div style={{background:"var(--fx-card)",borderRadius:"16px",padding:"48px 20px",textAlign:"center",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
+          {ligaLogo&&<img src={ligaLogo} alt="Liga Femenina Endesa" style={{height:"140px",width:"auto",objectFit:"contain",marginBottom:"20px"}}/>}
+          <div style={{fontSize:"22px",fontWeight:800,color:"var(--fx-text)",marginBottom:"6px"}}>{t("quiniela.endesa.title")}</div>
+          <div style={{fontSize:"14px",color:"var(--fx-muted)",fontWeight:600}}>{t("quiniela.endesa.soon")}</div>
+        </div>
+      )}
 
-      {verUser&&<VerPrediccionesModal target={verUser} equipos={equipos} onClose={()=>setVerUser(null)}/>}
-
-      {tab==="ranking"&&(
-        <div style={{background:"var(--fx-card)",borderRadius:"12px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
-          <div style={{padding:"12px 14px",background:"var(--fx-lila-bg)",fontSize:"12px",color:"#6b21a8",borderBottom:"1px solid #e9d5ff",borderRadius:"12px 12px 0 0"}}>
-            {t("quiniela.rank.note")}
-          </div>
-          <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
-          <table style={{width:"100%",minWidth:"520px",borderCollapse:"collapse",fontSize:"14px"}}>
-            <thead style={{background:"var(--fx-hover)"}}>
-              <tr>
-                <th style={{padding:"10px 14px",textAlign:"left",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>#</th>
-                <th style={{padding:"10px 14px",textAlign:"left",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("quiniela.rank.user")}</th>
-                <th style={{padding:"10px 14px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("quiniela.rank.bn")}</th>
-                <th style={{padding:"10px 14px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("quiniela.rank.bola")}</th>
-                <th style={{padding:"10px 14px",textAlign:"right",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("quiniela.rank.pts")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rank.length===0&&<tr><td colSpan={5} style={{padding:"24px",textAlign:"center",color:"var(--fx-muted2)"}}>{t("quiniela.rank.empty")}</td></tr>}
-              {rank.map((r,i)=>{
-                const google=r.user_id===user.id?user.user_metadata?.avatar_url:null;
-                const cerrado=cierre&&new Date(cierre).getTime()<=Date.now();
-                const onClick=cerrado?(()=>setVerUser({user_id:r.user_id,nombre:r.nombre,avatar:r.avatar,google})):undefined;
-                return(
-                <tr key={r.user_id}
-                  onClick={onClick}
-                  style={{borderTop:"1px solid var(--fx-border2)",background:r.user_id===user.id?"var(--fx-lila-bg)":undefined,cursor:cerrado?"pointer":"default"}}
-                  onMouseEnter={e=>{if(cerrado)e.currentTarget.style.background="#f5f3ff";}}
-                  onMouseLeave={e=>{e.currentTarget.style.background=r.user_id===user.id?"var(--fx-lila-bg)":"";}}
-                  title={cerrado?t("quiniela.rank.view_pred"):undefined}>
-                  <td style={{padding:"10px 14px",fontWeight:700,color:i===0?"#eab308":i===1?"#94a3b8":i===2?"var(--fx-amber-text)":"#64748b"}}>{i+1}</td>
-                  <td style={{padding:"8px 14px",fontWeight:600,color:"var(--fx-text)"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                      <UserAvatar avatar={r.avatar} googleUrl={google} nombre={r.nombre} size={28}/>
-                      <span
-                        onClick={e=>{e.stopPropagation();if(onAbrirPerfil&&r.alias)onAbrirPerfil(r.alias);}}
-                        style={{cursor:(onAbrirPerfil&&r.alias)?"pointer":"default",textDecoration:(onAbrirPerfil&&r.alias)?"underline":"none",textDecorationColor:"#c084fc",textUnderlineOffset:"3px"}}
-                        title={r.alias?t("quiniela.rank.view_profile"):undefined}>
-                        {r.nombre}{r.user_id===user.id?t("quiniela.rank.you"):""}
-                      </span>
-                      {cerrado&&<span style={{fontSize:"11px",color:"#9333ea",marginLeft:"4px"}}>👁</span>}
-                    </div>
-                  </td>
-                  <td style={{padding:"10px 14px",textAlign:"center",color:"var(--fx-muted)"}}>{r.basketneta_slots}/28</td>
-                  <td style={{padding:"10px 14px",textAlign:"center",color:"var(--fx-muted)"}}>{r.bola_slots}/7</td>
-                  <td style={{padding:"10px 14px",textAlign:"right",fontWeight:800,color:"#9333ea",fontSize:"16px"}}>{r.puntos}</td>
-                </tr>
-              );})}
-            </tbody>
-          </table>
-          </div>
+      {tab==="historico"&&(
+        <div>
+          {torneos.length===0
+            ?<div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"32px",textAlign:"center",color:"var(--fx-muted2)"}}>{t("quiniela.hist.empty")}</div>
+            :(<>
+              {torneos.length>1&&(
+                <div style={{display:"flex",gap:"6px",marginBottom:"10px",flexWrap:"wrap"}}>
+                  {torneos.map(tor=>(
+                    <button key={tor.id_liga+tor.temporada}
+                      onClick={()=>setTorneoSel(tor)}
+                      style={btnStyle(torneoSel?.id_liga===tor.id_liga&&torneoSel?.temporada===tor.temporada)}>
+                      {tor.nombre}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {torneoSel&&<HistoricoRanking torneo={torneoSel} user={user} equipos={equipos} onAbrirPerfil={onAbrirPerfil}/>}
+            </>)}
         </div>
       )}
     </div>
