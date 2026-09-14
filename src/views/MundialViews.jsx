@@ -782,7 +782,7 @@ export default function QuinielaView({user,equipos,onAbrirPerfil}){
   const [tab,setTab]=useState("euroliga");
   const [torneos,setTorneos]=useState([]);
   const [torneoSel,setTorneoSel]=useState(null);
-  const [ligaLogo,setLigaLogo]=useState(null);
+  const [logos,setLogos]=useState({});
   const [ligaInfo,setLigaInfo]=useState({});
 
   useEffect(()=>{(async()=>{
@@ -796,8 +796,9 @@ export default function QuinielaView({user,equipos,onAbrirPerfil}){
       const m={};(ls||[]).forEach(l=>{m[l.id_liga]=l.nombre;});
       setLigaInfo(m);
     }
-    const {data:l}=await supabase.from("ligas").select("logo").eq("id_liga","L004").maybeSingle();
-    setLigaLogo(l?.logo||null);
+    const {data:ll}=await supabase.from("ligas").select("id_liga,logo").in("id_liga",["L001","L004"]);
+    const lm={};(ll||[]).forEach(l=>{lm[l.id_liga]=l.logo;});
+    setLogos(lm);
   })();},[]);
 
   const btnStyle=a=>({background:a?"#9333ea":"var(--fx-hover)",color:a?"#fff":"#64748b",border:a?"none":"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"});
@@ -810,14 +811,23 @@ export default function QuinielaView({user,equipos,onAbrirPerfil}){
       </div>
       <div style={{display:"flex",gap:"6px",marginBottom:"12px",flexWrap:"wrap"}}>
         <button onClick={()=>{setTab("euroliga");setTorneoSel(null);}}  style={btnStyle(tab==="euroliga")}>{t("quiniela.tab.euroliga")}</button>
+        <button onClick={()=>{setTab("endesa");setTorneoSel(null);}}    style={btnStyle(tab==="endesa")}>{t("quiniela.tab.endesa")}</button>
         <button onClick={()=>{setTab("historico");setTorneoSel(null);}} style={btnStyle(tab==="historico")}>{t("quiniela.tab.historico")}</button>
       </div>
 
       {tab==="euroliga"&&(
         <div style={{background:"var(--fx-card)",borderRadius:"16px",padding:"48px 20px",textAlign:"center",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
-          {ligaLogo&&<img src={ligaLogo} alt="EuroLeague Women" style={{height:"140px",width:"auto",objectFit:"contain",marginBottom:"20px"}}/>}
+          {logos.L004&&<img src={logos.L004} alt="EuroLeague Women" style={{maxHeight:"140px",maxWidth:"100%",width:"auto",height:"auto",objectFit:"contain",marginBottom:"20px"}}/>}
           <div style={{fontSize:"22px",fontWeight:800,color:"var(--fx-text)",marginBottom:"6px"}}>{t("quiniela.euroliga.title")}</div>
           <div style={{fontSize:"14px",color:"var(--fx-muted)",fontWeight:600}}>{t("quiniela.euroliga.soon")}</div>
+        </div>
+      )}
+
+      {tab==="endesa"&&(
+        <div style={{background:"var(--fx-card)",borderRadius:"16px",padding:"48px 20px",textAlign:"center",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
+          {logos.L001&&<img src={logos.L001} alt="Liga Femenina Endesa" style={{maxHeight:"140px",maxWidth:"100%",width:"auto",height:"auto",objectFit:"contain",marginBottom:"20px"}}/>}
+          <div style={{fontSize:"22px",fontWeight:800,color:"var(--fx-text)",marginBottom:"6px"}}>{t("quiniela.endesa.title")}</div>
+          <div style={{fontSize:"14px",color:"var(--fx-muted)",fontWeight:600}}>{t("quiniela.endesa.soon")}</div>
         </div>
       )}
 
@@ -834,7 +844,9 @@ export default function QuinielaView({user,equipos,onAbrirPerfil}){
                   style={{background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"14px",padding:"20px 14px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:"10px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",transition:"transform 0.15s, box-shadow 0.15s"}}
                   onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 6px 16px rgba(147,51,234,0.15)";e.currentTarget.style.borderColor="#c084fc";}}
                   onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.05)";e.currentTarget.style.borderColor="var(--fx-border)";}}>
-                  {tor.logo_url&&<img src={tor.logo_url} alt="" style={{height:"90px",width:"auto",objectFit:"contain"}}/>}
+                  <div style={{width:"100%",height:"90px",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    {tor.logo_url&&<img src={tor.logo_url} alt="" style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain"}}/>}
+                  </div>
                   <div style={{textAlign:"center"}}>
                     <div style={{fontSize:"14px",fontWeight:800,color:"var(--fx-text)"}}>{ligaInfo[tor.id_liga]||tor.nombre}</div>
                     <div style={{fontSize:"12px",color:"var(--fx-muted)",marginTop:"3px"}}>{tor.temporada}</div>
