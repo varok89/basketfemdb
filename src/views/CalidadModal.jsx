@@ -46,7 +46,8 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
         from+=1000;
       }
       if(!ids.size){setCarrEquiposLiga([]);return;}
-      const extCol=carrLiga==="L007"?"id_lfb":"id_espn";
+      const isFeb=["L001","L002","L003","L017","L074"].includes(carrLiga);
+      const extCol=carrLiga==="L007"?"id_lfb":(isFeb?"id_ext":"id_espn");
       const {data:eqs}=await supabase.from("equipos").select("id_equipo,nombre,"+extCol).in("id_equipo",[...ids]).not(extCol,"is",null);
       const arr=(eqs||[]).sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||""));
       setCarrEquiposLiga(arr);
@@ -57,13 +58,20 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     if(!carrEquipoId){alert("Selecciona un equipo");return;}
     setCarrBusy("info");setCarrInfo(null);setCarrLog([]);
     try{
-      if(carrLiga==="L007"){
-        // LFB: no hay mapear-roster-lfb; construimos roster desde temporadas + jugadoras.id_lfb
+      const isFeb=["L001","L002","L003","L017","L074"].includes(carrLiga);
+      if(carrLiga==="L007"||isFeb){
+        // LFB/FEB: no hay mapear-roster; construimos roster desde temporadas + jugadoras.{id_lfb|id_ext}
+        const extField=carrLiga==="L007"?"id_lfb":"id_ext";
         const {data:eqRow}=await supabase.from("equipos").select("nombre").eq("id_equipo",carrEquipoId).single();
-        const {data:temps}=await supabase.from("temporadas").select("id_jugadora,jugadoras(nombre,id_lfb)").eq("id_equipo",carrEquipoId).eq("id_liga","L007").eq("temporada",carrTemp);
-        const roster=(temps||[]).map(function(t){return {id_jugadora:t.id_jugadora,nombre:t.jugadoras?.nombre||t.id_jugadora,id_espn:t.jugadoras?.id_lfb||null};}).sort(function(a,b){return (a.nombre||"").localeCompare(b.nombre||"");});
-        const conLfb=roster.filter(function(r){return r.id_espn;}).length;
-        setCarrInfo({equipo:eqRow?.nombre||carrEquipoId,bd_total:roster.length,espn_total:conLfb,ya_con_espn:conLfb,mapeados:0,roster:roster});
+        const {data:temps}=await supabase.from("temporadas").select("id_jugadora,jugadoras(nombre,"+extField+",fuente)").eq("id_equipo",carrEquipoId).eq("id_liga",carrLiga).eq("temporada",carrTemp);
+        const roster=(temps||[]).map(function(t){
+          var ext=t.jugadoras?.[extField]||null;
+          // Para FEB además exigimos fuente=feb
+          if(isFeb&&t.jugadoras?.fuente!=="feb")ext=null;
+          return {id_jugadora:t.id_jugadora,nombre:t.jugadoras?.nombre||t.id_jugadora,id_espn:ext};
+        }).sort(function(a,b){return (a.nombre||"").localeCompare(b.nombre||"");});
+        const conExt=roster.filter(function(r){return r.id_espn;}).length;
+        setCarrInfo({equipo:eqRow?.nombre||carrEquipoId,bd_total:roster.length,espn_total:conExt,ya_con_espn:conExt,mapeados:0,roster:roster});
       } else {
         setCarrInfo(await callFn("mapear-roster-espn",{id_equipo:carrEquipoId,id_liga:carrLiga,temporada:carrTemp,dry:true}));
       }
@@ -86,11 +94,17 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       var eq=carrEquiposLiga[i];
       setLigaProgress({done:i,total:carrEquiposLiga.length,paso:"Analizando "+eq.nombre});
       try{
-        if(carrLiga==="L007"){
-          const {data:temps}=await supabase.from("temporadas").select("id_jugadora,jugadoras(nombre,id_lfb)").eq("id_equipo",eq.id_equipo).eq("id_liga","L007").eq("temporada",carrTemp);
-          const roster=(temps||[]).map(function(t){return {id_jugadora:t.id_jugadora,nombre:t.jugadoras?.nombre||t.id_jugadora,id_espn:t.jugadoras?.id_lfb||null};});
-          const conLfb=roster.filter(function(r){return r.id_espn;}).length;
-          out.push({id_equipo:eq.id_equipo,equipo:eq.nombre,bd_total:roster.length,espn_total:conLfb,mapeados:0,solo_en_espn_obj:[],roster:roster});
+        const isFebL=["L001","L002","L003","L017","L074"].includes(carrLiga);
+        if(carrLiga==="L007"||isFebL){
+          const extField=carrLiga==="L007"?"id_lfb":"id_ext";
+          const {data:temps}=await supabase.from("temporadas").select("id_jugadora,jugadoras(nombre,"+extField+",fuente)").eq("id_equipo",eq.id_equipo).eq("id_liga",carrLiga).eq("temporada",carrTemp);
+          const roster=(temps||[]).map(function(t){
+            var ext=t.jugadoras?.[extField]||null;
+            if(isFebL&&t.jugadoras?.fuente!=="feb")ext=null;
+            return {id_jugadora:t.id_jugadora,nombre:t.jugadoras?.nombre||t.id_jugadora,id_espn:ext};
+          });
+          const conExt=roster.filter(function(r){return r.id_espn;}).length;
+          out.push({id_equipo:eq.id_equipo,equipo:eq.nombre,bd_total:roster.length,espn_total:conExt,mapeados:0,solo_en_espn_obj:[],roster:roster});
         } else {
           var j=await callFn("mapear-roster-espn",{id_equipo:eq.id_equipo,id_liga:carrLiga,temporada:carrTemp,dry:true});
           out.push({id_equipo:eq.id_equipo,equipo:eq.nombre,bd_total:j.bd_total||0,espn_total:j.espn_total||0,mapeados:j.mapeados||0,solo_en_espn_obj:j.solo_en_espn_obj||[],roster:j.roster||[],error:j.error});
@@ -163,9 +177,13 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       setCarrLog([].concat(log));
       try{
         var j;
+        var isFebL=["L001","L002","L003","L017","L074"].includes(carrLiga);
         if(carrLiga==="L007"){
           j=await callFn("cargar-carrera-lfb-jugadora",{id_jugadora:p.id_jugadora,temporada:carrTemp,dry:false});
           log[log.length-1]={jugadora:p.nombre,estado:j.error?"❌ "+j.error:"✅ box:"+(j.boxscores||0)+" partidos+:"+(j.creados||0)+(j.sin_rival?.length?" ⚠️sin_rival:"+j.sin_rival.length:"")};
+        } else if(isFebL){
+          j=await callFn("cargar-carrera-feb-jugadora",{id_jugadora:p.id_jugadora,id_liga:carrLiga,temporada:carrTemp,dry:false});
+          log[log.length-1]={jugadora:p.nombre,estado:j.error?"❌ "+j.error:"✅ box:"+(j.total_boxscores||0)+" pendientes:"+(j.pendientes||0)+"/"+(j.partidos_totales||0)};
         } else {
           j=await callFn("cargar-carrera-espn-jugadora",{id_jugadora:p.id_jugadora,discover:true,dry:false});
           log[log.length-1]={jugadora:p.nombre,estado:j.error?"❌ "+j.error:"✅ box:"+(j.total_boxscores||0)+" temps+:"+(j.total_temporadas_creadas||0)+" partidos+:"+(j.total_partidos_creados||0)};
@@ -209,9 +227,13 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       setCarrLog([].concat(log));
       try{
         var j;
+        var isFebL=["L001","L002","L003","L017","L074"].includes(carrLiga);
         if(carrLiga==="L007"){
           j=await callFn("cargar-carrera-lfb-jugadora",{id_jugadora:r.id_jugadora,temporada:carrTemp,dry:dry});
           log[i]={jugadora:r.nombre,estado:j.error?"❌ "+j.error:"✅ box:"+(j.boxscores||0)+" partidos+:"+(j.creados||0)+(j.sin_rival?.length?" ⚠️sin_rival:"+j.sin_rival.length:"")};
+        } else if(isFebL){
+          j=await callFn("cargar-carrera-feb-jugadora",{id_jugadora:r.id_jugadora,id_liga:carrLiga,temporada:carrTemp,dry:dry});
+          log[i]={jugadora:r.nombre,estado:j.error?"❌ "+j.error:"✅ box:"+(j.total_boxscores||0)+" pendientes:"+(j.pendientes||0)+"/"+(j.partidos_totales||0)};
         } else {
           j=await callFn("cargar-carrera-espn-jugadora",{id_jugadora:r.id_jugadora,discover:true,dry:dry});
           log[i]={jugadora:r.nombre,estado:j.error?"❌ "+j.error:"✅ box:"+(j.total_boxscores||0)+" temps+:"+(j.total_temporadas_creadas||0)+" partidos+:"+(j.total_partidos_creados||0)};
@@ -1220,6 +1242,9 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                   <option value="L020">NCAA (L020)</option>
                   <option value="L006">WNBA (L006)</option>
                   <option value="L007">LFB (L007)</option>
+                  <option value="L001">LF Endesa (L001)</option>
+                  <option value="L002">LF Challenge (L002)</option>
+                  <option value="L003">LF2 (L003)</option>
                 </select>
                 <select value={carrEquipoId} onChange={e=>setCarrEquipoId(e.target.value)} style={{padding:"8px",borderRadius:"8px",border:"1.5px solid var(--fx-border)",fontSize:"13px"}}>
                   <option value="">Equipo...</option>
@@ -1229,8 +1254,8 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               </div>
               <div style={{display:"flex",gap:"8px",marginBottom:"12px",flexWrap:"wrap"}}>
                 <button onClick={carrAnalizar} disabled={!!carrBusy||!carrEquipoId} style={{background:"#2563eb",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy||!carrEquipoId?0.5:1}}>{carrBusy==="info"?"Analizando...":"🔍 Analizar roster"}</button>
-                {carrInfo&&!carrInfo.error&&carrLiga!=="L007"&&carrInfo.mapeados>0&&<button onClick={carrMapear} disabled={!!carrBusy} style={{background:"#f59e0b",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="mapear"?"Mapeando...":"🔗 Auto-mapear "+carrInfo.mapeados+" faltante(s)"}</button>}
-                {carrInfo&&!carrInfo.error&&carrLiga!=="L007"&&(carrInfo.solo_en_espn_obj?.length||carrInfo.solo_en_espn?.length)>0&&<button onClick={carrCrearFaltantes} disabled={!!carrBusy} style={{background:"#0ea5e9",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="crear"?"Creando...":"➕ Crear "+(carrInfo.solo_en_espn_obj?.length||carrInfo.solo_en_espn?.length)+" jugadora(s) con esta temporada"}</button>}
+                {carrInfo&&!carrInfo.error&&!["L007","L001","L002","L003","L017","L074"].includes(carrLiga)&&carrInfo.mapeados>0&&<button onClick={carrMapear} disabled={!!carrBusy} style={{background:"#f59e0b",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="mapear"?"Mapeando...":"🔗 Auto-mapear "+carrInfo.mapeados+" faltante(s)"}</button>}
+                {carrInfo&&!carrInfo.error&&!["L007","L001","L002","L003","L017","L074"].includes(carrLiga)&&(carrInfo.solo_en_espn_obj?.length||carrInfo.solo_en_espn?.length)>0&&<button onClick={carrCrearFaltantes} disabled={!!carrBusy} style={{background:"#0ea5e9",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="crear"?"Creando...":"➕ Crear "+(carrInfo.solo_en_espn_obj?.length||carrInfo.solo_en_espn?.length)+" jugadora(s) con esta temporada"}</button>}
                 {carrInfo&&!carrInfo.error&&<button onClick={()=>carrCargar(true)} disabled={!!carrBusy} style={{background:"#64748b",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="dry"?"Dry run...":"🧪 Dry run"}</button>}
                 {carrInfo&&!carrInfo.error&&<button onClick={()=>carrCargar(false)} disabled={!!carrBusy} style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:"10px",padding:"8px 16px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="cargar"?"Cargando...":"🚀 Cargar carreras"}</button>}
               </div>
@@ -1238,7 +1263,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                 <div style={{fontSize:"12px",fontWeight:700,color:"#7c3aed",marginBottom:"6px"}}>🌐 Modo liga completa ({carrEquiposLiga.length} equipos en {carrTemp})</div>
                 <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
                   <button onClick={ligaAnalizar} disabled={!!carrBusy||!carrEquiposLiga.length} style={{background:"#7c3aed",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy||!carrEquiposLiga.length?0.5:1}}>{carrBusy==="liga_info"?"Analizando...":"🔍 Analizar TODA la liga"}</button>
-                  {ligaInfo&&carrLiga!=="L007"&&<button onClick={ligaCrearYMapear} disabled={!!carrBusy} style={{background:"#0ea5e9",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="liga_crear"?"Creando...":"➕ Crear/mapear todo"}</button>}
+                  {ligaInfo&&!["L007","L001","L002","L003","L017","L074"].includes(carrLiga)&&<button onClick={ligaCrearYMapear} disabled={!!carrBusy} style={{background:"#0ea5e9",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="liga_crear"?"Creando...":"➕ Crear/mapear todo"}</button>}
                   {ligaInfo&&<button onClick={ligaCargarCarreras} disabled={!!carrBusy} style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="liga_cargar"?"Cargando...":"🚀 Cargar TODAS las carreras"}</button>}
                   {ligaInfo&&<label style={{display:"flex",alignItems:"center",gap:"5px",fontSize:"11px",color: "var(--fx-label)",cursor:"pointer",background: "var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"8px",padding:"7px 10px"}}>
                     <input type="checkbox" checked={skipCargadas} onChange={e=>setSkipCargadas(e.target.checked)}/>
