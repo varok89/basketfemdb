@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { UserAvatar } from "../lib/avatar";
 import { useT, locale } from "../lib/i18n";
+
+const EndesaView = lazy(() => import("./EndesaViews"));
 
 function FlagSelect({value,options,onChange,disabled,placeholder,size}){
   const [open,setOpen]=useState(false);
@@ -824,11 +826,9 @@ export default function QuinielaView({user,equipos,onAbrirPerfil}){
       )}
 
       {tab==="endesa"&&(
-        <div style={{background:"var(--fx-card)",borderRadius:"16px",padding:"48px 20px",textAlign:"center",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
-          {logos.L001&&<img src={logos.L001} alt="Liga Femenina Endesa" style={{maxHeight:"140px",maxWidth:"100%",width:"auto",height:"auto",objectFit:"contain",marginBottom:"20px"}}/>}
-          <div style={{fontSize:"22px",fontWeight:800,color:"var(--fx-text)",marginBottom:"6px"}}>{t("quiniela.endesa.title")}</div>
-          <div style={{fontSize:"14px",color:"var(--fx-muted)",fontWeight:600}}>{t("quiniela.endesa.soon")}</div>
-        </div>
+        <Suspense fallback={<div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"24px",textAlign:"center",color:"var(--fx-muted2)"}}>…</div>}>
+          <EndesaView user={user} equipos={equipos} onAbrirPerfil={onAbrirPerfil}/>
+        </Suspense>
       )}
 
       {tab==="historico"&&(
