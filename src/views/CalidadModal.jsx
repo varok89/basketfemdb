@@ -143,12 +143,37 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   }
   async function ligaCargarCarreras(){
     if(!ligaInfo)return;
-    // Junta todas las jugadoras únicas con id_espn (roster + puede que las adjuntadas ya estén en roster tras re-analizar)
+    var esEspn=["L020","L006"].includes(carrLiga);
+    // Paso 1 (solo ligas ESPN): persistir los espn_match candidatos como id_espn
+    // antes de lanzar el bucle. Así el edge cargar-carrera-espn-jugadora encuentra
+    // el ID en la BD y no responde "sin id_espn".
+    if(esEspn){
+      var equiposConMatch=ligaInfo.filter(function(eq){
+        return (eq.roster||[]).some(function(r){return r.espn_match&&!r.id_espn;});
+      });
+      if(equiposConMatch.length){
+        setCarrBusy("liga_cargar");
+        for(var mi=0;mi<equiposConMatch.length;mi++){
+          var eqm=equiposConMatch[mi];
+          setLigaProgress({done:mi,total:equiposConMatch.length,paso:"Persistiendo id_espn en "+eqm.equipo});
+          try{await callFn("mapear-roster-espn",{id_equipo:eqm.id_equipo,id_liga:carrLiga,temporada:carrTemp,dry:false,crear_faltantes:true});}catch(e){/* seguimos, ya lo veremos por resultado */}
+        }
+        // Re-leemos id_espn de las jugadoras del roster para saber cuáles ya lo tienen persistido
+        var idsRoster=[];
+        ligaInfo.forEach(function(eq){(eq.roster||[]).forEach(function(r){if(idsRoster.indexOf(r.id_jugadora)<0)idsRoster.push(r.id_jugadora);});});
+        if(idsRoster.length){
+          var refetch=await supabase.from("jugadoras").select("id_jugadora,id_espn").in("id_jugadora",idsRoster);
+          var espnMap={};(refetch.data||[]).forEach(function(x){espnMap[x.id_jugadora]=x.id_espn;});
+          ligaInfo.forEach(function(eq){(eq.roster||[]).forEach(function(r){if(espnMap[r.id_jugadora])r.id_espn=espnMap[r.id_jugadora];});});
+        }
+      }
+    }
+    // Paso 2: junta todas las jugadoras únicas con id_espn ya persistido
     var vistos={};
     var todas=[];
     ligaInfo.forEach(eq=>{
       (eq.roster||[]).forEach(r=>{
-        if(!(r.id_espn||r.espn_match))return;
+        if(!r.id_espn)return;
         if(vistos[r.id_jugadora])return;
         vistos[r.id_jugadora]=true;
         todas.push({id_jugadora:r.id_jugadora,nombre:r.nombre});
