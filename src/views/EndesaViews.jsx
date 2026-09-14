@@ -297,15 +297,16 @@ export default function EndesaView({user, equipos, onAbrirPerfil}){
         <button onClick={() => setTab("ranking")} style={btnStyle(tab==="ranking")}>{t("endesa.tab.ranking")}</button>
       </div>
 
+      <div style={{background:"var(--fx-lila-bg)",color:"#6b21a8",padding:"10px 14px",borderRadius:"10px",fontSize:"12px",marginBottom:"12px",fontWeight:600,lineHeight:1.5}}>
+        {t("endesa.rules")}
+      </div>
+
       {tab === "jornada" && jornadaN != null && (
         <JornadaTab user={user} equipos={equipos} jornadas={jornadas} jornadaN={jornadaN} setJornadaN={setJornadaN} misPreds={misPreds} refetchPreds={cargarPreds}/>
       )}
 
       {tab === "ranking" && (
         <div style={{background:"var(--fx-card)",borderRadius:"12px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
-          <div style={{padding:"12px 14px",background:"var(--fx-lila-bg)",fontSize:"12px",color:"#6b21a8",borderBottom:"1px solid #e9d5ff",borderRadius:"12px 12px 0 0"}}>
-            {t("endesa.rank.note")}
-          </div>
           <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
           <table style={{width:"100%",minWidth:"480px",borderCollapse:"collapse",fontSize:"14px"}}>
             <thead style={{background:"var(--fx-hover)"}}>

@@ -120,7 +120,7 @@ export const STRINGS_ES = {
   "endesa.saved": "{n} predicciones guardadas",
   "endesa.diff.placeholder": "Dif",
   "endesa.diff.hint": "pts de diferencia",
-  "endesa.rank.note": "🎯 +1 por ganador · +5 diff exacta · +4/+3/+2/+1 según cercanía (máx 6 pts/partido)",
+  "endesa.rules": "🎯 +1 por acierto de ganador. Si aciertas el ganador, bonus por diferencia: exacta +5 · ±1 +4 · ±2 +3 · ±3 +2 · ±4 +1. Máx 6 pts por partido. Solo cuentan predicciones guardadas antes del inicio de la jornada.",
   "endesa.rank.user": "Usuario",
   "endesa.rank.preds": "Preds",
   "endesa.rank.hits": "Aciertos",

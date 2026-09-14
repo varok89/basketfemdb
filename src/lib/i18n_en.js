@@ -120,7 +120,7 @@ export const STRINGS_EN = {
   "endesa.saved": "{n} predictions saved",
   "endesa.diff.placeholder": "Diff",
   "endesa.diff.hint": "point difference",
-  "endesa.rank.note": "🎯 +1 per winner · +5 exact diff · +4/+3/+2/+1 by closeness (max 6 pts/game)",
+  "endesa.rules": "🎯 +1 for guessing the winner. If correct, bonus by point difference: exact +5 · ±1 +4 · ±2 +3 · ±3 +2 · ±4 +1. Max 6 pts/game. Only predictions saved before the round starts count.",
   "endesa.rank.user": "User",
   "endesa.rank.preds": "Preds",
   "endesa.rank.hits": "Hits",
