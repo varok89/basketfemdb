@@ -2723,7 +2723,7 @@ function EmptyState({icon,text,sub}){return(
 
 /* ── Formularios ─────────────────────────────────────────── */
 function PlayerForm({initial,onSave,onCancel,saving}){
-  const [f,setF]=useState({nombre:"",posicion:"Base",posicion2:"",nacionalidad:"",nacionalidad2:"",fecha_nac:"",fecha_fallecimiento:"",altura_cm:"",foto:null,id_espn:"",fiba_person_id:"",id_feb:"",...initial});
+  const [f,setF]=useState({nombre:"",posicion:"Base",posicion2:"",nacionalidad:"",nacionalidad2:"",fecha_nac:"",fecha_fallecimiento:"",altura_cm:"",foto:null,id_espn:"",fiba_person_id:"",id_feb:"",id_lfb:"",...initial});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
   return(<div>
     <PhotoPicker value={f.foto} onChange={v=>setF(p=>({...p,foto:v}))}/>
@@ -2742,10 +2742,11 @@ function PlayerForm({initial,onSave,onCancel,saving}){
       <Fld label="Fecha fallecimiento (opcional)"><input style={inp} type="date" value={f.fecha_fallecimiento||""} onChange={set("fecha_fallecimiento")}/></Fld>
     </div>
     <div style={{marginTop:"6px",fontSize:"12px",fontWeight:700,color:"var(--fx-muted)",letterSpacing:"0.4px",textTransform:"uppercase"}}>IDs externos</div>
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"12px"}}>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
       <Fld label="ESPN"><input style={inp} value={f.id_espn||""} onChange={set("id_espn")} placeholder="4433402"/></Fld>
       <Fld label="FIBA"><input style={inp} value={f.fiba_person_id||""} onChange={set("fiba_person_id")} placeholder="123456"/></Fld>
       <Fld label="FEB"><input style={inp} value={f.id_feb||""} onChange={set("id_feb")} placeholder="98765"/></Fld>
+      <Fld label="LFB"><input style={inp} value={f.id_lfb||""} onChange={set("id_lfb")} placeholder="48756"/></Fld>
     </div>
     <div style={{display:"flex",gap:"10px",marginTop:"8px"}}>
       <button onClick={onCancel} style={{flex:1,border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"11px",color:"var(--fx-muted)",background:"var(--fx-card)",cursor:"pointer",fontWeight:600}}>Cancelar</button>
@@ -3691,7 +3692,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
       const allJIds=players.map(p=>parseInt((p.id_jugadora||"J0").slice(1))).filter(n=>!isNaN(n));
       const newId=firstFreeId(allJIds,"J",0);
       const trim=v=>String(v??"").trim()||null;
-      const newPlayer={id_jugadora:newId,nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,fecha_fallecimiento:f.fecha_fallecimiento||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null,id_espn:trim(f.id_espn),fiba_person_id:trim(f.fiba_person_id),id_feb:trim(f.id_feb)};
+      const newPlayer={id_jugadora:newId,nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,fecha_fallecimiento:f.fecha_fallecimiento||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null,id_espn:trim(f.id_espn),fiba_person_id:trim(f.fiba_person_id),id_feb:trim(f.id_feb),id_lfb:trim(f.id_lfb)};
       const{error}=await supabase.from("jugadoras").insert(newPlayer);
       if(error)throw error;
       setPlayers(prev=>[...prev,{...newPlayer,seasons:[]}].sort((a,b)=>(a.id_jugadora||"").localeCompare(b.id_jugadora||"")));
@@ -3702,7 +3703,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   const updPlayer=async f=>{
     setSaving(true);
     const trim=v=>String(v??"").trim()||null;
-    const payload={nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,fecha_fallecimiento:f.fecha_fallecimiento||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null,id_espn:trim(f.id_espn),fiba_person_id:trim(f.fiba_person_id),id_feb:trim(f.id_feb)};
+    const payload={nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,fecha_fallecimiento:f.fecha_fallecimiento||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null,id_espn:trim(f.id_espn),fiba_person_id:trim(f.fiba_person_id),id_feb:trim(f.id_feb),id_lfb:trim(f.id_lfb)};
     const timeout=new Promise((_,r)=>setTimeout(()=>r(new Error("Timeout guardando (8s). Reintenta.")),8000));
     try{
       // Refresca la sesion si el token esta al caer para evitar colgar el update
@@ -3812,7 +3813,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
             <button onClick={async()=>{
               // Fetch IDs externos + fuente antes de abrir el editor (no vienen en fase 1)
               try{
-                const {data}=await supabase.from("jugadoras").select("id_espn,fiba_person_id,id_feb,id_ext,fuente").eq("id_jugadora",selId).single();
+                const {data}=await supabase.from("jugadoras").select("id_espn,fiba_person_id,id_feb,id_lfb,id_ext,fuente").eq("id_jugadora",selId).single();
                 if(data)setPlayers(prev=>prev.map(p=>p.id_jugadora===selId?{...p,...data}:p));
               }catch(_){}
               setModal("editPlayer");
