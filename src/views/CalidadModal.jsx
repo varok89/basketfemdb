@@ -682,7 +682,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   // ── Enriquecer fichas jugadoras vía FEB (fecha_nac, altura, posicion, nacionalidad) ──
   var febBusyState=useState(false);var febBusy=febBusyState[0];var setFebBusy=febBusyState[1];
   var febResState=useState(null);var febRes=febResState[0];var setFebRes=febResState[1];
-  var febLimitState=useState(20);var febLimit=febLimitState[0];var setFebLimit=febLimitState[1];
+  var febLimitState=useState(5);var febLimit=febLimitState[0];var setFebLimit=febLimitState[1];
   var febDryState=useState(false);var febDry=febDryState[0];var setFebDry=febDryState[1];
   var febLoopState=useState(false);var febLoop=febLoopState[0];var setFebLoop=febLoopState[1];
   var febPendState=useState(null);var febPend=febPendState[0];var setFebPend=febPendState[1];
