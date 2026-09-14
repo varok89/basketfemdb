@@ -194,7 +194,16 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           log[log.length-1]={jugadora:p.nombre,estado:j.error?"❌ "+j.error:"✅ box:"+(j.boxscores||0)+" partidos+:"+(j.creados||0)+(j.sin_equipo?.length?" ⚠️sin_eq:"+j.sin_equipo.length:"")};
         } else {
           j=await callFn("cargar-carrera-espn-jugadora",{id_jugadora:p.id_jugadora,discover:true,dry:false});
-          log[log.length-1]={jugadora:p.nombre,estado:j.error?"❌ "+j.error:"✅ box:"+(j.total_boxscores||0)+" temps+:"+(j.total_temporadas_creadas||0)+" partidos+:"+(j.total_partidos_creados||0)};
+          var estadoEspn;
+          if(j.ok===false){
+            var motivos={sin_id_espn:"⏭ sin ficha ESPN",no_encontrada:"⏭ jugadora no existe",db_error:"❌ BD: "+(j.detalle||"")};
+            estadoEspn=motivos[j.motivo]||("⏭ "+(j.motivo||j.error||"skip"));
+          } else if(j.error){
+            estadoEspn="❌ "+j.error;
+          } else {
+            estadoEspn="✅ box:"+(j.total_boxscores||0)+" temps+:"+(j.total_temporadas_creadas||0)+" partidos+:"+(j.total_partidos_creados||0);
+          }
+          log[log.length-1]={jugadora:p.nombre,estado:estadoEspn};
         }
       }catch(e){log[log.length-1]={jugadora:p.nombre,estado:"❌ "+e.message};}
       setCarrLog([].concat(log));
