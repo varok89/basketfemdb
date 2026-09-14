@@ -779,18 +779,24 @@ function HistoricoRanking({torneo,user,equipos,onAbrirPerfil}){
 
 export default function QuinielaView({user,equipos,onAbrirPerfil}){
   const t = useT();
-  const [tab,setTab]=useState("endesa");
+  const [tab,setTab]=useState("euroliga");
   const [torneos,setTorneos]=useState([]);
   const [torneoSel,setTorneoSel]=useState(null);
   const [ligaLogo,setLigaLogo]=useState(null);
+  const [ligaInfo,setLigaInfo]=useState({});
 
   useEffect(()=>{(async()=>{
     const {data:tor}=await supabase.from("quinielas_archivadas")
       .select("id_liga,temporada,nombre,logo_url,fecha_fin,ranking_final")
       .order("fecha_fin",{ascending:false});
     setTorneos(tor||[]);
-    if(tor&&tor.length) setTorneoSel(tor[0]);
-    const {data:l}=await supabase.from("ligas").select("logo").eq("id_liga","L001").maybeSingle();
+    const ids=[...new Set((tor||[]).map(x=>x.id_liga))];
+    if(ids.length){
+      const {data:ls}=await supabase.from("ligas").select("id_liga,nombre").in("id_liga",ids);
+      const m={};(ls||[]).forEach(l=>{m[l.id_liga]=l.nombre;});
+      setLigaInfo(m);
+    }
+    const {data:l}=await supabase.from("ligas").select("logo").eq("id_liga","L004").maybeSingle();
     setLigaLogo(l?.logo||null);
   })();},[]);
 
@@ -803,36 +809,46 @@ export default function QuinielaView({user,equipos,onAbrirPerfil}){
         <div style={{fontSize:"12px",color:"var(--fx-muted)",marginTop:"3px"}}>{t("quiniela.hub.sub")}</div>
       </div>
       <div style={{display:"flex",gap:"6px",marginBottom:"12px",flexWrap:"wrap"}}>
-        <button onClick={()=>setTab("endesa")}    style={btnStyle(tab==="endesa")}>{t("quiniela.tab.endesa")}</button>
-        <button onClick={()=>setTab("historico")} style={btnStyle(tab==="historico")}>{t("quiniela.tab.historico")}</button>
+        <button onClick={()=>{setTab("euroliga");setTorneoSel(null);}}  style={btnStyle(tab==="euroliga")}>{t("quiniela.tab.euroliga")}</button>
+        <button onClick={()=>{setTab("historico");setTorneoSel(null);}} style={btnStyle(tab==="historico")}>{t("quiniela.tab.historico")}</button>
       </div>
 
-      {tab==="endesa"&&(
+      {tab==="euroliga"&&(
         <div style={{background:"var(--fx-card)",borderRadius:"16px",padding:"48px 20px",textAlign:"center",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
-          {ligaLogo&&<img src={ligaLogo} alt="Liga Femenina Endesa" style={{height:"140px",width:"auto",objectFit:"contain",marginBottom:"20px"}}/>}
-          <div style={{fontSize:"22px",fontWeight:800,color:"var(--fx-text)",marginBottom:"6px"}}>{t("quiniela.endesa.title")}</div>
-          <div style={{fontSize:"14px",color:"var(--fx-muted)",fontWeight:600}}>{t("quiniela.endesa.soon")}</div>
+          {ligaLogo&&<img src={ligaLogo} alt="EuroLeague Women" style={{height:"140px",width:"auto",objectFit:"contain",marginBottom:"20px"}}/>}
+          <div style={{fontSize:"22px",fontWeight:800,color:"var(--fx-text)",marginBottom:"6px"}}>{t("quiniela.euroliga.title")}</div>
+          <div style={{fontSize:"14px",color:"var(--fx-muted)",fontWeight:600}}>{t("quiniela.euroliga.soon")}</div>
         </div>
       )}
 
       {tab==="historico"&&(
         <div>
-          {torneos.length===0
-            ?<div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"32px",textAlign:"center",color:"var(--fx-muted2)"}}>{t("quiniela.hist.empty")}</div>
-            :(<>
-              {torneos.length>1&&(
-                <div style={{display:"flex",gap:"6px",marginBottom:"10px",flexWrap:"wrap"}}>
-                  {torneos.map(tor=>(
-                    <button key={tor.id_liga+tor.temporada}
-                      onClick={()=>setTorneoSel(tor)}
-                      style={btnStyle(torneoSel?.id_liga===tor.id_liga&&torneoSel?.temporada===tor.temporada)}>
-                      {tor.nombre}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {torneoSel&&<HistoricoRanking torneo={torneoSel} user={user} equipos={equipos} onAbrirPerfil={onAbrirPerfil}/>}
-            </>)}
+          {torneos.length===0&&(
+            <div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"32px",textAlign:"center",color:"var(--fx-muted2)"}}>{t("quiniela.hist.empty")}</div>
+          )}
+          {torneos.length>0&&!torneoSel&&(
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:"14px"}}>
+              {torneos.map(tor=>(
+                <button key={tor.id_liga+tor.temporada}
+                  onClick={()=>setTorneoSel(tor)}
+                  style={{background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"14px",padding:"20px 14px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:"10px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",transition:"transform 0.15s, box-shadow 0.15s"}}
+                  onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 6px 16px rgba(147,51,234,0.15)";e.currentTarget.style.borderColor="#c084fc";}}
+                  onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.05)";e.currentTarget.style.borderColor="var(--fx-border)";}}>
+                  {tor.logo_url&&<img src={tor.logo_url} alt="" style={{height:"90px",width:"auto",objectFit:"contain"}}/>}
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontSize:"14px",fontWeight:800,color:"var(--fx-text)"}}>{ligaInfo[tor.id_liga]||tor.nombre}</div>
+                    <div style={{fontSize:"12px",color:"var(--fx-muted)",marginTop:"3px"}}>{tor.temporada}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+          {torneoSel&&(
+            <div>
+              <button onClick={()=>setTorneoSel(null)} style={{background:"transparent",border:"none",color:"#9333ea",fontSize:"13px",fontWeight:700,cursor:"pointer",padding:"6px 0",marginBottom:"8px"}}>{t("quiniela.hist.back")}</button>
+              <HistoricoRanking torneo={torneoSel} user={user} equipos={equipos} onAbrirPerfil={onAbrirPerfil}/>
+            </div>
+          )}
         </div>
       )}
     </div>
