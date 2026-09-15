@@ -5,7 +5,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useT } from "../lib/i18n";
 import {
   POSITIONS, TIPO_LABELS,
-  inp, posStyle, calcAge, firstFreeId, nextSeason, sortS,
+  inp, posStyle, calcAge, firstFreeId, nextSeason, sortS, getCurrentSeason, prevSeasonOf,
   resolveTeamData, resolveTeamName, playerStatus, countryFlagEmoji,
   FlagImg, MultiFlag, TeamBadge, Avatar, PhotoLightbox,
   Fld, Breadcrumbs, Modal, ConfirmDel, PhotoPicker,
@@ -375,6 +375,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   const [filterLiga,setFilterLiga] = useState(_q.get("liga")||"");
   const [filterTemp,setFilterTemp] = useState(_q.get("temp")||"");
   const [filterStatus,setFilterStatus] = useState(_q.get("status")||"");
+  const [soloAgentes,setSoloAgentes] = useState(_q.get("agentes")==="1");
   const [selId,setSelId]           = useState(openPlayerId||null);
   const [shareMsg,setShareMsg]     = useState(false);
   const [lightboxPhoto,setLightboxPhoto] = useState(null);
@@ -390,9 +391,10 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     if(filterLiga) params.set("liga",filterLiga);
     if(filterTemp) params.set("temp",filterTemp);
     if(filterStatus) params.set("status",filterStatus);
+    if(soloAgentes) params.set("agentes","1");
     const qs=params.toString();
     window.history.replaceState({},"",`/${seg}${qs?"?"+qs:""}`);
-  },[selId,search,filterPos,filterNacs,filterLiga,filterTemp,filterStatus]);
+  },[selId,search,filterPos,filterNacs,filterLiga,filterTemp,filterStatus,soloAgentes]);
   const [modal,setModal]           = useState(null);
   const [editSeason,setEditSeason] = useState(null);
   const [renewSeason,setRenewSeason] = useState(null);
@@ -454,6 +456,8 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     return [...ligsSet].sort((a,b)=>a.localeCompare(b,"es"));
   },[players,ligaMap]);
   const allTemps = useMemo(()=>[...new Set(players.flatMap(p=>(p.seasons||[]).map(s=>s.temporada)).filter(Boolean))].sort((a,b)=>b.localeCompare(a)),[players]);
+  const seasonNow  = useMemo(()=>getCurrentSeason(players),[players]);
+  const seasonPrev = useMemo(()=>seasonNow?prevSeasonOf(seasonNow):"",[seasonNow]);
   const filtered = useMemo(()=>{
     const q=search.toLowerCase();
     return players.filter(p=>{
@@ -463,16 +467,23 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
         const lig=ligaMap[s.id_liga]?.nombre;
         return (!filterLiga||lig===filterLiga)&&(!filterTemp||s.temporada===filterTemp);
       });
+      // Agente libre: jugó la temporada anterior, no tiene equipo esta, y no falleció
+      const matchAgente = !soloAgentes || (
+        !p.fecha_fallecimiento &&
+        seasons.some(s=>s.temporada===seasonPrev) &&
+        !seasons.some(s=>s.temporada===seasonNow)
+      );
       return(!q||p.nombre?.toLowerCase().includes(q)||p.id_jugadora?.toLowerCase().includes(q)||p.nacionalidad?.toLowerCase().includes(q)||seasons.some(s=>equipoMap[s.id_equipo]?.nombre?.toLowerCase().includes(q)))
         &&(!filterPos||p.posicion===filterPos||p.posicion2===filterPos)
         &&(filterNacs.size===0||filterNacs.has(p.nacionalidad)||filterNacs.has(p.nacionalidad2))
         &&matchLigaTemp
-        &&(!filterStatus||playerStatus(p.nacionalidad,p.nacionalidad2)===filterStatus);
+        &&(!filterStatus||playerStatus(p.nacionalidad,p.nacionalidad2)===filterStatus)
+        &&matchAgente;
     }).sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"));
-  },[players,search,filterPos,filterNacs,filterLiga,filterTemp,filterStatus,ligaMap,equipoMap]);
+  },[players,search,filterPos,filterNacs,filterLiga,filterTemp,filterStatus,soloAgentes,seasonNow,seasonPrev,ligaMap,equipoMap]);
 
   // Reset paginación al cambiar filtros
-  useEffect(()=>{setVisibleCount(60);},[search,filterPos,filterNacs,filterLiga,filterTemp,filterStatus]);
+  useEffect(()=>{setVisibleCount(60);},[search,filterPos,filterNacs,filterLiga,filterTemp,filterStatus,soloAgentes]);
 
   // IntersectionObserver para scroll infinito
   useEffect(()=>{
@@ -800,9 +811,13 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
         </select>
         <StatusDropdown filterStatus={filterStatus} setFilterStatus={setFilterStatus}/>
         <NacDropdown allNacs={allNacs} filterNacs={filterNacs} setFilterNacs={setFilterNacs}/>
+        <label title={seasonPrev&&seasonNow?`Jugadoras con equipo en ${seasonPrev} y sin equipo en ${seasonNow}`:""} style={{display:"flex",alignItems:"center",gap:"8px",border:"1.5px solid var(--fx-border)",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:soloAgentes?"#9333ea":"#475569",background:"var(--fx-card)",cursor:"pointer",whiteSpace:"nowrap",fontWeight:soloAgentes?700:400,height:"40px",boxSizing:"border-box"}}>
+          <input type="checkbox" checked={soloAgentes} onChange={e=>setSoloAgentes(e.target.checked)} style={{accentColor:"#9333ea",cursor:"pointer"}}/>
+          Agentes libres
+        </label>
       </div>
-      {(filterPos||filterLiga||filterTemp||filterStatus||filterNacs.size>0)&&(
-        <button onClick={()=>{setFilterPos("");setFilterLiga("");setFilterTemp("");setFilterStatus("");setFilterNacs(new Set());}}
+      {(filterPos||filterLiga||filterTemp||filterStatus||filterNacs.size>0||soloAgentes)&&(
+        <button onClick={()=>{setFilterPos("");setFilterLiga("");setFilterTemp("");setFilterStatus("");setFilterNacs(new Set());setSoloAgentes(false);}}
           style={{alignSelf:"flex-start",background:"var(--fx-hover)",color:"var(--fx-muted)",border:"1.5px solid var(--fx-border)",borderRadius:"20px",padding:"5px 14px",fontSize:"12px",fontWeight:700,cursor:"pointer",marginBottom:"4px"}}>
           ✕ Limpiar filtros
         </button>
