@@ -1196,7 +1196,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     ]},
     ...(isAdmin?[{title:"🛠 Alta masiva",items:[
       {key:"scraper",label:"Scraper FIBA",count:0},
-      {key:"feb-fichas",label:"Fichas FEB",count:febPend||0},
+      {key:"feb-fichas",label:"Rellenar desde FEB",count:febPend||0},
       {key:"carreras",label:"🎓 Carreras jugadoras",count:0},
       {key:"lotes",label:"Alta por lotes",count:0},
     ]},{title:"🩺 Ops",items:[
