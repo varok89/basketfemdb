@@ -6,6 +6,195 @@ import { useT } from "../lib/i18n";
 const LIGA = "L001";
 const TEMP = "2026-27";
 
+const BOLA_PREGUNTAS = [
+  { id: "campeon_invierno", icon: "🥶", puntos: 5, n: 1, label: "Campeón de invierno (fin 1ª vuelta)" },
+  { id: "campeon_regular",  icon: "🥇", puntos: 5, n: 1, label: "Campeón de liga regular" },
+  { id: "campeon_liga",     icon: "🏆", puntos: 5, n: 1, label: "Campeón de liga (playoffs)" },
+  { id: "copa_reina",       icon: "🎁", puntos: 8, n: 8, label: "8 clasificadas a Copa de la Reina" },
+  { id: "playoffs",         icon: "🎯", puntos: 8, n: 8, label: "8 clasificadas a Playoffs" },
+];
+
+function FlagSelect({value, options, onChange, disabled, placeholder}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const current = options.find(o => o.id === value);
+  const norm = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const nq = norm(q);
+  const filtered = nq ? options.filter(o => norm(o.label).includes(nq)) : options;
+  const escudo = url => url
+    ? <img loading="lazy" decoding="async" src={url} alt="" style={{width:20,height:20,objectFit:"contain",flexShrink:0}}/>
+    : <span style={{width:20,height:20,background:"var(--fx-border)",borderRadius:2,flexShrink:0}}/>;
+  return (
+    <div style={{position:"relative",flex:1,minWidth:0}}>
+      <button type="button" onClick={() => !disabled && setOpen(o => { if (!o) setQ(""); return !o; })} disabled={disabled}
+        style={{display:"flex",alignItems:"center",gap:"6px",width:"100%",textAlign:"left",padding:"7px 10px",fontSize:"13px",border:"1.5px solid var(--fx-border)",borderRadius:"8px",background:disabled?"var(--fx-hover)":"var(--fx-card)",cursor:disabled?"not-allowed":"pointer",color:"var(--fx-text)"}}>
+        {current
+          ? <>{escudo(current.flagUrl)}<span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,fontWeight:600}}>{current.label}</span></>
+          : <span style={{color:"var(--fx-muted2)",flex:1}}>{placeholder || "—"}</span>}
+        <span style={{fontSize:"10px",color:"var(--fx-muted2)"}}>▾</span>
+      </button>
+      {open && (<>
+        <div onClick={() => setOpen(false)} style={{position:"fixed",inset:0,zIndex:30}}/>
+        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,minWidth:"220px",background:"var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"8px",zIndex:31,boxShadow:"0 8px 24px rgba(0,0,0,0.2)"}}>
+          {options.length >= 8 && (
+            <input type="text" autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar…"
+              style={{width:"100%",boxSizing:"border-box",padding:"7px 10px",fontSize:"12px",border:"none",borderBottom:"1px solid var(--fx-border)",outline:"none",background:"transparent",color:"var(--fx-text)"}}/>
+          )}
+          <div style={{maxHeight:"260px",overflowY:"auto"}}>
+            <div onClick={() => { onChange(""); setOpen(false); }}
+              style={{padding:"7px 10px",fontSize:"11px",color:"var(--fx-muted2)",cursor:"pointer",borderBottom:"1px solid var(--fx-border2)"}}>— sin elegir —</div>
+            {filtered.map(o => (
+              <div key={o.id} onClick={() => { onChange(o.id); setOpen(false); }}
+                style={{display:"flex",alignItems:"center",gap:"7px",padding:"7px 10px",fontSize:"13px",cursor:"pointer",borderBottom:"1px solid var(--fx-border2)"}}
+                onMouseEnter={e => e.currentTarget.style.background = "var(--fx-hover)"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                {escudo(o.flagUrl)}
+                <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"var(--fx-text)"}}>{o.label}</span>
+              </div>
+            ))}
+            {filtered.length === 0 && <div style={{padding:"12px",fontSize:"11px",color:"var(--fx-muted2)",textAlign:"center"}}>Sin resultados</div>}
+          </div>
+        </div>
+      </>)}
+    </div>
+  );
+}
+
+function BolaCristalEndesa({user, equipos, cierre, isAdmin}) {
+  const [equiposLiga, setEquiposLiga] = useState([]);
+  const [drafts, setDrafts] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+  const cerrado = cierre && new Date(cierre).getTime() <= Date.now();
+  const [oficialesDraft, setOficialesDraft] = useState({});
+  const [savingOf, setSavingOf] = useState(null);
+
+  useEffect(() => {(async () => {
+    const {data:ps} = await supabase.from("partidos")
+      .select("id_equipo_local,id_equipo_visitante")
+      .eq("id_liga", LIGA).eq("temporada", TEMP);
+    const ids = new Set();
+    (ps || []).forEach(p => { if(p.id_equipo_local) ids.add(p.id_equipo_local); if(p.id_equipo_visitante) ids.add(p.id_equipo_visitante); });
+    const eqMap = {}, escMap = {};
+    (equipos || []).forEach(e => { eqMap[e.id_equipo] = e.nombre; escMap[e.id_equipo] = e.escudo; });
+    setEquiposLiga([...ids].map(id => ({id, nombre: eqMap[id] || id, escudo: escMap[id]})).sort((a,b) => a.nombre.localeCompare(b.nombre, "es")));
+    const {data:mias} = await supabase.from("endesa_bola_predicciones")
+      .select("pregunta_id,respuesta_ids").eq("user_id", user.id);
+    const d = {}; (mias || []).forEach(p => { d[p.pregunta_id] = p.respuesta_ids; });
+    setDrafts(d);
+    if (isAdmin) {
+      const {data:ofi} = await supabase.from("endesa_bola_resultados").select("pregunta_id,ids");
+      const o = {}; (ofi || []).forEach(p => { o[p.pregunta_id] = p.ids; });
+      setOficialesDraft(o);
+    }
+  })();}, [user.id, equipos, isAdmin]);
+
+  const guardarTodo = async () => {
+    if (cerrado) return;
+    setSaving(true); setErr(""); setMsg("");
+    let guardadas = 0;
+    for (const q of BOLA_PREGUNTAS) {
+      const val = (drafts[q.id] || []).filter(Boolean);
+      if (val.length !== q.n) continue;
+      const {error} = await supabase.rpc("endesa_bola_guardar", {p_pregunta_id: q.id, p_respuesta_ids: val});
+      if (error) { setErr(error.message); setSaving(false); return; }
+      guardadas++;
+    }
+    setSaving(false);
+    setMsg(`✓ ${guardadas} pregunta${guardadas===1?"":"s"} guardada${guardadas===1?"":"s"}`);
+    setTimeout(() => setMsg(""), 2500);
+  };
+
+  const guardarOficial = async (q) => {
+    const val = (oficialesDraft[q.id] || []).filter(Boolean);
+    if (val.length !== q.n) { alert(`Debes elegir ${q.n}`); return; }
+    setSavingOf(q.id);
+    const {error} = await supabase.rpc("endesa_bola_admin_set", {p_pregunta_id: q.id, p_ids: val});
+    setSavingOf(null);
+    if (error) { alert("Error: " + error.message); return; }
+    alert("Oficial guardado ✓");
+  };
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
+      <div style={{background: cerrado ? "var(--fx-amber-hover)" : "var(--fx-lila-bg)", color: cerrado ? "#92400e" : "#6b21a8", padding:"10px 14px", borderRadius:"10px", fontSize:"12px", fontWeight:600}}>
+        {cerrado ? "🔒 Cerrada. La temporada ya empezó." : "⏳ Abierta hasta el inicio de la Jornada 1"}
+      </div>
+      {BOLA_PREGUNTAS.map(q => {
+        const val = drafts[q.id] || [];
+        const opts = equiposLiga.map(e => ({id: e.id, label: e.nombre, flagUrl: e.escudo}));
+        return (
+          <div key={q.id} style={{background:"var(--fx-card)",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"10px",gap:"8px"}}>
+              <div style={{fontSize:"14px",fontWeight:800,color:"var(--fx-text)"}}>{q.icon} {q.label}</div>
+              <span style={{fontSize:"11px",color:"var(--fx-muted2)",fontWeight:700,flexShrink:0}}>{q.puntos} pt{q.puntos===1?"":"s"}</span>
+            </div>
+            {q.n === 1 ? (
+              <FlagSelect value={val[0] || ""} disabled={cerrado || opts.length === 0}
+                placeholder="Elige equipo" options={opts}
+                onChange={v => setDrafts(d => ({...d, [q.id]: v ? [v] : []}))}/>
+            ) : (
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:"6px"}}>
+                {Array.from({length: q.n}).map((_, i) => (
+                  <FlagSelect key={i} value={val[i] || ""} disabled={cerrado || opts.length === 0}
+                    placeholder={`#${i+1}`}
+                    options={opts.filter(o => !val.includes(o.id) || o.id === val[i])}
+                    onChange={v => { const nv = [...val]; nv[i] = v; setDrafts(d => ({...d, [q.id]: nv})); }}/>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {!cerrado && (
+        <div style={{position:"sticky",bottom:"12px",display:"flex",justifyContent:"center",gap:"12px",alignItems:"center"}}>
+          <button onClick={guardarTodo} disabled={saving}
+            style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"12px",padding:"12px 22px",fontWeight:800,fontSize:"14px",cursor:saving?"wait":"pointer",boxShadow:"0 4px 12px rgba(147,51,234,0.35)"}}>
+            {saving ? "Guardando…" : "Guardar todas"}
+          </button>
+        </div>
+      )}
+      {msg && <div style={{textAlign:"center",color:"#16a34a",fontSize:"13px",fontWeight:700}}>{msg}</div>}
+      {err && <div style={{background:"var(--fx-red-bg)",color:"var(--fx-red-text)",padding:"10px",borderRadius:"8px",fontSize:"12px"}}>{err}</div>}
+
+      {isAdmin && (
+        <div style={{marginTop:"20px",background:"var(--fx-amber-hover)",border:"1.5px solid #fbbf24",borderRadius:"12px",padding:"14px"}}>
+          <div style={{fontSize:"14px",fontWeight:800,color:"#92400e",marginBottom:"10px"}}>🛠️ Admin · Resultados oficiales</div>
+          {BOLA_PREGUNTAS.map(q => {
+            const val = oficialesDraft[q.id] || [];
+            const opts = equiposLiga.map(e => ({id: e.id, label: e.nombre, flagUrl: e.escudo}));
+            return (
+              <div key={q.id} style={{background:"var(--fx-card)",borderRadius:"10px",padding:"10px 12px",marginBottom:"8px"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"6px"}}>
+                  <div style={{fontSize:"13px",fontWeight:700,color:"var(--fx-text)"}}>{q.icon} {q.label}</div>
+                  <button onClick={() => guardarOficial(q)} disabled={savingOf === q.id}
+                    style={{background:"#f59e0b",color:"#fff",border:"none",borderRadius:"6px",padding:"5px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>
+                    {savingOf === q.id ? "…" : "Guardar oficial"}
+                  </button>
+                </div>
+                {q.n === 1 ? (
+                  <FlagSelect value={val[0] || ""} disabled={false} placeholder="Equipo ganador"
+                    options={opts}
+                    onChange={v => setOficialesDraft(d => ({...d, [q.id]: v ? [v] : []}))}/>
+                ) : (
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:"6px"}}>
+                    {Array.from({length: q.n}).map((_, i) => (
+                      <FlagSelect key={i} value={val[i] || ""} disabled={false} placeholder={`#${i+1}`}
+                        options={opts.filter(o => !val.includes(o.id) || o.id === val[i])}
+                        onChange={v => { const nv = [...val]; nv[i] = v; setOficialesDraft(d => ({...d, [q.id]: nv})); }}/>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function jornadaDeNotas(notas){
   const m = /Jornada\s+(\d+)/.exec(notas || "");
   return m ? parseInt(m[1], 10) : null;
@@ -226,7 +415,7 @@ function JornadaTab({user, equipos, jornadas, jornadaN, setJornadaN, misPreds, r
   );
 }
 
-export default function EndesaView({user, equipos, onAbrirPerfil}){
+export default function EndesaView({user, equipos, onAbrirPerfil, isAdmin}){
   const t = useT();
   const [tab, setTab] = useState("jornada");
   const [jornadas, setJornadas] = useState([]);
@@ -235,6 +424,7 @@ export default function EndesaView({user, equipos, onAbrirPerfil}){
   const [ranking, setRanking] = useState([]);
   const [verUser, setVerUser] = useState(null);
   const [verUserJornada, setVerUserJornada] = useState(1);
+  const [cierreBola, setCierreBola] = useState(null);
 
   const cargarPreds = async () => {
     if (!user?.id) return;
@@ -264,6 +454,8 @@ export default function EndesaView({user, equipos, onAbrirPerfil}){
     const now = Date.now();
     const proxima = arr.find(j => j.cierre && new Date(j.cierre).getTime() > now);
     setJornadaN(proxima ? proxima.n : (arr.length ? arr[arr.length - 1].n : null));
+    // Cierre de la bola = primer partido de la temporada
+    setCierreBola(arr.length ? arr[0].cierre : null);
     cargarPreds();
   })();}, [user?.id]);
 
@@ -294,8 +486,13 @@ export default function EndesaView({user, equipos, onAbrirPerfil}){
     <div>
       <div style={{display:"flex",gap:"6px",marginBottom:"12px",flexWrap:"wrap"}}>
         <button onClick={() => setTab("jornada")} style={btnStyle(tab==="jornada")}>{t("endesa.tab.jornada")}</button>
+        <button onClick={() => setTab("bola")}    style={btnStyle(tab==="bola")}>🔮 Bola</button>
         <button onClick={() => setTab("ranking")} style={btnStyle(tab==="ranking")}>{t("endesa.tab.ranking")}</button>
       </div>
+
+      {tab === "bola" && (
+        <BolaCristalEndesa user={user} equipos={equipos} cierre={cierreBola} isAdmin={isAdmin}/>
+      )}
 
       <div style={{background:"var(--fx-lila-bg)",color:"#6b21a8",padding:"10px 14px",borderRadius:"10px",fontSize:"12px",marginBottom:"12px",fontWeight:600,lineHeight:1.5}}>
         {t("endesa.rules")}
@@ -315,11 +512,12 @@ export default function EndesaView({user, equipos, onAbrirPerfil}){
                 <th style={{padding:"10px 12px",textAlign:"left",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("endesa.rank.user")}</th>
                 <th style={{padding:"10px 12px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("endesa.rank.preds")}</th>
                 <th style={{padding:"10px 12px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("endesa.rank.hits")}</th>
+                <th style={{padding:"10px 12px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>🔮</th>
                 <th style={{padding:"10px 12px",textAlign:"right",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("endesa.rank.pts")}</th>
               </tr>
             </thead>
             <tbody>
-              {ranking.length === 0 && <tr><td colSpan={5} style={{padding:"24px",textAlign:"center",color:"var(--fx-muted2)"}}>{t("endesa.rank.empty")}</td></tr>}
+              {ranking.length === 0 && <tr><td colSpan={6} style={{padding:"24px",textAlign:"center",color:"var(--fx-muted2)"}}>{t("endesa.rank.empty")}</td></tr>}
               {ranking.map((r, i) => {
                 const google = r.user_id === user.id ? user.user_metadata?.avatar_url : null;
                 const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
@@ -340,6 +538,7 @@ export default function EndesaView({user, equipos, onAbrirPerfil}){
                     </td>
                     <td style={{padding:"10px 12px",textAlign:"center",color:"var(--fx-muted)"}}>{r.predicciones}</td>
                     <td style={{padding:"10px 12px",textAlign:"center",color:"var(--fx-muted)"}}>{r.aciertos}</td>
+                    <td style={{padding:"10px 12px",textAlign:"center",color:"var(--fx-muted)",fontWeight:700}}>{r.puntos_bola||0}</td>
                     <td style={{padding:"10px 12px",textAlign:"right",fontWeight:800,color:"#9333ea",fontSize:"16px"}}>{r.puntos}</td>
                   </tr>
                 );

@@ -779,7 +779,7 @@ function HistoricoRanking({torneo,user,equipos,onAbrirPerfil}){
   );
 }
 
-export default function QuinielaView({user,equipos,onAbrirPerfil}){
+export default function QuinielaView({user,equipos,onAbrirPerfil,isAdmin}){
   const t = useT();
   const [tab,setTab]=useState("endesa");
   const [torneos,setTorneos]=useState([]);
@@ -827,7 +827,7 @@ export default function QuinielaView({user,equipos,onAbrirPerfil}){
 
       {tab==="endesa"&&(
         <Suspense fallback={<div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"24px",textAlign:"center",color:"var(--fx-muted2)"}}>…</div>}>
-          <EndesaView user={user} equipos={equipos} onAbrirPerfil={onAbrirPerfil}/>
+          <EndesaView user={user} equipos={equipos} onAbrirPerfil={onAbrirPerfil} isAdmin={isAdmin}/>
         </Suspense>
       )}
 
