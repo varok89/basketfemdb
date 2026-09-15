@@ -156,7 +156,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
 
   async function refrescarFechasLfb(){
     if(carrLiga!=="L007"){alert("Solo disponible para LFB (L007)");return;}
-    if(!confirm("Refrescar fecha_hora de partidos "+carrLiga+" "+carrTemp+"? Scrapeará el calendario general (22 requests Firecrawl, ~1-2 min)."))return;
+    if(!confirm("Refrescar fecha_hora de partidos "+carrLiga+" "+carrTemp+"? Scrapeará el calendario general (22 requests directos a basketlfb.com, ~30 s)."))return;
     setCarrBusy("fechas_lfb");
     setLigaProgress({done:0,total:22,paso:"Scrapeando calendario LBWL..."});
     try{
