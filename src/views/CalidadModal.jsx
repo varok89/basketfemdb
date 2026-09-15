@@ -141,6 +141,22 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     setCarrBusy("");
     alert("Listo: "+out.reduce((a,e)=>a+(e.creadas||0),0)+" creadas · "+out.reduce((a,e)=>a+(e.adjuntadas||0),0)+" adjuntadas");
   }
+  async function mapearIdExtFeb(){
+    var FEB_LIGAS=["L001","L002","L003","L017","L074"];
+    if(!FEB_LIGAS.includes(carrLiga)){alert("Solo disponible para ligas FEB (L001/L002/L003/L017/L074)");return;}
+    if(!confirm("Mapear id_ext_feb de "+carrLiga+" "+carrTemp+"? Scrapeará 1 partido por cada grupo de jugadoras sin id_ext_feb (típico 50-200 requests, retry+cache absorben rate limit)."))return;
+    setCarrBusy("mapear_ie_feb");
+    setLigaProgress({done:0,total:1,paso:"Mapeando id_ext_feb..."});
+    try{
+      const j=await callFn("mapear-id-ext-feb-batch",{id_liga:carrLiga,temporada:carrTemp,dry:false});
+      if(j.ok===false||j.error){alert("Fallo: "+(j.error||j.motivo||"desconocido"));return;}
+      const msg="✅ Mapeadas "+(j.jugadoras_mapeadas||0)+" jugadoras de "+(j.total_candidatas||0)+" candidatas · "+(j.partidos_scrapeados_ok||0)+"/"+(j.partidos_unicos||0)+" partidos OK"+(j.partidos_fallidos?.length?" · "+j.partidos_fallidos.length+" partidos fallidos":"")+(j.jugadoras_no_encontradas?" · "+j.jugadoras_no_encontradas+" jugs no encontradas en partido":"");
+      setLigaProgress({done:1,total:1,paso:msg});
+      alert(msg);
+    }catch(e){alert("Error: "+e.message);}
+    setCarrBusy("");
+  }
+
   async function refrescarFechasLfb(){
     if(carrLiga!=="L007"){alert("Solo disponible para LFB (L007)");return;}
     if(!confirm("Refrescar fecha_hora de partidos "+carrLiga+" "+carrTemp+"? Scrapeará el calendario general (22 requests Firecrawl, ~1-2 min)."))return;
@@ -1343,6 +1359,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                   {ligaInfo&&!["L007","L022","L098","L001","L002","L003","L017","L074","L004","L005","L027","L055","L056","L060","L058","L057","L059","L067","L071","L075","L076","L083","L091","L099","L079","L096","L087","L077","L093","L078","L080","L081","L082","L085","L104","L105","L110"].includes(carrLiga)&&<button onClick={ligaCrearYMapear} disabled={!!carrBusy} style={{background:"#0ea5e9",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="liga_crear"?"Creando...":"➕ Crear/mapear todo"}</button>}
                   {ligaInfo&&<button onClick={ligaCargarCarreras} disabled={!!carrBusy} style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="liga_cargar"?"Cargando...":"🚀 Cargar TODAS las carreras"}</button>}
                   {carrLiga==="L007"&&<button onClick={refrescarFechasLfb} disabled={!!carrBusy} title="Scrapea el calendario general LBWL y actualiza fecha_hora de los partidos (22 requests Firecrawl)" style={{background:"#0891b2",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="fechas_lfb"?"Refrescando...":"🕐 Refrescar fechas LFB"}</button>}
+                  {["L001","L002","L003","L017","L074"].includes(carrLiga)&&<button onClick={mapearIdExtFeb} disabled={!!carrBusy} title="Rellena temporadas.id_ext_feb para jugadoras que aún no lo tienen (agrupa por partido, ~5-15 min por temporada)" style={{background:"#0891b2",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="mapear_ie_feb"?"Mapeando...":"🔗 Mapear id_ext_feb"}</button>}
                   {ligaInfo&&<label style={{display:"flex",alignItems:"center",gap:"5px",fontSize:"11px",color: "var(--fx-label)",cursor:"pointer",background: "var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"8px",padding:"7px 10px"}}>
                     <input type="checkbox" checked={skipCargadas} onChange={e=>setSkipCargadas(e.target.checked)}/>
                     Saltar ya cargadas
