@@ -634,6 +634,101 @@ function EscudoPicker({value,onChange}){
   );
 }
 
+/* ── EmptyState ─── */
+function EmptyState({icon,text,sub}){return(
+  <div style={{textAlign:"center",padding:"80px 20px",color:"var(--fx-muted2)"}}>
+    <div style={{fontSize:"48px",marginBottom:"12px"}}>{icon}</div>
+    <div style={{fontWeight:600,color:"var(--fx-muted)",fontSize:"16px"}}>{text}</div>
+    {sub&&<div style={{fontSize:"13px",marginTop:"6px"}}>{sub}</div>}
+  </div>
+);}
+
+
+/* ── STATUS_BADGE ─── */
+const STATUS_BADGE = {
+  cantera: null,
+  europea: <span title="Jugadora europea" style={{background:"var(--fx-blue-bg)",color:"var(--fx-blue-text)",border:"1.5px solid #bfdbfe",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap",display:"inline-flex",alignItems:"center"}}><img loading="lazy" decoding="async" src="https://flagcdn.com/20x15/eu.png" width={16} height={12} alt="EU" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",marginRight:"3px"}}/>Europea</span>,
+  acp:     <span title="Acuerdo de Cotonú" style={{background:"var(--fx-amber-bg)",color:"var(--fx-amber-text)",border:"1.5px solid #fde68a",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap"}}>🤝 ACP</span>,
+  extra:   <span title="Extracomunitaria" style={{background:"var(--fx-hover)",color:"var(--fx-muted)",border:"1.5px solid #cbd5e1",fontSize:"10px",fontWeight:800,padding:"2px 7px",borderRadius:"20px",whiteSpace:"nowrap"}}>🌍 Extra</span>,
+};
+
+
+/* ── STATUS_BADGE_LG ─── */
+const STATUS_BADGE_LG = {
+  cantera: null,
+  europea: <span title="Jugadora europea" style={{background:"var(--fx-blue-bg)",color:"var(--fx-blue-text)",border:"1.5px solid #bfdbfe",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap",display:"inline-flex",alignItems:"center"}}><img loading="lazy" decoding="async" src="https://flagcdn.com/20x15/eu.png" width={16} height={12} alt="EU" style={{display:"inline-block",verticalAlign:"middle",borderRadius:"2px",marginRight:"3px"}}/>Europea</span>,
+  acp:     <span title="Acuerdo de Cotonú" style={{background:"var(--fx-amber-bg)",color:"var(--fx-amber-text)",border:"1.5px solid #fde68a",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🤝 Cotonú</span>,
+  extra:   <span title="Extracomunitaria" style={{background:"var(--fx-hover)",color:"var(--fx-muted)",border:"1.5px solid #cbd5e1",fontSize:"12px",fontWeight:800,padding:"3px 10px",borderRadius:"20px",whiteSpace:"nowrap"}}>🌍 Extra</span>,
+};
+
+
+/* ── PaisDropdown ─── */
+function PaisDropdown({allPaises,filterPais,setFilterPais,placeholder}){
+  const t = useT();
+  const [open,setOpen]=useState(false);
+  const ref=useRef();
+  placeholder=placeholder||t("filter.pais");
+  useEffect(()=>{
+    const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
+    document.addEventListener("mousedown",h);return()=>document.removeEventListener("mousedown",h);
+  },[]);
+  return(
+    <div ref={ref} style={{position:"relative",flexShrink:0}}>
+      <div onClick={()=>setOpen(o=>!o)} style={{border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"9px 14px",fontSize:"13px",color:filterPais?"#9333ea":"#475569",background:"var(--fx-card)",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px",whiteSpace:"nowrap",fontWeight:filterPais?700:400,height:"40px",boxSizing:"border-box",minWidth:"140px"}}>
+        {filterPais?<><FlagImg country={filterPais}/><span>{filterPais}</span></>:<span>{placeholder}</span>}
+        <span style={{marginLeft:"auto",fontSize:"10px"}}>▼</span>
+      </div>
+      {open&&(
+        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,zIndex:100,background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"12px",boxShadow:"0 8px 24px rgba(0,0,0,0.12)",minWidth:"180px",maxHeight:"280px",overflowY:"auto",padding:"8px 0"}}>
+          <div onClick={()=>{setFilterPais("");setOpen(false);}} style={{padding:"8px 14px",fontSize:"12px",color:"var(--fx-muted2)",cursor:"pointer",fontWeight:600,borderBottom:"1px solid var(--fx-border2)"}}>
+            {t("filter.todos_paises")}
+          </div>
+          {(allPaises||[]).map(p=>{
+            const checked=filterPais===p;
+            return(
+              <div key={p} onClick={()=>{setFilterPais(checked?"":p);setOpen(false);}}
+                style={{display:"flex",alignItems:"center",gap:"8px",padding:"7px 14px",cursor:"pointer",background:checked?"var(--fx-amber-bg)":"transparent"}}
+                onMouseEnter={e=>e.currentTarget.style.background=checked?"var(--fx-amber-bg)":"var(--fx-hover)"}
+                onMouseLeave={e=>e.currentTarget.style.background=checked?"var(--fx-amber-bg)":"transparent"}>
+                <FlagImg country={p}/>
+                <span style={{fontSize:"13px",color:"var(--fx-text)",fontWeight:checked?700:400}}>{p}</span>
+                {checked&&<span style={{marginLeft:"auto",color:"#9333ea",fontSize:"12px"}}>✓</span>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+/* ── CoachSeasonForm ─── */
+function CoachSeasonForm({initial,equipos,ligas,onSave,onCancel,saving}){
+  const [f,setF]=useState({id_equipo:'',id_liga:'',temporada:'',orden:0,...initial});
+  const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
+  const inp={width:'100%',border:'1.5px solid var(--fx-border)',borderRadius:'10px',padding:'9px 12px',fontSize:'14px',outline:'none',boxSizing:'border-box'};
+  return(<div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
+    <Fld label='Equipo *'><select style={inp} value={f.id_equipo} onChange={set('id_equipo')}>
+      <option value=''>Seleccionar equipo...</option>
+      {(equipos||[]).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es')).map(e=><option key={e.id_equipo} value={e.id_equipo}>{e.nombre}</option>)}
+    </select></Fld>
+    <Fld label='Liga *'><select style={inp} value={f.id_liga} onChange={set('id_liga')}>
+      <option value=''>Seleccionar liga...</option>
+      {(ligas||[]).map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}</option>)}
+    </select></Fld>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+      <Fld label='Temporada *'><input style={inp} value={f.temporada} onChange={set('temporada')} placeholder='2025-26'/></Fld>
+      <Fld label='Orden'><input style={inp} type='number' value={f.orden||0} onChange={set('orden')} placeholder='0'/></Fld>
+    </div>
+    <div style={{display:'flex',gap:'10px',justifyContent:'flex-end',marginTop:'8px'}}>
+      <button onClick={onCancel} style={{background:'var(--fx-hover)',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:600,cursor:'pointer'}}>Cancelar</button>
+      <button onClick={()=>onSave(f)} disabled={saving||!f.id_equipo||!f.id_liga||!f.temporada} style={{background:'#9333ea',color:'#fff',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:700,cursor:'pointer'}}>{saving?'Guardando...':'Guardar'}</button>
+    </div>
+  </div>);
+}
+
+
 export {
   POSITIONS, TIPO_LABELS, TIPO_COLORS, CHIP_STYLES, POS_C,
   COUNTRY_CODES, ACP_COUNTRIES, EU_COUNTRIES, NO_COUNTRY_FLAGS,
@@ -645,4 +740,5 @@ export {
   Chip, FlagImg, MultiFlag, SocialIcon,
   TeamBadge, LeagueBadge, Avatar, PhotoLightbox,
   Fld, CalendarSubscribeBtn, Breadcrumbs, Modal, ConfirmDel, PhotoPicker, EscudoPicker,
+  EmptyState, STATUS_BADGE, STATUS_BADGE_LG, PaisDropdown, CoachSeasonForm,
 };
