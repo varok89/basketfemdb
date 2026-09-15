@@ -141,6 +141,21 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     setCarrBusy("");
     alert("Listo: "+out.reduce((a,e)=>a+(e.creadas||0),0)+" creadas · "+out.reduce((a,e)=>a+(e.adjuntadas||0),0)+" adjuntadas");
   }
+  async function refrescarFechasLfb(){
+    if(carrLiga!=="L007"){alert("Solo disponible para LFB (L007)");return;}
+    if(!confirm("Refrescar fecha_hora de partidos "+carrLiga+" "+carrTemp+"? Scrapeará el calendario general (22 requests Firecrawl, ~1-2 min)."))return;
+    setCarrBusy("fechas_lfb");
+    setLigaProgress({done:0,total:22,paso:"Scrapeando calendario LBWL..."});
+    try{
+      const j=await callFn("refrescar-fechas-lfb",{temporada:carrTemp,id_liga:carrLiga,dry:false});
+      if(j.ok===false){alert("Fallo: "+(j.motivo||j.error||"desconocido"));return;}
+      const msg="✅ Fechas refrescadas · "+(j.total_actualizados||0)+" de "+(j.total_encontrados_web||0)+" encontrados (de "+(j.total_partidos_en_bd||0)+" en BD)"+(j.sin_partido_bd?.length?" · "+j.sin_partido_bd.length+" web sin match en BD":"");
+      setLigaProgress({done:22,total:22,paso:msg});
+      alert(msg);
+    }catch(e){alert("Error: "+e.message);}
+    setCarrBusy("");
+  }
+
   async function ligaCargarCarreras(){
     if(!ligaInfo)return;
     var esEspn=["L020","L006"].includes(carrLiga);
@@ -1327,6 +1342,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                   <button onClick={ligaAnalizar} disabled={!!carrBusy||!carrEquiposLiga.length} style={{background:"#7c3aed",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy||!carrEquiposLiga.length?0.5:1}}>{carrBusy==="liga_info"?"Analizando...":"🔍 Analizar TODA la liga"}</button>
                   {ligaInfo&&!["L007","L022","L098","L001","L002","L003","L017","L074","L004","L005","L027","L055","L056","L060","L058","L057","L059","L067","L071","L075","L076","L083","L091","L099","L079","L096","L087","L077","L093","L078","L080","L081","L082","L085","L104","L105","L110"].includes(carrLiga)&&<button onClick={ligaCrearYMapear} disabled={!!carrBusy} style={{background:"#0ea5e9",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="liga_crear"?"Creando...":"➕ Crear/mapear todo"}</button>}
                   {ligaInfo&&<button onClick={ligaCargarCarreras} disabled={!!carrBusy} style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="liga_cargar"?"Cargando...":"🚀 Cargar TODAS las carreras"}</button>}
+                  {carrLiga==="L007"&&<button onClick={refrescarFechasLfb} disabled={!!carrBusy} title="Scrapea el calendario general LBWL y actualiza fecha_hora de los partidos (22 requests Firecrawl)" style={{background:"#0891b2",color:"#fff",border:"none",borderRadius:"8px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer",opacity:carrBusy?0.5:1}}>{carrBusy==="fechas_lfb"?"Refrescando...":"🕐 Refrescar fechas LFB"}</button>}
                   {ligaInfo&&<label style={{display:"flex",alignItems:"center",gap:"5px",fontSize:"11px",color: "var(--fx-label)",cursor:"pointer",background: "var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"8px",padding:"7px 10px"}}>
                     <input type="checkbox" checked={skipCargadas} onChange={e=>setSkipCargadas(e.target.checked)}/>
                     Saltar ya cargadas
