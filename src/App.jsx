@@ -32,6 +32,7 @@ import PlayersView from "./views/PlayersView";
 import TeamsView from "./views/TeamsView";
 import LeaguesView from "./views/LeaguesView";
 import CoachesView from "./views/CoachesView";
+import Landing from "./views/Landing";
 
 /* ── GlobalSearch ───────────────────────────────────────── */
 function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach,fullscreen,onClose}){
