@@ -1,0 +1,90 @@
+name: RPC tests
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # lunes 09:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run rpc_tests() against Postgres
+        env:
+          PAT: ${{ secrets.SUPABASE_PAT }}
+          REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          set -eo pipefail
+          read -r -d '' SQL <<'EOF' || true
+          SELECT jsonb_build_object(
+            'total', count(*),
+            'failed', count(*) FILTER (WHERE NOT passed),
+            'fails', coalesce(jsonb_agg(jsonb_build_object('test', test_name, 'expected', expected, 'actual', actual))
+                              FILTER (WHERE NOT passed), '[]'::jsonb)
+          ) AS summary FROM public.rpc_tests();
+          EOF
+          BODY=$(jq -n --arg q "$SQL" '{query:$q}')
+          STATUS=$(curl -sS -o resp.json -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer $PAT" \
+            -H "Content-Type: application/json" \
+            -d "$BODY" \
+            "https://api.supabase.com/v1/projects/$REF/database/query")
+          echo "HTTP $STATUS"
+          echo "--- response ---"; cat resp.json; echo
+          if [ "$STATUS" != "201" ] && [ "$STATUS" != "200" ]; then exit 1; fi
+          jq '.[0].summary' resp.json > summary.json
+          FAILED=$(jq -r '.failed' summary.json)
+          TOTAL=$(jq -r '.total' summary.json)
+          echo "failed=$FAILED" >> "$GITHUB_ENV"
+          echo "total=$TOTAL" >> "$GITHUB_ENV"
+
+      - name: Render markdown body
+        run: |
+          {
+            echo "🧪 **RPC tests semanal** · $(date -u +%Y-%m-%dT%H:%MZ)"
+            echo
+            echo "**${failed}** failed de **${total}** total."
+            echo
+            if [ "$failed" -gt 0 ]; then
+              echo "| Test | Esperado | Actual |"
+              echo "|---|---|---|"
+              jq -r '.fails[] | "| `\(.test)` | `\(.expected)` | `\(.actual)` |"' summary.json
+            else
+              echo "✅ Todos los tests pasan."
+            fi
+            echo
+            echo "---"
+            echo "_Auto-generado por [rpc-tests.yml](../blob/main/.github/workflows/rpc-tests.yml). Se cierra si vuelven a 0 fails._"
+          } > body.md
+          cat body.md
+
+      - name: Upsert issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FAILED: ${{ env.failed }}
+          TOTAL: ${{ env.total }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -eo pipefail
+          TITLE="🧪 RPC tests — ${FAILED}/${TOTAL} failed"
+          NUM=$(gh issue list --repo "$REPO" --label rpc-tests --state all --limit 1 --json number -q '.[0].number' || true)
+          if [ -z "$NUM" ]; then
+            if [ "$FAILED" -gt 0 ]; then
+              gh label create rpc-tests --repo "$REPO" --color EAB308 --description "Weekly RPC assertions snapshot" 2>/dev/null || true
+              gh issue create --repo "$REPO" --title "$TITLE" --body-file body.md --label rpc-tests
+            else
+              echo "Sin fails y sin issue previo — nada que hacer."
+            fi
+            exit 0
+          fi
+          gh issue edit "$NUM" --repo "$REPO" --title "$TITLE" --body-file body.md
+          STATE=$(gh issue view "$NUM" --repo "$REPO" --json state -q .state)
+          if [ "$FAILED" -gt 0 ] && [ "$STATE" = "CLOSED" ]; then
+            gh issue reopen "$NUM" --repo "$REPO" --comment "Fallaron $FAILED tests. Reabierto."
+          elif [ "$FAILED" -eq 0 ] && [ "$STATE" = "OPEN" ]; then
+            gh issue close "$NUM" --repo "$REPO" --comment "Todos los tests pasan. Cerrado."
+          fi
