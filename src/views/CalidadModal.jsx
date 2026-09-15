@@ -66,11 +66,9 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
         // LFB/FEB/FIBA: no hay mapear-roster; construimos roster desde temporadas + jugadoras.{id_lfb|id_ext|fiba_person_id}
         const extField=["L007","L022","L098"].includes(carrLiga)?"id_lfb":(isFiba?"fiba_person_id":"id_ext");
         const {data:eqRow}=await supabase.from("equipos").select("nombre").eq("id_equipo",carrEquipoId).single();
-        const {data:temps}=await supabase.from("temporadas").select("id_jugadora,jugadoras(nombre,"+extField+",fuente)").eq("id_equipo",carrEquipoId).eq("id_liga",carrLiga).eq("temporada",carrTemp);
+        const {data:temps}=await supabase.from("temporadas").select("id_jugadora,jugadoras(nombre,"+extField+")").eq("id_equipo",carrEquipoId).eq("id_liga",carrLiga).eq("temporada",carrTemp);
         const roster=(temps||[]).map(function(t){
           var ext=t.jugadoras?.[extField]||null;
-          // Para FEB además exigimos fuente=feb
-          if(isFeb&&t.jugadoras?.fuente!=="feb")ext=null;
           return {id_jugadora:t.id_jugadora,nombre:t.jugadoras?.nombre||t.id_jugadora,id_espn:ext};
         }).sort(function(a,b){return (a.nombre||"").localeCompare(b.nombre||"");});
         const conExt=roster.filter(function(r){return r.id_espn;}).length;
@@ -101,10 +99,9 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
         const isFibaL=["L004","L005","L027","L055","L056","L060","L058","L057","L059","L067","L071","L075","L076","L083","L091","L099","L079","L096","L087","L077","L093","L078","L080","L081","L082","L085","L104","L105","L110"].includes(carrLiga);
         if(["L007","L022","L098"].includes(carrLiga)||isFebL||isFibaL){
           const extField=["L007","L022","L098"].includes(carrLiga)?"id_lfb":(isFibaL?"fiba_person_id":"id_ext");
-          const {data:temps}=await supabase.from("temporadas").select("id_jugadora,jugadoras(nombre,"+extField+",fuente)").eq("id_equipo",eq.id_equipo).eq("id_liga",carrLiga).eq("temporada",carrTemp);
+          const {data:temps}=await supabase.from("temporadas").select("id_jugadora,jugadoras(nombre,"+extField+")").eq("id_equipo",eq.id_equipo).eq("id_liga",carrLiga).eq("temporada",carrTemp);
           const roster=(temps||[]).map(function(t){
             var ext=t.jugadoras?.[extField]||null;
-            if(isFebL&&t.jugadoras?.fuente!=="feb")ext=null;
             return {id_jugadora:t.id_jugadora,nombre:t.jugadoras?.nombre||t.id_jugadora,id_espn:ext};
           });
           const conExt=roster.filter(function(r){return r.id_espn;}).length;

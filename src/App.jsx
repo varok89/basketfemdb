@@ -3813,7 +3813,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
             <button onClick={async()=>{
               // Fetch IDs externos + fuente antes de abrir el editor (no vienen en fase 1)
               try{
-                const {data}=await supabase.from("jugadoras").select("id_espn,fiba_person_id,id_feb,id_lfb,id_ext,fuente").eq("id_jugadora",selId).single();
+                const {data}=await supabase.from("jugadoras").select("id_espn,fiba_person_id,id_feb,id_lfb").eq("id_jugadora",selId).single();
                 if(data)setPlayers(prev=>prev.map(p=>p.id_jugadora===selId?{...p,...data}:p));
               }catch(_){}
               setModal("editPlayer");
