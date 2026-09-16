@@ -107,9 +107,10 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
           <div style={{display:"flex",alignItems:"center",gap:"8px",flex:1,background:"rgba(255,255,255,0.08)",border:"1.5px solid rgba(255,255,255,0.12)",borderRadius:"10px",padding:"9px 12px"}}>
             <span style={{fontSize:"14px",color:"var(--fx-muted2)"}}>🔍</span>
             <input ref={inputRef} value={q} onChange={e=>{setQ(e.target.value);setOpen(true);}}
+              aria-label={t("search.placeholder_mobile")}
               placeholder={t("search.placeholder_mobile")} style={{background:"transparent",border:"none",outline:"none",color:"#fff",fontSize:"15px",width:"100%"}}
               onKeyDown={onKeyNav}/>
-            {q&&<button onClick={()=>setQ("")} style={{background:"none",border:"none",color:"var(--fx-muted)",cursor:"pointer",fontSize:"16px",lineHeight:1,padding:0}}>×</button>}
+            {q&&<button type="button" onClick={()=>setQ("")} aria-label={t("common.clear")||"Limpiar"} style={{background:"none",border:"none",color:"var(--fx-muted)",cursor:"pointer",fontSize:"16px",lineHeight:1,padding:0}}>×</button>}
           </div>
           <button onClick={onClose} style={{background:"none",border:"none",color:"#fff",fontSize:"14px",fontWeight:700,cursor:"pointer",padding:"4px 8px"}}>Cancelar</button>
         </div>
@@ -1804,14 +1805,15 @@ export default function App(){
   );
 
   return(<>
+    <a href="#main-content" className="bfdb-skip-link" style={{position:"absolute",left:"-9999px",top:"0",zIndex:1000,background:"#9333ea",color:"#fff",padding:"10px 16px",borderRadius:"0 0 8px 0",fontWeight:700,fontSize:"14px",textDecoration:"none"}} onFocus={e=>{e.currentTarget.style.left="0";}} onBlur={e=>{e.currentTarget.style.left="-9999px";}}>{t("a11y.skip")||"Saltar al contenido"}</a>
     <div className="bfdb-app-root" style={{minHeight:"100vh",background:"var(--fx-hover)",color:"var(--fx-text)",fontFamily:"system-ui,-apple-system,sans-serif",overflowX:"hidden"}}>
-      <div style={{background:"#0f172a",color:"#fff",padding:"0 20px",position:"sticky",top:0,zIndex:10,boxShadow:"0 2px 16px rgba(0,0,0,0.4)"}}>
+      <header style={{background:"#0f172a",color:"#fff",padding:"0 20px",position:"sticky",top:0,zIndex:10,boxShadow:"0 2px 16px rgba(0,0,0,0.4)"}}>
         <div className="bfdb-header-inner" style={{maxWidth:"880px",margin:"0 auto",display:"flex",alignItems:"center",gap:"8px",height:"56px"}}>
           {/* ☰ Hamburguesa */}
           <div style={{position:"relative",flexShrink:0}}>
-            <button onClick={()=>setMenuOpen(!menuOpen)} style={{background:menuOpen?"rgba(147,51,234,0.2)":"transparent",color:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"20px",lineHeight:1}}>☰</button>
+            <button type="button" onClick={()=>setMenuOpen(!menuOpen)} aria-label={t("header.menu")||"Menú"} aria-expanded={menuOpen} aria-haspopup="menu" style={{background:menuOpen?"rgba(147,51,234,0.2)":"transparent",color:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"20px",lineHeight:1}}><span aria-hidden="true">☰</span></button>
             {menuOpen&&<><div onClick={()=>setMenuOpen(false)} style={{position:"fixed",inset:0,zIndex:98}}/>
-            <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,background:"#1e293b",borderRadius:"12px",padding:"8px",boxShadow:"0 10px 40px rgba(0,0,0,0.5)",zIndex:99,border:"1px solid #334155",minWidth:"220px"}}>
+            <nav aria-label={t("header.menu")||"Menú principal"} style={{position:"absolute",top:"calc(100% + 4px)",left:0,background:"#1e293b",borderRadius:"12px",padding:"8px",boxShadow:"0 10px 40px rgba(0,0,0,0.5)",zIndex:99,border:"1px solid #334155",minWidth:"220px"}}>
               {TABS.map(([id,icon,label])=>(
                 <button key={id} onClick={()=>{setTab(id);setMenuOpen(false);const seg=id==='cuerpo_tecnico'?'coaches':id;window.history.pushState({},"",`/${seg}`);applyUrlState(`/${seg}`);}} style={{display:"flex",alignItems:"center",gap:"10px",width:"100%",background:tab===id?"#9333ea":"transparent",color:tab===id?"#fff":"#cbd5e1",border:"none",borderRadius:"8px",padding:"10px 14px",fontWeight:700,fontSize:"14px",cursor:"pointer",textAlign:"left"}}>
                   <span style={{fontSize:"16px"}}>{icon}</span>{label}
@@ -1831,15 +1833,15 @@ export default function App(){
               <button onClick={()=>{setLang(lang==="es"?"en":"es");setMenuOpen(false);}} style={{display:"flex",alignItems:"center",gap:"10px",width:"100%",background:"transparent",color:"#cbd5e1",border:"none",borderRadius:"8px",padding:"10px 14px",fontWeight:700,fontSize:"14px",cursor:"pointer"}}>
                 <span style={{fontSize:"16px"}}>{lang==="es"?"🇬🇧":"🇪🇸"}</span>{t("lang.switch_to_other")}
               </button>
-            </div></>}
+            </nav></>}
           </div>
 
           {/* 🔄 Recargar */}
-          <button onClick={()=>loadAll(true)} title={t("header.reload")} style={{background:"transparent",color:"var(--fx-muted2)",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px",flexShrink:0}}>🔄</button>
+          <button type="button" onClick={()=>loadAll(true)} aria-label={t("header.reload")} title={t("header.reload")} style={{background:"transparent",color:"var(--fx-muted2)",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px",flexShrink:0}}><span aria-hidden="true">🔄</span></button>
 
           {/* 🔔 Notificaciones */}
           {user&&<div style={{position:"relative",flexShrink:0}}>
-            <button onClick={()=>{setShowNotifs(!showNotifs);if(!showNotifs)markRead();}} style={{background:"transparent",color:notifCount>0?"#f59e0b":"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px",position:"relative"}}>🔔{notifCount>0&&<span style={{position:"absolute",top:"2px",right:"4px",background:"#ef4444",color:"#fff",fontSize:"9px",fontWeight:800,borderRadius:"50%",width:"16px",height:"16px",display:"flex",alignItems:"center",justifyContent:"center"}}>{notifCount>9?"9+":notifCount}</span>}</button>
+            <button type="button" onClick={()=>{setShowNotifs(!showNotifs);if(!showNotifs)markRead();}} aria-label={t("header.notif_title")+(notifCount>0?` (${notifCount})`:"")} aria-expanded={showNotifs} aria-haspopup="menu" style={{background:"transparent",color:notifCount>0?"#f59e0b":"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px",position:"relative"}}><span aria-hidden="true">🔔</span>{notifCount>0&&<span aria-hidden="true" style={{position:"absolute",top:"2px",right:"4px",background:"#ef4444",color:"#fff",fontSize:"9px",fontWeight:800,borderRadius:"50%",width:"16px",height:"16px",display:"flex",alignItems:"center",justifyContent:"center"}}>{notifCount>9?"9+":notifCount}</span>}</button>
             {showNotifs&&<><div onClick={()=>setShowNotifs(false)} style={{position:"fixed",inset:0,zIndex:99}}/><div style={{position:"absolute",left:0,top:"calc(100% + 8px)",background:"#1e293b",borderRadius:"12px",padding:"12px",boxShadow:"0 10px 40px rgba(0,0,0,0.5)",zIndex:100,width:"300px",maxHeight:"400px",overflowY:"auto",border:"1px solid #334155"}}>
               <div style={{fontWeight:800,fontSize:"14px",color:"#f1f5f9",marginBottom:"8px"}}>{t("header.notif_title")}</div>
               {notificaciones.length===0&&<div style={{fontSize:"12px",color:"var(--fx-muted)",padding:"16px 0",textAlign:"center"}}>{t("header.notif_empty")}</div>}
@@ -1852,14 +1854,14 @@ export default function App(){
           </div>}
 
           {/* Logo */}
-          <div className="bfdb-logo" onClick={()=>{setTab("home");window.history.pushState({},"","/");}} title={t("header.home")} style={{display:"flex",alignItems:"center",cursor:"pointer",flex:1,justifyContent:"center"}}>
+          <button type="button" className="bfdb-logo" onClick={()=>{setTab("home");window.history.pushState({},"","/");}} aria-label={t("header.home")} title={t("header.home")} style={{display:"flex",alignItems:"center",cursor:"pointer",flex:1,justifyContent:"center",background:"transparent",border:"none",padding:0}}>
             <img src="/icon-home.png" alt="La Basketneta" style={{height:"36px",objectFit:"contain"}} />
-          </div>
+          </button>
 
           {/* Buscador */}
           <div className="bfdb-global-search"><GlobalSearch players={players} equipos={equipos} ligas={ligas} coaches={coaches}
             onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToCoach={goToCoach}/></div>
-          <button className="bfdb-mobile-search-btn" onClick={()=>setMobileSearchOpen(true)} style={{display:"none",background:"none",border:"none",color:"#fff",fontSize:"18px",cursor:"pointer",padding:"6px"}}>🔍</button>
+          <button type="button" className="bfdb-mobile-search-btn" onClick={()=>setMobileSearchOpen(true)} aria-label={t("search.placeholder_mobile")||"Buscar"} style={{display:"none",background:"none",border:"none",color:"#fff",fontSize:"18px",cursor:"pointer",padding:"6px"}}><span aria-hidden="true">🔍</span></button>
           {mobileSearchOpen&&<GlobalSearch players={players} equipos={equipos} ligas={ligas} coaches={coaches}
             onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToCoach={goToCoach}
             fullscreen onClose={()=>setMobileSearchOpen(false)}/>}
@@ -1867,7 +1869,7 @@ export default function App(){
           {/* 👤 Admin / Usuario */}
           {user
             ?<div style={{position:"relative",flexShrink:0}}>
-              <button onClick={()=>setShowUserMenu(!showUserMenu)} style={{background:isAdmin?"rgba(249,115,22,0.15)":"rgba(147,51,234,0.15)",color:isAdmin?"#c084fc":"#a78bfa",border:`1.5px solid ${isAdmin?"rgba(249,115,22,0.3)":"rgba(147,51,234,0.3)"}`,borderRadius:"10px",padding:"5px 10px",cursor:"pointer",fontSize:"12px",fontWeight:700}}>{isAdmin?t("header.admin_chip"):"👤"}</button>
+              <button type="button" onClick={()=>setShowUserMenu(!showUserMenu)} aria-label={t("header.my_profile")||"Mi cuenta"} aria-expanded={showUserMenu} aria-haspopup="menu" style={{background:isAdmin?"rgba(249,115,22,0.15)":"rgba(147,51,234,0.15)",color:isAdmin?"#c084fc":"#a78bfa",border:`1.5px solid ${isAdmin?"rgba(249,115,22,0.3)":"rgba(147,51,234,0.3)"}`,borderRadius:"10px",padding:"5px 10px",cursor:"pointer",fontSize:"12px",fontWeight:700}}>{isAdmin?t("header.admin_chip"):<span aria-hidden="true">👤</span>}</button>
               {showUserMenu&&<>
                 <div onClick={()=>setShowUserMenu(false)} style={{position:"fixed",inset:0,zIndex:99}}/>
                 <div style={{position:"absolute",right:0,top:"calc(100% + 8px)",background:"#1e293b",borderRadius:"12px",padding:"16px",boxShadow:"0 10px 40px rgba(0,0,0,0.5)",zIndex:100,minWidth:"220px",border:"1px solid #334155"}}>
@@ -1889,10 +1891,10 @@ export default function App(){
                 </div>
               </>}
             </div>
-            :<button onClick={()=>setShowLogin(true)} title="Iniciar sesión" style={{background:"transparent",color:"var(--fx-muted2)",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px",flexShrink:0}}>👤</button>
+            :<button type="button" onClick={()=>setShowLogin(true)} aria-label="Iniciar sesión" title="Iniciar sesión" style={{background:"transparent",color:"var(--fx-muted2)",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px",flexShrink:0}}><span aria-hidden="true">👤</span></button>
           }
-        </div>      </div>
-      <div style={{paddingTop:"8px"}}>
+        </div>      </header>
+      <main id="main-content" style={{paddingTop:"8px"}}>
         {showPerfil&&user&&<PerfilView user={user} favoritos={favoritos} onClose={()=>setShowPerfil(false)} onLogout={()=>{handleLogout();setShowPerfil(false);}}/>}
         {showPrivacidad&&<Suspense fallback={<GridSkel n={6} cards={false}/>}><PrivacidadView onBack={()=>{setShowPrivacidad(false);window.history.back();}}/></Suspense>}
         {!showPrivacidad&&!showPerfil&&tab==="favoritos"&&user&&<FavoritosView players={players} equipos={equipos} ligas={ligas} partidos={partidos} favoritos={favoritos} user={user} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToPartido={goToPartido} isFavFn={isFav} onToggleFav={toggleFav}/>}
@@ -1912,7 +1914,7 @@ export default function App(){
           </div>)}
         {!showPrivacidad&&!showPerfil&&tab==="comparar"&&<Suspense fallback={<GridSkel n={3} cards={false}/>}><ComparadorView players={players} equipos={equipos} ligas={ligas} equiposNombres={equiposNombres} onGoToPlayer={(id)=>goToPlayer(id,{tab:"comparar",label:"Comparar"})} onGoToTeam={(id)=>goToTeam(id,null,{tab:"comparar",label:"Comparar"})}/></Suspense>}
         {!showPrivacidad&&!showPerfil&&tab==="partidos"&&<PartidosView partidos={partidos} equipos={equipos} ligas={ligas} players={players} mvps={mvps} equiposNombres={equiposNombres} openClasiKey={openClasiKey} onClearClasi={()=>setOpenClasiKey(null)} partidosSub={partidosSub} isAdmin={isAdmin} setPartidos={setPartidos} onGoToTeam={(id,year)=>goToTeam(id,year||null,{tab:"partidos",label:"Ver partidos"})} onGoToLeague={(id)=>goToLeague(id,{tab:"partidos",label:"Ver partidos"})} onGoToPlayer={(id)=>goToPlayer(id,{tab:"partidos",label:"Ver partidos"})}/>}
-      </div>
+      </main>
     </div>
     {/* Logros: toast + modales */}
     {logroToast&&(
