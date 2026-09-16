@@ -62,9 +62,11 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     try{
       const isFeb=["L001","L002","L003","L017","L074"].includes(carrLiga);
       const isFiba=["L004","L005","L027","L055","L056","L060","L058","L057","L059","L067","L071","L075","L076","L083","L091","L099","L079","L096","L087","L077","L093","L078","L080","L081","L082","L085","L104","L105","L110"].includes(carrLiga);
-      if(["L007","L022","L098"].includes(carrLiga)||isFeb||isFiba){
-        // LFB/FEB/FIBA: no hay mapear-roster; construimos roster desde temporadas + jugadoras.{id_lfb|id_ext|fiba_person_id}
-        const extField=["L007","L022","L098"].includes(carrLiga)?"id_lfb":(isFiba?"fiba_person_id":"id_ext");
+      if(["L007","L022","L098"].includes(carrLiga)){
+        setCarrInfo(await callFn("mapear-roster-lfb",{id_equipo:carrEquipoId,id_liga:carrLiga,temporada:carrTemp,dry:true}));
+      } else if(isFeb||isFiba){
+        // FEB/FIBA: aun sin mapear-roster; fallback local sobre temporadas
+        const extField=isFiba?"fiba_person_id":"id_ext";
         const {data:eqRow}=await supabase.from("equipos").select("nombre").eq("id_equipo",carrEquipoId).single();
         const {data:temps}=await supabase.from("temporadas").select("id_jugadora,jugadoras(nombre,"+extField+")").eq("id_equipo",carrEquipoId).eq("id_liga",carrLiga).eq("temporada",carrTemp);
         const roster=(temps||[]).map(function(t){
@@ -82,7 +84,8 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   async function carrMapear(){
     setCarrBusy("mapear");
     try{
-      setCarrInfo(await callFn("mapear-roster-espn",{id_equipo:carrEquipoId,id_liga:carrLiga,temporada:carrTemp,dry:false}));
+      const fn=["L007","L022","L098"].includes(carrLiga)?"mapear-roster-lfb":"mapear-roster-espn";
+      setCarrInfo(await callFn(fn,{id_equipo:carrEquipoId,id_liga:carrLiga,temporada:carrTemp,dry:false}));
     }catch(e){setCarrInfo({error:e.message});}
     setCarrBusy("");
   }
@@ -97,8 +100,11 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       try{
         const isFebL=["L001","L002","L003","L017","L074"].includes(carrLiga);
         const isFibaL=["L004","L005","L027","L055","L056","L060","L058","L057","L059","L067","L071","L075","L076","L083","L091","L099","L079","L096","L087","L077","L093","L078","L080","L081","L082","L085","L104","L105","L110"].includes(carrLiga);
-        if(["L007","L022","L098"].includes(carrLiga)||isFebL||isFibaL){
-          const extField=["L007","L022","L098"].includes(carrLiga)?"id_lfb":(isFibaL?"fiba_person_id":"id_ext");
+        if(["L007","L022","L098"].includes(carrLiga)){
+          var jl=await callFn("mapear-roster-lfb",{id_equipo:eq.id_equipo,id_liga:carrLiga,temporada:carrTemp,dry:true});
+          out.push({id_equipo:eq.id_equipo,equipo:eq.nombre,bd_total:jl.bd_total||0,espn_total:jl.espn_total||0,mapeados:jl.mapeados||0,solo_en_espn_obj:jl.solo_en_espn_obj||[],roster:jl.roster||[],error:jl.error});
+        } else if(isFebL||isFibaL){
+          const extField=isFibaL?"fiba_person_id":"id_ext";
           const {data:temps}=await supabase.from("temporadas").select("id_jugadora,jugadoras(nombre,"+extField+")").eq("id_equipo",eq.id_equipo).eq("id_liga",carrLiga).eq("temporada",carrTemp);
           const roster=(temps||[]).map(function(t){
             var ext=t.jugadoras?.[extField]||null;
@@ -129,7 +135,8 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       if(eq.error){out.push(eq);continue;}
       setLigaProgress({done:i,total:ligaInfo.length,paso:"Creando en "+eq.equipo});
       try{
-        var j=await callFn("mapear-roster-espn",{id_equipo:eq.id_equipo,id_liga:carrLiga,temporada:carrTemp,dry:false,crear_faltantes:true});
+        const fn=["L007","L022","L098"].includes(carrLiga)?"mapear-roster-lfb":"mapear-roster-espn";
+        var j=await callFn(fn,{id_equipo:eq.id_equipo,id_liga:carrLiga,temporada:carrTemp,dry:false,crear_faltantes:true});
         out.push({id_equipo:eq.id_equipo,equipo:eq.nombre,bd_total:j.bd_total||0,espn_total:j.espn_total||0,mapeados:j.mapeados||0,solo_en_espn_obj:j.solo_en_espn_obj||[],roster:j.roster||[],creadas:j.total_creadas||0,adjuntadas:j.total_adjuntadas||0});
       }catch(e){out.push({id_equipo:eq.id_equipo,equipo:eq.nombre,error:e.message});}
     }
