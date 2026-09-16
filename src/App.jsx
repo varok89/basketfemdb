@@ -4,13 +4,29 @@ import { LOGROS, LOGROS_BY_SLUG, CATEGORIAS, initLogros, registrarEvento, onLogr
 import { AVATAR_PRESETS, UserAvatar } from "./lib/avatar";
 import { useT, useLang, setLang, locale } from "./lib/i18n";
 
-const CalidadModal = lazy(() => import("./views/CalidadModal"));
-const RankingFibaView = lazy(() => import("./views/RankingFibaView"));
-const LogrosModal  = lazy(() => import("./views/LogrosModal"));
-const PerfilPublicoModal = lazy(() => import("./views/PerfilPublicoModal"));
-const PrivacidadView = lazy(() => import("./views/PrivacidadView"));
-const QuinielaView = lazy(() => import("./views/MundialViews"));
-const ComparadorView = lazy(() => import("./views/ComparadorView"));
+// Envuelve React.lazy con auto-reload cuando el chunk deja de existir tras
+// un deploy nuevo (users con la app abierta tienen HTML viejo apuntando a
+// chunks .js con hash caducado). Sentry LABASKETNETA-6.
+function lazyWithRetry(factory){
+  return lazy(async ()=>{
+    try { return await factory(); }
+    catch(err){
+      const msg = String(err?.message||"");
+      if(/Failed to fetch dynamically imported module|Loading chunk|Unexpected token '<'/i.test(msg)){
+        window.location.reload();
+        return { default: ()=>null };
+      }
+      throw err;
+    }
+  });
+}
+const CalidadModal = lazyWithRetry(() => import("./views/CalidadModal"));
+const RankingFibaView = lazyWithRetry(() => import("./views/RankingFibaView"));
+const LogrosModal  = lazyWithRetry(() => import("./views/LogrosModal"));
+const PerfilPublicoModal = lazyWithRetry(() => import("./views/PerfilPublicoModal"));
+const PrivacidadView = lazyWithRetry(() => import("./views/PrivacidadView"));
+const QuinielaView = lazyWithRetry(() => import("./views/MundialViews"));
+const ComparadorView = lazyWithRetry(() => import("./views/ComparadorView"));
 
 import {
   POSITIONS, TIPO_LABELS, TIPO_COLORS, CHIP_STYLES, POS_C,
