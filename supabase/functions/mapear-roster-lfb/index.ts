@@ -50,6 +50,13 @@ async function fetchHtml(url: string) {
   return { ok: r.ok, status: r.status, body: await r.text() };
 }
 
+// Limpia texto del anchor: LFB a veces mete altura ("1m76"), posición
+// ("Poste : 3") y fecha ("17/05/06") pegadas al nombre. Corta ahí.
+function cleanName(s: string): string {
+  const cut = s.split(/\s+(?:\d+m\d+|Poste\s*:|\d{1,2}\/\d{1,2}\/\d{2,4})/i)[0];
+  return cut.trim();
+}
+
 // Extrae { id_lfb, nombre } de <a href=".../joueur/{id}-slug/...">Nombre</a>.
 // Deduplica por id_lfb, quedandose con el primer nombre no vacio.
 function parseRoster(html: string): { id: string; nombre: string }[] {
@@ -58,7 +65,7 @@ function parseRoster(html: string): { id: string; nombre: string }[] {
   let m: RegExpExecArray | null;
   while ((m = rxAnchor.exec(html)) !== null) {
     const id = m[1];
-    const nombre = stripTags(m[2]);
+    const nombre = cleanName(stripTags(m[2]));
     if (!nombre || nombre.length < 2) continue;
     if (/^voir\b/i.test(nombre) || /^fiche\b/i.test(nombre)) continue;
     if (/^\d+$/.test(nombre)) continue;
