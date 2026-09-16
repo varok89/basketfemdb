@@ -23,5 +23,8 @@
       "destination": "/api/equipo/:id"
     },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
+  "crons": [
+    { "path": "/api/sync-notion-to-sentry", "schedule": "*/15 * * * *" }
   ]
 }
