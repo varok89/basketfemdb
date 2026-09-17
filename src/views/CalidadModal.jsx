@@ -56,28 +56,40 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     })();
   },[tab,carrLiga,carrTemp]);
 
+  // Fallback local: reconstruye el roster BD sin llamar a ningún edge.
+  // Se usa cuando el edge (mapear-roster-lfb, mapear-roster-espn) falla o no
+  // existe para esa liga. Devuelve mismo shape que los edges.
+  async function rosterLocalFallback(id_equipo,id_liga,temporada){
+    const extField=["L007","L022","L098"].includes(id_liga)?"id_lfb"
+                  :["L001","L002","L003","L017","L074"].includes(id_liga)?"id_ext"
+                  :["L020","L006"].includes(id_liga)?"id_espn"
+                  :"fiba_person_id";
+    const {data:eqRow}=await supabase.from("equipos").select("nombre").eq("id_equipo",id_equipo).single();
+    const {data:temps}=await supabase.from("temporadas").select("id_jugadora,jugadoras(nombre,"+extField+")").eq("id_equipo",id_equipo).eq("id_liga",id_liga).eq("temporada",temporada);
+    const roster=(temps||[]).map(function(t){
+      var ext=t.jugadoras?.[extField]||null;
+      return {id_jugadora:t.id_jugadora,nombre:t.jugadoras?.nombre||t.id_jugadora,id_espn:ext};
+    }).sort(function(a,b){return (a.nombre||"").localeCompare(b.nombre||"");});
+    const conExt=roster.filter(function(r){return r.id_espn;}).length;
+    return {equipo:eqRow?.nombre||id_equipo,bd_total:roster.length,espn_total:conExt,ya_con_espn:conExt,mapeados:0,roster:roster,solo_en_espn_obj:[],_fallback:true};
+  }
+
   async function carrAnalizar(){
     if(!carrEquipoId){alert("Selecciona un equipo");return;}
     setCarrBusy("info");setCarrInfo(null);setCarrLog([]);
     try{
       const isFeb=["L001","L002","L003","L017","L074"].includes(carrLiga);
       const isFiba=["L004","L005","L027","L055","L056","L060","L058","L057","L059","L067","L071","L075","L076","L083","L091","L099","L079","L096","L087","L077","L093","L078","L080","L081","L082","L085","L104","L105","L110"].includes(carrLiga);
-      if(["L007","L022","L098"].includes(carrLiga)){
-        setCarrInfo(await callFn("mapear-roster-lfb",{id_equipo:carrEquipoId,id_liga:carrLiga,temporada:carrTemp,dry:true}));
-      } else if(isFeb||isFiba){
-        // FEB/FIBA: aun sin mapear-roster; fallback local sobre temporadas
-        const extField=isFiba?"fiba_person_id":"id_ext";
-        const {data:eqRow}=await supabase.from("equipos").select("nombre").eq("id_equipo",carrEquipoId).single();
-        const {data:temps}=await supabase.from("temporadas").select("id_jugadora,jugadoras(nombre,"+extField+")").eq("id_equipo",carrEquipoId).eq("id_liga",carrLiga).eq("temporada",carrTemp);
-        const roster=(temps||[]).map(function(t){
-          var ext=t.jugadoras?.[extField]||null;
-          return {id_jugadora:t.id_jugadora,nombre:t.jugadoras?.nombre||t.id_jugadora,id_espn:ext};
-        }).sort(function(a,b){return (a.nombre||"").localeCompare(b.nombre||"");});
-        const conExt=roster.filter(function(r){return r.id_espn;}).length;
-        setCarrInfo({equipo:eqRow?.nombre||carrEquipoId,bd_total:roster.length,espn_total:conExt,ya_con_espn:conExt,mapeados:0,roster:roster});
-      } else {
-        setCarrInfo(await callFn("mapear-roster-espn",{id_equipo:carrEquipoId,id_liga:carrLiga,temporada:carrTemp,dry:true}));
+      const fn=["L007","L022","L098"].includes(carrLiga)?"mapear-roster-lfb"
+              :(isFeb||isFiba)?null:"mapear-roster-espn";
+      let res=null;
+      if(fn){
+        try{ res=await callFn(fn,{id_equipo:carrEquipoId,id_liga:carrLiga,temporada:carrTemp,dry:true}); }catch(e){ res={error:e.message}; }
       }
+      if(!res||res.error||res.ok===false){
+        const fb=await rosterLocalFallback(carrEquipoId,carrLiga,carrTemp);
+        setCarrInfo({...fb,_edge_error:res?.error||res?.motivo||(fn?"edge no disponible":null)});
+      } else setCarrInfo(res);
     }catch(e){setCarrInfo({error:e.message});}
     setCarrBusy("");
   }
@@ -100,21 +112,15 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       try{
         const isFebL=["L001","L002","L003","L017","L074"].includes(carrLiga);
         const isFibaL=["L004","L005","L027","L055","L056","L060","L058","L057","L059","L067","L071","L075","L076","L083","L091","L099","L079","L096","L087","L077","L093","L078","L080","L081","L082","L085","L104","L105","L110"].includes(carrLiga);
-        if(["L007","L022","L098"].includes(carrLiga)){
-          var jl=await callFn("mapear-roster-lfb",{id_equipo:eq.id_equipo,id_liga:carrLiga,temporada:carrTemp,dry:true});
-          out.push({id_equipo:eq.id_equipo,equipo:eq.nombre,bd_total:jl.bd_total||0,espn_total:jl.espn_total||0,mapeados:jl.mapeados||0,solo_en_espn_obj:jl.solo_en_espn_obj||[],roster:jl.roster||[],error:jl.error});
-        } else if(isFebL||isFibaL){
-          const extField=isFibaL?"fiba_person_id":"id_ext";
-          const {data:temps}=await supabase.from("temporadas").select("id_jugadora,jugadoras(nombre,"+extField+")").eq("id_equipo",eq.id_equipo).eq("id_liga",carrLiga).eq("temporada",carrTemp);
-          const roster=(temps||[]).map(function(t){
-            var ext=t.jugadoras?.[extField]||null;
-            return {id_jugadora:t.id_jugadora,nombre:t.jugadoras?.nombre||t.id_jugadora,id_espn:ext};
-          });
-          const conExt=roster.filter(function(r){return r.id_espn;}).length;
-          out.push({id_equipo:eq.id_equipo,equipo:eq.nombre,bd_total:roster.length,espn_total:conExt,mapeados:0,solo_en_espn_obj:[],roster:roster});
+        const fn=["L007","L022","L098"].includes(carrLiga)?"mapear-roster-lfb"
+                :(isFebL||isFibaL)?null:"mapear-roster-espn";
+        let jr=null;
+        if(fn){ try{ jr=await callFn(fn,{id_equipo:eq.id_equipo,id_liga:carrLiga,temporada:carrTemp,dry:true}); }catch(er){ jr={error:er.message}; } }
+        if(!jr||jr.error||jr.ok===false){
+          const fb=await rosterLocalFallback(eq.id_equipo,carrLiga,carrTemp);
+          out.push({id_equipo:eq.id_equipo,equipo:eq.nombre,bd_total:fb.bd_total,espn_total:fb.espn_total,mapeados:0,solo_en_espn_obj:[],roster:fb.roster,_edge_error:jr?.error||jr?.motivo||(fn?"edge no disponible":null)});
         } else {
-          var j=await callFn("mapear-roster-espn",{id_equipo:eq.id_equipo,id_liga:carrLiga,temporada:carrTemp,dry:true});
-          out.push({id_equipo:eq.id_equipo,equipo:eq.nombre,bd_total:j.bd_total||0,espn_total:j.espn_total||0,mapeados:j.mapeados||0,solo_en_espn_obj:j.solo_en_espn_obj||[],roster:j.roster||[],error:j.error});
+          out.push({id_equipo:eq.id_equipo,equipo:eq.nombre,bd_total:jr.bd_total||0,espn_total:jr.espn_total||0,mapeados:jr.mapeados||0,solo_en_espn_obj:jr.solo_en_espn_obj||[],roster:jr.roster||[]});
         }
       }catch(e){out.push({id_equipo:eq.id_equipo,equipo:eq.nombre,error:e.message});}
     }
