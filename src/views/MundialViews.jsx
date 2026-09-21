@@ -4,6 +4,7 @@ import { UserAvatar } from "../lib/avatar";
 import { useT, locale } from "../lib/i18n";
 
 const EndesaView = lazy(() => import("./EndesaViews"));
+const EuroligaView = lazy(() => import("./EuroligaView"));
 
 function FlagSelect({value,options,onChange,disabled,placeholder,size}){
   const [open,setOpen]=useState(false);
@@ -818,11 +819,9 @@ export default function QuinielaView({user,equipos,onAbrirPerfil,isAdmin}){
       </div>
 
       {tab==="euroliga"&&(
-        <div style={{background:"var(--fx-card)",borderRadius:"16px",padding:"48px 20px",textAlign:"center",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
-          {logos.L004&&<img src={logos.L004} alt="EuroLeague Women" style={{maxHeight:"140px",maxWidth:"100%",width:"auto",height:"auto",objectFit:"contain",marginBottom:"20px"}}/>}
-          <div style={{fontSize:"22px",fontWeight:800,color:"var(--fx-text)",marginBottom:"6px"}}>{t("quiniela.euroliga.title")}</div>
-          <div style={{fontSize:"14px",color:"var(--fx-muted)",fontWeight:600}}>{t("quiniela.euroliga.soon")}</div>
-        </div>
+        <Suspense fallback={<div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"24px",textAlign:"center",color:"var(--fx-muted2)"}}>…</div>}>
+          <EuroligaView user={user} equipos={equipos}/>
+        </Suspense>
       )}
 
       {tab==="endesa"&&(
