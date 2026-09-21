@@ -89,26 +89,30 @@ function calcValoracion(p: GeniusPlayer): number {
 }
 
 // Roster indexado por variantes de nombre. Match por (en orden):
-//   1) nombre completo exacto ("katrine horneman lassen")
-//   2) apellido único ("lassen" → Katrine Horneman Lassen)
-//   3) apellido + inicial del nombre ("k lassen")
+//   1) nombre completo exacto
+//   2) apellido único en el roster
+//   3) inicial del nombre + apellido
+//   4) primer nombre igual + ≥1 palabra del resto coincidente
+//      (tolera nombres medios: "Mille Boje Sørensen" ↔ "Mille Sørensen")
 function indexarRoster(rows: Array<{id_jugadora: string; nombre: string; id_equipo: string}>) {
   const byFull = new Map<string, string>();
-  const bySurname = new Map<string, Set<string>>(); // apellido → {id_jugadoraA, id_jugadoraB}
-  const byInitialSurname = new Map<string, string>(); // "k lassen" → id
+  const bySurname = new Map<string, Set<string>>();
+  const byInitialSurname = new Map<string, string>();
+  const porNombre = new Map<string, Array<{id: string; tokens: Set<string>}>>();
   for (const r of rows) {
     const partes = norm(r.nombre).split(" ").filter(Boolean);
     if (partes.length === 0) continue;
     byFull.set(partes.join(" "), r.id_jugadora);
-    // Apellido = última palabra
     const apellido = partes[partes.length - 1];
     if (!bySurname.has(apellido)) bySurname.set(apellido, new Set());
     bySurname.get(apellido)!.add(r.id_jugadora);
-    // Inicial + apellido
     const inicial = partes[0].charAt(0);
     if (inicial) byInitialSurname.set(`${inicial} ${apellido}`, r.id_jugadora);
+    const primera = partes[0];
+    if (!porNombre.has(primera)) porNombre.set(primera, []);
+    porNombre.get(primera)!.push({ id: r.id_jugadora, tokens: new Set(partes.slice(1)) });
   }
-  return { byFull, bySurname, byInitialSurname };
+  return { byFull, bySurname, byInitialSurname, porNombre };
 }
 
 function mapearJugadora(
@@ -119,14 +123,23 @@ function mapearJugadora(
   if (!fname && !lname) return null;
   const full = `${fname} ${lname}`.trim();
   if (idx.byFull.has(full)) return idx.byFull.get(full)!;
-  // Apellido único
   const cand = idx.bySurname.get(lname);
   if (cand && cand.size === 1) return [...cand][0];
-  // Inicial del nombre + apellido
   const inicial = fname.charAt(0);
   if (inicial) {
     const key = `${inicial} ${lname}`;
     if (idx.byInitialSurname.has(key)) return idx.byInitialSurname.get(key)!;
+  }
+  const partesG = full.split(" ").filter(Boolean);
+  if (partesG.length >= 2) {
+    const primera = partesG[0];
+    const restoG = new Set(partesG.slice(1));
+    const cands = idx.porNombre.get(primera) || [];
+    const matches = cands.filter(c => {
+      for (const t of restoG) if (c.tokens.has(t)) return true;
+      return false;
+    });
+    if (matches.length === 1) return matches[0].id;
   }
   return null;
 }
