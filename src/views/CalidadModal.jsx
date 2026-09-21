@@ -1225,6 +1225,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       {key:"feb-fichas",label:"Rellenar desde FEB",count:febPend||0},
       {key:"carreras",label:"🎓 Carreras jugadoras",count:0},
       {key:"lotes",label:"Alta por lotes",count:0},
+      {key:"genius",label:"🔗 Genius Match",count:0},
     ]},{title:"🩺 Ops",items:[
       {key:"estado",label:"Estado sistema",count:0},
     ]}]:[]),
@@ -1477,6 +1478,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               </div>}
             </div>
           )}
+          {tab==="genius"&&<GeniusMatchTab ligas={ligas} equipos={equipos} setEquipos={setEquipos} setLigas={setLigas}/>}
           {tab==="lleno_fiba"&&(
             <div style={{padding:"4px"}}>
               <p style={{color: "var(--fx-muted)",fontSize:"13px",marginBottom:"14px"}}>
@@ -2311,6 +2313,221 @@ function ScraperResult({res,busy}){
       {section("⚠️ Colisiones (dos jugadoras del acta apuntan a la misma ficha)",res.colisiones,"#dc2626","Ese partido no se guardó")}
       {section("👤 Jugadoras sin mapear",sinMapearJugs,"var(--fx-amber-text)","Crea o corrige su ficha y vuelve a lanzar")}
       {section("📋 Detalles",res.detalles,"#64748b")}
+    </div>
+  );
+}
+
+
+// ─── 🔗 Genius Match ───────────────────────────────────────────────
+// Herramienta admin: introspecta Genius Sports para descubrir competiciones
+// y equipos, y permite vincular cada equipo Genius con uno de la BD (o crear
+// nuevo). También detecta duplicados en BD y ofrece fusionarlos.
+function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
+  const [idLiga, setIdLiga] = useState("");
+  const [org, setOrg] = useState("");
+  const [comps, setComps] = useState(null);
+  const [compId, setCompId] = useState("");
+  const [equiposGenius, setEquiposGenius] = useState(null);
+  const [fedInfo, setFedInfo] = useState("");
+  const [compInfo, setCompInfo] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  // Mapeo local en curso: {id_genius: id_equipo_bd | "__new__"}
+  const [seleccion, setSeleccion] = useState({});
+
+  const liga = ligas.find(l => l.id_liga === idLiga);
+  const equiposBD = useMemo(() => {
+    if (!idLiga) return [];
+    // Sugerencia: equipos con temporada en esta liga (cualquier año)
+    return equipos.filter(e => e.tipo === "club").sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
+  }, [idLiga, equipos]);
+
+  // Precarga: si la liga elegida ya tiene genius_org/comp_id, precarga los campos
+  useEffect(() => {
+    if (!liga) return;
+    if (liga.genius_org) setOrg(liga.genius_org);
+    if (liga.genius_comp_id) setCompId(String(liga.genius_comp_id));
+    setComps(null); setEquiposGenius(null); setFedInfo(""); setCompInfo(""); setSeleccion({});
+  }, [idLiga]);
+
+  const buscarComps = async () => {
+    if (!org.trim()) { setMsg("Escribe el código Genius de la federación"); return; }
+    setBusy(true); setMsg(""); setComps(null); setEquiposGenius(null);
+    try {
+      const r = await callFn("genius-inspeccionar", { org });
+      if (!r?.ok) throw new Error(r?.error || "Sin datos");
+      setComps(r.competiciones || []);
+      setFedInfo(r.fed || "");
+      setMsg(`✅ ${r.competiciones?.length || 0} competiciones encontradas`);
+    } catch (e) { setMsg(`⚠ ${e.message || e}`); }
+    finally { setBusy(false); }
+  };
+
+  const cargarEquipos = async () => {
+    if (!org.trim() || !compId) { setMsg("Elige org y competición"); return; }
+    setBusy(true); setMsg("");
+    try {
+      const r = await callFn("genius-inspeccionar", { org, comp_id: parseInt(compId, 10) });
+      if (!r?.ok) throw new Error(r?.error || "Sin datos");
+      setEquiposGenius(r.equipos || []);
+      setCompInfo(r.comp || "");
+      setFedInfo(r.fed || fedInfo);
+      // Pre-selección: matches automáticos por id_genius o por nombre exacto
+      const nuevaSel = {};
+      const norm = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+      (r.equipos || []).forEach(g => {
+        // 1) Match ya existente por id_genius
+        const porId = equipos.find(e => e.id_genius === g.id_genius);
+        if (porId) { nuevaSel[g.id_genius] = porId.id_equipo; return; }
+        // 2) Match por nombre exacto normalizado
+        const porNombre = equipos.find(e => norm(e.nombre) === norm(g.nombre));
+        if (porNombre) nuevaSel[g.id_genius] = porNombre.id_equipo;
+      });
+      setSeleccion(nuevaSel);
+      setMsg(`✅ ${r.equipos?.length || 0} equipos en la competición`);
+    } catch (e) { setMsg(`⚠ ${e.message || e}`); }
+    finally { setBusy(false); }
+  };
+
+  const vincular = async (g) => {
+    const idEquipo = seleccion[g.id_genius];
+    if (!idEquipo || idEquipo === "__new__") return;
+    setBusy(true); setMsg("");
+    try {
+      const { error } = await supabase.rpc("genius_vincular_equipo", {
+        p_id_equipo: idEquipo, p_id_genius: g.id_genius,
+      });
+      if (error) throw error;
+      // Actualiza local: parche el equipo con id_genius
+      setEquipos && setEquipos(prev => prev.map(e => e.id_equipo === idEquipo ? { ...e, id_genius: g.id_genius } : e));
+      setMsg(`✅ Vinculado ${g.nombre} → ${equipos.find(e => e.id_equipo === idEquipo)?.nombre}`);
+    } catch (e) { setMsg(`⚠ ${e.message || e}`); }
+    finally { setBusy(false); }
+  };
+
+  const guardarConfigLiga = async () => {
+    if (!idLiga || !org || !compId) return;
+    setBusy(true); setMsg("");
+    try {
+      const { error } = await supabase.from("ligas").update({
+        fuente_live: "genius", genius_org: org.toUpperCase(), genius_comp_id: parseInt(compId, 10),
+      }).eq("id_liga", idLiga);
+      if (error) throw error;
+      setLigas && setLigas(prev => prev.map(l => l.id_liga === idLiga
+        ? { ...l, fuente_live: "genius", genius_org: org.toUpperCase(), genius_comp_id: parseInt(compId, 10) }
+        : l));
+      setMsg(`✅ Liga ${idLiga} configurada con Genius`);
+    } catch (e) { setMsg(`⚠ ${e.message || e}`); }
+    finally { setBusy(false); }
+  };
+
+  const inp = { width: "100%", padding: "8px", borderRadius: "8px", border: "1.5px solid var(--fx-border)", fontSize: "13px", background: "var(--fx-card)", color: "var(--fx-text)", boxSizing: "border-box" };
+
+  return (
+    <div style={{ padding: "8px", display: "flex", flexDirection: "column", gap: "14px" }}>
+      <p style={{ color: "var(--fx-muted)", fontSize: "12px", margin: 0 }}>
+        Herramienta para introspectar Genius Sports (fibalivestats) y mapear equipos con los de tu BD antes de correr el scraper de calendario. Evita duplicados.
+      </p>
+
+      {/* Paso 1: elegir liga */}
+      <div>
+        <label style={{ fontSize: "11px", fontWeight: 700, color: "var(--fx-muted)", display: "block", marginBottom: "4px" }}>1) LIGA (BD)</label>
+        <select value={idLiga} onChange={e => setIdLiga(e.target.value)} style={inp}>
+          <option value="">Selecciona liga…</option>
+          {ligas.slice().sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "")).map(l => (
+            <option key={l.id_liga} value={l.id_liga}>
+              {l.nombre} ({l.pais}) {l.fuente_live === "genius" ? "✅" : ""}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {idLiga && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "8px", alignItems: "end" }}>
+          <div>
+            <label style={{ fontSize: "11px", fontWeight: 700, color: "var(--fx-muted)", display: "block", marginBottom: "4px" }}>2) CÓDIGO GENIUS (ORG)</label>
+            <input value={org} onChange={e => setOrg(e.target.value.toUpperCase())} placeholder="WBBL, KKI, BB, DAM…" style={inp} />
+          </div>
+          <div>
+            <label style={{ fontSize: "11px", fontWeight: 700, color: "var(--fx-muted)", display: "block", marginBottom: "4px" }}>3) COMPETITION ID</label>
+            <select value={compId} onChange={e => setCompId(e.target.value)} style={inp} disabled={!comps}>
+              <option value="">{comps ? "Elige competición…" : "Primero busca ↓"}</option>
+              {(comps || []).map(c => (
+                <option key={c.comp_id} value={c.comp_id}>{c.nombre} ({c.comp_id})</option>
+              ))}
+            </select>
+          </div>
+          <button onClick={buscarComps} disabled={busy || !org} style={{ background: "#9333ea", color: "#fff", border: "none", borderRadius: "8px", padding: "9px 14px", fontWeight: 700, fontSize: "12px", cursor: "pointer", opacity: (busy || !org) ? 0.5 : 1 }}>
+            🔍 Buscar
+          </button>
+        </div>
+      )}
+
+      {idLiga && compId && (
+        <button onClick={cargarEquipos} disabled={busy} style={{ background: "#16a34a", color: "#fff", border: "none", borderRadius: "8px", padding: "9px 14px", fontWeight: 700, fontSize: "12px", cursor: "pointer", opacity: busy ? 0.5 : 1, alignSelf: "flex-start" }}>
+          📥 Cargar equipos de esta competición
+        </button>
+      )}
+
+      {fedInfo && <div style={{ fontSize: "11px", color: "var(--fx-muted2)" }}>Federación: <b>{fedInfo}</b>{compInfo ? ` · Competición: ${compInfo}` : ""}</div>}
+      {msg && <div style={{ fontSize: "12px", color: msg.startsWith("✅") ? "#16a34a" : "#dc2626" }}>{msg}</div>}
+
+      {/* Tabla de mapeo */}
+      {equiposGenius && (
+        <>
+          <div style={{ background: "var(--fx-hover)", borderRadius: "10px", padding: "10px 12px", fontSize: "12px", color: "var(--fx-label)" }}>
+            {equiposGenius.length} equipos en Genius · {Object.keys(seleccion).length} pre-mapeados por nombre/id
+          </div>
+          <div style={{ border: "1px solid var(--fx-border)", borderRadius: "10px", overflow: "hidden" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "8px", padding: "8px 12px", background: "var(--fx-hover)", fontSize: "10px", fontWeight: 700, color: "var(--fx-muted)", textTransform: "uppercase" }}>
+              <div>Genius</div><div>Equipo BD</div><div></div>
+            </div>
+            {equiposGenius.map(g => {
+              const sel = seleccion[g.id_genius] || "";
+              const bd = equipos.find(e => e.id_equipo === sel);
+              const vinculado = bd?.id_genius === g.id_genius;
+              return (
+                <div key={g.id_genius} style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "8px", padding: "8px 12px", alignItems: "center", borderTop: "1px solid var(--fx-border2)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+                    {g.logo ? <img loading="lazy" decoding="async" src={g.logo} alt="" style={{ width: 24, height: 24, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ width: 24, height: 24, background: "var(--fx-border)", borderRadius: 3, flexShrink: 0 }} />}
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--fx-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.nombre}</div>
+                      <div style={{ fontSize: "10px", color: "var(--fx-muted2)" }}>ID {g.id_genius}</div>
+                    </div>
+                  </div>
+                  <select
+                    value={sel}
+                    onChange={e => setSeleccion(prev => ({ ...prev, [g.id_genius]: e.target.value }))}
+                    style={{ ...inp, padding: "6px 8px", fontSize: "12px" }}>
+                    <option value="">— sin match —</option>
+                    {equiposBD.map(e => (
+                      <option key={e.id_equipo} value={e.id_equipo}>
+                        {e.id_genius === g.id_genius ? "✓ " : ""}{e.nombre} ({e.id_equipo})
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => vincular(g)}
+                    disabled={busy || !sel || vinculado}
+                    style={{ background: vinculado ? "#16a34a" : "#9333ea", color: "#fff", border: "none", borderRadius: "6px", padding: "6px 12px", fontWeight: 700, fontSize: "11px", cursor: (busy || !sel || vinculado) ? "default" : "pointer", opacity: (busy || !sel || vinculado) ? 0.6 : 1, whiteSpace: "nowrap" }}>
+                    {vinculado ? "✓ vinculado" : "Vincular"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Guardar config de liga */}
+          <div style={{ borderTop: "1px solid var(--fx-border)", paddingTop: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            <div style={{ fontSize: "11px", color: "var(--fx-muted)" }}>
+              Cuando termines de mapear, guarda la config de la liga (marca <code>fuente_live='genius'</code> + org + comp_id) para que el scraper y el live tracker la usen.
+            </div>
+            <button onClick={guardarConfigLiga} disabled={busy} style={{ background: "#0369a1", color: "#fff", border: "none", borderRadius: "8px", padding: "9px 16px", fontWeight: 700, fontSize: "12px", cursor: "pointer", opacity: busy ? 0.5 : 1, whiteSpace: "nowrap" }}>
+              💾 Guardar config liga
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
