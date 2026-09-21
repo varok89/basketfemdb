@@ -117,6 +117,18 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
   },[q,players,equipos,ligas,coaches]);
 
   const total=results?Object.values(results).reduce((a,v)=>a+v.length,0):0;
+  // Mensaje aria-live: se anuncia al usuario del lector cuando cambia el conteo.
+  // Debounced en la práctica porque results ya lo está por el debounce del input.
+  const liveMsg=useMemo(()=>{
+    if(!results)return "";
+    if(total===0)return t("search.a11y_none")||"Sin resultados";
+    const parts=[];
+    if(results.jugadoras.length)parts.push(`${results.jugadoras.length} ${results.jugadoras.length===1?"jugadora":"jugadoras"}`);
+    if(results.equipos.length)parts.push(`${results.equipos.length} ${results.equipos.length===1?"equipo":"equipos"}`);
+    if(results.ligas.length)parts.push(`${results.ligas.length} ${results.ligas.length===1?"liga":"ligas"}`);
+    if(results.coaches.length)parts.push(`${results.coaches.length} ${results.coaches.length===1?"entrenador/a":"entrenadores/as"}`);
+    return `${parts.join(", ")} encontrado${total===1?"":"s"}`;
+  },[results,total,t]);
   const inp={width:"100%",background:"rgba(255,255,255,0.08)",border:"1.5px solid rgba(255,255,255,0.12)",borderRadius:"10px",padding:"7px 12px",fontSize:"13px",color:"#fff",outline:"none",boxSizing:"border-box"};
 
   const go=(fn)=>{fn();setQ("");setOpen(false);if(fullscreen&&onClose)onClose();};
@@ -159,6 +171,7 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
   if(fullscreen){
     return(
       <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"#0f172a",zIndex:500,display:"flex",flexDirection:"column"}}>
+        <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">{liveMsg}</div>
         <div style={{display:"flex",alignItems:"center",gap:"10px",padding:"14px 16px",borderBottom:"1px solid #1e293b"}}>
           <div style={{display:"flex",alignItems:"center",gap:"8px",flex:1,background:"rgba(255,255,255,0.08)",border:"1.5px solid rgba(255,255,255,0.12)",borderRadius:"10px",padding:"9px 12px"}}>
             <span style={{fontSize:"14px",color:"var(--fx-muted2)"}}>🔍</span>
@@ -208,6 +221,7 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
 
   return(
     <div ref={ref} style={{position:"relative",flexShrink:0}}>
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">{liveMsg}</div>
       <div style={{display:"flex",alignItems:"center",gap:"6px",background:"rgba(255,255,255,0.08)",border:"1.5px solid rgba(255,255,255,0.12)",borderRadius:"10px",padding:"5px 10px"}}>
         <span style={{fontSize:"13px",color:"var(--fx-muted2)"}}>🔍</span>
         <input value={q} onChange={e=>{setQ(e.target.value);setOpen(true);}} onFocus={()=>q.length>=2&&setOpen(true)}

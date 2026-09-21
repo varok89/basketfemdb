@@ -1,3 +1,6 @@
+/* ── A11y: contenido solo para lectores de pantalla ── */
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
 /* ── Animaciones ── */
 @keyframes bounce {
   0%,100% { transform: translateY(0) scaleX(1) scaleY(1); animation-timing-function: cubic-bezier(0.215,0.61,0.355,1); }
