@@ -48,26 +48,84 @@ function useCountdown(target) {
   return `${m}m`;
 }
 
-// ─── Select simple con escudo + nombre ───────────────────────
+// ─── Dropdown custom con escudo + nombre ────────────────────
 function EquipoSelect({ opciones, value, onChange, disabled, placeholder }) {
-  const inp = {
-    width: "100%",
-    padding: "6px 8px",
-    fontSize: "12px",
-    border: "1px solid var(--fx-border)",
-    borderRadius: "6px",
-    background: disabled ? "var(--fx-hover)" : "var(--fx-card)",
-    color: "var(--fx-text)",
-    cursor: disabled ? "not-allowed" : "pointer",
-    outline: "none",
-  };
+  const [open, setOpen] = useState(false);
+  const current = opciones.find(o => o.id === value);
+  const escudo = (url, size = 18) => url
+    ? <img loading="lazy" decoding="async" src={url} alt="" style={{ width: size, height: size, objectFit: "contain", flexShrink: 0 }} />
+    : <span style={{ width: size, height: size, background: "var(--fx-border)", borderRadius: 3, flexShrink: 0 }} />;
+  useEffect(() => {
+    if (!open) return;
+    const h = e => setOpen(false);
+    // Cerrar al hacer click fuera (con delay para no cerrar al abrir)
+    const t = setTimeout(() => document.addEventListener("click", h), 0);
+    return () => { clearTimeout(t); document.removeEventListener("click", h); };
+  }, [open]);
   return (
-    <select style={inp} value={value || ""} onChange={e => onChange(e.target.value)} disabled={disabled}>
-      <option value="">{placeholder || "—"}</option>
-      {opciones.map(o => (
-        <option key={o.id} value={o.id}>{o.nombre}</option>
-      ))}
-    </select>
+    <div style={{ position: "relative", width: "100%" }}>
+      <button
+        type="button"
+        onClick={e => { e.stopPropagation(); if (!disabled) setOpen(o => !o); }}
+        disabled={disabled}
+        style={{
+          display: "flex", alignItems: "center", gap: "6px", width: "100%",
+          padding: "5px 8px", fontSize: "12px",
+          border: "1px solid var(--fx-border)", borderRadius: "6px",
+          background: disabled ? "var(--fx-hover)" : "var(--fx-card)",
+          color: "var(--fx-text)", cursor: disabled ? "not-allowed" : "pointer",
+          textAlign: "left", outline: "none",
+        }}>
+        {current ? (
+          <>
+            {escudo(current.escudo)}
+            <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{current.nombre}</span>
+          </>
+        ) : (
+          <span style={{ flex: 1, color: "var(--fx-muted2)" }}>{placeholder || "—"}</span>
+        )}
+        <span style={{ fontSize: "9px", color: "var(--fx-muted2)" }}>▾</span>
+      </button>
+      {open && (
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            position: "absolute", top: "calc(100% + 2px)", left: 0, right: 0, zIndex: 50,
+            background: "var(--fx-card)", border: "1px solid var(--fx-border)",
+            borderRadius: "8px", boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+            maxHeight: "260px", overflowY: "auto",
+          }}>
+          <button
+            type="button"
+            onClick={() => { onChange(""); setOpen(false); }}
+            style={{
+              display: "block", width: "100%", textAlign: "left",
+              padding: "6px 10px", background: "transparent", border: "none",
+              fontSize: "11px", color: "var(--fx-muted2)", cursor: "pointer", fontStyle: "italic",
+              borderBottom: "1px solid var(--fx-border2)",
+            }}>
+            — Quitar selección
+          </button>
+          {opciones.map(o => (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => { onChange(o.id); setOpen(false); }}
+              style={{
+                display: "flex", alignItems: "center", gap: "8px", width: "100%",
+                padding: "6px 10px", background: o.id === value ? "var(--fx-hover)" : "transparent",
+                border: "none", fontSize: "12px", color: "var(--fx-text)",
+                textAlign: "left", cursor: "pointer",
+              }}
+              onMouseEnter={e => { if (o.id !== value) e.currentTarget.style.background = "var(--fx-hover)"; }}
+              onMouseLeave={e => { if (o.id !== value) e.currentTarget.style.background = "transparent"; }}>
+              {escudo(o.escudo, 20)}
+              <span style={{ flex: 1 }}>{o.nombre}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -441,11 +499,64 @@ export default function EuroligaView({ user, equipos = [] }) {
   );
 
   return (
+    <FasesTabs
+      config={config || []}
+      opcionesPorSource={opcionesPorSource}
+      misPreds={misPreds}
+      resultados={resultados}
+      onGuardar={onGuardar}
+      equiposMap={equiposMap}
+      gruposEquipos={gruposEquipos}
+      user={user}
+    />
+  );
+}
+
+// ─── Contenedor con pestañas por fase ────────────────────────
+function FasesTabs({ config, opcionesPorSource, misPreds, resultados, onGuardar, equiposMap, gruposEquipos, user }) {
+  // Fase inicial: la primera abierta; si ninguna, la primera de la lista.
+  const primera = useMemo(() => {
+    if (!config.length) return null;
+    const abierta = config.find(f => estadoFase(f, resultados) === "abierta");
+    return (abierta || config[0]).fase;
+  }, [config, resultados]);
+  const [activa, setActiva] = useState(primera);
+  useEffect(() => { setActiva(primera); }, [primera]);
+
+  const faseActiva = config.find(f => f.fase === activa);
+
+  return (
     <div>
-      {(config || []).map(f => (
+      <div style={{
+        display: "flex", gap: "6px", marginBottom: "14px", flexWrap: "wrap",
+        overflowX: "auto", paddingBottom: "4px",
+      }}>
+        {config.map(f => {
+          const est = estadoFase(f, resultados);
+          const activo = f.fase === activa;
+          return (
+            <button
+              key={f.fase}
+              onClick={() => setActiva(f.fase)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: "6px",
+                background: activo ? "#9333ea" : "var(--fx-card)",
+                color: activo ? "#fff" : "var(--fx-label)",
+                border: `1.5px solid ${activo ? "#7c3aed" : "var(--fx-border)"}`,
+                borderRadius: "20px", padding: "7px 14px",
+                fontWeight: 700, fontSize: "12px", cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}>
+              <span>{BADGE[est].emo}</span>
+              <span>{f.titulo.split("·")[0].trim()}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {faseActiva && (
         <FaseCard
-          key={f.fase}
-          fase={f}
+          fase={faseActiva}
           opcionesPorSource={opcionesPorSource}
           misPredsByPid={misPreds}
           resultadosByPid={resultados}
@@ -453,7 +564,8 @@ export default function EuroligaView({ user, equipos = [] }) {
           equiposMap={equiposMap}
           gruposEquipos={gruposEquipos}
         />
-      ))}
+      )}
+
       <div style={{ marginTop: "20px" }}>
         <Ranking user={user} />
       </div>
