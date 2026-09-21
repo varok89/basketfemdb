@@ -4,6 +4,37 @@ import { LOGROS, LOGROS_BY_SLUG, CATEGORIAS, initLogros, registrarEvento, onLogr
 import { AVATAR_PRESETS, UserAvatar } from "./lib/avatar";
 import { useT, useLang, setLang, locale } from "./lib/i18n";
 
+// Hook a11y para dropdowns/popovers: Escape cierra, Tab hace focus trap,
+// al abrir mueve foco al primer elemento del panel y al cerrar lo devuelve
+// al trigger. WCAG 2.1 SC 2.1.2 (no keyboard trap) + 2.4.3 (focus order).
+function useDropdownA11y({ open, onClose, panelRef }) {
+  useEffect(() => {
+    if (!open) return;
+    const trigger = document.activeElement;
+    const getFocusables = () => Array.from(
+      panelRef.current?.querySelectorAll(
+        'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      ) || []
+    );
+    const initTimer = setTimeout(() => { getFocusables()[0]?.focus(); }, 0);
+    const onKey = (e) => {
+      if (e.key === "Escape") { e.preventDefault(); onClose(); return; }
+      if (e.key !== "Tab") return;
+      const f = getFocusables();
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      clearTimeout(initTimer);
+      document.removeEventListener("keydown", onKey);
+      if (trigger && typeof trigger.focus === "function") trigger.focus();
+    };
+  }, [open, onClose, panelRef]);
+}
+
 // Envuelve React.lazy con auto-reload cuando el chunk deja de existir tras
 // un deploy nuevo (users con la app abierta tienen HTML viejo apuntando a
 // chunks .js con hash caducado). Sentry LABASKETNETA-6.
@@ -1267,6 +1298,8 @@ export default function App(){
   const [pushEnabled,setPushEnabled]=useState(false);
   const [notifCount,setNotifCount]=useState(0);
   const [showNotifs,setShowNotifs]=useState(false);
+  const notifsPanelRef=useRef(null);
+  useDropdownA11y({open:showNotifs,onClose:useCallback(()=>setShowNotifs(false),[]),panelRef:notifsPanelRef});
   const [notificaciones,setNotificaciones]=useState([]);
 
   const checkPushStatus=async()=>{
@@ -1362,7 +1395,11 @@ export default function App(){
   const [resetInfo,setResetInfo]   = useState("");
   const [resetLoading,setResetLoading] = useState(false);
   const [showUserMenu,setShowUserMenu] = useState(false);
+  const userPanelRef=useRef(null);
+  useDropdownA11y({open:showUserMenu,onClose:useCallback(()=>setShowUserMenu(false),[]),panelRef:userPanelRef});
   const [menuOpen,setMenuOpen] = useState(false);
+  const menuPanelRef=useRef(null);
+  useDropdownA11y({open:menuOpen,onClose:useCallback(()=>setMenuOpen(false),[]),panelRef:menuPanelRef});
   const [showPrivacidad,setShowPrivacidad] = useState(false);
   const [showPerfil,setShowPerfil] = useState(false);
   const [tab,setTabRaw] = useState("home");
@@ -1838,7 +1875,7 @@ export default function App(){
           <div style={{position:"relative",flexShrink:0}}>
             <button type="button" onClick={()=>setMenuOpen(!menuOpen)} aria-label={t("header.menu")||"Menú"} aria-expanded={menuOpen} aria-haspopup="menu" style={{background:menuOpen?"rgba(147,51,234,0.2)":"transparent",color:"#f1f5f9",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"20px",lineHeight:1}}><span aria-hidden="true">☰</span></button>
             {menuOpen&&<><div onClick={()=>setMenuOpen(false)} style={{position:"fixed",inset:0,zIndex:98}}/>
-            <nav aria-label={t("header.menu")||"Menú principal"} style={{position:"absolute",top:"calc(100% + 4px)",left:0,background:"#1e293b",borderRadius:"12px",padding:"8px",boxShadow:"0 10px 40px rgba(0,0,0,0.5)",zIndex:99,border:"1px solid #334155",minWidth:"220px"}}>
+            <nav ref={menuPanelRef} aria-label={t("header.menu")||"Menú principal"} style={{position:"absolute",top:"calc(100% + 4px)",left:0,background:"#1e293b",borderRadius:"12px",padding:"8px",boxShadow:"0 10px 40px rgba(0,0,0,0.5)",zIndex:99,border:"1px solid #334155",minWidth:"220px"}}>
               {TABS.map(([id,icon,label])=>(
                 <button key={id} onClick={()=>{setTab(id);setMenuOpen(false);const seg=id==='cuerpo_tecnico'?'coaches':id;window.history.pushState({},"",`/${seg}`);applyUrlState(`/${seg}`);}} style={{display:"flex",alignItems:"center",gap:"10px",width:"100%",background:tab===id?"#9333ea":"transparent",color:tab===id?"#fff":"#cbd5e1",border:"none",borderRadius:"8px",padding:"10px 14px",fontWeight:700,fontSize:"14px",cursor:"pointer",textAlign:"left"}}>
                   <span style={{fontSize:"16px"}}>{icon}</span>{label}
@@ -1867,7 +1904,7 @@ export default function App(){
           {/* 🔔 Notificaciones */}
           {user&&<div style={{position:"relative",flexShrink:0}}>
             <button type="button" onClick={()=>{setShowNotifs(!showNotifs);if(!showNotifs)markRead();}} aria-label={t("header.notif_title")+(notifCount>0?` (${notifCount})`:"")} aria-expanded={showNotifs} aria-haspopup="menu" style={{background:"transparent",color:notifCount>0?"#f59e0b":"#94a3b8",border:"none",borderRadius:"10px",padding:"7px 10px",cursor:"pointer",fontSize:"16px",position:"relative"}}><span aria-hidden="true">🔔</span>{notifCount>0&&<span aria-hidden="true" style={{position:"absolute",top:"2px",right:"4px",background:"#ef4444",color:"#fff",fontSize:"9px",fontWeight:800,borderRadius:"50%",width:"16px",height:"16px",display:"flex",alignItems:"center",justifyContent:"center"}}>{notifCount>9?"9+":notifCount}</span>}</button>
-            {showNotifs&&<><div onClick={()=>setShowNotifs(false)} style={{position:"fixed",inset:0,zIndex:99}}/><div style={{position:"absolute",left:0,top:"calc(100% + 8px)",background:"#1e293b",borderRadius:"12px",padding:"12px",boxShadow:"0 10px 40px rgba(0,0,0,0.5)",zIndex:100,width:"300px",maxHeight:"400px",overflowY:"auto",border:"1px solid #334155"}}>
+            {showNotifs&&<><div onClick={()=>setShowNotifs(false)} style={{position:"fixed",inset:0,zIndex:99}}/><div ref={notifsPanelRef} role="dialog" aria-label={t("header.notif_title")} style={{position:"absolute",left:0,top:"calc(100% + 8px)",background:"#1e293b",borderRadius:"12px",padding:"12px",boxShadow:"0 10px 40px rgba(0,0,0,0.5)",zIndex:100,width:"300px",maxHeight:"400px",overflowY:"auto",border:"1px solid #334155"}}>
               <div style={{fontWeight:800,fontSize:"14px",color:"#f1f5f9",marginBottom:"8px"}}>{t("header.notif_title")}</div>
               {notificaciones.length===0&&<div style={{fontSize:"12px",color:"var(--fx-muted)",padding:"16px 0",textAlign:"center"}}>{t("header.notif_empty")}</div>}
               {notificaciones.map(n=><div key={n.id} style={{padding:"8px",borderRadius:"8px",background:n.leida?"transparent":"rgba(147,51,234,0.1)",marginBottom:"4px"}}>
@@ -1897,7 +1934,7 @@ export default function App(){
               <button type="button" onClick={()=>setShowUserMenu(!showUserMenu)} aria-label={t("header.my_profile")||"Mi cuenta"} aria-expanded={showUserMenu} aria-haspopup="menu" style={{background:isAdmin?"rgba(249,115,22,0.15)":"rgba(147,51,234,0.15)",color:isAdmin?"#c084fc":"#a78bfa",border:`1.5px solid ${isAdmin?"rgba(249,115,22,0.3)":"rgba(147,51,234,0.3)"}`,borderRadius:"10px",padding:"5px 10px",cursor:"pointer",fontSize:"12px",fontWeight:700}}>{isAdmin?t("header.admin_chip"):<span aria-hidden="true">👤</span>}</button>
               {showUserMenu&&<>
                 <div onClick={()=>setShowUserMenu(false)} style={{position:"fixed",inset:0,zIndex:99}}/>
-                <div style={{position:"absolute",right:0,top:"calc(100% + 8px)",background:"#1e293b",borderRadius:"12px",padding:"16px",boxShadow:"0 10px 40px rgba(0,0,0,0.5)",zIndex:100,minWidth:"220px",border:"1px solid #334155"}}>
+                <div ref={userPanelRef} role="dialog" aria-label={t("header.my_profile")||"Mi cuenta"} style={{position:"absolute",right:0,top:"calc(100% + 8px)",background:"#1e293b",borderRadius:"12px",padding:"16px",boxShadow:"0 10px 40px rgba(0,0,0,0.5)",zIndex:100,minWidth:"220px",border:"1px solid #334155"}}>
                   <div style={{fontSize:"13px",fontWeight:700,color:"#f1f5f9",marginBottom:"4px"}}>{user.user_metadata?.full_name||user.email.split("@")[0]}</div>
                   <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginBottom:"4px"}}>{user.email}</div>
                   {isAdmin&&<div style={{fontSize:"10px",color:"#c084fc",fontWeight:700,marginBottom:"8px"}}>{t("header.admin_role")}</div>}
