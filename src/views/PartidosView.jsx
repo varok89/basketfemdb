@@ -84,13 +84,160 @@ function PartidoForm({initial,equipos,ligas,onSave,onCancel,saving}){
   );
 }
 
+/* ── BoxscoreEditor (admin, edición inline) ──────────────── */
+const BOX_NUM_COLS=["puntos","tc_anotados","tc_intentados","t3_anotados","t3_intentados","tl_anotados","tl_intentados","reb_ofensivos","reb_defensivos","reb_totales","asistencias","robos","tapones","perdidas","faltas","valoracion"];
+function emptyBoxRow(idEquipo,nombre,idJugadora,dorsal){
+  const r={id_jugadora:idJugadora??null,id_equipo:idEquipo||null,nombre:nombre||"",dorsal:dorsal??null,minutos:null,titular:false};
+  BOX_NUM_COLS.forEach(k=>{r[k]=0;});
+  return r;
+}
+function BoxscoreEditor({idPartido,local,visit,rosterLocal,rosterVisit,onClose,onSaved}){
+  const [rows,setRows]=useState(null);
+  const [saving,setSaving]=useState(false);
+  const [err,setErr]=useState("");
+  useEffect(()=>{
+    let cancel=false;
+    (async()=>{
+      const {data,error}=await supabase.from("partido_boxscore").select("*").eq("id_partido",idPartido).order("titular",{ascending:false}).order("dorsal");
+      if(cancel)return;
+      if(error){setErr(error.message);setRows([]);return;}
+      setRows((data||[]).map(r=>({...r})));
+    })();
+    return()=>{cancel=true;};
+  },[idPartido]);
+  const setCell=(i,k,v)=>setRows(rs=>rs.map((r,j)=>j===i?{...r,[k]:v}:r));
+  const del=i=>setRows(rs=>rs.filter((_,j)=>j!==i));
+  const addFromRoster=(idEquipo,jug)=>{
+    if(jug&&rows.some(r=>r.id_jugadora===jug.id_jugadora))return;
+    const dorsal=(jug?.seasons||[]).find(s=>s.id_equipo===idEquipo)?.dorsal ?? null;
+    setRows(rs=>[...rs,emptyBoxRow(idEquipo,jug?.nombre||"",jug?.id_jugadora??null,dorsal)]);
+  };
+  const addLibre=idEquipo=>setRows(rs=>[...rs,emptyBoxRow(idEquipo,"",null,null)]);
+  const save=async()=>{
+    setErr("");setSaving(true);
+    const sinNombre=rows.filter(r=>!(r.nombre&&r.nombre.trim()));
+    if(sinNombre.length){setErr(`${sinNombre.length} fila(s) sin nombre — obligatorio`);setSaving(false);return;}
+    const payload=rows.map(r=>{
+      const o={id_partido:idPartido,id_jugadora:r.id_jugadora||null,id_equipo:r.id_equipo||null,nombre:r.nombre.trim(),dorsal:r.dorsal===""||r.dorsal==null?null:Number(r.dorsal),minutos:r.minutos===""||r.minutos==null?null:r.minutos,titular:!!r.titular};
+      BOX_NUM_COLS.forEach(k=>{o[k]=Number(r[k])||0;});
+      return o;
+    });
+    const d=await supabase.from("partido_boxscore").delete().eq("id_partido",idPartido);
+    if(d.error){setErr(d.error.message);setSaving(false);return;}
+    if(payload.length){
+      const i=await supabase.from("partido_boxscore").insert(payload);
+      if(i.error){setErr(i.error.message);setSaving(false);return;}
+    }
+    setSaving(false);
+    onSaved&&onSaved();
+    onClose&&onClose();
+  };
+  if(rows===null)return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{background:"var(--fx-card)",borderRadius:"14px",padding:"28px",color:"var(--fx-text)"}}>Cargando…</div>
+    </div>
+  );
+  const inpTxt={width:"100%",border:"1px solid var(--fx-border)",borderRadius:"6px",padding:"5px 7px",fontSize:"12px",background:"var(--fx-card)",color:"var(--fx-text)",boxSizing:"border-box"};
+  const inpNum={...inpTxt,width:"52px",textAlign:"center",padding:"5px 4px"};
+  const inpMin={...inpTxt,width:"64px",textAlign:"center",padding:"5px 4px"};
+  const th={padding:"6px 4px",fontSize:"10px",fontWeight:700,color:"var(--fx-muted2)",textTransform:"uppercase",letterSpacing:"0.3px",whiteSpace:"nowrap",textAlign:"center",borderBottom:"2px solid var(--fx-border2)"};
+  const td={padding:"4px 4px",borderBottom:"1px solid var(--fx-border2)",verticalAlign:"middle"};
+  const equipoLabel=idEq=>idEq===local?.id_equipo?(local?.nombre||"Local"):idEq===visit?.id_equipo?(visit?.nombre||"Visitante"):"—";
+  const AddRosterBtn=({idEquipo,roster,label})=>{
+    const [open,setOpen]=useState(false);
+    const usados=new Set(rows.filter(r=>r.id_equipo===idEquipo&&r.id_jugadora).map(r=>r.id_jugadora));
+    const disponibles=(roster||[]).filter(p=>!usados.has(p.id_jugadora));
+    return(
+      <div style={{position:"relative",display:"inline-block"}}>
+        <button onClick={()=>setOpen(o=>!o)} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"8px",padding:"6px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>+ {label}</button>
+        {open&&(
+          <div style={{position:"absolute",top:"36px",left:0,zIndex:10,background:"var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"10px",boxShadow:"0 6px 20px rgba(0,0,0,0.15)",minWidth:"220px",maxHeight:"320px",overflowY:"auto"}}>
+            {disponibles.map(p=><button key={p.id_jugadora} onClick={()=>{addFromRoster(idEquipo,p);setOpen(false);}} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"7px 12px",fontSize:"12px",color:"var(--fx-text)",cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.background="var(--fx-hover)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>{p.nombre}</button>)}
+            {disponibles.length===0&&<div style={{padding:"10px 12px",fontSize:"11px",color:"var(--fx-muted2)"}}>Sin jugadoras disponibles</div>}
+            <div style={{borderTop:"1px solid var(--fx-border2)"}}>
+              <button onClick={()=>{addLibre(idEquipo);setOpen(false);}} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"7px 12px",fontSize:"11px",color:"var(--fx-muted)",cursor:"pointer",fontStyle:"italic"}}>+ Fila en blanco (nombre libre)</button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"var(--fx-card)",borderRadius:"14px",padding:"20px",width:"min(1200px,98vw)",maxHeight:"92vh",display:"flex",flexDirection:"column"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}}>
+          <h2 style={{margin:0,fontSize:"18px",fontWeight:800,color:"var(--fx-text)"}}>Editar boxscore</h2>
+          <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:"22px",cursor:"pointer",color:"var(--fx-muted)"}}>✕</button>
+        </div>
+        <div style={{display:"flex",gap:"10px",marginBottom:"12px",flexWrap:"wrap"}}>
+          <AddRosterBtn idEquipo={local?.id_equipo} roster={rosterLocal} label={local?.nombre||"Local"}/>
+          <AddRosterBtn idEquipo={visit?.id_equipo} roster={rosterVisit} label={visit?.nombre||"Visitante"}/>
+        </div>
+        <div style={{flex:1,overflow:"auto"}}>
+          <table style={{borderCollapse:"collapse",width:"100%",minWidth:"1100px"}}>
+            <thead><tr>
+              <th style={{...th,textAlign:"left"}}>Equipo</th><th style={{...th,textAlign:"left"}}>Jugadora</th>
+              <th style={th}>#</th><th style={th}>Tit</th><th style={th}>MIN</th><th style={th}>PTS</th>
+              <th style={th}>TC-A</th><th style={th}>TC-I</th><th style={th}>T3-A</th><th style={th}>T3-I</th>
+              <th style={th}>TL-A</th><th style={th}>TL-I</th><th style={th}>RO</th><th style={th}>RD</th>
+              <th style={th}>RT</th><th style={th}>AST</th><th style={th}>ROB</th><th style={th}>TAP</th>
+              <th style={th}>PER</th><th style={th}>FAL</th><th style={th}>VAL</th><th style={th}></th>
+            </tr></thead>
+            <tbody>
+              {rows.map((r,i)=>{
+                const es=r.id_equipo===local?.id_equipo;
+                return(
+                <tr key={i} style={{background:es?"var(--fx-amber-bg)":"var(--fx-blue-bg)"}}>
+                  <td style={{...td,fontSize:"11px",color:"var(--fx-muted)",padding:"4px 8px"}}>{equipoLabel(r.id_equipo)}</td>
+                  <td style={{...td,padding:"4px 6px"}}><input style={{...inpTxt,minWidth:"140px"}} value={r.nombre||""} onChange={e=>setCell(i,"nombre",e.target.value)}/></td>
+                  <td style={td}><input style={inpNum} value={r.dorsal??""} onChange={e=>setCell(i,"dorsal",e.target.value===""?null:Number(e.target.value))}/></td>
+                  <td style={{...td,textAlign:"center"}}><input type="checkbox" checked={!!r.titular} onChange={e=>setCell(i,"titular",e.target.checked)}/></td>
+                  <td style={td}><input style={inpMin} value={r.minutos??""} onChange={e=>setCell(i,"minutos",e.target.value)} placeholder="mm:ss"/></td>
+                  <td style={td}><input style={inpNum} value={r.puntos??0} onChange={e=>setCell(i,"puntos",e.target.value)}/></td>
+                  <td style={td}><input style={inpNum} value={r.tc_anotados??0} onChange={e=>setCell(i,"tc_anotados",e.target.value)}/></td>
+                  <td style={td}><input style={inpNum} value={r.tc_intentados??0} onChange={e=>setCell(i,"tc_intentados",e.target.value)}/></td>
+                  <td style={td}><input style={inpNum} value={r.t3_anotados??0} onChange={e=>setCell(i,"t3_anotados",e.target.value)}/></td>
+                  <td style={td}><input style={inpNum} value={r.t3_intentados??0} onChange={e=>setCell(i,"t3_intentados",e.target.value)}/></td>
+                  <td style={td}><input style={inpNum} value={r.tl_anotados??0} onChange={e=>setCell(i,"tl_anotados",e.target.value)}/></td>
+                  <td style={td}><input style={inpNum} value={r.tl_intentados??0} onChange={e=>setCell(i,"tl_intentados",e.target.value)}/></td>
+                  <td style={td}><input style={inpNum} value={r.reb_ofensivos??0} onChange={e=>setCell(i,"reb_ofensivos",e.target.value)}/></td>
+                  <td style={td}><input style={inpNum} value={r.reb_defensivos??0} onChange={e=>setCell(i,"reb_defensivos",e.target.value)}/></td>
+                  <td style={td}><input style={inpNum} value={r.reb_totales??0} onChange={e=>setCell(i,"reb_totales",e.target.value)}/></td>
+                  <td style={td}><input style={inpNum} value={r.asistencias??0} onChange={e=>setCell(i,"asistencias",e.target.value)}/></td>
+                  <td style={td}><input style={inpNum} value={r.robos??0} onChange={e=>setCell(i,"robos",e.target.value)}/></td>
+                  <td style={td}><input style={inpNum} value={r.tapones??0} onChange={e=>setCell(i,"tapones",e.target.value)}/></td>
+                  <td style={td}><input style={inpNum} value={r.perdidas??0} onChange={e=>setCell(i,"perdidas",e.target.value)}/></td>
+                  <td style={td}><input style={inpNum} value={r.faltas??0} onChange={e=>setCell(i,"faltas",e.target.value)}/></td>
+                  <td style={td}><input style={inpNum} value={r.valoracion??0} onChange={e=>setCell(i,"valoracion",e.target.value)}/></td>
+                  <td style={{...td,textAlign:"center"}}><button onClick={()=>del(i)} title="Borrar fila" style={{background:"transparent",border:"none",cursor:"pointer",fontSize:"16px",color:"#dc2626"}}>🗑</button></td>
+                </tr>
+              );})}
+              {rows.length===0&&<tr><td colSpan={22} style={{padding:"30px",textAlign:"center",color:"var(--fx-muted2)",fontSize:"13px"}}>Sin filas — usa los botones "+ &lt;equipo&gt;" para añadir jugadoras.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+        {err&&<div style={{color:"#dc2626",fontSize:"12px",marginTop:"10px"}}>⚠ {err}</div>}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:"14px",gap:"10px",flexWrap:"wrap"}}>
+          <div style={{fontSize:"11px",color:"var(--fx-muted2)"}}>Guardar reemplaza el boxscore completo del partido ({rows.length} fila{rows.length===1?"":"s"}).</div>
+          <div style={{display:"flex",gap:"10px"}}>
+            <button onClick={onClose} disabled={saving} style={{background:"var(--fx-hover)",color:"var(--fx-label)",border:"none",borderRadius:"10px",padding:"9px 18px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>Cancelar</button>
+            <button onClick={save} disabled={saving} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"9px 20px",fontWeight:700,fontSize:"13px",cursor:"pointer",opacity:saving?0.5:1}}>{saving?"Guardando…":"Guardar"}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── PartidoFichaView ────────────────────────────────────── */
-function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,onGoToPlayer}){
+function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,onGoToPlayer,isAdmin,rosterLocal,rosterVisit}){
   const t = useT();
   const [rows,setRows]=useState(null);
   const [tab,setTab]=useState("ambos");
   const [sortK,setSortK]=useState("puntos");
   const [sortD,setSortD]=useState("desc");
+  const [editing,setEditing]=useState(false);
+  const [reloadTick,setReloadTick]=useState(0);
   const jugMap=useMemo(()=>{const m={};(players||[]).forEach(p=>{m[p.id_jugadora]=p;});return m;},[players]);
   useEffect(()=>{
     let cancel=false; setRows(null);
@@ -99,7 +246,15 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
       if(!cancel)setRows(data||[]);
     })();
     return ()=>{cancel=true;};
-  },[idPartido]);
+  },[idPartido,reloadTick]);
+  const editorEl=editing&&<BoxscoreEditor idPartido={idPartido} local={local} visit={visit} rosterLocal={rosterLocal} rosterVisit={rosterVisit} onClose={()=>setEditing(false)} onSaved={()=>setReloadTick(x=>x+1)}/>;
+  if((rows===null||rows.length===0)&&isAdmin)return(<>
+    <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"16px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:"10px"}}>
+      <div style={{fontSize:"13px",color:"var(--fx-muted)"}}>Este partido no tiene boxscore todavía.</div>
+      <button onClick={()=>setEditing(true)} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"9px 16px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>✏️ Añadir boxscore</button>
+    </div>
+    {editorEl}
+  </>);
   if(rows===null||rows.length===0)return null;
 
   const N=v=>{if(typeof v==="string"&&v.indexOf(":")>=0){const p=v.split(":");return (parseInt(p[0],10)||0)+(parseInt(p[1],10)||0)/60;}return Number(v)||0;};
@@ -115,9 +270,12 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
   const Esc=({e})=>e&&e.escudo?<img loading="lazy" decoding="async" src={e.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>:null;
   const tabBtn=(k,content)=><button key={k} onClick={()=>setTab(k)} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:"5px",padding:"9px 6px",borderRadius:"10px",border:"none",cursor:"pointer",fontWeight:700,fontSize:"12px",background:tab===k?"#9333ea":"#f1f5f9",color:tab===k?"#fff":"#64748b",minWidth:0}}>{content}</button>;
 
-  return(
+  return(<>
     <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"16px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",overflowX:"auto"}}>
-      <h2 style={{fontWeight:800,fontSize:"16px",color:"var(--fx-text)",margin:"0 0 12px"}}>{t("players.tab.stats")}</h2>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"0 0 12px",gap:"10px"}}>
+        <h2 style={{fontWeight:800,fontSize:"16px",color:"var(--fx-text)",margin:0}}>{t("players.tab.stats")}</h2>
+        {isAdmin&&<button onClick={()=>setEditing(true)} style={{background:"var(--fx-hover)",color:"var(--fx-label)",border:"none",borderRadius:"10px",padding:"6px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>✏️ Editar boxscore</button>}
+      </div>
       <div style={{display:"flex",gap:"8px",marginBottom:"14px"}}>
         {tabBtn("ambos",<><Esc e={local}/><Esc e={visit}/></>)}
         {tabBtn("local",<><Esc e={local}/><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{local&&local.nombre}</span></>)}
@@ -158,7 +316,8 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
       </table>
       <div style={{fontSize:"10px",color:"#cbd5e1",marginTop:"8px"}}><span style={{display:"inline-block",width:"3px",height:"10px",background:"#9333ea",borderRadius:"1px",verticalAlign:"middle",marginRight:"4px"}}></span>{t("boxscore.starter_hint")}</div>
     </div>
-  );
+    {editorEl}
+  </>);
 }
 
 function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,onToggleConvocatoria,onBack,onEdit,onGoToTeam,onGoToLeague,onGoToPlayer}){
@@ -317,7 +476,7 @@ function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,
         )}
       </div>
 
-      <BoxscorePartido idPartido={partido.id} equipoLocal={partido.id_equipo_local} equipoVisit={partido.id_equipo_visitante} local={local} visit={visit} players={players} onGoToPlayer={onGoToPlayer}/>
+      <BoxscorePartido idPartido={partido.id} equipoLocal={partido.id_equipo_local} equipoVisit={partido.id_equipo_visitante} local={local} visit={visit} players={players} onGoToPlayer={onGoToPlayer} isAdmin={isAdmin} rosterLocal={rosterLocal} rosterVisit={rosterVisit}/>
     </div>
   );
 }
