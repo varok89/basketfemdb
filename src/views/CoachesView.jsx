@@ -253,7 +253,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
                                   <div style={{fontSize:"12px",color:"var(--fx-muted)",marginTop:"2px",display:"flex",alignItems:"center",gap:"4px"}}>{lig&&<MultiFlag countries={[lig.pais,lig.pais2,lig.pais3]}/>}{lig?.nombre||s.id_liga}</div>
                                 </div>
                                 {isAdmin&&<div style={{display:"flex",gap:"4px",flexShrink:0}} onClick={e=>e.stopPropagation()}>
-                                  <button onClick={()=>setSeasonModal(s)} title="Editar" style={{background:"var(--fx-hover)",border:"none",borderRadius:"6px",padding:"4px 8px",fontSize:"12px",cursor:"pointer",color:"var(--fx-label)"}}>✏️</button>
+                                  <button onClick={()=>setSeasonModal(s)} title="Editar" aria-label="Editar temporada" style={{background:"var(--fx-hover)",border:"none",borderRadius:"6px",padding:"4px 8px",fontSize:"12px",cursor:"pointer",color:"var(--fx-label)"}}>✏️</button>
                                   <button onClick={()=>setDelCoachItem({type:"season",id:s.id})} title="Eliminar" style={{background:"var(--fx-red-bg)",border:"none",borderRadius:"6px",padding:"4px 8px",fontSize:"12px",cursor:"pointer",color:"#ef4444"}}>🗑️</button>
                                 </div>}
                               </div>

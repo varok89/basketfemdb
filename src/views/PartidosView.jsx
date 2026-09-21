@@ -167,7 +167,7 @@ function BoxscoreEditor({idPartido,local,visit,rosterLocal,rosterVisit,onClose,o
       <div onClick={e=>e.stopPropagation()} style={{background:"var(--fx-card)",borderRadius:"14px",padding:"20px",width:"min(1200px,98vw)",maxHeight:"92vh",display:"flex",flexDirection:"column"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}}>
           <h2 style={{margin:0,fontSize:"18px",fontWeight:800,color:"var(--fx-text)"}}>Editar boxscore</h2>
-          <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:"22px",cursor:"pointer",color:"var(--fx-muted)"}}>✕</button>
+          <button onClick={onClose} aria-label="Cerrar editor de boxscore" style={{background:"transparent",border:"none",fontSize:"22px",cursor:"pointer",color:"var(--fx-muted)"}}>✕</button>
         </div>
         <div style={{display:"flex",gap:"10px",marginBottom:"12px",flexWrap:"wrap"}}>
           <AddRosterBtn idEquipo={local?.id_equipo} roster={rosterLocal} label={local?.nombre||"Local"}/>
@@ -209,7 +209,7 @@ function BoxscoreEditor({idPartido,local,visit,rosterLocal,rosterVisit,onClose,o
                   <td style={td}><input style={inpNum} value={r.perdidas??0} onChange={e=>setCell(i,"perdidas",e.target.value)}/></td>
                   <td style={td}><input style={inpNum} value={r.faltas??0} onChange={e=>setCell(i,"faltas",e.target.value)}/></td>
                   <td style={td}><input style={inpNum} value={r.valoracion??0} onChange={e=>setCell(i,"valoracion",e.target.value)}/></td>
-                  <td style={{...td,textAlign:"center"}}><button onClick={()=>del(i)} title="Borrar fila" style={{background:"transparent",border:"none",cursor:"pointer",fontSize:"16px",color:"#dc2626"}}>🗑</button></td>
+                  <td style={{...td,textAlign:"center"}}><button onClick={()=>del(i)} title="Borrar fila" aria-label="Borrar fila" style={{background:"transparent",border:"none",cursor:"pointer",fontSize:"16px",color:"#dc2626"}}>🗑</button></td>
                 </tr>
               );})}
               {rows.length===0&&<tr><td colSpan={22} style={{padding:"30px",textAlign:"center",color:"var(--fx-muted2)",fontSize:"13px"}}>Sin filas — usa los botones "+ &lt;equipo&gt;" para añadir jugadoras.</td></tr>}
@@ -846,7 +846,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                   {p.link&&<a href={p.link} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{background:"#7c3aed",color:"#fff",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,textDecoration:"none"}}>▶ Ver</a>}
                   {p.url_stats&&<a href={p.url_stats} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{background:"#0f172a",color:"#fff",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,textDecoration:"none"}}>📊 Stats</a>}
                   {isAdmin&&<>
-                    <button onClick={e=>{e.stopPropagation();setModal(p);}} style={{background:"var(--fx-hover)",border:"none",borderRadius:"20px",padding:"4px 10px",fontSize:"11px",fontWeight:600,cursor:"pointer",color:"var(--fx-label)"}}>✏️</button>
+                    <button onClick={e=>{e.stopPropagation();setModal(p);}} aria-label="Editar partido" style={{background:"var(--fx-hover)",border:"none",borderRadius:"20px",padding:"4px 10px",fontSize:"11px",fontWeight:600,cursor:"pointer",color:"var(--fx-label)"}}>✏️</button>
                     <button onClick={e=>{e.stopPropagation();del(p.id);}} style={{background:"var(--fx-red-bg)",border:"none",borderRadius:"20px",padding:"4px 10px",fontSize:"11px",fontWeight:600,cursor:"pointer",color:"#ef4444"}}>🗑️</button>
                   </>}
                 </div>

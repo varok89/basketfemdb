@@ -709,14 +709,14 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
                   <div style={{border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"6px 12px",fontSize:"13px",color:"#9333ea",fontWeight:700,background:"var(--fx-card)",display:"flex",alignItems:"center",gap:"6px"}}>
                     <MultiFlag countries={[l.pais,l.pais2,l.pais3]}/>{l.nombre}
                   </div>
-                  <button onClick={()=>onGoToLeague&&onGoToLeague(l.id_liga)} title="Ir a esta liga" style={{background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"6px 10px",cursor:"pointer",color:"#9333ea",fontSize:"14px",lineHeight:1}}>→</button>
+                  <button onClick={()=>onGoToLeague&&onGoToLeague(l.id_liga)} title="Ir a esta liga" aria-label="Ir a esta liga" style={{background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"6px 10px",cursor:"pointer",color:"#9333ea",fontSize:"14px",lineHeight:1}}>→</button>
                 </div>
               );})()}
               {ligasInYear.length>1&&<div style={{display:"flex",alignItems:"center",gap:"4px"}}>
                 <select value={effectiveLiga||""} onChange={e=>setSelLiga(e.target.value)} style={{border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"6px 12px",fontSize:"13px",color:"#9333ea",fontWeight:700,background:"var(--fx-card)",outline:"none"}}>
                   {ligasInYear.map(l=><option key={l.id_liga} value={l.id_liga}>{l.nombre}</option>)}
                 </select>
-                <button onClick={()=>onGoToLeague&&onGoToLeague(effectiveLiga)} title="Ir a esta liga" style={{background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"6px 10px",cursor:"pointer",color:"#9333ea",fontSize:"14px",lineHeight:1}}>→</button>
+                <button onClick={()=>onGoToLeague&&onGoToLeague(effectiveLiga)} title="Ir a esta liga" aria-label="Ir a esta liga" style={{background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"10px",padding:"6px 10px",cursor:"pointer",color:"#9333ea",fontSize:"14px",lineHeight:1}}>→</button>
               </div>}
               {isAdmin&&squad.length>0&&<button onClick={()=>setDupModal({squad,temporada:effectiveYear,sourceLiga:effectiveLiga||(()=>{const ls=[...new Set(squad.map(({season})=>season.id_liga))];return ls.length===1?ls[0]:"";})()})} title="Duplicar plantilla a otra competición" style={{background:"var(--fx-card)",color:"#9333ea",border:"1.5px solid #9333ea",borderRadius:"10px",padding:"7px 12px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>⎘ Duplicar</button>}
               {isAdmin&&<button onClick={()=>setSquadModal({temporada:effectiveYear||"",id_liga:"",id_equipo:eq.id_equipo})} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>+ Jugadora</button>}
@@ -797,7 +797,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
                               onMouseLeave={e=>{e.currentTarget.style.background="var(--fx-amber-bg)";e.currentTarget.style.borderColor="var(--fx-amber-border)";}}>
                               <span style={{fontWeight:700,fontSize:"13px",color:"var(--fx-text)"}}>{p.temporada}</span>
                             </div>
-                            {isAdmin&&<><button onClick={()=>setPalModal(p)} style={{background:"var(--fx-hover)",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"var(--fx-label)"}}>✏️</button>
+                            {isAdmin&&<><button onClick={()=>setPalModal(p)} aria-label="Editar palmarés" style={{background:"var(--fx-hover)",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"var(--fx-label)"}}>✏️</button>
                             <button onClick={()=>setDelItem({type:"palmares",id:p.id})} style={{background:"var(--fx-red-bg)",border:"none",borderRadius:"6px",padding:"3px 8px",fontSize:"11px",cursor:"pointer",color:"var(--fx-red-text)"}}>🗑️</button></>}
                           </div>
                         ))}
@@ -835,7 +835,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
                     </div>
                   </div>
                   {isAdmin&&<div style={{display:"flex",gap:"6px"}}>
-                    <button onClick={()=>setNombreModal(n)} style={{background:"var(--fx-hover)",border:"none",borderRadius:"6px",padding:"4px 8px",fontSize:"12px",cursor:"pointer"}}>✏️</button>
+                    <button onClick={()=>setNombreModal(n)} aria-label="Editar nombre del equipo" style={{background:"var(--fx-hover)",border:"none",borderRadius:"6px",padding:"4px 8px",fontSize:"12px",cursor:"pointer"}}>✏️</button>
                     <button onClick={()=>setDelNombreId(n.id)} style={{background:"var(--fx-red-bg)",border:"none",borderRadius:"6px",padding:"4px 8px",fontSize:"12px",cursor:"pointer"}}>🗑️</button>
                   </div>}
                 </div>
