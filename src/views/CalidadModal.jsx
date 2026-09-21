@@ -2322,6 +2322,33 @@ function ScraperResult({res,busy}){
 // Herramienta admin: introspecta Genius Sports para descubrir competiciones
 // y equipos, y permite vincular cada equipo Genius con uno de la BD (o crear
 // nuevo). También detecta duplicados en BD y ofrece fusionarlos.
+// Extrae {org, comp_id?, gameId?} de cualquier URL Genius Sports conocida.
+// Patrones soportados:
+//   fibalivestats.dcd.shared.geniussports.com/u/{ORG}/{gameId}/...
+//   hosted.dcd.shared.geniussports.com/{ORG}/en/competition/{CID}/schedule
+//   hosted.dcd.shared.geniussports.com/{ORG}/en/schedule
+//   fibalivestats.com/webcast/{ORG}/{gameId}
+function parseGeniusUrl(url) {
+  if (!url) return null;
+  const patterns = [
+    /geniussports\.com\/([A-Z0-9]{2,10})\/[a-z]{2}\/competition\/(\d+)\/(?:schedule|standings|teams)/i,
+    /geniussports\.com\/u\/([A-Z0-9]{2,10})\/(\d+)/i,
+    /geniussports\.com\/([A-Z0-9]{2,10})\/[a-z]{2}\/schedule/i,
+    /fibalivestats\.com\/webcast\/([A-Z0-9]{2,10})\/(\d+)/i,
+  ];
+  for (const rx of patterns) {
+    const m = rx.exec(url);
+    if (m) {
+      return {
+        org: m[1].toUpperCase(),
+        comp_id: /competition\/\d+/.test(url) ? parseInt(m[2], 10) : null,
+        gameId: /\/u\/|webcast\//.test(url) ? m[2] : null,
+      };
+    }
+  }
+  return null;
+}
+
 function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
   const [idLiga, setIdLiga] = useState("");
   const [org, setOrg] = useState("");
@@ -2330,9 +2357,9 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
   const [equiposGenius, setEquiposGenius] = useState(null);
   const [fedInfo, setFedInfo] = useState("");
   const [compInfo, setCompInfo] = useState("");
+  const [urlPegar, setUrlPegar] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
-  // Mapeo local en curso: {id_genius: id_equipo_bd | "__new__"}
   const [seleccion, setSeleccion] = useState({});
 
   const liga = ligas.find(l => l.id_liga === idLiga);
@@ -2363,6 +2390,55 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
     finally { setBusy(false); }
   };
 
+  const analizarUrl = async () => {
+    const parsed = parseGeniusUrl(urlPegar.trim());
+    if (!parsed) {
+      setMsg("⚠ URL no reconocida. Formatos válidos: hosted.dcd.shared.geniussports.com/{ORG}/… o fibalivestats.dcd.shared.geniussports.com/u/{ORG}/{gameId}/");
+      return;
+    }
+    setOrg(parsed.org);
+    setMsg(`✅ Detectado org=${parsed.org}${parsed.comp_id ? ` · comp_id=${parsed.comp_id}` : ""}${parsed.gameId ? ` · gameId=${parsed.gameId}` : ""}`);
+    if (parsed.comp_id) {
+      // Ya tenemos todo: cargar directamente los equipos
+      setCompId(String(parsed.comp_id));
+      setBusy(true);
+      try {
+        const r = await callFn("genius-inspeccionar", { org: parsed.org, comp_id: parsed.comp_id });
+        if (!r?.ok) throw new Error(r?.error || "Sin datos");
+        setEquiposGenius(r.equipos || []);
+        setCompInfo(r.comp || "");
+        setFedInfo(r.fed || "");
+        preSeleccionar(r.equipos || []);
+        setMsg(`✅ ${r.equipos?.length || 0} equipos cargados directamente`);
+      } catch (e) { setMsg(`⚠ ${e.message || e}`); }
+      finally { setBusy(false); }
+    } else {
+      // Solo org → listar competiciones para elegir
+      setBusy(true);
+      try {
+        const r = await callFn("genius-inspeccionar", { org: parsed.org });
+        if (!r?.ok) throw new Error(r?.error || "Sin datos");
+        setComps(r.competiciones || []);
+        setFedInfo(r.fed || "");
+        setMsg(`✅ ${r.competiciones?.length || 0} competiciones — elige una`);
+      } catch (e) { setMsg(`⚠ ${e.message || e}`); }
+      finally { setBusy(false); }
+    }
+  };
+
+  // Extraído para reutilizar entre cargarEquipos y analizarUrl.
+  const preSeleccionar = (equiposGen) => {
+    const nuevaSel = {};
+    const nm = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+    equiposGen.forEach(g => {
+      const porId = equipos.find(e => e.id_genius === g.id_genius);
+      if (porId) { nuevaSel[g.id_genius] = porId.id_equipo; return; }
+      const porNombre = equipos.find(e => nm(e.nombre) === nm(g.nombre));
+      if (porNombre) nuevaSel[g.id_genius] = porNombre.id_equipo;
+    });
+    setSeleccion(nuevaSel);
+  };
+
   const cargarEquipos = async () => {
     if (!org.trim() || !compId) { setMsg("Elige org y competición"); return; }
     setBusy(true); setMsg("");
@@ -2372,18 +2448,7 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
       setEquiposGenius(r.equipos || []);
       setCompInfo(r.comp || "");
       setFedInfo(r.fed || fedInfo);
-      // Pre-selección: matches automáticos por id_genius o por nombre exacto
-      const nuevaSel = {};
-      const norm = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
-      (r.equipos || []).forEach(g => {
-        // 1) Match ya existente por id_genius
-        const porId = equipos.find(e => e.id_genius === g.id_genius);
-        if (porId) { nuevaSel[g.id_genius] = porId.id_equipo; return; }
-        // 2) Match por nombre exacto normalizado
-        const porNombre = equipos.find(e => norm(e.nombre) === norm(g.nombre));
-        if (porNombre) nuevaSel[g.id_genius] = porNombre.id_equipo;
-      });
-      setSeleccion(nuevaSel);
+      preSeleccionar(r.equipos || []);
       setMsg(`✅ ${r.equipos?.length || 0} equipos en la competición`);
     } catch (e) { setMsg(`⚠ ${e.message || e}`); }
     finally { setBusy(false); }
@@ -2441,6 +2506,30 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
           ))}
         </select>
       </div>
+
+      {/* Atajo: pegar URL Genius */}
+      {idLiga && (
+        <div style={{ background: "var(--fx-hover)", borderRadius: "10px", padding: "10px 12px" }}>
+          <label style={{ fontSize: "11px", fontWeight: 700, color: "var(--fx-muted)", display: "block", marginBottom: "4px" }}>
+            🔗 ATAJO: PEGA URL DE GENIUS (tracker, schedule…)
+          </label>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <input
+              value={urlPegar}
+              onChange={e => setUrlPegar(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") analizarUrl(); }}
+              placeholder="https://fibalivestats.dcd.shared.geniussports.com/u/…"
+              style={inp}
+            />
+            <button onClick={analizarUrl} disabled={busy || !urlPegar.trim()} style={{ background: "#0369a1", color: "#fff", border: "none", borderRadius: "8px", padding: "9px 14px", fontWeight: 700, fontSize: "12px", cursor: "pointer", opacity: (busy || !urlPegar.trim()) ? 0.5 : 1, whiteSpace: "nowrap" }}>
+              Analizar URL
+            </button>
+          </div>
+          <div style={{ fontSize: "10px", color: "var(--fx-muted2)", marginTop: "4px" }}>
+            Detecta org y comp_id automáticamente. Si la URL es de un partido en vivo, saca solo el org y luego eliges la competición.
+          </div>
+        </div>
+      )}
 
       {idLiga && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "8px", alignItems: "end" }}>
