@@ -51,12 +51,34 @@ module.exports = async (req, res) => {
 <meta name="twitter:image" content="${escapeHtml(escudo)}">`
     : "";
 
+  // JSON-LD schema.org/SportsTeam.
+  const ldJson = {
+    "@context": "https://schema.org",
+    "@type": "SportsTeam",
+    name: nombre,
+    url: pageUrl,
+    sport: "Basketball",
+    ...(escudo ? { logo: escudo, image: escudo } : {}),
+    ...((equipo.ciudad || equipo.pais) ? {
+      location: {
+        "@type": "Place",
+        address: {
+          "@type": "PostalAddress",
+          ...(equipo.ciudad ? { addressLocality: equipo.ciudad } : {}),
+          ...(equipo.pais ? { addressCountry: equipo.pais } : {}),
+        },
+      },
+    } : {}),
+  };
+
   const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>${escapeHtml(nombre)} · La Basketneta</title>
+<meta name="description" content="${escapeHtml(descripcion)}">
+<meta name="robots" content="index, follow">
 <link rel="canonical" href="${escapeHtml(pageUrl)}">
 <meta property="og:type" content="website">
 <meta property="og:title" content="${escapeHtml(nombre)}">
@@ -66,6 +88,7 @@ ${imageTag}
 <meta name="twitter:card" content="${escudo ? "summary_large_image" : "summary"}">
 <meta name="twitter:title" content="${escapeHtml(nombre)}">
 <meta name="twitter:description" content="${escapeHtml(descripcion)}">
+<script type="application/ld+json">${JSON.stringify(ldJson)}</script>
 </head>
 <body>
 <h1>${escapeHtml(nombre)}</h1>

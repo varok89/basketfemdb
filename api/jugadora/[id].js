@@ -58,12 +58,25 @@ module.exports = async (req, res) => {
     nacionalidades && `Nacionalidad: ${escapeHtml(nacionalidades)}`,
   ].filter(Boolean).join(" · ");
 
+  // JSON-LD schema.org/Person — rich snippets para atletas.
+  const ldJson = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: nombre,
+    url: pageUrl,
+    ...(foto ? { image: foto } : {}),
+    ...(nacionalidades ? { nationality: nacionalidades } : {}),
+    ...(posiciones ? { jobTitle: `Jugadora de baloncesto — ${posiciones}` } : { jobTitle: "Jugadora de baloncesto" }),
+  };
+
   const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>${escapeHtml(nombre)} · La Basketneta</title>
+<meta name="description" content="${escapeHtml(descripcion)}">
+<meta name="robots" content="index, follow">
 <link rel="canonical" href="${escapeHtml(pageUrl)}">
 <meta property="og:type" content="profile">
 <meta property="og:title" content="${escapeHtml(nombre)}">
@@ -74,6 +87,7 @@ module.exports = async (req, res) => {
 <meta name="twitter:title" content="${escapeHtml(nombre)}">
 <meta name="twitter:description" content="${escapeHtml(descripcion)}">
 <meta name="twitter:image" content="${escapeHtml(foto)}">
+<script type="application/ld+json">${JSON.stringify(ldJson)}</script>
 </head>
 <body>
 <h1>${escapeHtml(nombre)}</h1>
