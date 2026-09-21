@@ -212,8 +212,112 @@ function GrupoCard({ grupo, equiposGrupo, misPredsByPid, resultadosByPid, disabl
   );
 }
 
+// ─── Dropdown de jugadora con foto + equipo ──────────────────
+function JugadoraSelect({ opciones, value, onChange, disabled, placeholder }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const current = opciones.find(o => o.id === value);
+  const foto = (url, size = 24) => url
+    ? <img loading="lazy" decoding="async" src={url} alt="" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid var(--fx-border2)" }} />
+    : <span style={{ width: size, height: size, borderRadius: "50%", background: "var(--fx-hover)", flexShrink: 0 }} />;
+  const esc = (url, size = 14) => url
+    ? <img loading="lazy" decoding="async" src={url} alt="" style={{ width: size, height: size, objectFit: "contain", flexShrink: 0 }} />
+    : null;
+  useEffect(() => {
+    if (!open) return;
+    const h = () => setOpen(false);
+    const t = setTimeout(() => document.addEventListener("click", h), 0);
+    return () => { clearTimeout(t); document.removeEventListener("click", h); };
+  }, [open]);
+  const norm = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const nq = norm(q);
+  const filtradas = nq ? opciones.filter(o => norm(o.nombre).includes(nq) || norm(o.equipoNombre).includes(nq)) : opciones;
+  return (
+    <div style={{ position: "relative", width: "100%" }}>
+      <button
+        type="button"
+        onClick={e => { e.stopPropagation(); if (!disabled) { setOpen(o => !o); setQ(""); } }}
+        disabled={disabled}
+        style={{
+          display: "flex", alignItems: "center", gap: "8px", width: "100%",
+          padding: "5px 8px", fontSize: "12px",
+          border: "1px solid var(--fx-border)", borderRadius: "6px",
+          background: disabled ? "var(--fx-hover)" : "var(--fx-card)",
+          color: "var(--fx-text)", cursor: disabled ? "not-allowed" : "pointer",
+          textAlign: "left", outline: "none",
+        }}>
+        {current ? (
+          <>
+            {foto(current.foto, 22)}
+            <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {current.nombre}
+            </span>
+            {esc(current.equipoEscudo)}
+          </>
+        ) : (
+          <span style={{ flex: 1, color: "var(--fx-muted2)" }}>{placeholder || "Selecciona jugadora"}</span>
+        )}
+        <span style={{ fontSize: "9px", color: "var(--fx-muted2)" }}>▾</span>
+      </button>
+      {open && (
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            position: "absolute", top: "calc(100% + 2px)", left: 0, right: 0, zIndex: 50,
+            background: "var(--fx-card)", border: "1px solid var(--fx-border)",
+            borderRadius: "8px", boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+            maxHeight: "320px", overflowY: "auto",
+          }}>
+          <div style={{ padding: "6px 8px", borderBottom: "1px solid var(--fx-border2)", background: "var(--fx-card)", position: "sticky", top: 0 }}>
+            <input
+              autoFocus
+              type="text"
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              placeholder="Buscar…"
+              style={{ width: "100%", padding: "5px 8px", fontSize: "11px", border: "1px solid var(--fx-border)", borderRadius: "6px", background: "var(--fx-card)", color: "var(--fx-text)", outline: "none", boxSizing: "border-box" }}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => { onChange(""); setOpen(false); }}
+            style={{ display: "block", width: "100%", textAlign: "left", padding: "5px 10px", background: "transparent", border: "none", fontSize: "10px", color: "var(--fx-muted2)", cursor: "pointer", fontStyle: "italic", borderBottom: "1px solid var(--fx-border2)" }}>
+            — Quitar selección
+          </button>
+          {filtradas.length === 0 && (
+            <div style={{ padding: "10px", fontSize: "11px", color: "var(--fx-muted2)", textAlign: "center" }}>Sin resultados</div>
+          )}
+          {filtradas.map(o => (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => { onChange(o.id); setOpen(false); }}
+              style={{
+                display: "flex", alignItems: "center", gap: "8px", width: "100%",
+                padding: "6px 10px", background: o.id === value ? "var(--fx-hover)" : "transparent",
+                border: "none", fontSize: "12px", color: "var(--fx-text)",
+                textAlign: "left", cursor: "pointer",
+              }}
+              onMouseEnter={e => { if (o.id !== value) e.currentTarget.style.background = "var(--fx-hover)"; }}
+              onMouseLeave={e => { if (o.id !== value) e.currentTarget.style.background = "transparent"; }}>
+              {foto(o.foto, 26)}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600 }}>{o.nombre}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "10px", color: "var(--fx-muted)" }}>
+                  {esc(o.equipoEscudo, 12)}
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.equipoNombre}</span>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Pregunta simple (Bola de Cristal) ──────────────────────
-function PreguntaSimple({ pregunta, opcionesPorSource, misIds, resultadoIds, disabled, onGuardar, equiposMap }) {
+function PreguntaSimple({ pregunta, opcionesPorSource, misIds, resultadoIds, disabled, onGuardar, equiposMap, jugadorasMap }) {
   const [borrador, setBorrador] = useState(misIds || []);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
@@ -222,6 +326,8 @@ function PreguntaSimple({ pregunta, opcionesPorSource, misIds, resultadoIds, dis
   const opciones = pregunta.opciones_source === "libre" ? null : opcionesPorSource[pregunta.opciones_source] || [];
   const cambio = JSON.stringify(borrador) !== JSON.stringify(misIds || []);
   const nombreEquipo = (id) => equiposMap[id]?.nombre || id;
+  const nombreJugadora = (id) => jugadorasMap?.[id]?.nombre || id;
+  const esJugadora = pregunta.tipo === "jugadora";
 
   const guardar = async () => {
     setSaving(true); setMsg("");
@@ -258,16 +364,18 @@ function PreguntaSimple({ pregunta, opcionesPorSource, misIds, resultadoIds, dis
           value={borrador[0] || ""}
           onChange={e => setBorrador(e.target.value ? [e.target.value] : [])}
           disabled={disabled}
-          placeholder="Nombre de la jugadora"
+          placeholder="Respuesta"
           style={{ width: "100%", background: "var(--fx-card)", color: "var(--fx-text)", border: "1px solid var(--fx-border)", borderRadius: "8px", padding: "7px 10px", fontSize: "12px", outline: "none", boxSizing: "border-box" }}
         />
+      ) : esJugadora ? (
+        <JugadoraSelect opciones={opciones} value={borrador[0]} onChange={v => setBorrador(v ? [v] : [])} disabled={disabled} placeholder="Selecciona jugadora" />
       ) : (
         <EquipoSelect opciones={opciones} value={borrador[0]} onChange={v => setBorrador(v ? [v] : [])} disabled={disabled} placeholder="Elige equipo…" />
       )}
 
       {resultadoIds && (
         <div style={{ fontSize: "10px", color: "var(--fx-muted2)" }}>
-          Real: <b>{resultadoIds.map(id => opciones ? nombreEquipo(id) : id).join(", ")}</b>
+          Real: <b>{resultadoIds.map(id => esJugadora ? nombreJugadora(id) : (opciones ? nombreEquipo(id) : id)).join(", ")}</b>
         </div>
       )}
 
@@ -292,7 +400,7 @@ function PreguntaSimple({ pregunta, opcionesPorSource, misIds, resultadoIds, dis
 }
 
 // ─── Card de fase ────────────────────────────────────────────
-function FaseCard({ fase, opcionesPorSource, misPredsByPid, resultadosByPid, onGuardar, equiposMap, gruposEquipos }) {
+function FaseCard({ fase, opcionesPorSource, misPredsByPid, resultadosByPid, onGuardar, equiposMap, gruposEquipos, jugadorasMap }) {
   const estado = estadoFase(fase, resultadosByPid);
   const badge = BADGE[estado];
   const countdown = useCountdown(new Date(fase.fecha_cierre).getTime());
@@ -356,6 +464,7 @@ function FaseCard({ fase, opcionesPorSource, misPredsByPid, resultadosByPid, onG
                 disabled={disabled}
                 onGuardar={onGuardar}
                 equiposMap={equiposMap}
+                jugadorasMap={jugadorasMap}
               />
             ))}
           </div>
@@ -406,6 +515,7 @@ export default function EuroligaView({ user, equipos = [] }) {
   const [misPreds, setMisPreds] = useState({});
   const [resultados, setResultados] = useState({});
   const [gruposEquipos, setGruposEquipos] = useState({});
+  const [jugadorasEL, setJugadorasEL] = useState([]); // roster Euroliga 2026-27
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
@@ -419,11 +529,14 @@ export default function EuroligaView({ user, equipos = [] }) {
     let cancel = false;
     (async () => {
       setLoading(true); setErr("");
-      const [cfg, res, parts] = await Promise.all([
+      const [cfg, res, parts, temps] = await Promise.all([
         supabase.from("euroliga_config").select("*").eq("temporada", TEMPORADA).order("orden"),
         supabase.from("euroliga_resultados").select("pregunta_id, ids").eq("temporada", TEMPORADA),
         supabase.from("partidos").select("id_equipo_local, id_equipo_visitante, notas")
           .eq("id_liga", ID_LIGA).eq("temporada", TEMPORADA).like("notas", "Temporada regular%"),
+        supabase.from("temporadas")
+          .select("id_jugadora, id_equipo, jugadoras(nombre, fecha_nac, foto)")
+          .eq("id_liga", ID_LIGA).eq("temporada", TEMPORADA),
       ]);
       if (cancel) return;
       if (cfg.error) { setErr(cfg.error.message); setLoading(false); return; }
@@ -447,6 +560,25 @@ export default function EuroligaView({ user, equipos = [] }) {
       });
       setGruposEquipos(gruObj);
 
+      // Roster Euroliga 2026-27 con equipo y fecha_nac
+      const jugadoras = (temps.data || [])
+        .map(t => {
+          const eq = equiposMap[t.id_equipo];
+          return {
+            id: t.id_jugadora,
+            nombre: t.jugadoras?.nombre || t.id_jugadora,
+            foto: t.jugadoras?.foto || null,
+            fecha_nac: t.jugadoras?.fecha_nac || null,
+            id_equipo: t.id_equipo,
+            equipoNombre: eq?.nombre || t.id_equipo,
+            equipoEscudo: eq?.escudo || null,
+          };
+        })
+        // Dedupe por id_jugadora por si aparece en más de una entrada
+        .reduce((acc, j) => (acc.find(x => x.id === j.id) ? acc : [...acc, j]), [])
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+      setJugadorasEL(jugadoras);
+
       if (user?.id) {
         const { data: mp } = await supabase.from("euroliga_predicciones")
           .select("pregunta_id, respuesta_ids")
@@ -466,12 +598,23 @@ export default function EuroligaView({ user, equipos = [] }) {
     const todos = new Map();
     Object.values(gruposEquipos).forEach(arr => arr.forEach(e => todos.set(e.id, e)));
     out["euroliga_2026_27"] = [...todos.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+    // Jugadoras: todas y filtro sub-22 (nacidas en 2004-01-01 o después)
+    out["jugadoras_L004_2026_27"] = jugadorasEL;
+    const CORTE_JOVEN = "2004-01-01";
+    out["jovenes_L004_2026_27"] = jugadorasEL.filter(j => j.fecha_nac && j.fecha_nac >= CORTE_JOVEN);
     out["grupo_E_2026_27"] = [];
     out["grupo_F_2026_27"] = [];
     out["playins_2026_27"] = [];
     out["f6_2026_27"] = [];
     return out;
-  }, [gruposEquipos]);
+  }, [gruposEquipos, jugadorasEL]);
+
+  // Mapa id_jugadora -> {nombre, foto, ...} para pintar el resultado real
+  const jugadorasMap = useMemo(() => {
+    const m = {};
+    jugadorasEL.forEach(j => { m[j.id] = j; });
+    return m;
+  }, [jugadorasEL]);
 
   const onGuardar = useCallback(async (pregunta_id, respuesta_ids) => {
     if (!user?.id) throw new Error("Necesitas iniciar sesión");
@@ -507,13 +650,14 @@ export default function EuroligaView({ user, equipos = [] }) {
       onGuardar={onGuardar}
       equiposMap={equiposMap}
       gruposEquipos={gruposEquipos}
+      jugadorasMap={jugadorasMap}
       user={user}
     />
   );
 }
 
 // ─── Contenedor con pestañas por fase ────────────────────────
-function FasesTabs({ config, opcionesPorSource, misPreds, resultados, onGuardar, equiposMap, gruposEquipos, user }) {
+function FasesTabs({ config, opcionesPorSource, misPreds, resultados, onGuardar, equiposMap, gruposEquipos, jugadorasMap, user }) {
   // Fase inicial: la primera abierta; si ninguna, la primera de la lista.
   const primera = useMemo(() => {
     if (!config.length) return null;
@@ -563,6 +707,7 @@ function FasesTabs({ config, opcionesPorSource, misPreds, resultados, onGuardar,
           onGuardar={onGuardar}
           equiposMap={equiposMap}
           gruposEquipos={gruposEquipos}
+          jugadorasMap={jugadorasMap}
         />
       )}
 
