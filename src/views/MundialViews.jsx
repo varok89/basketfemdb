@@ -820,7 +820,7 @@ export default function QuinielaView({user,equipos,onAbrirPerfil,isAdmin}){
 
       {tab==="euroliga"&&(
         <Suspense fallback={<div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"24px",textAlign:"center",color:"var(--fx-muted2)"}}>…</div>}>
-          <EuroligaView user={user} equipos={equipos}/>
+          <EuroligaView user={user} equipos={equipos} onAbrirPerfil={onAbrirPerfil}/>
         </Suspense>
       )}
 

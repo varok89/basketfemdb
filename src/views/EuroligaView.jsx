@@ -475,42 +475,80 @@ function FaseCard({ fase, opcionesPorSource, misPredsByPid, resultadosByPid, onG
 }
 
 // ─── Ranking ──────────────────────────────────────────────────
-function Ranking({ user }) {
+function Ranking({ user, onAbrirPerfil }) {
   const [rows, setRows] = useState(null);
+  const [perfilMap, setPerfilMap] = useState({});
   useEffect(() => {
     (async () => {
       const { data, error } = await supabase.rpc("euroliga_ranking", { p_temporada: TEMPORADA });
-      if (!error) setRows(data || []);
-      else setRows([]);
+      if (error) { setRows([]); return; }
+      const list = data || [];
+      setRows(list);
+      const ids = list.map(r => r.user_id);
+      if (ids.length) {
+        const { data: perfiles } = await supabase.from("perfiles")
+          .select("id, alias, avatar, avatar_url, nombre")
+          .in("id", ids);
+        const m = {}; (perfiles || []).forEach(p => { m[p.id] = p; });
+        setPerfilMap(m);
+      }
     })();
   }, []);
-  if (!rows) return null;
+  if (!rows) return (
+    <div style={{ background: "var(--fx-card)", borderRadius: "14px", padding: "20px", textAlign: "center", color: "var(--fx-muted)", fontSize: "13px" }}>
+      Cargando ranking…
+    </div>
+  );
   if (rows.length === 0) return (
     <div style={{ background: "var(--fx-card)", borderRadius: "14px", padding: "20px", textAlign: "center", color: "var(--fx-muted)", fontSize: "13px" }}>
       Aún nadie tiene puntos. Empieza a predecir para aparecer aquí.
     </div>
   );
+  const medalla = i => i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`;
   return (
     <div style={{ background: "var(--fx-card)", borderRadius: "14px", padding: "14px 16px" }}>
-      <h3 style={{ margin: "0 0 10px", fontSize: "14px", fontWeight: 800, color: "var(--fx-text)" }}>🏆 Ranking</h3>
-      {rows.slice(0, 20).map((r, i) => (
-        <div key={r.user_id} style={{
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-          padding: "6px 0", borderTop: i > 0 ? "1px solid var(--fx-border2)" : "none",
-          background: r.user_id === user?.id ? "rgba(147,51,234,0.06)" : "transparent",
-        }}>
-          <div style={{ fontSize: "12px", color: "var(--fx-text)" }}>
-            <span style={{ fontWeight: 700, marginRight: "8px", color: "var(--fx-muted)" }}>#{i + 1}</span>
-            {r.user_id === user?.id ? <b>Tú</b> : <span style={{ fontFamily: "monospace", fontSize: "11px" }}>{r.user_id.slice(0, 8)}…</span>}
+      <h3 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 800, color: "var(--fx-text)", display: "flex", alignItems: "center", gap: "6px" }}>
+        <span>🏆 Ranking Quiniela Euroliga</span>
+        <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--fx-muted2)" }}>({rows.length})</span>
+      </h3>
+      {rows.slice(0, 50).map((r, i) => {
+        const p = perfilMap[r.user_id];
+        const nombre = p?.alias || p?.nombre || (r.user_id === user?.id ? "Tú" : "—");
+        const yo = r.user_id === user?.id;
+        const clickable = onAbrirPerfil && p?.alias;
+        return (
+          <div key={r.user_id} style={{
+            display: "flex", alignItems: "center", gap: "10px",
+            padding: "7px 4px", borderTop: i > 0 ? "1px solid var(--fx-border2)" : "none",
+            background: yo ? "rgba(147,51,234,0.06)" : "transparent",
+            borderRadius: yo ? "6px" : 0,
+          }}>
+            <span style={{ fontSize: "13px", fontWeight: 800, minWidth: "28px", color: i < 3 ? "var(--fx-text)" : "var(--fx-muted)" }}>{medalla(i)}</span>
+            {p?.avatar_url
+              ? <img loading="lazy" decoding="async" src={p.avatar_url} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+              : <span style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--fx-hover)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{p?.avatar || "👤"}</span>}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <span
+                onClick={clickable ? () => onAbrirPerfil(p.alias) : undefined}
+                style={{
+                  fontSize: "13px", fontWeight: yo ? 800 : 600, color: "var(--fx-text)",
+                  cursor: clickable ? "pointer" : "default",
+                  textDecoration: clickable ? "underline" : "none",
+                  textDecorationColor: "#c084fc", textUnderlineOffset: "3px",
+                }}>
+                {nombre}
+              </span>
+              {yo && <span style={{ marginLeft: "6px", fontSize: "10px", color: "#9333ea", fontWeight: 700 }}>· TÚ</span>}
+            </div>
+            <div style={{ fontSize: "14px", fontWeight: 800, color: "#9333ea" }}>{r.total_pts} pts</div>
           </div>
-          <div style={{ fontSize: "13px", fontWeight: 800, color: "#9333ea" }}>{r.total_pts} pts</div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
-export default function EuroligaView({ user, equipos = [] }) {
+export default function EuroligaView({ user, equipos = [], onAbrirPerfil }) {
   const [config, setConfig] = useState(null);
   const [misPreds, setMisPreds] = useState({});
   const [resultados, setResultados] = useState({});
@@ -652,12 +690,13 @@ export default function EuroligaView({ user, equipos = [] }) {
       gruposEquipos={gruposEquipos}
       jugadorasMap={jugadorasMap}
       user={user}
+      onAbrirPerfil={onAbrirPerfil}
     />
   );
 }
 
 // ─── Contenedor con pestañas por fase ────────────────────────
-function FasesTabs({ config, opcionesPorSource, misPreds, resultados, onGuardar, equiposMap, gruposEquipos, jugadorasMap, user }) {
+function FasesTabs({ config, opcionesPorSource, misPreds, resultados, onGuardar, equiposMap, gruposEquipos, jugadorasMap, user, onAbrirPerfil }) {
   // Fase inicial: la primera abierta; si ninguna, la primera de la lista.
   const primera = useMemo(() => {
     if (!config.length) return null;
@@ -668,6 +707,7 @@ function FasesTabs({ config, opcionesPorSource, misPreds, resultados, onGuardar,
   useEffect(() => { setActiva(primera); }, [primera]);
 
   const faseActiva = config.find(f => f.fase === activa);
+  const enRanking = activa === "__ranking__";
 
   return (
     <div>
@@ -696,9 +736,24 @@ function FasesTabs({ config, opcionesPorSource, misPreds, resultados, onGuardar,
             </button>
           );
         })}
+        <button
+          onClick={() => setActiva("__ranking__")}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: "6px",
+            background: enRanking ? "#9333ea" : "var(--fx-card)",
+            color: enRanking ? "#fff" : "var(--fx-label)",
+            border: `1.5px solid ${enRanking ? "#7c3aed" : "var(--fx-border)"}`,
+            borderRadius: "20px", padding: "7px 14px",
+            fontWeight: 700, fontSize: "12px", cursor: "pointer",
+            whiteSpace: "nowrap", marginLeft: "auto",
+          }}>
+          <span>🏆</span><span>Ranking</span>
+        </button>
       </div>
 
-      {faseActiva && (
+      {enRanking ? (
+        <Ranking user={user} onAbrirPerfil={onAbrirPerfil} />
+      ) : faseActiva ? (
         <FaseCard
           fase={faseActiva}
           opcionesPorSource={opcionesPorSource}
@@ -709,11 +764,7 @@ function FasesTabs({ config, opcionesPorSource, misPreds, resultados, onGuardar,
           gruposEquipos={gruposEquipos}
           jugadorasMap={jugadorasMap}
         />
-      )}
-
-      <div style={{ marginTop: "20px" }}>
-        <Ranking user={user} />
-      </div>
+      ) : null}
     </div>
   );
 }
