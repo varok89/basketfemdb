@@ -1,7 +1,7 @@
 // src/views/EuroligaView.jsx
 // Quiniela EuroLeague Women desbloqueable por fases.
-// Datos en public.euroliga_config / euroliga_predicciones / euroliga_resultados.
-// RPC: euroliga_guardar (valida fase abierta), euroliga_ranking (público).
+// Datos: public.euroliga_config / euroliga_predicciones / euroliga_resultados.
+// RPCs: euroliga_guardar (valida fase abierta), euroliga_ranking.
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "../lib/supabaseClient";
 
@@ -48,85 +48,46 @@ function useCountdown(target) {
   return `${m}m`;
 }
 
-function EquipoChips({ opciones, seleccion, onChange, nMax, disabled }) {
-  const sel = new Set(seleccion || []);
-  const toggle = (id) => {
-    if (disabled) return;
-    const nueva = new Set(sel);
-    if (nueva.has(id)) nueva.delete(id);
-    else {
-      if (nMax === 1) nueva.clear();
-      if (nueva.size >= nMax) return;
-      nueva.add(id);
-    }
-    onChange([...nueva]);
+// ─── Select simple con escudo + nombre ───────────────────────
+function EquipoSelect({ opciones, value, onChange, disabled, placeholder }) {
+  const inp = {
+    width: "100%",
+    padding: "6px 8px",
+    fontSize: "12px",
+    border: "1px solid var(--fx-border)",
+    borderRadius: "6px",
+    background: disabled ? "var(--fx-hover)" : "var(--fx-card)",
+    color: "var(--fx-text)",
+    cursor: disabled ? "not-allowed" : "pointer",
+    outline: "none",
   };
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-      {opciones.map(o => {
-        const activo = sel.has(o.id);
-        return (
-          <button
-            key={o.id}
-            type="button"
-            onClick={() => toggle(o.id)}
-            disabled={disabled}
-            aria-pressed={activo}
-            style={{
-              display: "flex", alignItems: "center", gap: "6px",
-              background: activo ? "#9333ea" : "var(--fx-hover)",
-              color: activo ? "#fff" : "var(--fx-label)",
-              border: activo ? "1.5px solid #7c3aed" : "1.5px solid var(--fx-border)",
-              borderRadius: "20px", padding: "6px 12px",
-              fontSize: "12px", fontWeight: 700, cursor: disabled ? "default" : "pointer",
-              opacity: disabled ? 0.7 : 1,
-            }}>
-            {o.escudo && <img src={o.escudo} alt="" style={{ width: 18, height: 18, objectFit: "contain" }} />}
-            <span>{o.nombre}</span>
-          </button>
-        );
-      })}
-    </div>
+    <select style={inp} value={value || ""} onChange={e => onChange(e.target.value)} disabled={disabled}>
+      <option value="">{placeholder || "—"}</option>
+      {opciones.map(o => (
+        <option key={o.id} value={o.id}>{o.nombre}</option>
+      ))}
+    </select>
   );
 }
 
-function InputLibre({ value, onChange, placeholder, disabled }) {
-  return (
-    <input
-      type="text"
-      value={value?.[0] || ""}
-      onChange={e => onChange(e.target.value ? [e.target.value] : [])}
-      disabled={disabled}
-      placeholder={placeholder}
-      style={{
-        width: "100%", background: "var(--fx-card)", color: "var(--fx-text)",
-        border: "1.5px solid var(--fx-border)", borderRadius: "10px",
-        padding: "9px 12px", fontSize: "13px", outline: "none", boxSizing: "border-box",
-      }}
-    />
-  );
-}
+// ─── Card de un grupo con 4 posiciones ordenables ────────────
+function GrupoCard({ grupo, equiposGrupo, misPredsByPid, resultadosByPid, disabled, onGuardar }) {
+  // 4 slots: reg_{grupo}_1 .. reg_{grupo}_4
+  const slots = [1, 2, 3, 4];
+  const slotId = pos => `reg_${grupo}_${pos}`;
+  const puntosPos = { 1: 2, 2: 1, 3: 1, 4: 2 };
+  const bgPos = { 1: "var(--fx-green-bg)", 2: "var(--fx-amber-bg)", 3: "var(--fx-amber-bg)", 4: "var(--fx-red-bg)" };
+  const colorPos = { 1: "var(--fx-green-text)", 2: "var(--fx-amber-text)", 3: "var(--fx-amber-text)", 4: "var(--fx-red-text)" };
 
-function Pregunta({ pregunta, opcionesPorSource, misIds, resultadoIds, estado, onGuardar, equiposMap }) {
-  const [borrador, setBorrador] = useState(misIds || []);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
-  useEffect(() => { setBorrador(misIds || []); }, [misIds]);
 
-  const opciones = pregunta.opciones_source === "libre"
-    ? null
-    : opcionesPorSource[pregunta.opciones_source] || [];
-
-  const disabled = estado !== "abierta";
-  const cambio = JSON.stringify(borrador) !== JSON.stringify(misIds || []);
-  const nMax = pregunta.n_respuestas || 1;
-
-  const guardar = async () => {
+  const cambiar = async (pos, id) => {
+    if (disabled) return;
     setSaving(true); setMsg("");
     try {
-      await onGuardar(pregunta.id, borrador);
-      setMsg("✅ Guardado");
-      setTimeout(() => setMsg(""), 2500);
+      await onGuardar(slotId(pos), id ? [id] : []);
     } catch (e) {
       setMsg(`⚠ ${e.message || e}`);
     } finally {
@@ -134,72 +95,150 @@ function Pregunta({ pregunta, opcionesPorSource, misIds, resultadoIds, estado, o
     }
   };
 
-  const puntosGanados = resultadoIds ? (
-    borrador.filter(id => resultadoIds.includes(id)).length * (pregunta.puntos_por_acierto || 0)
-  ) : null;
+  // Excluir equipos ya usados en otras posiciones del mismo grupo
+  const opcionesPara = (pos) => {
+    const usados = new Set(slots.filter(p => p !== pos)
+      .map(p => (misPredsByPid[slotId(p)] || [])[0])
+      .filter(Boolean));
+    return equiposGrupo.filter(e => !usados.has(e.id));
+  };
 
-  const nombreEquipo = (id) => equiposMap[id]?.nombre || id;
+  const puntosGrupo = slots.reduce((acc, pos) => {
+    const real = resultadosByPid[slotId(pos)];
+    const mio = misPredsByPid[slotId(pos)];
+    if (!real || !mio) return acc;
+    return acc + (real[0] === mio[0] ? puntosPos[pos] : 0);
+  }, 0);
+  const hayResultado = slots.some(pos => resultadosByPid[slotId(pos)]);
 
   return (
-    <div style={{ padding: "12px 14px", borderTop: "1px solid var(--fx-border2)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px", marginBottom: "8px" }}>
+    <div style={{ border: "1px solid var(--fx-border)", borderRadius: "10px", padding: "10px", background: "var(--fx-card)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+        <div style={{ fontSize: "12px", fontWeight: 800, color: "var(--fx-muted)" }}>Grupo {grupo}</div>
+        {hayResultado && (
+          <div style={{ fontSize: "12px", fontWeight: 800, color: puntosGrupo > 0 ? "#16a34a" : "var(--fx-muted)" }}>
+            +{puntosGrupo} pts
+          </div>
+        )}
+      </div>
+      {equiposGrupo.length === 0 ? (
+        <div style={{ fontSize: "11px", color: "var(--fx-muted2)", fontStyle: "italic", textAlign: "center", padding: "8px 0" }}>
+          Equipos aún no confirmados
+        </div>
+      ) : slots.map(pos => {
+        const real = resultadosByPid[slotId(pos)];
+        const mio = misPredsByPid[slotId(pos)];
+        const acierto = real && mio && real[0] === mio[0];
+        return (
+          <div key={pos} style={{
+            display: "flex", alignItems: "center", gap: "6px", marginBottom: "5px",
+            background: bgPos[pos], borderRadius: "6px", padding: "4px 6px",
+            border: real ? (acierto ? "1px solid #16a34a" : "1px solid #ef4444") : "1px solid transparent",
+          }}>
+            <span style={{ fontSize: "11px", fontWeight: 800, color: colorPos[pos], minWidth: "18px", textAlign: "center" }}>{pos}º</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <EquipoSelect
+                opciones={opcionesPara(pos)}
+                value={(mio || [])[0]}
+                onChange={v => cambiar(pos, v)}
+                disabled={disabled || saving}
+                placeholder="—"
+              />
+            </div>
+            <span style={{ fontSize: "9px", color: "var(--fx-muted2)", fontWeight: 700, minWidth: "26px", textAlign: "right" }}>{puntosPos[pos]}pt</span>
+          </div>
+        );
+      })}
+      {msg && <div style={{ fontSize: "10px", color: "#dc2626", marginTop: "4px" }}>{msg}</div>}
+    </div>
+  );
+}
+
+// ─── Pregunta simple (Bola de Cristal) ──────────────────────
+function PreguntaSimple({ pregunta, opcionesPorSource, misIds, resultadoIds, disabled, onGuardar, equiposMap }) {
+  const [borrador, setBorrador] = useState(misIds || []);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+  useEffect(() => { setBorrador(misIds || []); }, [misIds]);
+
+  const opciones = pregunta.opciones_source === "libre" ? null : opcionesPorSource[pregunta.opciones_source] || [];
+  const cambio = JSON.stringify(borrador) !== JSON.stringify(misIds || []);
+  const nombreEquipo = (id) => equiposMap[id]?.nombre || id;
+
+  const guardar = async () => {
+    setSaving(true); setMsg("");
+    try {
+      await onGuardar(pregunta.id, borrador);
+      setMsg("✅");
+      setTimeout(() => setMsg(""), 1500);
+    } catch (e) {
+      setMsg(`⚠ ${e.message || e}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const puntosGanados = resultadoIds
+    ? borrador.filter(id => resultadoIds.includes(id)).length * (pregunta.puntos_por_acierto || 0)
+    : null;
+
+  return (
+    <div style={{ background: "var(--fx-card)", border: "1px solid var(--fx-border)", borderRadius: "12px", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "8px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px" }}>
         <div>
           <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--fx-text)" }}>{pregunta.titulo}</div>
-          <div style={{ fontSize: "11px", color: "var(--fx-muted2)", marginTop: "2px" }}>
-            {nMax > 1 ? `Elige ${nMax}` : "Elige 1"} · {pregunta.puntos_por_acierto} pts por acierto
-          </div>
+          <div style={{ fontSize: "10px", color: "var(--fx-muted2)", marginTop: "2px" }}>{pregunta.puntos_por_acierto} pts si aciertas</div>
         </div>
         {resultadoIds && (
-          <div style={{ textAlign: "right", flexShrink: 0 }}>
-            <div style={{ fontSize: "18px", fontWeight: 800, color: puntosGanados > 0 ? "#16a34a" : "var(--fx-muted)" }}>
-              +{puntosGanados} pts
-            </div>
-            <div style={{ fontSize: "10px", color: "var(--fx-muted2)" }}>
-              Real: {resultadoIds.map(nombreEquipo).join(", ")}
-            </div>
-          </div>
+          <div style={{ fontSize: "16px", fontWeight: 800, color: puntosGanados > 0 ? "#16a34a" : "var(--fx-muted)" }}>+{puntosGanados}</div>
         )}
       </div>
 
       {opciones === null ? (
-        <InputLibre
-          value={borrador}
-          onChange={setBorrador}
+        <input
+          type="text"
+          value={borrador[0] || ""}
+          onChange={e => setBorrador(e.target.value ? [e.target.value] : [])}
           disabled={disabled}
-          placeholder={pregunta.tipo === "jugadora" ? "Nombre de la jugadora" : "Respuesta"}
+          placeholder="Nombre de la jugadora"
+          style={{ width: "100%", background: "var(--fx-card)", color: "var(--fx-text)", border: "1px solid var(--fx-border)", borderRadius: "8px", padding: "7px 10px", fontSize: "12px", outline: "none", boxSizing: "border-box" }}
         />
-      ) : opciones.length === 0 ? (
-        <div style={{ fontSize: "12px", color: "var(--fx-muted2)", fontStyle: "italic", padding: "8px 0" }}>
-          Aún no se conocen los equipos de este bracket. Se rellenará cuando termine la fase anterior.
-        </div>
       ) : (
-        <EquipoChips opciones={opciones} seleccion={borrador} onChange={setBorrador} nMax={nMax} disabled={disabled} />
+        <EquipoSelect opciones={opciones} value={borrador[0]} onChange={v => setBorrador(v ? [v] : [])} disabled={disabled} placeholder="Elige equipo…" />
+      )}
+
+      {resultadoIds && (
+        <div style={{ fontSize: "10px", color: "var(--fx-muted2)" }}>
+          Real: <b>{resultadoIds.map(id => opciones ? nombreEquipo(id) : id).join(", ")}</b>
+        </div>
       )}
 
       {!disabled && (
-        <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "8px" }}>
+          {msg && <span style={{ fontSize: "11px", color: msg.startsWith("✅") ? "#16a34a" : "#dc2626" }}>{msg}</span>}
           <button
             onClick={guardar}
             disabled={saving || !cambio || borrador.length === 0}
             style={{
               background: "#9333ea", color: "#fff", border: "none",
-              borderRadius: "10px", padding: "7px 16px", fontWeight: 700, fontSize: "12px",
+              borderRadius: "8px", padding: "5px 12px", fontWeight: 700, fontSize: "11px",
               cursor: (saving || !cambio || borrador.length === 0) ? "default" : "pointer",
-              opacity: (saving || !cambio || borrador.length === 0) ? 0.5 : 1,
+              opacity: (saving || !cambio || borrador.length === 0) ? 0.4 : 1,
             }}>
-            {saving ? "Guardando…" : cambio ? "Guardar" : "Guardado"}
+            {saving ? "…" : cambio ? "Guardar" : "Guardado"}
           </button>
-          {msg && <span style={{ fontSize: "11px", color: msg.startsWith("✅") ? "#16a34a" : "#dc2626" }}>{msg}</span>}
         </div>
       )}
     </div>
   );
 }
 
-function FaseCard({ fase, opcionesPorSource, misPredsByPid, resultadosByPid, onGuardar, equiposMap }) {
+// ─── Card de fase ────────────────────────────────────────────
+function FaseCard({ fase, opcionesPorSource, misPredsByPid, resultadosByPid, onGuardar, equiposMap, gruposEquipos }) {
   const estado = estadoFase(fase, resultadosByPid);
   const badge = BADGE[estado];
   const countdown = useCountdown(new Date(fase.fecha_cierre).getTime());
+  const disabled = estado !== "abierta";
 
   return (
     <div style={{ background: "var(--fx-card)", borderRadius: "14px", boxShadow: "0 1px 6px rgba(0,0,0,0.06)", marginBottom: "14px", overflow: "hidden" }}>
@@ -225,26 +264,50 @@ function FaseCard({ fase, opcionesPorSource, misPredsByPid, resultadosByPid, onG
           </div>
         </div>
       </div>
-      {estado === "bloqueada" ? (
-        <div style={{ padding: "20px", textAlign: "center", color: "var(--fx-muted2)", fontSize: "13px" }}>
-          Esta fase se desbloquea cuando termine la anterior.
-        </div>
-      ) : (fase.preguntas || []).map(q => (
-        <Pregunta
-          key={q.id}
-          pregunta={q}
-          opcionesPorSource={opcionesPorSource}
-          misIds={misPredsByPid[q.id]}
-          resultadoIds={resultadosByPid[q.id]}
-          estado={estado}
-          onGuardar={onGuardar}
-          equiposMap={equiposMap}
-        />
-      ))}
+
+      <div style={{ padding: "14px" }}>
+        {estado === "bloqueada" ? (
+          <div style={{ padding: "20px", textAlign: "center", color: "var(--fx-muted2)", fontSize: "13px" }}>
+            Esta fase se desbloquea cuando termine la anterior.
+          </div>
+        ) : fase.fase === "regular" ? (
+          // ─── Layout especial: grid de grupos ordenables ────
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px" }}>
+            {["A", "B", "C", "D"].map(g => (
+              <GrupoCard
+                key={g}
+                grupo={g}
+                equiposGrupo={gruposEquipos[g] || []}
+                misPredsByPid={misPredsByPid}
+                resultadosByPid={resultadosByPid}
+                disabled={disabled}
+                onGuardar={onGuardar}
+              />
+            ))}
+          </div>
+        ) : (
+          // ─── Layout genérico: preguntas simples en grid ────
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "10px" }}>
+            {(fase.preguntas || []).map(q => (
+              <PreguntaSimple
+                key={q.id}
+                pregunta={q}
+                opcionesPorSource={opcionesPorSource}
+                misIds={misPredsByPid[q.id]}
+                resultadoIds={resultadosByPid[q.id]}
+                disabled={disabled}
+                onGuardar={onGuardar}
+                equiposMap={equiposMap}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
+// ─── Ranking ──────────────────────────────────────────────────
 function Ranking({ user }) {
   const [rows, setRows] = useState(null);
   useEffect(() => {
@@ -312,14 +375,18 @@ export default function EuroligaView({ user, equipos = [] }) {
       const gru = { A: new Set(), B: new Set(), C: new Set(), D: new Set() };
       (parts.data || []).forEach(p => {
         const m = /Grupo (.)/.exec(p.notas || "");
-        if (!m) return;
-        const g = m[1];
-        if (!gru[g]) return;
-        if (p.id_equipo_local) gru[g].add(p.id_equipo_local);
-        if (p.id_equipo_visitante) gru[g].add(p.id_equipo_visitante);
+        if (!m || !gru[m[1]]) return;
+        if (p.id_equipo_local) gru[m[1]].add(p.id_equipo_local);
+        if (p.id_equipo_visitante) gru[m[1]].add(p.id_equipo_visitante);
       });
       const gruObj = {};
-      Object.keys(gru).forEach(k => { gruObj[k] = [...gru[k]]; });
+      Object.keys(gru).forEach(k => {
+        gruObj[k] = [...gru[k]]
+          .map(id => equiposMap[id])
+          .filter(Boolean)
+          .map(e => ({ id: e.id_equipo, nombre: e.nombre, escudo: e.escudo }))
+          .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+      });
       setGruposEquipos(gruObj);
 
       if (user?.id) {
@@ -333,31 +400,20 @@ export default function EuroligaView({ user, equipos = [] }) {
       setLoading(false);
     })();
     return () => { cancel = true; };
-  }, [user?.id]);
+  }, [user?.id, equiposMap]);
 
   const opcionesPorSource = useMemo(() => {
     const out = {};
-    ["A", "B", "C", "D"].forEach(g => {
-      const ids = gruposEquipos[g] || [];
-      out[`grupo_${g}_2026_27`] = ids
-        .map(id => equiposMap[id])
-        .filter(Boolean)
-        .map(e => ({ id: e.id_equipo, nombre: e.nombre, escudo: e.escudo }))
-        .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-    });
-    const todos = new Set();
-    Object.values(gruposEquipos).forEach(arr => arr.forEach(id => todos.add(id)));
-    out["euroliga_2026_27"] = [...todos]
-      .map(id => equiposMap[id])
-      .filter(Boolean)
-      .map(e => ({ id: e.id_equipo, nombre: e.nombre, escudo: e.escudo }))
-      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+    ["A", "B", "C", "D"].forEach(g => { out[`grupo_${g}_2026_27`] = gruposEquipos[g] || []; });
+    const todos = new Map();
+    Object.values(gruposEquipos).forEach(arr => arr.forEach(e => todos.set(e.id, e)));
+    out["euroliga_2026_27"] = [...todos.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
     out["grupo_E_2026_27"] = [];
     out["grupo_F_2026_27"] = [];
     out["playins_2026_27"] = [];
     out["f6_2026_27"] = [];
     return out;
-  }, [gruposEquipos, equiposMap]);
+  }, [gruposEquipos]);
 
   const onGuardar = useCallback(async (pregunta_id, respuesta_ids) => {
     if (!user?.id) throw new Error("Necesitas iniciar sesión");
@@ -395,6 +451,7 @@ export default function EuroligaView({ user, equipos = [] }) {
           resultadosByPid={resultados}
           onGuardar={onGuardar}
           equiposMap={equiposMap}
+          gruposEquipos={gruposEquipos}
         />
       ))}
       <div style={{ marginTop: "20px" }}>
