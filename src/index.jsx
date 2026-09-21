@@ -15,6 +15,21 @@ if (window.location.hostname !== 'localhost') {
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 1.0,
     integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
+    // Ruido de extensiones del navegador (MetaMask/LavaMoat, wallets, adblockers…)
+    ignoreErrors: [
+      /Can't find variable: CONFIG/i,
+      /CONFIG is not defined/i,
+      /LavaMoat/i,
+      /chrome\.runtime/i,
+      /Extension context invalidated/i,
+      /ResizeObserver loop/i,
+    ],
+    denyUrls: [
+      /^chrome-extension:\/\//i,
+      /^moz-extension:\/\//i,
+      /^safari-web-extension:\/\//i,
+      /^extension:\/\//i,
+    ],
   });
 }
 
