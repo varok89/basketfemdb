@@ -786,14 +786,31 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
 
           // En competiciones tipo "liga" los partidos se agrupan por jornada (campo notas
           // "Jornada N"); los de playoffs y los que no tienen jornada van a grupos propios.
+          // Fallback: si NINGÚN partido de la liga trae "Jornada N" en notas, se
+          // agrupan por semana ISO cronológicamente y se numeran 1..N. Sirve para
+          // ligas cuyo scraper no rellena notas (ej. Genius Sports / DBBF).
           const esLiga=ligaMap[ligaId]?.tipo==="liga";
           let jornadas=[];
           if(esLiga){
             const buckets={};
+            const hayJornadaEnNotas=ps.some(p=>/(?:^|·\s*)jornada\s+\d+/i.test(p.notas||""));
+            const isoWeekKey=(d)=>{const dt=new Date(d);if(isNaN(dt))return null;dt.setUTCHours(0,0,0,0);dt.setUTCDate(dt.getUTCDate()+4-(dt.getUTCDay()||7));const y0=new Date(Date.UTC(dt.getUTCFullYear(),0,1));const wn=Math.ceil((((dt-y0)/86400000)+1)/7);return`${dt.getUTCFullYear()}W${String(wn).padStart(2,"0")}`;};
+            let semanaAJornada=null;
+            if(!hayJornadaEnNotas){
+              const semanas=new Set();
+              ps.forEach(p=>{if(p.fecha_hora){const w=isoWeekKey(p.fecha_hora);if(w)semanas.add(w);}});
+              const ordenadas=[...semanas].sort();
+              semanaAJornada={};
+              ordenadas.forEach((s,i)=>{semanaAJornada[s]=i+1;});
+            }
             ps.forEach(p=>{
               const m=/(?:^|·\s*)jornada\s+(\d+)/i.exec(p.notas||"");
               const grpM=/^grupo\s+(\w+)/i.exec(p.notas||"");
-              const key=m?(grpM?`G${grpM[1]}J${m[1]}`:`J${m[1]}`):(/^playoffs/i.test(p.notas||"")?"PO":"OT");
+              let key;
+              if(m) key=grpM?`G${grpM[1]}J${m[1]}`:`J${m[1]}`;
+              else if(/^playoffs/i.test(p.notas||"")) key="PO";
+              else if(semanaAJornada&&p.fecha_hora){const j=semanaAJornada[isoWeekKey(p.fecha_hora)];key=j?`J${j}`:"OT";}
+              else key="OT";
               (buckets[key]=buckets[key]||[]).push(p);
             });
             const rank=k=>{if(k==="PO")return 1000000;if(k==="OT")return 1000001;const gm=k.match(/^G(\w+)J(\d+)$/);if(gm)return parseInt(gm[2])*100+gm[1].charCodeAt(0);return parseInt(k.slice(1),10);};
