@@ -23,7 +23,7 @@ function Escudo({url,alt}){
   return <span style={box}>{url?<img src={url} alt={alt||""} loading="lazy" style={{width:"100%",height:"100%",objectFit:"contain"}}/>:<span style={{fontSize:"11px"}}>🏀</span>}</span>;
 }
 
-function PartidoRow({p,eqL,eqV,liga,highlight,onGoToPartido,onGoToTeam,esFav,onToggleFav,user}){
+function PartidoRow({p,eqL,eqV,highlight,onGoToPartido,onGoToTeam}){
   const est=estadoPartido(p);
   const parc=p.parciales&&typeof p.parciales==="object"?p.parciales:null;
   const qLocal=parc?.local||[];
@@ -37,7 +37,7 @@ function PartidoRow({p,eqL,eqV,liga,highlight,onGoToPartido,onGoToTeam,esFav,onT
   return(
     <div
       onClick={clickable?()=>onGoToPartido(p.id):undefined}
-      style={{display:"grid",gridTemplateColumns:"48px 1fr auto 40px",gap:"8px",alignItems:"center",background:bg,border,borderRadius:"10px",padding:"8px 10px",marginBottom:"6px",cursor:clickable?"pointer":"default"}}>
+      style={{display:"grid",gridTemplateColumns:"48px 1fr auto",gap:"8px",alignItems:"center",background:bg,border,borderRadius:"10px",padding:"8px 10px",marginBottom:"6px",cursor:clickable?"pointer":"default"}}>
       <div style={{textAlign:"center",fontSize:"11px",fontWeight:800,color:est.color,lineHeight:1.1}}>
         {est.live&&<div style={{width:6,height:6,background:"#dc2626",borderRadius:"50%",display:"inline-block",marginRight:4,animation:"bfdb-pulse 1.5s infinite"}}/>}
         {est.txt}
@@ -64,14 +64,16 @@ function PartidoRow({p,eqL,eqV,liga,highlight,onGoToPartido,onGoToTeam,esFav,onT
           <div style={{color:ganaV?"var(--fx-text)":"var(--fx-muted)"}}>{p.resultado_visitante??"·"}</div>
         </div>
       </div>
-      <button
-        onClick={e=>{e.stopPropagation();user&&liga&&onToggleFav&&onToggleFav("liga",liga.id_liga);}}
-        title={esFav?"Quitar liga de favoritos":"Marcar liga como favorita"}
-        style={{background:"transparent",border:"none",cursor:"pointer",fontSize:"18px",color:esFav?"#eab308":"var(--fx-muted2)",padding:"4px"}}>
-        {esFav?"★":"☆"}
-      </button>
     </div>
   );
+}
+
+const COLAPSO_KEY="bfdb:hoy:colapsadas";
+function loadColapsadas(){
+  try{const r=localStorage.getItem(COLAPSO_KEY);return r?new Set(JSON.parse(r)):new Set();}catch{return new Set();}
+}
+function saveColapsadas(s){
+  try{localStorage.setItem(COLAPSO_KEY,JSON.stringify([...s]));}catch{}
 }
 
 export default function HoyView({partidos,equipos,ligas,user,favoritos,onToggleFav,onGoToPartido,onGoToTeam,onGoToLeague,lang}){
@@ -79,6 +81,8 @@ export default function HoyView({partidos,equipos,ligas,user,favoritos,onToggleF
   const [diaOffset,setDiaOffset]=useState(0); // -1..+7
   const [subTab,setSubTab]=useState("todos"); // todos | favoritos | competiciones
   const [ligaFiltro,setLigaFiltro]=useState(null);
+  const [colapsadas,setColapsadas]=useState(loadColapsadas);
+  const toggleColapso=(id)=>setColapsadas(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);saveColapsadas(n);return n;});
 
   const equipoMap=useMemo(()=>{const m={};(equipos||[]).forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap=useMemo(()=>{const m={};(ligas||[]).forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
@@ -179,16 +183,22 @@ export default function HoyView({partidos,equipos,ligas,user,favoritos,onToggleF
         competiciones.length===0
           ?<div style={{textAlign:"center",padding:"40px 20px",color:"var(--fx-muted)"}}>{lang==="en"?"No competitions with games this day.":"No hay competiciones con partidos este día."}</div>
           :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:"10px"}}>
-            {competiciones.map(({liga,n})=>(
-              <button key={liga.id_liga} onClick={()=>{setLigaFiltro(liga.id_liga);setSubTab("todos");}} style={{background:"var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"12px",padding:"12px",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:"10px"}}>
-                <Escudo url={liga.logo} alt={liga.nombre}/>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:800,fontSize:"13px",color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{liga.nombre}</div>
-                  <div style={{fontSize:"11px",color:"var(--fx-muted)"}}>{liga.pais||""}</div>
+            {competiciones.map(({liga,n})=>{
+              const ligaFav=favSet.has("L:"+liga.id_liga);
+              return(
+                <div key={liga.id_liga} style={{background:"var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"12px",padding:"12px",display:"flex",alignItems:"center",gap:"10px"}}>
+                  <button onClick={()=>{setLigaFiltro(liga.id_liga);setSubTab("todos");}} style={{background:"transparent",border:"none",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:"10px",flex:1,minWidth:0,padding:0}}>
+                    <Escudo url={liga.logo} alt={liga.nombre}/>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:800,fontSize:"13px",color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{liga.nombre}</div>
+                      <div style={{fontSize:"11px",color:"var(--fx-muted)"}}>{liga.pais||""}</div>
+                    </div>
+                    <div style={{fontWeight:800,fontSize:"14px",color:"#9333ea"}}>{n}</div>
+                  </button>
+                  <button onClick={()=>onToggleFav&&onToggleFav("liga",liga.id_liga)} title={ligaFav?(lang==="en"?"Remove":"Quitar"):(lang==="en"?"Add favorite":"Añadir favorita")} style={{background:"transparent",border:"none",cursor:"pointer",fontSize:"20px",color:ligaFav?"#eab308":"var(--fx-muted2)",padding:"4px"}}>{ligaFav?"★":"☆"}</button>
                 </div>
-                <div style={{fontWeight:800,fontSize:"14px",color:"#9333ea"}}>{n}</div>
-              </button>
-            ))}
+              );
+            })}
           </div>
       ):(
         porLiga.length===0
@@ -199,37 +209,43 @@ export default function HoyView({partidos,equipos,ligas,user,favoritos,onToggleF
           </div>
           :porLiga.map(({liga,partidos:pp})=>{
             const ligaFav=favSet.has("L:"+liga.id_liga);
+            const colapsada=colapsadas.has(liga.id_liga);
             return(
               <div key={liga.id_liga} style={{marginBottom:"16px"}}>
-                <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px",padding:"6px 4px"}}>
+                <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"8px",padding:"6px 4px",background:"var(--fx-hover)",borderRadius:"8px"}}>
+                  <button onClick={()=>toggleColapso(liga.id_liga)} title={colapsada?"Expandir":"Colapsar"} style={{background:"transparent",border:"none",cursor:"pointer",fontSize:"14px",color:"var(--fx-muted)",padding:"2px 6px",width:24}}>{colapsada?"▸":"▾"}</button>
                   <Escudo url={liga.logo} alt={liga.nombre}/>
                   <div onClick={()=>onGoToLeague&&onGoToLeague(liga.id_liga)} style={{cursor:onGoToLeague?"pointer":"default",flex:1,minWidth:0}}>
                     <div style={{fontWeight:800,fontSize:"14px",color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{liga.nombre}</div>
                     <div style={{fontSize:"11px",color:"var(--fx-muted)"}}>{liga.pais||""}</div>
                   </div>
-                  <div style={{fontSize:"12px",color:"var(--fx-muted)",fontWeight:700}}>{pp.length}</div>
+                  <div style={{fontSize:"12px",color:"var(--fx-muted)",fontWeight:700,padding:"0 4px"}}>{pp.length}</div>
+                  <button
+                    onClick={()=>onToggleFav&&onToggleFav("liga",liga.id_liga)}
+                    title={ligaFav?(lang==="en"?"Remove league from favorites":"Quitar liga de favoritos"):(lang==="en"?"Add league to favorites":"Añadir liga a favoritos")}
+                    style={{background:"transparent",border:"none",cursor:"pointer",fontSize:"20px",color:ligaFav?"#eab308":"var(--fx-muted2)",padding:"4px 8px"}}>
+                    {ligaFav?"★":"☆"}
+                  </button>
                 </div>
-                <div>
-                  {pp.map(p=>{
-                    const fav=esFavPartido(p,favSet);
-                    const highlight=subTab==="todos"&&fav;
-                    return(
-                      <PartidoRow
-                        key={p.id}
-                        p={p}
-                        eqL={equipoMap[p.id_equipo_local]}
-                        eqV={equipoMap[p.id_equipo_visitante]}
-                        liga={liga}
-                        highlight={highlight}
-                        esFav={ligaFav}
-                        user={user}
-                        onGoToPartido={onGoToPartido}
-                        onGoToTeam={onGoToTeam}
-                        onToggleFav={onToggleFav}
-                      />
-                    );
-                  })}
-                </div>
+                {!colapsada&&(
+                  <div>
+                    {pp.map(p=>{
+                      const fav=esFavPartido(p,favSet);
+                      const highlight=subTab==="todos"&&fav;
+                      return(
+                        <PartidoRow
+                          key={p.id}
+                          p={p}
+                          eqL={equipoMap[p.id_equipo_local]}
+                          eqV={equipoMap[p.id_equipo_visitante]}
+                          highlight={highlight}
+                          onGoToPartido={onGoToPartido}
+                          onGoToTeam={onGoToTeam}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })
