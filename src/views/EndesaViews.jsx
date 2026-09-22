@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { UserAvatar } from "../lib/avatar";
 import { useT } from "../lib/i18n";
+import { evento as trackEv } from "../lib/track";
 
 const LIGA = "L001";
 const TEMP = "2026-27";
@@ -104,6 +105,7 @@ function BolaCristalEndesa({user, equipos, cierre, isAdmin}) {
     setSaving(false);
     setMsg(`✓ ${guardadas} pregunta${guardadas===1?"":"s"} guardada${guardadas===1?"":"s"}`);
     setTimeout(() => setMsg(""), 2500);
+    trackEv("quiniela_votada", {competicion: "endesa", fase: "bola", n: guardadas});
   };
 
   const guardarOficial = async (q) => {
@@ -328,6 +330,7 @@ function JornadaTab({user, equipos, jornadas, jornadaN, setJornadaN, misPreds, r
       setMsg(t("endesa.saved", {n: filas.length}));
       refetchPreds();
       setTimeout(() => setMsg(""), 2200);
+      trackEv("quiniela_votada", {competicion: "endesa", fase: "jornada", jornada: jornadaN, n: filas.length});
     } catch(e) {
       setErr(String(e.message || e));
     } finally {

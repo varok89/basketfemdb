@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useT, locale } from "../lib/i18n";
+import { evento as trackEv } from "../lib/track";
 import {
   inp, firstFreeId,
   resolveTeamName, countryFlagEmoji,
@@ -144,6 +145,7 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
             const url=`${window.location.origin}/coaches/${coach.id_coach}`;
             const banderasShareCoach=[countryFlagEmoji(coach.nacionalidad),countryFlagEmoji(coach.nacionalidad2)].filter(Boolean).join(" ");
             const shareTextCoach=banderasShareCoach?`${coach.nombre} · ${banderasShareCoach} — La Basketneta`:`Ficha de ${coach.nombre} en La Basketneta`;
+            trackEv("share_click",{tipo:"coach",id:coach.id_coach,canal:navigator.share?"nativo":"clipboard"});
             if(navigator.share){navigator.share({title:coach.nombre,text:shareTextCoach,url}).catch(()=>{});}
             else{navigator.clipboard.writeText(url);setShareMsg(true);setTimeout(()=>setShareMsg(false),2000);}
           }} style={{background:"var(--fx-hover)",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"var(--fx-label)"}}>📤 Compartir</button>

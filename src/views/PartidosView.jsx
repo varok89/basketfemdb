@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo, useCallback, lazy } from "react";
 import { supabase, callFn } from "../lib/supabaseClient";
 import { useT, locale } from "../lib/i18n";
 import { Avatar, Fld, TeamBadge, inp, resolveTeamData } from "../lib/ui";
+import { evento as trackEv } from "../lib/track";
 
 /* ── PartidoForm ─────────────────────────────────────────── */
 // Fld definido fuera del componente para evitar que React desmonte/remonte
@@ -243,7 +244,10 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
     let cancel=false; setRows(null);
     (async()=>{
       const {data}=await supabase.from("partido_boxscore").select("id_jugadora,id_equipo,nombre,titular,minutos,puntos,tc_anotados,tc_intentados,t3_anotados,t3_intentados,tl_anotados,tl_intentados,reb_totales,asistencias,robos,tapones,perdidas,faltas,valoracion").eq("id_partido",idPartido);
-      if(!cancel)setRows(data||[]);
+      if(!cancel){
+        setRows(data||[]);
+        if((data||[]).length) trackEv("boxscore_abierto",{id_partido:idPartido,filas:data.length});
+      }
     })();
     return ()=>{cancel=true;};
   },[idPartido,reloadTick]);

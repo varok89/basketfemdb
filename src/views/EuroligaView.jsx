@@ -4,6 +4,7 @@
 // RPCs: euroliga_guardar (valida fase abierta), euroliga_ranking.
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { evento as trackEv } from "../lib/track";
 
 const TEMPORADA = "2026-27";
 const ID_LIGA = "L004";
@@ -661,6 +662,7 @@ export default function EuroligaView({ user, equipos = [], onAbrirPerfil }) {
     });
     if (error) throw error;
     setMisPreds(prev => ({ ...prev, [pregunta_id]: respuesta_ids }));
+    trackEv("quiniela_votada", { competicion: "euroliga", pregunta_id, n: (respuesta_ids || []).length });
   }, [user?.id]);
 
   if (loading) return (

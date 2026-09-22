@@ -61,3 +61,11 @@ export function trackEvento(nombre, meta, { user, esAdmin, path } = {}) {
     id_usuario: user?.id || null,
   });
 }
+
+// Contexto compartido para que las vistas no tengan que pasar user/esAdmin.
+// App.jsx llama setTrackContext({user, esAdmin}) cuando cambian.
+let ctx = { user: null, esAdmin: false };
+export function setTrackContext(next) { ctx = { ...ctx, ...(next || {}) }; }
+export function evento(nombre, meta, extraPath) {
+  return trackEvento(nombre, meta, { ...ctx, path: extraPath });
+}

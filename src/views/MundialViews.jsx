@@ -2,6 +2,7 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { UserAvatar } from "../lib/avatar";
 import { useT, locale } from "../lib/i18n";
+import { evento as trackEv } from "../lib/track";
 
 const EndesaView = lazy(() => import("./EndesaViews"));
 const EuroligaView = lazy(() => import("./EuroligaView"));
@@ -120,6 +121,7 @@ function BolaCristalView({user,equipos,cierre}){
     }
     setSaving(false);
     setMsg(t("quiniela.saved"));setTimeout(()=>setMsg(""),1800);
+    trackEv("quiniela_votada",{competicion:"mundial",fase:"bola_cristal",n:filas.length,eliminadas:borrar.length});
   };
 
   const opciones=q=>q.tipo==="equipo"?equiposMundial:q.tipo==="joven"?jovenesMundial:jugadorasMundial;
@@ -284,6 +286,7 @@ function BasketnetaView({user,equipos,cierre}){
     }
     setSaving(false);
     setMsg(t("quiniela.saved"));setTimeout(()=>setMsg(""),1800);
+    trackEv("quiniela_votada",{competicion:"mundial",fase:"basketneta",n:filas.length,eliminadas:borrar.length});
   };
 
   const opsGrupo=(g,pos)=>{

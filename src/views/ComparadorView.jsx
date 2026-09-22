@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useT } from "../lib/i18n";
+import { evento as trackEv } from "../lib/track";
 
 /* Comparador de 2-3 jugadoras o equipos lado a lado. Toggle en el header:
    - modo "jugadoras": fetch a partido_boxscore, promedios por partido + radar SVG.
@@ -278,6 +279,7 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
     setSlots(prev=>{
       const next=[...prev];
       next[idx]={player,rows,tempSel:temps[0]||null,compSel:"ALL"};
+      if(idx>=1) trackEv("comparador_usado",{modo:"jugadoras",slot:idx,id:player.id_jugadora});
       return next;
     });
   }
@@ -301,6 +303,7 @@ export default function ComparadorView({players, equipos, ligas, equiposNombres,
     setSlots(prev=>{
       const next=[...prev];
       next[idx]={team,rows,boxes,tempSel:temps[0]||null,compSel:"ALL"};
+      if(idx>=1) trackEv("comparador_usado",{modo:"equipos",slot:idx,id:team.id_equipo});
       return next;
     });
   }

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useT, locale } from "../lib/i18n";
+import { evento as trackEv } from "../lib/track";
 import {
   inp, posStyle, firstFreeId, firstFreeIdNum,
   resolveTeamData, playerStatus, esEquipoEuropeo, countryFlagEmoji,
@@ -632,6 +633,8 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
               const banderaShareEq=countryFlagEmoji(eq.pais);
               const detallesShareEq=eq.ciudad&&banderaShareEq?`${eq.ciudad} ${banderaShareEq}`:(eq.ciudad||banderaShareEq||"");
               const shareTextEq=detallesShareEq?`${eq.nombre} · ${detallesShareEq} — La Basketneta`:`Ficha de ${eq.nombre} en La Basketneta`;
+              const canal=navigator.share?"nativo":"clipboard";
+              trackEv("share_click",{tipo:"equipo",id:eq.id_equipo,canal});
               if(navigator.share){navigator.share({title:eq.nombre,text:shareTextEq,url}).catch(()=>{});}
               else{navigator.clipboard.writeText(url);setShareMsg(true);setTimeout(()=>setShareMsg(false),2000);}
             }} style={{background:"var(--fx-hover)",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:"pointer",color:"var(--fx-label)"}}>📤 Compartir</button>

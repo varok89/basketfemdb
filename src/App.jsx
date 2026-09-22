@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from "react";
 import { supabase, callFn, fetchAll } from "./lib/supabaseClient";
 import { LOGROS, LOGROS_BY_SLUG, CATEGORIAS, initLogros, registrarEvento, onLogroDesbloqueado, getEstadoLogros } from "./lib/logros";
-import { trackPageview } from "./lib/track";
+import { trackPageview, setTrackContext, trackEvento, evento as trackEv } from "./lib/track";
 import { AVATAR_PRESETS, UserAvatar } from "./lib/avatar";
 import { useT, useLang, setLang, locale } from "./lib/i18n";
 
@@ -132,17 +132,17 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
   },[results,total,t]);
   const inp={width:"100%",background:"rgba(255,255,255,0.08)",border:"1.5px solid rgba(255,255,255,0.12)",borderRadius:"10px",padding:"7px 12px",fontSize:"13px",color:"#fff",outline:"none",boxSizing:"border-box"};
 
-  const go=(fn)=>{fn();setQ("");setOpen(false);if(fullscreen&&onClose)onClose();};
+  const go=(fn,tipo)=>{trackEv("busqueda_global",{query_len:q.length,tipo,total});fn();setQ("");setOpen(false);if(fullscreen&&onClose)onClose();};
 
   // Aplana los resultados en una lista lineal para navegar con teclado.
   const flatItems=useMemo(()=>{
     if(!results)return [];
     const cap=fullscreen?8:6;
     const list=[];
-    results.jugadoras.slice(0,cap).forEach(p=>list.push({action:()=>onGoToPlayer(p.id_jugadora)}));
-    results.equipos.slice(0,fullscreen?8:4).forEach(e=>list.push({action:()=>onGoToTeam(e.id_equipo)}));
-    results.ligas.slice(0,fullscreen?8:3).forEach(l=>list.push({action:()=>onGoToLeague(l.id_liga)}));
-    results.coaches.slice(0,fullscreen?8:3).forEach(c=>list.push({action:()=>onGoToCoach(c.id_coach)}));
+    results.jugadoras.slice(0,cap).forEach(p=>list.push({tipo:"jugadora",action:()=>onGoToPlayer(p.id_jugadora)}));
+    results.equipos.slice(0,fullscreen?8:4).forEach(e=>list.push({tipo:"equipo",action:()=>onGoToTeam(e.id_equipo)}));
+    results.ligas.slice(0,fullscreen?8:3).forEach(l=>list.push({tipo:"liga",action:()=>onGoToLeague(l.id_liga)}));
+    results.coaches.slice(0,fullscreen?8:3).forEach(c=>list.push({tipo:"coach",action:()=>onGoToCoach(c.id_coach)}));
     return list;
   },[results,fullscreen,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach]);
   useEffect(()=>{setSelectedIdx(0);},[q]);
@@ -152,7 +152,7 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
     if(!flatItems.length)return;
     if(e.key==="ArrowDown"){e.preventDefault();setSelectedIdx(i=>(i+1)%flatItems.length);}
     else if(e.key==="ArrowUp"){e.preventDefault();setSelectedIdx(i=>(i-1+flatItems.length)%flatItems.length);}
-    else if(e.key==="Enter"){e.preventDefault();go(flatItems[selectedIdx].action);}
+    else if(e.key==="Enter"){e.preventDefault();const it=flatItems[selectedIdx];go(it.action,it.tipo);}
   };
   const hlBg="rgba(147,51,234,0.25)";
   // Devuelve el índice global de un item dado su grupo y posición (para pintar el highlight).
@@ -189,25 +189,25 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
             {results.jugadoras.length>0&&(<>
               <div style={{padding:"10px 16px 6px",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>👩‍🏀 Jugadoras ({results.jugadoras.length})</div>
               {results.jugadoras.slice(0,8).map((p,i)=>{const sel=selectedIdx===idxOf("j",i);return(
-                <div key={p.id_jugadora} onClick={()=>go(()=>onGoToPlayer(p.id_jugadora))} onMouseEnter={()=>setSelectedIdx(idxOf("j",i))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b",background:sel?hlBg:"transparent"}}>{p.nombre}</div>
+                <div key={p.id_jugadora} onClick={()=>go(()=>onGoToPlayer(p.id_jugadora),"jugadora")} onMouseEnter={()=>setSelectedIdx(idxOf("j",i))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b",background:sel?hlBg:"transparent"}}>{p.nombre}</div>
               );})}
             </>)}
             {results.equipos.length>0&&(<>
               <div style={{padding:"10px 16px 6px",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>🏟️ Equipos ({results.equipos.length})</div>
               {results.equipos.slice(0,8).map((e,i)=>{const sel=selectedIdx===idxOf("e",i);return(
-                <div key={e.id_equipo} onClick={()=>go(()=>onGoToTeam(e.id_equipo))} onMouseEnter={()=>setSelectedIdx(idxOf("e",i))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b",background:sel?hlBg:"transparent"}}>{e.nombre}</div>
+                <div key={e.id_equipo} onClick={()=>go(()=>onGoToTeam(e.id_equipo),"equipo")} onMouseEnter={()=>setSelectedIdx(idxOf("e",i))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b",background:sel?hlBg:"transparent"}}>{e.nombre}</div>
               );})}
             </>)}
             {results.ligas.length>0&&(<>
               <div style={{padding:"10px 16px 6px",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>🏆 Ligas ({results.ligas.length})</div>
               {results.ligas.slice(0,8).map((l,i)=>{const sel=selectedIdx===idxOf("l",i);return(
-                <div key={l.id_liga} onClick={()=>go(()=>onGoToLeague(l.id_liga))} onMouseEnter={()=>setSelectedIdx(idxOf("l",i))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b",background:sel?hlBg:"transparent"}}>{l.nombre}</div>
+                <div key={l.id_liga} onClick={()=>go(()=>onGoToLeague(l.id_liga),"liga")} onMouseEnter={()=>setSelectedIdx(idxOf("l",i))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b",background:sel?hlBg:"transparent"}}>{l.nombre}</div>
               );})}
             </>)}
             {results.coaches.length>0&&(<>
               <div style={{padding:"10px 16px 6px",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>📋 Cuerpo técnico ({results.coaches.length})</div>
               {results.coaches.slice(0,8).map((c,i)=>{const sel=selectedIdx===idxOf("c",i);return(
-                <div key={c.id_coach} onClick={()=>go(()=>onGoToCoach(c.id_coach))} onMouseEnter={()=>setSelectedIdx(idxOf("c",i))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b",background:sel?hlBg:"transparent"}}>{c.nombre}</div>
+                <div key={c.id_coach} onClick={()=>go(()=>onGoToCoach(c.id_coach),"coach")} onMouseEnter={()=>setSelectedIdx(idxOf("c",i))} style={{padding:"12px 16px",cursor:"pointer",color:"#fff",fontSize:"15px",borderBottom:"1px solid #1e293b",background:sel?hlBg:"transparent"}}>{c.nombre}</div>
               );})}
             </>)}
           </>):q.length>=2?(
@@ -235,7 +235,7 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
           {results.jugadoras.length>0&&(<>
             <div style={{padding:"10px 14px 6px",fontSize:"10px",color:"var(--fx-muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>👩‍🏀 Jugadoras ({results.jugadoras.length})</div>
             {results.jugadoras.slice(0,6).map(p=>(
-              <div key={p.id_jugadora} onClick={()=>go(()=>onGoToPlayer(p.id_jugadora))}
+              <div key={p.id_jugadora} onClick={()=>go(()=>onGoToPlayer(p.id_jugadora),"jugadora")}
                 style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 14px",cursor:"pointer",transition:"background 0.1s"}}
                 onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
                 onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
@@ -248,7 +248,7 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
           {results.equipos.length>0&&(<>
             <div style={{padding:"10px 14px 6px",fontSize:"10px",color:"var(--fx-muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",borderTop:"1px solid #1e293b"}}>🏟️ Equipos ({results.equipos.length})</div>
             {results.equipos.slice(0,4).map(e=>(
-              <div key={e.id_equipo} onClick={()=>go(()=>onGoToTeam(e.id_equipo))}
+              <div key={e.id_equipo} onClick={()=>go(()=>onGoToTeam(e.id_equipo),"equipo")}
                 style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 14px",cursor:"pointer"}}
                 onMouseEnter={ev=>ev.currentTarget.style.background="rgba(255,255,255,0.06)"}
                 onMouseLeave={ev=>ev.currentTarget.style.background="transparent"}>
@@ -261,7 +261,7 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
           {results.ligas.length>0&&(<>
             <div style={{padding:"10px 14px 6px",fontSize:"10px",color:"var(--fx-muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",borderTop:"1px solid #1e293b"}}>🏆 Ligas ({results.ligas.length})</div>
             {results.ligas.slice(0,4).map(l=>(
-              <div key={l.id_liga} onClick={()=>go(()=>onGoToLeague(l.id_liga))}
+              <div key={l.id_liga} onClick={()=>go(()=>onGoToLeague(l.id_liga),"liga")}
                 style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 14px",cursor:"pointer"}}
                 onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
                 onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
@@ -274,7 +274,7 @@ function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onG
           {results.coaches.length>0&&(<>
             <div style={{padding:"10px 14px 6px",fontSize:"10px",color:"var(--fx-muted)",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",borderTop:"1px solid #1e293b"}}>📋 Cuerpo Técnico ({results.coaches.length})</div>
             {results.coaches.slice(0,4).map(c=>(
-              <div key={c.id_coach} onClick={()=>go(()=>onGoToCoach(c.id_coach))}
+              <div key={c.id_coach} onClick={()=>go(()=>onGoToCoach(c.id_coach),"coach")}
                 style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 14px",cursor:"pointer"}}
                 onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
                 onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
@@ -1458,9 +1458,15 @@ export default function App(){
   },[]);
 
   // Analytics propio: 1 fila en `visitas` por cambio de tab. Admins excluidos.
+  useEffect(()=>{ setTrackContext({user,esAdmin:isAdmin}); },[user?.id,isAdmin]);
   useEffect(()=>{
     trackPageview(tab,{user,esAdmin:isAdmin});
   },[tab,user?.id,isAdmin]);
+  useEffect(()=>{
+    const h=()=>trackEvento("pwa_instalada",{},{user,esAdmin:isAdmin});
+    window.addEventListener("appinstalled",h);
+    return()=>window.removeEventListener("appinstalled",h);
+  },[user?.id,isAdmin]);
 
   const isFav=(tipo,idRef)=>favoritos.some(f=>f.tipo===tipo&&f.id_referencia===idRef);
   const toggleFav=async(tipo,idRef)=>{
@@ -1469,10 +1475,12 @@ export default function App(){
     if(ex){
       await supabase.from("favoritos").delete().eq("id",ex.id);
       setFavoritos(prev=>prev.filter(f=>f.id!==ex.id));
+      trackEvento("favorito_toggle",{tipo,id:idRef,accion:"quitar"},{user,esAdmin:isAdmin});
     }else{
       const {data}=await supabase.from("favoritos").insert({user_id:user.id,tipo,id_referencia:idRef}).select().single();
       if(data){
         setFavoritos(prev=>[...prev,data]);
+        trackEvento("favorito_toggle",{tipo,id:idRef,accion:"añadir"},{user,esAdmin:isAdmin});
         try{
           if(tipo==="jugadora") registrarEvento("fav_jugadora", idRef);
           else if(tipo==="equipo"){
