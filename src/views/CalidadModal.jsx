@@ -2931,8 +2931,9 @@ function ScrapersCustomTab({ ligas }) {
       const res = resp?.resultados?.[0] || {};
       if (!res.equipos_scraper) { setMsg(`⚠ ${res.error || "sin equipos"}`); setBusy(false); return; }
       const temporada = r.temporada || res.temporada;
-      // Equipos BD que jugaron la liga+temp
-      const { data: temps } = await supabase.from("temporadas").select("id_equipo").eq("id_liga", r.id_liga).eq("temporada", temporada);
+      // Equipos BD que hayan jugado esta liga en CUALQUIER temporada (el histórico
+      // incluye equipos aún sin temporada en el año actual pero que sí existen).
+      const { data: temps } = await supabase.from("temporadas").select("id_equipo").eq("id_liga", r.id_liga);
       const idsLiga = new Set((temps || []).map(t => t.id_equipo).filter(Boolean));
       const { data: allEq } = await supabase.from("equipos").select("id_equipo, nombre, escudo").in("id_equipo", [...idsLiga]);
       const equiposBD = (allEq || []).sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es"));
@@ -3066,7 +3067,7 @@ function ScrapersCustomTab({ ligas }) {
                 {expanded === r.id_liga && previewData[r.id_liga] && (
                   <div style={{ borderTop: "1px solid var(--fx-border2)", paddingTop: "10px", marginTop: "10px" }}>
                     <div style={{ fontSize: "11px", color: "var(--fx-muted)", marginBottom: "8px" }}>
-                      {previewData[r.id_liga].equipos_scraper.length} equipos en el scraper · {previewData[r.id_liga].equiposBD.length} en tu BD para esta liga+temporada · {previewData[r.id_liga].aliasesActuales.length} aliases ya guardados
+                      {previewData[r.id_liga].equipos_scraper.length} equipos en el scraper · {previewData[r.id_liga].equiposBD.length} en tu BD con histórico en esta liga · {previewData[r.id_liga].aliasesActuales.length} aliases ya guardados
                     </div>
                     <div style={{ border: "1px solid var(--fx-border)", borderRadius: "8px", overflow: "hidden" }}>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", padding: "6px 10px", background: "var(--fx-hover)", fontSize: "10px", fontWeight: 700, color: "var(--fx-muted)", textTransform: "uppercase" }}>
