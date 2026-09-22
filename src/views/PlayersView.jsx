@@ -249,6 +249,51 @@ function NacDropdown({allNacs,filterNacs,setFilterNacs}){
   );
 }
 
+function EquipoDropdown({allEquiposOpts,filterEquipos,setFilterEquipos}){
+  const t = useT();
+  const [open,setOpen]=useState(false);
+  const [q,setQ]=useState("");
+  const ref=useRef();
+  useEffect(()=>{
+    const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
+    document.addEventListener("mousedown",h);return()=>document.removeEventListener("mousedown",h);
+  },[]);
+  const label=filterEquipos.size===0?"Todos los equipos":(filterEquipos.size===1?"1 equipo":`${filterEquipos.size} equipos`);
+  const filtered=useMemo(()=>{
+    const nq=q.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+    return nq?allEquiposOpts.filter(e=>e.nombre.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").includes(nq)):allEquiposOpts;
+  },[q,allEquiposOpts]);
+  return(
+    <div className="bfdb-eq-dropdown" ref={ref} style={{position:"relative",flexShrink:0}}>
+      <div onClick={()=>setOpen(o=>!o)} style={{border:"1.5px solid var(--fx-border)",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:filterEquipos.size>0?"#9333ea":"#475569",background:"var(--fx-card)",cursor:"pointer",display:"flex",alignItems:"center",gap:"8px",whiteSpace:"nowrap",fontWeight:filterEquipos.size>0?700:400,minWidth:"200px",height:"40px",boxSizing:"border-box"}}>
+        {label}<span style={{marginLeft:"auto",fontSize:"10px"}}>▼</span>
+      </div>
+      {open&&(
+        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,zIndex:100,background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"12px",boxShadow:"0 8px 24px rgba(0,0,0,0.12)",minWidth:"260px",maxHeight:"340px",overflowY:"auto",padding:"8px 0"}}>
+          <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Buscar equipo…"
+            style={{margin:"0 10px 6px",padding:"6px 10px",width:"calc(100% - 20px)",boxSizing:"border-box",border:"1px solid var(--fx-border)",borderRadius:"8px",fontSize:"12px",background:"var(--fx-card)",color:"var(--fx-text)",outline:"none"}}/>
+          <div onClick={()=>{setFilterEquipos(new Set());}} style={{padding:"6px 14px",fontSize:"12px",color:"var(--fx-muted2)",cursor:"pointer",fontWeight:600,borderBottom:"1px solid var(--fx-border2)"}}>
+            {t("filter.limpiar")||"Limpiar"}
+          </div>
+          {filtered.slice(0,200).map(e=>{
+            const checked=filterEquipos.has(e.id_equipo);
+            return(
+              <label key={e.id_equipo} style={{display:"flex",alignItems:"center",gap:"8px",padding:"6px 14px",cursor:"pointer",background:checked?"var(--fx-amber-bg)":"transparent"}}
+                onMouseEnter={ev=>ev.currentTarget.style.background=checked?"var(--fx-amber-bg)":"var(--fx-hover)"}
+                onMouseLeave={ev=>ev.currentTarget.style.background=checked?"var(--fx-amber-bg)":"transparent"}>
+                <input type="checkbox" checked={checked} onChange={()=>setFilterEquipos(prev=>{const s=new Set(prev);checked?s.delete(e.id_equipo):s.add(e.id_equipo);return s;})} style={{accentColor:"#9333ea",width:"14px",height:"14px",flexShrink:0}}/>
+                {e.escudo?<img src={e.escudo} alt="" style={{width:"18px",height:"18px",objectFit:"contain",flexShrink:0}}/>:<div style={{width:"18px",height:"18px",background:"var(--fx-hover)",borderRadius:"3px",flexShrink:0}}/>}
+                <span style={{fontSize:"13px",color:"var(--fx-text)",fontWeight:checked?600:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.nombre}</span>
+              </label>
+            );
+          })}
+          {filtered.length>200&&<div style={{padding:"6px 14px",fontSize:"11px",color:"var(--fx-muted2)"}}>Mostrando 200 de {filtered.length} · afina la búsqueda</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StatsJugadora({idJugadora,equipos,ligas,equiposNombres,onOpenPartido}){
   const t = useT();
   const [rows,setRows]=useState(null);
@@ -374,6 +419,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   const [filterPos,setFilterPos]   = useState(_q.get("pos")||"");
   const [filterNacs,setFilterNacs] = useState(()=>{const n=_q.get("nac");return n?new Set(n.split(",").filter(Boolean)):new Set();});
   const [filterLiga,setFilterLiga] = useState(_q.get("liga")||"");
+  const [filterEquipos,setFilterEquipos] = useState(()=>{const e=_q.get("eq");return e?new Set(e.split(",").filter(Boolean)):new Set();});
   const [filterTemp,setFilterTemp] = useState(_q.get("temp")||"");
   const [filterStatus,setFilterStatus] = useState(_q.get("status")||"");
   const [soloAgentes,setSoloAgentes] = useState(_q.get("agentes")==="1");
@@ -390,12 +436,13 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     if(filterPos) params.set("pos",filterPos);
     if(filterNacs.size) params.set("nac",[...filterNacs].join(","));
     if(filterLiga) params.set("liga",filterLiga);
+    if(filterEquipos.size) params.set("eq",[...filterEquipos].join(","));
     if(filterTemp) params.set("temp",filterTemp);
     if(filterStatus) params.set("status",filterStatus);
     if(soloAgentes) params.set("agentes","1");
     const qs=params.toString();
     window.history.replaceState({},"",`/${seg}${qs?"?"+qs:""}`);
-  },[selId,search,filterPos,filterNacs,filterLiga,filterTemp,filterStatus,soloAgentes]);
+  },[selId,search,filterPos,filterNacs,filterLiga,filterEquipos,filterTemp,filterStatus,soloAgentes]);
   const [modal,setModal]           = useState(null);
   const [editSeason,setEditSeason] = useState(null);
   const [renewSeason,setRenewSeason] = useState(null);
@@ -456,6 +503,11 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     players.forEach(p=>(p.seasons||[]).forEach(s=>{const l=ligaMap[s.id_liga];if(l?.nombre)ligsSet.add(l.nombre);}));
     return [...ligsSet].sort((a,b)=>a.localeCompare(b,"es"));
   },[players,ligaMap]);
+  const allEquiposPlayer = useMemo(()=>{
+    const ids=new Set();
+    players.forEach(p=>(p.seasons||[]).forEach(s=>{if(s.id_equipo)ids.add(s.id_equipo);}));
+    return [...ids].map(id=>equipoMap[id]).filter(Boolean).sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"));
+  },[players,equipoMap]);
   const allTemps = useMemo(()=>[...new Set(players.flatMap(p=>(p.seasons||[]).map(s=>s.temporada)).filter(Boolean))].sort((a,b)=>b.localeCompare(a)),[players]);
   const seasonNow  = useMemo(()=>getCurrentSeason(players),[players]);
   const seasonPrev = useMemo(()=>seasonNow?prevSeasonOf(seasonNow):"",[seasonNow]);
@@ -474,17 +526,19 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
         seasons.some(s=>s.temporada===seasonPrev) &&
         !seasons.some(s=>s.temporada===seasonNow)
       );
+      const matchEquipos = filterEquipos.size===0 || seasons.some(s=>filterEquipos.has(s.id_equipo));
       return(!q||p.nombre?.toLowerCase().includes(q)||p.id_jugadora?.toLowerCase().includes(q)||p.nacionalidad?.toLowerCase().includes(q)||seasons.some(s=>equipoMap[s.id_equipo]?.nombre?.toLowerCase().includes(q)))
         &&(!filterPos||p.posicion===filterPos||p.posicion2===filterPos)
         &&(filterNacs.size===0||filterNacs.has(p.nacionalidad)||filterNacs.has(p.nacionalidad2))
         &&matchLigaTemp
+        &&matchEquipos
         &&(!filterStatus||playerStatus(p.nacionalidad,p.nacionalidad2)===filterStatus)
         &&matchAgente;
     }).sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||"","es"));
-  },[players,search,filterPos,filterNacs,filterLiga,filterTemp,filterStatus,soloAgentes,seasonNow,seasonPrev,ligaMap,equipoMap]);
+  },[players,search,filterPos,filterNacs,filterLiga,filterEquipos,filterTemp,filterStatus,soloAgentes,seasonNow,seasonPrev,ligaMap,equipoMap]);
 
   // Reset paginación al cambiar filtros
-  useEffect(()=>{setVisibleCount(60);},[search,filterPos,filterNacs,filterLiga,filterTemp,filterStatus,soloAgentes]);
+  useEffect(()=>{setVisibleCount(60);},[search,filterPos,filterNacs,filterLiga,filterEquipos,filterTemp,filterStatus,soloAgentes]);
 
   // IntersectionObserver para scroll infinito
   useEffect(()=>{
@@ -813,13 +867,14 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
         </select>
         <StatusDropdown filterStatus={filterStatus} setFilterStatus={setFilterStatus}/>
         <NacDropdown allNacs={allNacs} filterNacs={filterNacs} setFilterNacs={setFilterNacs}/>
+        <EquipoDropdown allEquiposOpts={allEquiposPlayer} filterEquipos={filterEquipos} setFilterEquipos={setFilterEquipos}/>
         <label title={seasonPrev&&seasonNow?`Jugadoras con equipo en ${seasonPrev} y sin equipo en ${seasonNow}`:""} style={{display:"flex",alignItems:"center",gap:"8px",border:"1.5px solid var(--fx-border)",borderRadius:"12px",padding:"10px 14px",fontSize:"13px",color:soloAgentes?"#9333ea":"#475569",background:"var(--fx-card)",cursor:"pointer",whiteSpace:"nowrap",fontWeight:soloAgentes?700:400,height:"40px",boxSizing:"border-box"}}>
           <input type="checkbox" checked={soloAgentes} onChange={e=>setSoloAgentes(e.target.checked)} style={{accentColor:"#9333ea",cursor:"pointer"}}/>
           Agentes libres
         </label>
       </div>
-      {(filterPos||filterLiga||filterTemp||filterStatus||filterNacs.size>0||soloAgentes)&&(
-        <button onClick={()=>{setFilterPos("");setFilterLiga("");setFilterTemp("");setFilterStatus("");setFilterNacs(new Set());setSoloAgentes(false);}}
+      {(filterPos||filterLiga||filterTemp||filterStatus||filterNacs.size>0||filterEquipos.size>0||soloAgentes)&&(
+        <button onClick={()=>{setFilterPos("");setFilterLiga("");setFilterTemp("");setFilterStatus("");setFilterNacs(new Set());setFilterEquipos(new Set());setSoloAgentes(false);}}
           style={{alignSelf:"flex-start",background:"var(--fx-hover)",color:"var(--fx-muted)",border:"1.5px solid var(--fx-border)",borderRadius:"20px",padding:"5px 14px",fontSize:"12px",fontWeight:700,cursor:"pointer",marginBottom:"4px"}}>
           ✕ Limpiar filtros
         </button>
@@ -833,6 +888,22 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
             </span>
           ))}
           <span onClick={()=>setFilterNacs(new Set())} style={{background:"var(--fx-hover)",color:"var(--fx-muted)",fontSize:"11px",fontWeight:600,padding:"2px 8px",borderRadius:"20px",cursor:"pointer"}}>✕ Limpiar</span>
+        </div>
+      )}
+      {filterEquipos.size>0&&(
+        <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"8px",alignItems:"center"}}>
+          <span style={{fontSize:"12px",color:"var(--fx-muted)"}}>Equipos:</span>
+          {[...filterEquipos].map(id=>{
+            const e=equipoMap[id];
+            return(
+              <span key={id} style={{background:"var(--fx-lila-bg)",border:"1.5px solid var(--fx-lila-border)",color:"#9333ea",fontSize:"11px",fontWeight:700,padding:"2px 8px",borderRadius:"20px",display:"inline-flex",alignItems:"center",gap:"4px"}}>
+                {e?.escudo?<img src={e.escudo} alt="" style={{width:"14px",height:"14px",objectFit:"contain"}}/>:null}
+                {e?.nombre||id}
+                <span onClick={()=>setFilterEquipos(prev=>{const s=new Set(prev);s.delete(id);return s;})} style={{cursor:"pointer",opacity:0.7,marginLeft:"2px"}}>✕</span>
+              </span>
+            );
+          })}
+          <span onClick={()=>setFilterEquipos(new Set())} style={{background:"var(--fx-hover)",color:"var(--fx-muted)",fontSize:"11px",fontWeight:600,padding:"2px 8px",borderRadius:"20px",cursor:"pointer"}}>✕ Limpiar</span>
         </div>
       )}
       <div style={{fontSize:"13px",color:"var(--fx-muted2)",marginBottom:"12px"}}>{filtered.length} jugadora{filtered.length!==1?"s":""}</div>
