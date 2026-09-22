@@ -15,7 +15,7 @@ import {
 } from "../lib/ui";
 
 function TeamForm({initial,onSave,onCancel,saving}){
-  const [f,setF]=useState({nombre:'',ciudad:'',pais:'',año_fundacion:'',escudo:'',tipo:'equipo',redes_sociales:'',pabellon:'',id_espn:'',id_fiba:'',id_ext:'',conferencia:'',...(initial||{})});
+  const [f,setF]=useState({nombre:'',ciudad:'',pais:'',año_fundacion:'',escudo:'',tipo:'club',redes_sociales:'',pabellon:'',id_espn:'',id_fiba:'',id_ext:'',conferencia:'',...(initial||{})});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
   const inp={width:'100%',border:'1.5px solid var(--fx-border)',borderRadius:'10px',padding:'9px 12px',fontSize:'14px',outline:'none',boxSizing:'border-box'};
   return(<div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
@@ -26,7 +26,7 @@ function TeamForm({initial,onSave,onCancel,saving}){
     </div>
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'12px'}}>
       <Fld label='Año fundación'><input style={inp} type='number' value={f.año_fundacion||''} onChange={set('año_fundacion')} placeholder='1994'/></Fld>
-      <Fld label='Tipo'><select style={inp} value={f.tipo||''} onChange={set('tipo')}><option value=''>— Sin definir —</option><option value='equipo'>Club</option><option value='seleccion'>Selección</option></select></Fld>
+      <Fld label='Tipo'><select style={inp} value={f.tipo||''} onChange={set('tipo')}><option value=''>— Sin definir —</option><option value='club'>Club</option><option value='seleccion'>Selección</option></select></Fld>
       <Fld label='Conferencia (WNBA)'><select style={inp} value={f.conferencia||''} onChange={set('conferencia')}><option value=''>—</option><option value='East'>East</option><option value='West'>West</option></select></Fld>
     </div>
     <EscudoPicker value={f.escudo} onChange={v=>setF(p=>({...p,escudo:v}))}/>

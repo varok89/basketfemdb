@@ -2409,7 +2409,9 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
   // al conjunto amplio (todos los clubes) para no bloquear la UI antes del fetch.
   const equiposBD = useMemo(() => {
     if (!idLiga) return [];
-    const base = equipos.filter(e => e.tipo === "club");
+    // Incluir 'equipo' y 'club' (los históricos son 'equipo', los creados por
+    // los scrapers son 'club'); excluir solo 'seleccion'.
+    const base = equipos.filter(e => e.tipo !== "seleccion");
     const filtered = equiposLigaTemp ? base.filter(e => equiposLigaTemp.has(e.id_equipo)) : base;
     return filtered.sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
   }, [idLiga, equipos, equiposLigaTemp]);
