@@ -1227,6 +1227,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       {key:"carreras",label:"🎓 Carreras jugadoras",count:0},
       {key:"lotes",label:"Alta por lotes",count:0},
       {key:"genius",label:"🔗 Genius Match",count:0},
+      {key:"scrapers-custom",label:"🔧 Scrapers custom",count:0},
     ]},{title:"🩺 Ops",items:[
       {key:"estado",label:"Estado sistema",count:0},
     ]}]:[]),
@@ -1480,6 +1481,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
             </div>
           )}
           {tab==="genius"&&<GeniusMatchTab ligas={ligas} equipos={equipos} setEquipos={setEquipos} setLigas={setLigas}/>}
+          {tab==="scrapers-custom"&&<ScrapersCustomTab ligas={ligas}/>}
           {tab==="lleno_fiba"&&(
             <div style={{padding:"4px"}}>
               <p style={{color: "var(--fx-muted)",fontSize:"13px",marginBottom:"14px"}}>
@@ -2857,6 +2859,154 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// ─── 🔧 Scrapers custom ─────────────────────────────────────
+// Sistema genérico: config en tabla scrapers_ligas + edge function
+// cargar-calendario-custom que enruta por `parser`. Ver esa función para
+// añadir parsers nuevos.
+const PARSERS_DISPONIBLES = [
+  { value: "flbb", label: "FLBB — luxembourg.basketball" },
+];
+const TZ_SUGERIDAS = ["Europe/Luxembourg", "Europe/Madrid", "Europe/Paris", "Europe/Berlin", "Europe/London", "UTC"];
+
+function ScrapersCustomTab({ ligas }) {
+  const [rows, setRows] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [nuevo, setNuevo] = useState({ id_liga: "", parser: "flbb", url_calendario: "", temporada: "", tz: "Europe/Luxembourg" });
+
+  const cargar = async () => {
+    const { data, error } = await supabase.from("scrapers_ligas").select("*").order("created_at", { ascending: false });
+    if (error) { setMsg(`⚠ ${error.message}`); return; }
+    setRows(data || []);
+  };
+  useEffect(() => { cargar(); }, []);
+
+  const guardar = async () => {
+    if (!nuevo.id_liga || !nuevo.parser || !nuevo.url_calendario) { setMsg("Faltan campos"); return; }
+    setBusy(true); setMsg("");
+    const payload = { ...nuevo, temporada: nuevo.temporada || null, activo: true };
+    const { error } = await supabase.from("scrapers_ligas").upsert(payload, { onConflict: "id_liga" });
+    if (error) { setMsg(`⚠ ${error.message}`); setBusy(false); return; }
+    setMsg("✅ Guardado");
+    setNuevo({ id_liga: "", parser: "flbb", url_calendario: "", temporada: "", tz: "Europe/Luxembourg" });
+    await cargar();
+    setBusy(false);
+  };
+
+  const correr = async (id_liga) => {
+    setBusy(true); setMsg(`⏳ Corriendo ${id_liga}…`);
+    try {
+      const r = await callFn("cargar-calendario-custom", { id_liga });
+      const res = r?.resultados?.[0] || {};
+      if (res.error) setMsg(`⚠ ${res.error}`);
+      else setMsg(`✅ ${res.total || 0} partidos · ${res.creados || 0} creados · ${res.actualizados || 0} actualizados · ${res.equipos_creados || 0} equipos nuevos${res.sin_fecha ? ` · ${res.sin_fecha} sin fecha` : ""}`);
+      await cargar();
+    } catch (e) { setMsg(`⚠ ${e.message || e}`); }
+    finally { setBusy(false); }
+  };
+
+  const toggle = async (id_liga, activo) => {
+    await supabase.from("scrapers_ligas").update({ activo: !activo }).eq("id_liga", id_liga);
+    await cargar();
+  };
+  const borrar = async (id_liga) => {
+    if (!confirm(`¿Borrar scraper para ${id_liga}?`)) return;
+    await supabase.from("scrapers_ligas").delete().eq("id_liga", id_liga);
+    await cargar();
+  };
+
+  const inp = { width: "100%", padding: "8px", borderRadius: "8px", border: "1.5px solid var(--fx-border)", fontSize: "13px", background: "var(--fx-card)", color: "var(--fx-text)", boxSizing: "border-box" };
+  const btn = (bg) => ({ background: bg, color: "#fff", border: "none", borderRadius: "8px", padding: "7px 12px", fontWeight: 700, fontSize: "12px", cursor: busy ? "default" : "pointer", opacity: busy ? 0.5 : 1 });
+
+  return (
+    <div style={{ padding: "8px", display: "flex", flexDirection: "column", gap: "14px" }}>
+      <p style={{ color: "var(--fx-muted)", fontSize: "12px", margin: 0 }}>
+        Scrapers de calendario para ligas que no están en Genius. Configura URL + parser, la app descarga y mete los partidos en la tabla. Los equipos se resuelven por nombre normalizado (crea nuevos si no existen).
+      </p>
+
+      {/* Formulario alta */}
+      <div style={{ border: "1.5px solid var(--fx-border)", borderRadius: "10px", padding: "12px", display: "grid", gap: "8px" }}>
+        <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--fx-label)" }}>➕ Añadir / actualizar scraper</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+          <div>
+            <label style={{ fontSize: "10px", color: "var(--fx-muted)" }}>Liga BD</label>
+            <select value={nuevo.id_liga} onChange={e => setNuevo({ ...nuevo, id_liga: e.target.value })} style={inp}>
+              <option value="">Selecciona liga…</option>
+              {ligas.slice().sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "")).map(l => (
+                <option key={l.id_liga} value={l.id_liga}>{l.nombre} ({l.pais})</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: "10px", color: "var(--fx-muted)" }}>Parser</label>
+            <select value={nuevo.parser} onChange={e => setNuevo({ ...nuevo, parser: e.target.value })} style={inp}>
+              {PARSERS_DISPONIBLES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+            </select>
+          </div>
+        </div>
+        <div>
+          <label style={{ fontSize: "10px", color: "var(--fx-muted)" }}>URL calendario</label>
+          <input value={nuevo.url_calendario} onChange={e => setNuevo({ ...nuevo, url_calendario: e.target.value })} placeholder="https://www.luxembourg.basketball/c/calendrier-resultat/2101/enovos-league-dames" style={inp} />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+          <div>
+            <label style={{ fontSize: "10px", color: "var(--fx-muted)" }}>Temporada (opcional, ej 2026-27)</label>
+            <input value={nuevo.temporada} onChange={e => setNuevo({ ...nuevo, temporada: e.target.value })} placeholder="auto si vacío" style={inp} />
+          </div>
+          <div>
+            <label style={{ fontSize: "10px", color: "var(--fx-muted)" }}>Timezone</label>
+            <select value={nuevo.tz} onChange={e => setNuevo({ ...nuevo, tz: e.target.value })} style={inp}>
+              {TZ_SUGERIDAS.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+        </div>
+        <div>
+          <button onClick={guardar} disabled={busy || !nuevo.id_liga || !nuevo.url_calendario} style={btn("#9333ea")}>
+            💾 Guardar scraper
+          </button>
+        </div>
+      </div>
+
+      {msg && <div style={{ fontSize: "12px", color: msg.startsWith("✅") ? "#16a34a" : msg.startsWith("⏳") ? "var(--fx-muted)" : "#dc2626" }}>{msg}</div>}
+
+      {/* Lista de scrapers configurados */}
+      <div>
+        <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--fx-label)", marginBottom: "6px" }}>Scrapers configurados ({rows?.length || 0})</div>
+        {rows === null && <div style={{ fontSize: "12px", color: "var(--fx-muted2)" }}>Cargando…</div>}
+        {rows?.length === 0 && <div style={{ fontSize: "12px", color: "var(--fx-muted2)" }}>Sin scrapers configurados. Añade uno arriba.</div>}
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {(rows || []).map(r => {
+            const liga = ligas.find(l => l.id_liga === r.id_liga);
+            const res = r.last_result || {};
+            return (
+              <div key={r.id_liga} style={{ border: "1.5px solid var(--fx-border)", borderRadius: "10px", padding: "10px 12px", background: r.activo ? "var(--fx-card)" : "var(--fx-hover)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: "13px", fontWeight: 700 }}>
+                      {liga?.nombre || r.id_liga} <span style={{ color: "var(--fx-muted2)", fontSize: "11px", fontWeight: 400 }}>· {r.parser} · {r.tz}</span>
+                    </div>
+                    <div style={{ fontSize: "10px", color: "var(--fx-muted2)", wordBreak: "break-all" }}>{r.url_calendario}</div>
+                    {r.last_run && (
+                      <div style={{ fontSize: "10px", color: "var(--fx-muted2)", marginTop: "2px" }}>
+                        Último run: {new Date(r.last_run).toLocaleString()} · {res.total || 0} partidos · {res.creados || 0} creados · {res.actualizados || 0} actualizados{res.error ? ` · ⚠ ${res.error}` : ""}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
+                    <button onClick={() => correr(r.id_liga)} disabled={busy || !r.activo} style={btn("#16a34a")}>▶ Correr</button>
+                    <button onClick={() => toggle(r.id_liga, r.activo)} disabled={busy} style={btn(r.activo ? "#64748b" : "#0369a1")}>{r.activo ? "⏸" : "▶"}</button>
+                    <button onClick={() => borrar(r.id_liga)} disabled={busy} style={btn("#dc2626")}>🗑</button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
