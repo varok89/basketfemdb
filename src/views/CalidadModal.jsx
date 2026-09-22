@@ -2389,13 +2389,19 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
   const [msg, setMsg] = useState("");
   const [seleccion, setSeleccion] = useState({});
   const [autoCandidatas, setAutoCandidatas] = useState(null); // [{org, fed, comp_id, nombre, score}]
+  const [temporadasLiga, setTemporadasLiga] = useState([]); // temporadas con equipos en esta liga
+  const [temporada, setTemporada] = useState("");
+  const [equiposLigaTemp, setEquiposLigaTemp] = useState(null); // Set<id_equipo> o null (sin filtro)
 
   const liga = ligas.find(l => l.id_liga === idLiga);
+  // Equipos de la liga+temporada elegida. Si aún no hay temporada cargada, cae
+  // al conjunto amplio (todos los clubes) para no bloquear la UI antes del fetch.
   const equiposBD = useMemo(() => {
     if (!idLiga) return [];
-    // Sugerencia: equipos con temporada en esta liga (cualquier año)
-    return equipos.filter(e => e.tipo === "club").sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
-  }, [idLiga, equipos]);
+    const base = equipos.filter(e => e.tipo === "club");
+    const filtered = equiposLigaTemp ? base.filter(e => equiposLigaTemp.has(e.id_equipo)) : base;
+    return filtered.sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
+  }, [idLiga, equipos, equiposLigaTemp]);
 
   // Precarga: si la liga elegida ya tiene genius_org/comp_id, precarga los campos
   useEffect(() => {
@@ -2403,7 +2409,30 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
     if (liga.genius_org) setOrg(liga.genius_org);
     if (liga.genius_comp_id) setCompId(String(liga.genius_comp_id));
     setComps(null); setEquiposGenius(null); setFedInfo(""); setCompInfo(""); setSeleccion({}); setAutoCandidatas(null);
+    setTemporadasLiga([]); setTemporada(""); setEquiposLigaTemp(null);
   }, [idLiga]);
+
+  // Cargar temporadas disponibles para la liga seleccionada
+  useEffect(() => {
+    if (!idLiga) return;
+    (async () => {
+      const { data } = await supabase.from("temporadas").select("temporada").eq("id_liga", idLiga);
+      const ts = [...new Set((data || []).map(r => r.temporada).filter(Boolean))].sort((a, b) => String(b).localeCompare(String(a)));
+      setTemporadasLiga(ts);
+      if (ts.length && !temporada) setTemporada(ts[0]); // más reciente por defecto
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idLiga]);
+
+  // Cargar equipos de la liga+temporada elegida
+  useEffect(() => {
+    if (!idLiga || !temporada) { setEquiposLigaTemp(null); return; }
+    (async () => {
+      const { data } = await supabase.from("temporadas").select("id_equipo").eq("id_liga", idLiga).eq("temporada", temporada);
+      const s = new Set((data || []).map(r => r.id_equipo).filter(Boolean));
+      setEquiposLigaTemp(s);
+    })();
+  }, [idLiga, temporada]);
 
   // Auto-detección: al elegir liga sin config Genius, prueba los orgs conocidos
   // del país, junta competiciones y ordena por similitud del nombre.
@@ -2503,10 +2532,14 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
   const preSeleccionar = (equiposGen) => {
     const nuevaSel = {};
     const nm = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+    // Restringe candidatos a los que juegan la liga+temporada elegida (si filtro activo).
+    const pool = equiposLigaTemp
+      ? equipos.filter(e => equiposLigaTemp.has(e.id_equipo))
+      : equipos;
     equiposGen.forEach(g => {
-      const porId = equipos.find(e => e.id_genius === g.id_genius);
+      const porId = pool.find(e => e.id_genius === g.id_genius);
       if (porId) { nuevaSel[g.id_genius] = porId.id_equipo; return; }
-      const porNombre = equipos.find(e => nm(e.nombre) === nm(g.nombre));
+      const porNombre = pool.find(e => nm(e.nombre) === nm(g.nombre));
       if (porNombre) nuevaSel[g.id_genius] = porNombre.id_equipo;
     });
     setSeleccion(nuevaSel);
@@ -2622,6 +2655,19 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
           ))}
         </select>
       </div>
+
+      {/* Selector de temporada: acota los equipos BD que aparecen en los dropdowns */}
+      {idLiga && (
+        <div>
+          <label style={{ fontSize: "11px", fontWeight: 700, color: "var(--fx-muted)", display: "block", marginBottom: "4px" }}>
+            2) TEMPORADA (para filtrar equipos BD) {equiposLigaTemp && <span style={{ color: "var(--fx-muted2)", fontWeight: 400 }}>· {equiposLigaTemp.size} equipos</span>}
+          </label>
+          <select value={temporada} onChange={e => setTemporada(e.target.value)} style={inp} disabled={!temporadasLiga.length}>
+            {!temporadasLiga.length && <option value="">Sin temporadas en BD para esta liga</option>}
+            {temporadasLiga.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+      )}
 
       {/* Autodetección: intenta encontrar la competición con solo el país+nombre de la liga */}
       {idLiga && !liga?.genius_org && (
