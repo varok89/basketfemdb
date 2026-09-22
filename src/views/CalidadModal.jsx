@@ -774,8 +774,9 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   useEffect(function(){
     (async function(){
       try{
-        var q=await supabase.from("jugadoras").select("id_jugadora",{count:"exact",head:true}).is("fecha_nac",null).not("id_feb","is",null);
-        setFebPend(q.count||0);
+        // RPC gemela de jugadoras_feb_sin_fecha_random: excluye cuarentena y jugadoras sin partido FEB scrapeado. El count directo sobre jugadoras sobre-contaba.
+        var q=await supabase.rpc("jugadoras_feb_pendientes_count");
+        setFebPend(q.data||0);
       }catch(e){}
     })();
   },[febRes]);
@@ -2349,6 +2350,32 @@ function parseGeniusUrl(url) {
   return null;
 }
 
+// Mapa país → códigos de organización Genius conocidos.
+// Ampliar según se descubran nuevos (ver documentación Notion 🔗 Genius Match).
+const PAIS_TO_ORGS = {
+  "Dinamarca": ["DAM"],
+  "Bélgica": ["BB"],
+  "Belgica": ["BB"],
+  "Reino Unido": ["WBBL"],
+  "Islandia": ["KKI"],
+  "Luxemburgo": ["FLBB"],
+};
+
+// Tokens genéricos que no aportan al fuzzy match de nombres de competición.
+const TOKENS_GENERICOS = new Set(["women","womens","womans","femenino","femenina","league","basketball","liga","cup","copa","division","div","premier","the","de","el","la","of","por","and","y","top","1","2","a","b"]);
+
+function tokensLimpios(s) {
+  return (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(t => t && !TOKENS_GENERICOS.has(t));
+}
+function scoreLigaVsComp(nombreLiga, nombreComp) {
+  const a = new Set(tokensLimpios(nombreLiga));
+  const b = new Set(tokensLimpios(nombreComp));
+  if (!a.size || !b.size) return 0;
+  let inter = 0; a.forEach(t => { if (b.has(t)) inter++; });
+  return inter / Math.max(a.size, b.size);
+}
+
 function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
   const [idLiga, setIdLiga] = useState("");
   const [org, setOrg] = useState("");
@@ -2361,6 +2388,7 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [seleccion, setSeleccion] = useState({});
+  const [autoCandidatas, setAutoCandidatas] = useState(null); // [{org, fed, comp_id, nombre, score}]
 
   const liga = ligas.find(l => l.id_liga === idLiga);
   const equiposBD = useMemo(() => {
@@ -2374,8 +2402,53 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
     if (!liga) return;
     if (liga.genius_org) setOrg(liga.genius_org);
     if (liga.genius_comp_id) setCompId(String(liga.genius_comp_id));
-    setComps(null); setEquiposGenius(null); setFedInfo(""); setCompInfo(""); setSeleccion({});
+    setComps(null); setEquiposGenius(null); setFedInfo(""); setCompInfo(""); setSeleccion({}); setAutoCandidatas(null);
   }, [idLiga]);
+
+  // Auto-detección: al elegir liga sin config Genius, prueba los orgs conocidos
+  // del país, junta competiciones y ordena por similitud del nombre.
+  const autodetectar = async () => {
+    if (!liga) return;
+    const orgs = PAIS_TO_ORGS[liga.pais] || [];
+    if (!orgs.length) {
+      setAutoCandidatas([]);
+      setMsg(`⚠ Sin orgs Genius conocidos para "${liga.pais}". Usa el pegado de URL o la búsqueda manual.`);
+      return;
+    }
+    setBusy(true); setMsg(""); setAutoCandidatas(null);
+    const todas = [];
+    const fallos = [];
+    for (const o of orgs) {
+      try {
+        const r = await callFn("genius-inspeccionar", { org: o });
+        if (!r?.ok) { fallos.push(`${o}: ${r?.error || "sin datos"}`); continue; }
+        (r.competiciones || []).forEach(c => {
+          todas.push({ org: o, fed: r.fed || o, comp_id: c.comp_id, nombre: c.nombre, score: scoreLigaVsComp(liga.nombre, c.nombre) });
+        });
+      } catch (e) { fallos.push(`${o}: ${String(e.message || e)}`); }
+    }
+    todas.sort((a, b) => b.score - a.score);
+    const top = todas.filter(c => c.score >= 0.2).slice(0, 5);
+    setAutoCandidatas(top);
+    if (!top.length) setMsg(`⚠ Ninguna competición coincide con "${liga.nombre}" en ${orgs.join(",")}. Usa el pegado manual.`);
+    else setMsg(`✅ ${top.length} candidata${top.length > 1 ? "s" : ""} — elige la correcta`);
+    setBusy(false);
+  };
+
+  const aplicarCandidata = async (c) => {
+    setOrg(c.org); setCompId(String(c.comp_id)); setFedInfo(c.fed);
+    setBusy(true); setMsg("");
+    try {
+      const r = await callFn("genius-inspeccionar", { org: c.org, comp_id: c.comp_id });
+      if (!r?.ok) throw new Error(r?.error || "Sin datos");
+      setEquiposGenius(r.equipos || []);
+      setCompInfo(r.comp || c.nombre);
+      preSeleccionar(r.equipos || []);
+      setAutoCandidatas(null);
+      setMsg(`✅ ${r.equipos?.length || 0} equipos cargados`);
+    } catch (e) { setMsg(`⚠ ${e.message || e}`); }
+    finally { setBusy(false); }
+  };
 
   const buscarComps = async () => {
     if (!org.trim()) { setMsg("Escribe el código Genius de la federación"); return; }
@@ -2486,6 +2559,49 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
     finally { setBusy(false); }
   };
 
+  // Vincula automáticamente todos los equipos pre-seleccionados por id_genius o
+  // por nombre exacto normalizado (los que la UI ya muestra rellenos). No toca
+  // los que el usuario deba resolver a mano.
+  const vincularSeguros = async () => {
+    const pares = Object.entries(seleccion).filter(([g, id]) => id && id !== "__new__");
+    if (!pares.length) { setMsg("⚠ Sin pre-mapeados que vincular"); return; }
+    setBusy(true); setMsg("");
+    let ok = 0, fail = 0;
+    for (const [id_genius, id_equipo] of pares) {
+      const bd = equipos.find(e => e.id_equipo === id_equipo);
+      if (bd?.id_genius === parseInt(id_genius, 10)) continue; // ya vinculado
+      const { error } = await supabase.rpc("genius_vincular_equipo", {
+        p_id_equipo: id_equipo, p_id_genius: parseInt(id_genius, 10),
+      });
+      if (error) { fail++; continue; }
+      ok++;
+      setEquipos && setEquipos(prev => prev.map(e => e.id_equipo === id_equipo ? { ...e, id_genius: parseInt(id_genius, 10) } : e));
+    }
+    setBusy(false);
+    setMsg(`${fail ? "⚠" : "✅"} Vinculados: ${ok} · Errores: ${fail}`);
+  };
+
+  // Guarda config Genius de la liga + invoca scraper de calendario en un click.
+  const guardarYCargarCalendario = async () => {
+    if (!idLiga || !org || !compId) return;
+    setBusy(true); setMsg("Guardando config…");
+    try {
+      const { error } = await supabase.from("ligas").update({
+        fuente_live: "genius", genius_org: org.toUpperCase(), genius_comp_id: parseInt(compId, 10),
+      }).eq("id_liga", idLiga);
+      if (error) throw error;
+      setLigas && setLigas(prev => prev.map(l => l.id_liga === idLiga
+        ? { ...l, fuente_live: "genius", genius_org: org.toUpperCase(), genius_comp_id: parseInt(compId, 10) }
+        : l));
+      setMsg("⏳ Cargando calendario…");
+      const r = await callFn("cargar-calendario-genius", { id_liga: idLiga });
+      if (r?.error) throw new Error(r.error);
+      const res = r?.resultados?.[0] || {};
+      setMsg(`✅ Guardada + calendario: ${res.creados ?? 0} creados · ${res.actualizados ?? 0} actualizados · ${res.equipos_creados ?? 0} equipos nuevos`);
+    } catch (e) { setMsg(`⚠ ${e.message || e}`); }
+    finally { setBusy(false); }
+  };
+
   const inp = { width: "100%", padding: "8px", borderRadius: "8px", border: "1.5px solid var(--fx-border)", fontSize: "13px", background: "var(--fx-card)", color: "var(--fx-text)", boxSizing: "border-box" };
 
   return (
@@ -2506,6 +2622,34 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
           ))}
         </select>
       </div>
+
+      {/* Autodetección: intenta encontrar la competición con solo el país+nombre de la liga */}
+      {idLiga && !liga?.genius_org && (
+        <div style={{ background: "var(--fx-lila-bg)", border: "1.5px solid var(--fx-lila-border)", borderRadius: "10px", padding: "12px" }}>
+          <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--fx-lila-text)", marginBottom: "8px" }}>
+            🪄 AUTODETECTAR desde el país de la liga
+          </div>
+          <div style={{ fontSize: "11px", color: "var(--fx-muted)", marginBottom: "8px" }}>
+            País: <b>{liga?.pais || "?"}</b> · Orgs conocidos: <b>{(PAIS_TO_ORGS[liga?.pais] || []).join(", ") || "ninguno"}</b>
+          </div>
+          <button onClick={autodetectar} disabled={busy || !(PAIS_TO_ORGS[liga?.pais] || []).length} style={{ background: "#9333ea", color: "#fff", border: "none", borderRadius: "8px", padding: "9px 14px", fontWeight: 700, fontSize: "12px", cursor: "pointer", opacity: (busy || !(PAIS_TO_ORGS[liga?.pais] || []).length) ? 0.5 : 1 }}>
+            {busy ? "Buscando…" : "🪄 Autodetectar competición"}
+          </button>
+          {autoCandidatas && autoCandidatas.length > 0 && (
+            <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "6px" }}>
+              {autoCandidatas.map((c, i) => (
+                <button key={`${c.org}-${c.comp_id}`} onClick={() => aplicarCandidata(c)} disabled={busy} style={{ textAlign: "left", background: i === 0 ? "var(--fx-green-bg)" : "var(--fx-card)", border: i === 0 ? "1.5px solid var(--fx-green-border)" : "1px solid var(--fx-border)", borderRadius: "8px", padding: "8px 12px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--fx-text)" }}>{c.nombre}</div>
+                    <div style={{ fontSize: "10px", color: "var(--fx-muted2)" }}>{c.fed} · {c.org} · comp_id {c.comp_id}</div>
+                  </div>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: c.score >= 0.5 ? "#16a34a" : "#a16207" }}>{Math.round(c.score * 100)}%</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Atajo: pegar URL Genius */}
       {idLiga && (
@@ -2606,14 +2750,22 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
             })}
           </div>
 
-          {/* Guardar config de liga */}
-          <div style={{ borderTop: "1px solid var(--fx-border)", paddingTop: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-            <div style={{ fontSize: "11px", color: "var(--fx-muted)" }}>
-              Cuando termines de mapear, guarda la config de la liga (marca <code>fuente_live='genius'</code> + org + comp_id) para que el scraper y el live tracker la usen.
+          {/* Acciones batch: vincular seguros + guardar config + guardar+scrape */}
+          <div style={{ borderTop: "1px solid var(--fx-border)", paddingTop: "12px", display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <button onClick={vincularSeguros} disabled={busy || Object.keys(seleccion).length === 0} style={{ background: "#9333ea", color: "#fff", border: "none", borderRadius: "8px", padding: "9px 14px", fontWeight: 700, fontSize: "12px", cursor: "pointer", opacity: (busy || Object.keys(seleccion).length === 0) ? 0.5 : 1 }}>
+                🪄 Vincular todos los seguros ({Object.keys(seleccion).length})
+              </button>
+              <button onClick={guardarConfigLiga} disabled={busy} style={{ background: "#0369a1", color: "#fff", border: "none", borderRadius: "8px", padding: "9px 14px", fontWeight: 700, fontSize: "12px", cursor: "pointer", opacity: busy ? 0.5 : 1 }}>
+                💾 Guardar config liga
+              </button>
+              <button onClick={guardarYCargarCalendario} disabled={busy} style={{ background: "#16a34a", color: "#fff", border: "none", borderRadius: "8px", padding: "9px 14px", fontWeight: 700, fontSize: "12px", cursor: "pointer", opacity: busy ? 0.5 : 1 }}>
+                🚀 Guardar + cargar calendario
+              </button>
             </div>
-            <button onClick={guardarConfigLiga} disabled={busy} style={{ background: "#0369a1", color: "#fff", border: "none", borderRadius: "8px", padding: "9px 16px", fontWeight: 700, fontSize: "12px", cursor: "pointer", opacity: busy ? 0.5 : 1, whiteSpace: "nowrap" }}>
-              💾 Guardar config liga
-            </button>
+            <div style={{ fontSize: "11px", color: "var(--fx-muted)" }}>
+              Vincular seguros ejecuta <code>genius_vincular_equipo</code> para todos los mapeos ya prellenados (por id_genius o nombre exacto). Guardar+cargar calendario marca <code>fuente_live='genius'</code> y dispara el scraper en un solo click.
+            </div>
           </div>
         </>
       )}
