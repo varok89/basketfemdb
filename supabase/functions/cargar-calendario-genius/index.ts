@@ -1,8 +1,9 @@
-// cargar-calendario-genius v3
-// v3: paginación real al cargar equipos (el .limit(20000) anterior cedía al
-//     max-rows del server ~1000 y se creaban duplicados). Además, red de
-//     seguridad en resolverEquipo: antes de crear, doble-check por SELECT
-//     directo por nombre normalizado. Consulta equipos_alias source='genius'.
+// cargar-calendario-genius v4
+// v4: itera todos los rounds (?roundNumber=N). El schedule sólo devuelve
+//     ~6 partidos por round; antes solo cargábamos round 0 (jornada actual)
+//     y perdíamos el resto de la temporada. Ahora extrae el max round del
+//     HTML inicial y hace fetch de cada round.
+// v3: paginación real al cargar equipos + red de seguridad anti-duplicados.
 // v2: base scraper Genius Sports hosted.dcd.shared.geniussports.com.
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -117,18 +118,43 @@ async function resolverEquipo(nombre: string, escudo: string | null, equiposMap:
   return nuevoId;
 }
 
-async function procesarLiga(liga: any, temporadaFijada?: string): Promise<any> {
-  if (!liga.genius_org || !liga.genius_comp_id) return { ok: false, id_liga: liga.id_liga, motivo: "sin genius_org/comp_id" };
-  const temporada = temporadaFijada || temporadaActual();
-  const tz = TZ_POR_PAIS[liga.pais || ""] || "UTC";
-  const url = `https://hosted.dcd.shared.geniussports.com/${liga.genius_org}/en/competition/${liga.genius_comp_id}/schedule?_cb=${Date.now()}`;
+async function fetchRound(baseUrl: string, roundNumber: number): Promise<string> {
+  const url = `${baseUrl}?roundNumber=${roundNumber}&_cb=${Date.now()}`;
   const r = await fetch(url, {
     headers: { "User-Agent": "Mozilla/5.0", "Accept": "text/html", "Cache-Control": "no-cache" },
     signal: AbortSignal.timeout(15000),
   });
-  if (!r.ok) return { ok: false, id_liga: liga.id_liga, motivo: `HTTP ${r.status}` };
-  const html = await r.text();
-  const partidos = parseSchedule(html);
+  if (!r.ok) return "";
+  return await r.text();
+}
+
+async function procesarLiga(liga: any, temporadaFijada?: string): Promise<any> {
+  if (!liga.genius_org || !liga.genius_comp_id) return { ok: false, id_liga: liga.id_liga, motivo: "sin genius_org/comp_id" };
+  const temporada = temporadaFijada || temporadaActual();
+  const tz = TZ_POR_PAIS[liga.pais || ""] || "UTC";
+  const baseUrl = `https://hosted.dcd.shared.geniussports.com/${liga.genius_org}/en/competition/${liga.genius_comp_id}/schedule`;
+
+  // El schedule inicial trae solo ~6 partidos (round actual). Extraer el max
+  // roundNumber del HTML e iterar. Fallback: si no hay rounds, usa la página base.
+  const htmlBase = await fetchRound(baseUrl, 0);
+  if (!htmlBase) return { ok: false, id_liga: liga.id_liga, motivo: "HTTP base" };
+  const rounds = [...htmlBase.matchAll(/roundNumber=(\d+)/g)].map(m => parseInt(m[1], 10)).filter(n => !isNaN(n));
+  const maxRound = rounds.length ? Math.max(...rounds) : 0;
+
+  const gameIds = new Set<string>();
+  const partidos: PartidoGenius[] = [];
+  const addPartidos = (html: string) => {
+    for (const p of parseSchedule(html)) {
+      if (gameIds.has(p.gameId)) continue;
+      gameIds.add(p.gameId);
+      partidos.push(p);
+    }
+  };
+  addPartidos(htmlBase);
+  for (let rn = 1; rn <= maxRound; rn++) {
+    const h = await fetchRound(baseUrl, rn);
+    if (h) addPartidos(h);
+  }
   if (partidos.length === 0) return { ok: true, id_liga: liga.id_liga, temporada, total_scrape: 0, motivo: "vacío" };
 
   const allTeams = await fetchAllTeams();
@@ -181,6 +207,7 @@ async function procesarLiga(liga: any, temporadaFijada?: string): Promise<any> {
 
   return {
     ok: true, id_liga: liga.id_liga, temporada, total_scrape: partidos.length,
+    rounds_procesados: maxRound + 1,
     creados, actualizados, sin_fecha: sinFecha,
     equipos_creados: equiposMap.size - startTeams,
     detalles: detalles.slice(0, 10),
