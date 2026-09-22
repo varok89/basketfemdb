@@ -2876,7 +2876,7 @@ function ScrapersCustomTab({ ligas }) {
   const [rows, setRows] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
-  const [nuevo, setNuevo] = useState({ id_liga: "", parser: "flbb", url_calendario: "", temporada: "", tz: "Europe/Luxembourg" });
+  const [nuevo, setNuevo] = useState({ id_liga: "", parser: "flbb", url_calendario: "", temporada: "", tz: "Europe/Luxembourg", genius_comp_id: "" });
   const [expanded, setExpanded] = useState(null); // id_liga con preview abierto
   const [previewData, setPreviewData] = useState({}); // { id_liga: { equipos_scraper, mapping, equiposBD, aliasesActuales } }
 
@@ -2890,13 +2890,26 @@ function ScrapersCustomTab({ ligas }) {
   const guardar = async () => {
     if (!nuevo.id_liga || !nuevo.parser || !nuevo.url_calendario) { setMsg("Faltan campos"); return; }
     setBusy(true); setMsg("");
-    const payload = { ...nuevo, temporada: nuevo.temporada || null, activo: true };
+    const payload = { ...nuevo, temporada: nuevo.temporada || null, genius_comp_id: nuevo.genius_comp_id ? parseInt(nuevo.genius_comp_id, 10) : null, activo: true };
     const { error } = await supabase.from("scrapers_ligas").upsert(payload, { onConflict: "id_liga" });
     if (error) { setMsg(`⚠ ${error.message}`); setBusy(false); return; }
     setMsg("✅ Guardado");
-    setNuevo({ id_liga: "", parser: "flbb", url_calendario: "", temporada: "", tz: "Europe/Luxembourg" });
+    setNuevo({ id_liga: "", parser: "flbb", url_calendario: "", temporada: "", tz: "Europe/Luxembourg", genius_comp_id: "" });
     await cargar();
     setBusy(false);
+  };
+
+  const descubrirCompId = async () => {
+    const g = window.prompt("Pega un gameId o URL de fibalivestats de CUALQUIER partido de la temporada actual (una vez por temporada). Ej: 2272899 o https://fibalivestats.dcd.shared.geniussports.com/u/LUX/2272899/");
+    if (!g) return;
+    setBusy(true); setMsg("⏳ Descubriendo compId…");
+    try {
+      const r = await callFn("cargar-calendario-custom", { discover_comp_id_from_game: g });
+      if (!r?.ok || !r.comp_id) { setMsg(`⚠ ${r?.error || "compId no encontrado"}`); setBusy(false); return; }
+      setNuevo(prev => ({ ...prev, genius_comp_id: String(r.comp_id) }));
+      setMsg(`✅ compId ${r.comp_id} detectado`);
+    } catch (e) { setMsg(`⚠ ${e.message || e}`); }
+    finally { setBusy(false); }
   };
 
   const correr = async (id_liga) => {
@@ -3025,6 +3038,16 @@ function ScrapersCustomTab({ ligas }) {
             </select>
           </div>
         </div>
+        <div style={{ background: "var(--fx-lila-bg)", border: "1.5px solid var(--fx-lila-border)", borderRadius: "8px", padding: "8px 10px" }}>
+          <label style={{ fontSize: "10px", color: "var(--fx-lila-text)", fontWeight: 700 }}>🎬 compId fibalivestats (opcional — auto-vincula gameIds para live+boxscore)</label>
+          <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
+            <input value={nuevo.genius_comp_id} onChange={e => setNuevo({ ...nuevo, genius_comp_id: e.target.value.replace(/\D/g, "") })} placeholder="ej 34171" style={{ ...inp, flex: 1 }} />
+            <button onClick={descubrirCompId} disabled={busy} style={btn("#0369a1")}>🔍 Extraer de gameId</button>
+          </div>
+          <div style={{ fontSize: "10px", color: "var(--fx-muted2)", marginTop: "4px" }}>
+            Con esto, cada corrida del cron descarga la lista de matchIds de fibalivestats y los vincula automáticamente a los partidos por fecha+equipos. Uno solo por temporada.
+          </div>
+        </div>
         <div>
           <button onClick={guardar} disabled={busy || !nuevo.id_liga || !nuevo.url_calendario} style={btn("#9333ea")}>
             💾 Guardar scraper
@@ -3048,12 +3071,12 @@ function ScrapersCustomTab({ ligas }) {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: "13px", fontWeight: 700 }}>
-                      {liga?.nombre || r.id_liga} <span style={{ color: "var(--fx-muted2)", fontSize: "11px", fontWeight: 400 }}>· {r.parser} · {r.tz}</span>
+                      {liga?.nombre || r.id_liga} <span style={{ color: "var(--fx-muted2)", fontSize: "11px", fontWeight: 400 }}>· {r.parser} · {r.tz}{r.genius_comp_id ? ` · 🎬 compId ${r.genius_comp_id}` : ""}</span>
                     </div>
                     <div style={{ fontSize: "10px", color: "var(--fx-muted2)", wordBreak: "break-all" }}>{r.url_calendario}</div>
                     {r.last_run && (
                       <div style={{ fontSize: "10px", color: "var(--fx-muted2)", marginTop: "2px" }}>
-                        Último run: {new Date(r.last_run).toLocaleString()} · {res.total || 0} partidos · {res.creados || 0} creados · {res.actualizados || 0} actualizados{res.error ? ` · ⚠ ${res.error}` : ""}
+                        Último run: {new Date(r.last_run).toLocaleString()} · {res.total || 0} partidos · {res.creados || 0} creados · {res.actualizados || 0} actualizados{res.auto_fibalive?.vinculados ? ` · 🎬 ${res.auto_fibalive.vinculados} vinculados fibalive` : ""}{res.error ? ` · ⚠ ${res.error}` : ""}
                       </div>
                     )}
                   </div>
