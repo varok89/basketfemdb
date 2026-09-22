@@ -2877,6 +2877,8 @@ function ScrapersCustomTab({ ligas }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [nuevo, setNuevo] = useState({ id_liga: "", parser: "flbb", url_calendario: "", temporada: "", tz: "Europe/Luxembourg" });
+  const [expanded, setExpanded] = useState(null); // id_liga con preview abierto
+  const [previewData, setPreviewData] = useState({}); // { id_liga: { equipos_scraper, mapping, equiposBD, aliasesActuales } }
 
   const cargar = async () => {
     const { data, error } = await supabase.from("scrapers_ligas").select("*").order("created_at", { ascending: false });
@@ -2917,6 +2919,64 @@ function ScrapersCustomTab({ ligas }) {
     if (!confirm(`¿Borrar scraper para ${id_liga}?`)) return;
     await supabase.from("scrapers_ligas").delete().eq("id_liga", id_liga);
     await cargar();
+  };
+
+  // Pre-vincular: descarga URL en modo preview y muestra equipos parseados
+  // con dropdown de equipos BD de esa liga+temporada para mapearlos.
+  const preVincular = async (r) => {
+    if (expanded === r.id_liga) { setExpanded(null); return; }
+    setBusy(true); setMsg(`⏳ Descargando ${r.id_liga}…`);
+    try {
+      const resp = await callFn("cargar-calendario-custom", { id_liga: r.id_liga, preview: true });
+      const res = resp?.resultados?.[0] || {};
+      if (!res.equipos_scraper) { setMsg(`⚠ ${res.error || "sin equipos"}`); setBusy(false); return; }
+      const temporada = r.temporada || res.temporada;
+      // Equipos BD que jugaron la liga+temp
+      const { data: temps } = await supabase.from("temporadas").select("id_equipo").eq("id_liga", r.id_liga).eq("temporada", temporada);
+      const idsLiga = new Set((temps || []).map(t => t.id_equipo).filter(Boolean));
+      const { data: allEq } = await supabase.from("equipos").select("id_equipo, nombre, escudo").in("id_equipo", [...idsLiga]);
+      const equiposBD = (allEq || []).sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es"));
+      // Aliases ya guardados para este parser
+      const { data: aliasesActuales } = await supabase.from("equipos_alias").select("id_equipo, alias, alias_normalizado").eq("source", r.parser);
+      // Pre-mapping: por alias existente, por nombre normalizado idéntico
+      const nm = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+      const aliasByNorm = new Map((aliasesActuales || []).map(a => [a.alias_normalizado, a.id_equipo]));
+      const mapping = {};
+      res.equipos_scraper.forEach(e => {
+        const key = nm(e.nombre);
+        if (aliasByNorm.has(key)) { mapping[e.nombre] = aliasByNorm.get(key); return; }
+        const porNombre = equiposBD.find(bd => nm(bd.nombre) === key);
+        if (porNombre) mapping[e.nombre] = porNombre.id_equipo;
+      });
+      setPreviewData(prev => ({ ...prev, [r.id_liga]: { equipos_scraper: res.equipos_scraper, mapping, equiposBD, aliasesActuales: aliasesActuales || [], total_partidos: res.total_partidos } }));
+      setExpanded(r.id_liga);
+      setMsg(`✅ ${res.equipos_scraper.length} equipos parseados · ${res.total_partidos} partidos`);
+    } catch (e) { setMsg(`⚠ ${e.message || e}`); }
+    finally { setBusy(false); }
+  };
+
+  const setMap = (id_liga, nombreScraper, id_equipo) => {
+    setPreviewData(prev => ({ ...prev, [id_liga]: { ...prev[id_liga], mapping: { ...prev[id_liga].mapping, [nombreScraper]: id_equipo } } }));
+  };
+
+  const guardarAliases = async (r) => {
+    const pv = previewData[r.id_liga];
+    if (!pv) return;
+    const yaExisten = new Set(pv.aliasesActuales.map(a => a.alias_normalizado));
+    const nm = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+    const insertar = [];
+    Object.entries(pv.mapping).forEach(([nombre, id_equipo]) => {
+      if (!id_equipo || id_equipo === "__new__") return;
+      const alias_normalizado = nm(nombre);
+      if (yaExisten.has(alias_normalizado)) return; // evita duplicado (unique source+alias_normalizado)
+      insertar.push({ id_equipo, source: r.parser, alias: nombre, alias_normalizado });
+    });
+    if (!insertar.length) { setMsg("ℹ Sin cambios nuevos"); return; }
+    setBusy(true); setMsg(`⏳ Guardando ${insertar.length} aliases…`);
+    const { error } = await supabase.from("equipos_alias").insert(insertar);
+    if (error) setMsg(`⚠ ${error.message}`);
+    else setMsg(`✅ ${insertar.length} aliases guardados. Ya puedes correr el scraper.`);
+    setBusy(false);
   };
 
   const inp = { width: "100%", padding: "8px", borderRadius: "8px", border: "1.5px solid var(--fx-border)", fontSize: "13px", background: "var(--fx-card)", color: "var(--fx-text)", boxSizing: "border-box" };
@@ -2996,12 +3056,48 @@ function ScrapersCustomTab({ ligas }) {
                       </div>
                     )}
                   </div>
-                  <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
+                  <div style={{ display: "flex", gap: "6px", flexShrink: 0, flexWrap: "wrap" }}>
+                    <button onClick={() => preVincular(r)} disabled={busy || !r.activo} style={btn("#9333ea")}>🔍 {expanded === r.id_liga ? "Cerrar" : "Pre-vincular"}</button>
                     <button onClick={() => correr(r.id_liga)} disabled={busy || !r.activo} style={btn("#16a34a")}>▶ Correr</button>
                     <button onClick={() => toggle(r.id_liga, r.activo)} disabled={busy} style={btn(r.activo ? "#64748b" : "#0369a1")}>{r.activo ? "⏸" : "▶"}</button>
                     <button onClick={() => borrar(r.id_liga)} disabled={busy} style={btn("#dc2626")}>🗑</button>
                   </div>
                 </div>
+                {expanded === r.id_liga && previewData[r.id_liga] && (
+                  <div style={{ borderTop: "1px solid var(--fx-border2)", paddingTop: "10px", marginTop: "10px" }}>
+                    <div style={{ fontSize: "11px", color: "var(--fx-muted)", marginBottom: "8px" }}>
+                      {previewData[r.id_liga].equipos_scraper.length} equipos en el scraper · {previewData[r.id_liga].equiposBD.length} en tu BD para esta liga+temporada · {previewData[r.id_liga].aliasesActuales.length} aliases ya guardados
+                    </div>
+                    <div style={{ border: "1px solid var(--fx-border)", borderRadius: "8px", overflow: "hidden" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", padding: "6px 10px", background: "var(--fx-hover)", fontSize: "10px", fontWeight: 700, color: "var(--fx-muted)", textTransform: "uppercase" }}>
+                        <div>Scraper ({r.parser})</div><div>Equipo BD</div>
+                      </div>
+                      {previewData[r.id_liga].equipos_scraper.map(e => {
+                        const sel = previewData[r.id_liga].mapping[e.nombre] || "";
+                        return (
+                          <div key={e.nombre} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", padding: "6px 10px", alignItems: "center", borderTop: "1px solid var(--fx-border2)" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+                              {e.logo && <img src={e.logo} alt="" style={{ width: "18px", height: "18px", objectFit: "contain", flexShrink: 0 }} />}
+                              <span style={{ fontSize: "12px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.nombre}</span>
+                            </div>
+                            <select value={sel} onChange={ev => setMap(r.id_liga, e.nombre, ev.target.value)} style={{ ...inp, padding: "5px 8px", fontSize: "12px" }}>
+                              <option value="">— crear nuevo —</option>
+                              {previewData[r.id_liga].equiposBD.map(bd => (
+                                <option key={bd.id_equipo} value={bd.id_equipo}>{bd.nombre} ({bd.id_equipo})</option>
+                              ))}
+                            </select>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+                      <button onClick={() => guardarAliases(r)} disabled={busy} style={btn("#9333ea")}>💾 Guardar aliases</button>
+                      <span style={{ fontSize: "11px", color: "var(--fx-muted2)", alignSelf: "center" }}>
+                        Los "— crear nuevo —" se crearán como equipos club al correr el scraper.
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}

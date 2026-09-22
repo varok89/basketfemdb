@@ -87,7 +87,7 @@ const PARSERS: Record<string, (html: string, tz: string) => PartidoParseado[]> =
   flbb: parseFlbb,
 };
 
-async function procesarLiga(cfg: any): Promise<any> {
+async function procesarLiga(cfg: any, opts: { preview?: boolean } = {}): Promise<any> {
   const parser = PARSERS[cfg.parser];
   if (!parser) return { ok: false, id_liga: cfg.id_liga, error: `Parser desconocido: ${cfg.parser}` };
   const temporada = cfg.temporada || temporadaActual();
@@ -104,6 +104,17 @@ async function procesarLiga(cfg: any): Promise<any> {
   const partidos = parser(html, cfg.tz || "UTC");
   if (!partidos.length) return { ok: true, id_liga: cfg.id_liga, temporada, total: 0, mensaje: "sin partidos parseables" };
 
+  // Modo preview: sólo devolver los equipos únicos parseados sin escribir nada.
+  if (opts.preview) {
+    const uniq = new Map<string, { nombre: string; logo: string | null }>();
+    for (const p of partidos) {
+      if (!uniq.has(norm(p.local_nombre))) uniq.set(norm(p.local_nombre), { nombre: p.local_nombre, logo: p.local_logo || null });
+      if (!uniq.has(norm(p.visit_nombre))) uniq.set(norm(p.visit_nombre), { nombre: p.visit_nombre, logo: p.visit_logo || null });
+    }
+    const equiposScraper = [...uniq.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+    return { ok: true, id_liga: cfg.id_liga, temporada, total_partidos: partidos.length, equipos_scraper: equiposScraper };
+  }
+
   const { data: allTeams } = await sb.from("equipos").select("id_equipo, nombre").limit(20000);
   const equiposMap = new Map<string, string>();
   let maxNum = 0;
@@ -112,13 +123,18 @@ async function procesarLiga(cfg: any): Promise<any> {
     const n = parseInt(String(e.id_equipo).replace(/^E/, ""), 10);
     if (!isNaN(n) && n > maxNum) maxNum = n;
   });
+  // Cargar aliases de esta fuente para resolver nombres alternativos primero.
+  const { data: aliases } = await sb.from("equipos_alias").select("id_equipo, alias_normalizado").eq("source", cfg.parser);
+  const aliasMap = new Map<string, string>();
+  (aliases || []).forEach(a => aliasMap.set(a.alias_normalizado, a.id_equipo));
   const startTeams = equiposMap.size;
   let nextId = maxNum + 1;
 
   async function resolverEquipo(nombre: string, escudo: string | null): Promise<string> {
     const clave = norm(nombre);
-    if (equiposMap.has(clave)) return equiposMap.get(clave)!;
-    const nuevoId = `E${nextId++}`;
+    if (aliasMap.has(clave)) return aliasMap.get(clave)!;      // 1º alias configurado
+    if (equiposMap.has(clave)) return equiposMap.get(clave)!;  // 2º nombre normalizado
+    const nuevoId = `E${nextId++}`;                            // 3º crear nuevo
     const { error } = await sb.from("equipos").insert({ id_equipo: nuevoId, nombre, escudo, tipo: "club" });
     if (error) throw new Error(`Crear ${nombre}: ${error.message}`);
     equiposMap.set(clave, nuevoId);
@@ -188,9 +204,10 @@ Deno.serve(async (req) => {
     const { data: cfgs, error } = await q;
     if (error) return json({ ok: false, error: error.message }, 500);
     if (!cfgs || cfgs.length === 0) return json({ ok: true, mensaje: "Sin scrapers custom activos" });
+    const preview = !!body.preview;
     const resultados: any[] = [];
     for (const cfg of cfgs) {
-      try { resultados.push(await procesarLiga(cfg)); }
+      try { resultados.push(await procesarLiga(cfg, { preview })); }
       catch (e) { resultados.push({ ok: false, id_liga: cfg.id_liga, error: String(e) }); }
     }
     return json({ ok: true, procesadas: resultados.length, resultados });
