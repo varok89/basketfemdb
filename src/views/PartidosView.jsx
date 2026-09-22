@@ -252,10 +252,25 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
     return ()=>{cancel=true;};
   },[idPartido,reloadTick]);
   const editorEl=editing&&<BoxscoreEditor idPartido={idPartido} local={local} visit={visit} rosterLocal={rosterLocal} rosterVisit={rosterVisit} onClose={()=>setEditing(false)} onSaved={()=>setReloadTick(x=>x+1)}/>;
+  const vincularTracker=async()=>{
+    const {data}=await supabase.from("partidos").select("id_ext_fibalive").eq("id",idPartido).maybeSingle();
+    const actual=data?.id_ext_fibalive||"";
+    const nuevo=window.prompt(`gameId de fibalivestats (URL /u/XXX/{gameId}/…). Vacío = quitar.\nActual: ${actual||"(sin vincular)"}`,actual);
+    if(nuevo===null)return;
+    const val=nuevo.trim().match(/(\d{5,})/)?.[1]||null;
+    const {error}=await supabase.from("partidos").update({id_ext_fibalive:val}).eq("id",idPartido);
+    if(error){alert("Error: "+error.message);return;}
+    const r=await callFn("actualizar-resultados-genius",{id_partido:idPartido});
+    alert(val?`✅ Vinculado a ${val}. ${r?.resultado?.terminado?"Boxscore cargado.":"Live activado (o partido futuro)."}`:"✅ Desvinculado.");
+    setReloadTick(x=>x+1);
+  };
   if((rows===null||rows.length===0)&&isAdmin)return(<>
     <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"16px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:"10px"}}>
       <div style={{fontSize:"13px",color:"var(--fx-muted)"}}>Este partido no tiene boxscore todavía.</div>
-      <button onClick={()=>setEditing(true)} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"9px 16px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>✏️ Añadir boxscore</button>
+      <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
+        <button onClick={vincularTracker} style={{background:"var(--fx-hover)",color:"var(--fx-label)",border:"none",borderRadius:"10px",padding:"9px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>🎬 Vincular tracker</button>
+        <button onClick={()=>setEditing(true)} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"9px 16px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>✏️ Añadir boxscore</button>
+      </div>
     </div>
     {editorEl}
   </>);
@@ -276,9 +291,12 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
 
   return(<>
     <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"16px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",overflowX:"auto"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"0 0 12px",gap:"10px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"0 0 12px",gap:"10px",flexWrap:"wrap"}}>
         <h2 style={{fontWeight:800,fontSize:"16px",color:"var(--fx-text)",margin:0}}>{t("players.tab.stats")}</h2>
-        {isAdmin&&<button onClick={()=>setEditing(true)} style={{background:"var(--fx-hover)",color:"var(--fx-label)",border:"none",borderRadius:"10px",padding:"6px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>✏️ Editar boxscore</button>}
+        {isAdmin&&<div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
+          <button onClick={vincularTracker} style={{background:"var(--fx-hover)",color:"var(--fx-label)",border:"none",borderRadius:"10px",padding:"6px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>🎬 Vincular tracker</button>
+          <button onClick={()=>setEditing(true)} style={{background:"var(--fx-hover)",color:"var(--fx-label)",border:"none",borderRadius:"10px",padding:"6px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>✏️ Editar boxscore</button>
+        </div>}
       </div>
       <div style={{display:"flex",gap:"8px",marginBottom:"14px"}}>
         {tabBtn("ambos",<><Esc e={local}/><Esc e={visit}/></>)}
