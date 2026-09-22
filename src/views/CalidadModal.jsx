@@ -2498,6 +2498,17 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
       setMsg("⚠ URL no reconocida. Formatos válidos: hosted.dcd.shared.geniussports.com/{ORG}/… o fibalivestats.dcd.shared.geniussports.com/u/{ORG}/{gameId}/");
       return;
     }
+    // Los slugs de /u/{X}/ en fibalivestats NO son siempre orgs válidos del
+    // hosted.dcd.shared (ej: /u/LUX/... viene de Luxemburgo pero su org real es
+    // FLBB). Si la liga tiene país con orgs conocidos y solo tenemos gameId
+    // (no comp_id), atajamos directo a autodetectar por país.
+    const orgsPais = liga ? (PAIS_TO_ORGS[liga.pais] || []) : [];
+    const esTrackerSospechoso = parsed.gameId && !parsed.comp_id;
+    if (esTrackerSospechoso && orgsPais.length && !orgsPais.includes(parsed.org)) {
+      setMsg(`ℹ URL de tracker con slug "${parsed.org}" — usando org conocido de ${liga.pais}: ${orgsPais.join(", ")}`);
+      await autodetectar();
+      return;
+    }
     setOrg(parsed.org);
     setMsg(`✅ Detectado org=${parsed.org}${parsed.comp_id ? ` · comp_id=${parsed.comp_id}` : ""}${parsed.gameId ? ` · gameId=${parsed.gameId}` : ""}`);
     if (parsed.comp_id) {
@@ -2512,7 +2523,15 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
         setFedInfo(r.fed || "");
         preSeleccionar(r.equipos || []);
         setMsg(`✅ ${r.equipos?.length || 0} equipos cargados directamente`);
-      } catch (e) { setMsg(`⚠ ${e.message || e}`); }
+      } catch (e) {
+        // Fallback: si el país tiene orgs conocidos, prueba autodetectar.
+        if (orgsPais.length) {
+          setMsg(`⚠ Fallo con org "${parsed.org}" — probando autodetección por país…`);
+          await autodetectar();
+        } else {
+          setMsg(`⚠ ${e.message || e}`);
+        }
+      }
       finally { setBusy(false); }
     } else {
       // Solo org → listar competiciones para elegir
@@ -2523,7 +2542,14 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
         setComps(r.competiciones || []);
         setFedInfo(r.fed || "");
         setMsg(`✅ ${r.competiciones?.length || 0} competiciones — elige una`);
-      } catch (e) { setMsg(`⚠ ${e.message || e}`); }
+      } catch (e) {
+        if (orgsPais.length) {
+          setMsg(`⚠ Fallo con org "${parsed.org}" — probando autodetección por país…`);
+          await autodetectar();
+        } else {
+          setMsg(`⚠ ${e.message || e}`);
+        }
+      }
       finally { setBusy(false); }
     }
   };
