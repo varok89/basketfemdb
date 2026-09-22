@@ -2358,7 +2358,7 @@ const PAIS_TO_ORGS = {
   "Belgica": ["BB"],
   "Reino Unido": ["WBBL"],
   "Islandia": ["KKI"],
-  "Luxemburgo": ["FLBB"],
+  "Luxemburgo": ["FLB"],
 };
 
 // Tokens genéricos que no aportan al fuzzy match de nombres de competición.
@@ -2457,9 +2457,14 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
       } catch (e) { fallos.push(`${o}: ${String(e.message || e)}`); }
     }
     todas.sort((a, b) => b.score - a.score);
-    const top = todas.filter(c => c.score >= 0.2).slice(0, 5);
+    // Si el fuzzy no encuentra nada (típico con acrónimos tipo LBBL vs "Women
+    // First Division"), muestra igualmente las top competiciones para que el
+    // usuario elija a ojo. Mejor que quedarse sin opciones.
+    const conMatch = todas.filter(c => c.score >= 0.2);
+    const top = conMatch.length ? conMatch.slice(0, 5) : todas.slice(0, 8);
     setAutoCandidatas(top);
-    if (!top.length) setMsg(`⚠ Ninguna competición coincide con "${liga.nombre}" en ${orgs.join(",")}. Usa el pegado manual.`);
+    if (!todas.length) setMsg(`⚠ ${orgs.join(",")} no devolvió competiciones. ${fallos.join(" · ") || ""}`);
+    else if (!conMatch.length) setMsg(`ℹ Sin match automático para "${liga.nombre}". Elige a mano entre las ${todas.length} de ${orgs.join(",")}.`);
     else setMsg(`✅ ${top.length} candidata${top.length > 1 ? "s" : ""} — elige la correcta`);
     setBusy(false);
   };
