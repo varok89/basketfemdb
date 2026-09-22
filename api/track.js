@@ -19,10 +19,18 @@ module.exports = async (req, res) => {
   if (!path || !session_id) { res.status(400).json({ error: "path + session_id required" }); return; }
   const referrer = body.referrer ? String(body.referrer).slice(0, 2000) : null;
   const id_usuario = body.id_usuario || null;
+  const evento = body.evento ? String(body.evento).slice(0, 60) : null;
+  let meta = null;
+  if (body.meta && typeof body.meta === "object") {
+    try {
+      const s = JSON.stringify(body.meta);
+      if (s.length <= 2000) meta = body.meta;
+    } catch {}
+  }
   const ua = String(req.headers["user-agent"] || "").slice(0, 500) || null;
   const pais = String(req.headers["x-vercel-ip-country"] || "").slice(0, 4).toUpperCase() || null;
   const ciudad = req.headers["x-vercel-ip-city"] ? decodeURIComponent(req.headers["x-vercel-ip-city"]) : null;
-  const row = { path, referrer, user_agent: ua, pais, session_id, id_usuario };
+  const row = { path, referrer, user_agent: ua, pais, session_id, id_usuario, evento, meta };
   if (ciudad) row.ciudad = String(ciudad).slice(0, 100);
   const { error } = await supabase.from("visitas").insert(row);
   if (error) { res.status(500).json({ error: error.message }); return; }

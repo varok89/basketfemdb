@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from "react";
 import { supabase, callFn, fetchAll } from "./lib/supabaseClient";
 import { LOGROS, LOGROS_BY_SLUG, CATEGORIAS, initLogros, registrarEvento, onLogroDesbloqueado, getEstadoLogros } from "./lib/logros";
+import { trackPageview } from "./lib/track";
 import { AVATAR_PRESETS, UserAvatar } from "./lib/avatar";
 import { useT, useLang, setLang, locale } from "./lib/i18n";
 
@@ -1031,7 +1032,7 @@ function AnalyticsPanel({onClose}){
       const desde=new Date(Date.now()-dias*24*3600*1000).toISOString();
       // Traemos todas las filas de la ventana y agregamos en cliente (barato hasta ~50k filas)
       const {data:rows,error}=await supabase.from("visitas")
-        .select("created_at,path,session_id,id_usuario,referrer,user_agent,pais,ciudad")
+        .select("created_at,path,session_id,id_usuario,referrer,user_agent,pais,ciudad,evento,meta")
         .gte("created_at",desde)
         .order("created_at",{ascending:false})
         .limit(50000);
@@ -1039,7 +1040,7 @@ function AnalyticsPanel({onClose}){
       if(error){setErr(error.message);setLoading(false);return;}
       const BOT=/bot|spider|crawler|preview|headless|lighthouse|slurp|facebookexternalhit|pingdom|uptime/i;
       const clean=(rows||[]).filter(r=>!r.user_agent||!BOT.test(r.user_agent));
-      const byDay={},byPath={},byRef={},sesDay={},byPais={},byCiudad={},byDisp={},byBrow={};
+      const byDay={},byPath={},byRef={},sesDay={},byPais={},byCiudad={},byDisp={},byBrow={},byEvento={};
       let anon=0,auth=0;
       const detectaDisp=ua=>/Mobi|Android|iPhone|iPad|iPod/i.test(ua)?"📱 Móvil":/Tablet|iPad/i.test(ua)?"🔲 Tablet":"🖥️ Desktop";
       const detectaBrow=ua=>{
@@ -1052,6 +1053,7 @@ function AnalyticsPanel({onClose}){
       };
       for(const r of clean){
         const d=new Date(r.created_at).toISOString().slice(0,10);
+        if(r.evento){byEvento[r.evento]=(byEvento[r.evento]||0)+1;continue;}
         byDay[d]=(byDay[d]||0)+1;
         byPath[r.path]=(byPath[r.path]||0)+1;
         const ref=(r.referrer||"").replace(/^https?:\/\/(www\.)?/,"").split("/")[0]||"(directo)";
@@ -1094,8 +1096,11 @@ function AnalyticsPanel({onClose}){
       });
       const topDisp=Object.entries(byDisp).sort((a,b)=>b[1]-a[1]);
       const topBrow=Object.entries(byBrow).sort((a,b)=>b[1]-a[1]);
-      const totalSes=new Set(clean.map(r=>r.session_id)).size;
-      setData({total:clean.length+extraTotal,brutas:rows?.length||0,ses:totalSes+extraSes,anon,auth,dayKeys,serieVisitas,serieSesiones,topPaths,topRefs,topPais,topCiudad,topDisp,topBrow,extraTotal,extraSes});
+      const topEventos=Object.entries(byEvento).sort((a,b)=>b[1]-a[1]);
+      const totalEventos=topEventos.reduce((a,[,n])=>a+n,0);
+      const pageviewsClean=clean.filter(r=>!r.evento);
+      const totalSes=new Set(pageviewsClean.map(r=>r.session_id)).size;
+      setData({total:pageviewsClean.length+extraTotal,brutas:rows?.length||0,ses:totalSes+extraSes,anon,auth,dayKeys,serieVisitas,serieSesiones,topPaths,topRefs,topPais,topCiudad,topDisp,topBrow,topEventos,totalEventos,extraTotal,extraSes});
       setLoading(false);
     })();
     return ()=>{cancel=true;};
@@ -1138,7 +1143,8 @@ function AnalyticsPanel({onClose}){
             <MetricCard label="Sesiones únicas" value={data.ses.toLocaleString(locale())}/>
             <MetricCard label="Anónimas" value={data.anon.toLocaleString(locale())}/>
             <MetricCard label="Logueadas" value={data.auth.toLocaleString(locale())}/>
-            {data.brutas!==data.total&&<MetricCard label="Bots filtrados" value={(data.brutas-data.total).toLocaleString(locale())}/>}
+            {data.totalEventos>0&&<MetricCard label="Eventos custom" value={data.totalEventos.toLocaleString(locale())}/>}
+            {data.brutas!==data.total+data.totalEventos&&<MetricCard label="Bots filtrados" value={(data.brutas-data.total-data.totalEventos).toLocaleString(locale())}/>}
           </div>
           <div style={{background:"var(--fx-card)",borderRadius:"14px",padding:"16px",marginBottom:"16px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px",flexWrap:"wrap",gap:"6px"}}>
@@ -1195,6 +1201,7 @@ function AnalyticsPanel({onClose}){
             <TablaTop titulo="Top referrers" filas={data.topRefs}/>
             <TablaTop titulo="Dispositivo" filas={data.topDisp}/>
             <TablaTop titulo="Navegador" filas={data.topBrow}/>
+            {data.topEventos.length>0&&<TablaTop titulo="🎯 Eventos custom" filas={data.topEventos}/>}
           </div>
         </>}
       </div>
@@ -1450,31 +1457,10 @@ export default function App(){
     return ()=>subscription.unsubscribe();
   },[]);
 
-  // Analytics propio: 1 fila en `visitas` por cambio de tab. session_id persiste
-  // en localStorage; se renueva si no hay actividad en 30 min.
+  // Analytics propio: 1 fila en `visitas` por cambio de tab. Admins excluidos.
   useEffect(()=>{
-    if(!tab)return;
-    try{
-      const now=Date.now();
-      let sid=null,last=0;
-      try{sid=localStorage.getItem("bf_sid");last=parseInt(localStorage.getItem("bf_sid_ts")||"0",10);}catch{}
-      if(!sid||now-last>30*60*1000){
-        sid=Math.random().toString(36).slice(2,10)+now.toString(36);
-        try{localStorage.setItem("bf_sid",sid);}catch{}
-      }
-      try{localStorage.setItem("bf_sid_ts",String(now));}catch{}
-      // /api/track añade país/ciudad desde headers x-vercel-ip-*. Si falla, fallback a INSERT directo.
-      const payload={path:String(tab).slice(0,500),referrer:(document.referrer||"").slice(0,2000)||null,session_id:sid,id_usuario:user?.id||null};
-      fetch("/api/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),keepalive:true})
-        .then(r=>{ if(!r.ok) throw 0; })
-        .catch(()=>{
-          supabase.from("visitas").insert({
-            ...payload,
-            user_agent:(navigator.userAgent||"").slice(0,500)||null
-          }).then(()=>{},()=>{});
-        });
-    }catch{/* silent */}
-  },[tab,user?.id]);
+    trackPageview(tab,{user,esAdmin:isAdmin});
+  },[tab,user?.id,isAdmin]);
 
   const isFav=(tipo,idRef)=>favoritos.some(f=>f.tipo===tipo&&f.id_referencia===idRef);
   const toggleFav=async(tipo,idRef)=>{
