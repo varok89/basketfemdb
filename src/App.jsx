@@ -68,6 +68,7 @@ const PerfilPublicoModal = lazyWithRetry(() => import("./views/PerfilPublicoModa
 const PrivacidadView = lazyWithRetry(() => import("./views/PrivacidadView"));
 const QuinielaView = lazyWithRetry(() => import("./views/MundialViews"));
 const ComparadorView = lazyWithRetry(() => import("./views/ComparadorView"));
+const HoyView = lazyWithRetry(() => import("./views/HoyView"));
 
 import {
   POSITIONS, TIPO_LABELS, TIPO_COLORS, CHIP_STYLES, POS_C,
@@ -799,6 +800,8 @@ function PerfilView({user,favoritos,onClose,onLogout}){
   const [alias,setAlias]=useState("");
   const [aliasMsg,setAliasMsg]=useState("");
   const [savingAlias,setSavingAlias]=useState(false);
+  const [homePref,setHomePref]=useState("hoy");
+  const [homePrefMsg,setHomePrefMsg]=useState("");
   const [counts,setCounts]=useState({basketneta:0,bola:0});
   const [avatar,setAvatar]=useState(null);
   const [avatarMsg,setAvatarMsg]=useState("");
@@ -809,9 +812,10 @@ function PerfilView({user,favoritos,onClose,onLogout}){
   const [deleteErr,setDeleteErr]=useState("");
 
   useEffect(()=>{(async()=>{
-    const {data:pf}=await supabase.from("perfiles").select("alias,avatar").eq("id",user.id).maybeSingle();
+    const {data:pf}=await supabase.from("perfiles").select("alias,avatar,home_default").eq("id",user.id).maybeSingle();
     setAlias(pf?.alias||"");
     setAvatar(pf?.avatar||null);
+    setHomePref(pf?.home_default||"hoy");
     const [bn,bo]=await Promise.all([
       supabase.from("basketneta_predicciones").select("*",{count:"exact",head:true}).eq("user_id",user.id),
       supabase.from("bola_cristal_predicciones").select("*",{count:"exact",head:true}).eq("user_id",user.id),
@@ -927,6 +931,27 @@ function PerfilView({user,favoritos,onClose,onLogout}){
         </div>
         {aliasMsg&&<div style={{fontSize:"11px",color:"#16a34a",marginTop:"6px",fontWeight:700}}>{aliasMsg}</div>}
         <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginTop:"6px"}}>{t("profile.alias_hint")}</div>
+      </div>
+
+      {/* home por defecto */}
+      <div style={{background:"var(--fx-card)",borderRadius:"12px",padding:"14px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",marginBottom:"14px"}}>
+        <div style={{fontSize:"12px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"6px"}}>{t("profile.home_label")}</div>
+        <select value={homePref} onChange={async e=>{
+          const v=e.target.value;setHomePref(v);
+          const {error}=await supabase.from("perfiles").update({home_default:v}).eq("id",user.id);
+          setHomePrefMsg(error?t("common.error"):t("profile.saved"));setTimeout(()=>setHomePrefMsg(""),1500);
+        }} style={{width:"100%",padding:"8px 10px",borderRadius:"8px",border:"1px solid #cbd5e1",fontSize:"13px",background:"var(--fx-card)",color:"var(--fx-text)"}}>
+          <option value="hoy">{t("tab.hoy")}</option>
+          <option value="home">{t("tab.home")}</option>
+          <option value="favoritos">{t("tab.favoritos")}</option>
+          <option value="jugadoras">{t("tab.jugadoras")}</option>
+          <option value="equipos">{t("tab.equipos")}</option>
+          <option value="ligas">{t("tab.ligas")}</option>
+          <option value="partidos">{t("tab.partidos")}</option>
+          <option value="quiniela">{t("tab.quiniela")}</option>
+        </select>
+        {homePrefMsg&&<div style={{fontSize:"11px",color:"#16a34a",marginTop:"6px",fontWeight:700}}>{homePrefMsg}</div>}
+        <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginTop:"6px"}}>{t("profile.home_hint")}</div>
       </div>
 
       {/* stats */}
@@ -1423,7 +1448,8 @@ export default function App(){
   useDropdownA11y({open:menuOpen,onClose:useCallback(()=>setMenuOpen(false),[]),panelRef:menuPanelRef});
   const [showPrivacidad,setShowPrivacidad] = useState(false);
   const [showPerfil,setShowPerfil] = useState(false);
-  const [tab,setTabRaw] = useState("home");
+  const [tab,setTabRaw] = useState("hoy");
+  const [homeDefault,setHomeDefault] = useState(null);
   const setTab = (v)=>{setShowPerfil(false);setTabRaw(v);try{registrarEvento("visita_tab",v);}catch{}};
 
   useEffect(()=>{
@@ -1433,7 +1459,7 @@ export default function App(){
       if(u){
         const {data:isAdm}=await supabase.rpc("is_admin");
         setIsAdmin(!!isAdm);
-        try{const {data:pf}=await supabase.from("perfiles").select("tema").eq("id",u.id).maybeSingle();if(pf?.tema){setTemaRaw(pf.tema);try{localStorage.setItem("bfdb-tema",pf.tema);}catch(e){}}}catch(e){}
+        try{const {data:pf}=await supabase.from("perfiles").select("tema,home_default").eq("id",u.id).maybeSingle();if(pf?.tema){setTemaRaw(pf.tema);try{localStorage.setItem("bfdb-tema",pf.tema);}catch(e){}}if(pf?.home_default){setHomeDefault(pf.home_default);if(window.location.pathname==="/"&&pf.home_default!=="hoy")setTabRaw(pf.home_default);}}catch(e){}
         const {data}=await supabase.from("favoritos").select("*").eq("user_id",u.id);
         setFavoritos(data||[]);
         checkPushStatus();
@@ -1447,7 +1473,7 @@ export default function App(){
           await registrarEvento("login",{});
           await registrarEvento("prediccion",{n:0}); // evalúa debut_quinielero + analista sin sumar
         }catch(e){ console.warn("logros init",e); }
-      }else{setIsAdmin(false);setFavoritos([]);setNotificaciones([]);setNotifCount(0);initLogros(null);}
+      }else{setIsAdmin(false);setFavoritos([]);setNotificaciones([]);setNotifCount(0);setHomeDefault(null);initLogros(null);}
     };
     supabase.auth.getSession().then(({data:{session}})=>setupUser(session));
     const {data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
@@ -1796,7 +1822,8 @@ export default function App(){
     if(parts[0]==="privacidad"){setShowPrivacidad(true);return;}else{setShowPrivacidad(false);}
     if(parts[0]==="jugadoras"||parts[0]==="equipos"||parts[0]==="coaches"||parts[0]==="ligas"||parts[0]==="partidos")setTab(parts[0]==="coaches"?"cuerpo_tecnico":parts[0]);
     else if(parts[0]==="comparar")setTab("comparar");
-    else if(parts.length===0)setTab("home");
+    else if(parts[0]==="mercado")setTab("home");
+    else if(parts.length===0)setTab("hoy");
   };
 
   useEffect(()=>{
@@ -1814,7 +1841,7 @@ export default function App(){
     return()=>window.removeEventListener("popstate",onPopState);
   },[]);
 
-  const TABS=[["home","✍️",t("tab.home")],...(user?[["favoritos","⭐",t("tab.favoritos")]]:[]),["jugadoras","👩‍🏀",t("tab.jugadoras")],["equipos","🏟️",t("tab.equipos")],["ligas","🏆",t("tab.ligas")],["cuerpo_tecnico","📋",t("tab.cuerpo_tecnico")],["ranking_fiba","🌐",t("tab.ranking_fiba")],["partidos","📺",t("tab.partidos")],["comparar","⚖️",t("tab.comparar")],["quiniela","🎯",t("tab.quiniela")]];
+  const TABS=[["hoy","📅",t("tab.hoy")],["home","✍️",t("tab.home")],...(user?[["favoritos","⭐",t("tab.favoritos")]]:[]),["jugadoras","👩‍🏀",t("tab.jugadoras")],["equipos","🏟️",t("tab.equipos")],["ligas","🏆",t("tab.ligas")],["cuerpo_tecnico","📋",t("tab.cuerpo_tecnico")],["ranking_fiba","🌐",t("tab.ranking_fiba")],["partidos","📺",t("tab.partidos")],["comparar","⚖️",t("tab.comparar")],["quiniela","🎯",t("tab.quiniela")]];
 
   // Alertas rápidas de calidad de datos (solo admin, sobre datos ya cargados)
   const calidadAlertas=useMemo(()=>{
@@ -1968,6 +1995,7 @@ export default function App(){
         {showPerfil&&user&&<PerfilView user={user} favoritos={favoritos} onClose={()=>setShowPerfil(false)} onLogout={()=>{handleLogout();setShowPerfil(false);}}/>}
         {showPrivacidad&&<Suspense fallback={<GridSkel n={6} cards={false}/>}><PrivacidadView onBack={()=>{setShowPrivacidad(false);window.history.back();}}/></Suspense>}
         {!showPrivacidad&&!showPerfil&&tab==="favoritos"&&user&&<FavoritosView players={players} equipos={equipos} ligas={ligas} partidos={partidos} favoritos={favoritos} user={user} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToPartido={goToPartido} isFavFn={isFav} onToggleFav={toggleFav}/>}
+        {!showPrivacidad&&!showPerfil&&tab==="hoy"&&<Suspense fallback={<GridSkel n={6} cards={false}/>}><HoyView partidos={partidos} equipos={equipos} ligas={ligas} user={user} favoritos={favoritos} onToggleFav={toggleFav} onGoToPartido={goToPartido} onGoToTeam={goToTeam} onGoToLeague={goToLeague} lang={lang}/></Suspense>}
         {!showPrivacidad&&!showPerfil&&tab==="home"&&<HomeView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToTab={t=>setTab(t)} equiposNombres={equiposNombres} user={user} favoritos={favoritos} onGoToLeague={goToLeague}/>}
         {!showPrivacidad&&!showPerfil&&tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setPlayers={setPlayers} setTempCoach={setTempCoach} onGoToPartido={goToPartido} regExtra={regExtra} isFavFn={isFav} onToggleFav={toggleFav}/>}
         {!showPerfil&&tab==="equipos"  &&<TeamsView equipos={equipos} players={players} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToCoach={goToCoach} onGoToLeague={goToLeague} openTeamId={openTeamId} openTeamYear={openTeamYear} onClearTeam={()=>{setOpenTeamId(null);setOpenTeamYear(null);}} isAdmin={isAdmin} onReload={loadAll} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setEquipos={setEquipos} setEquiposNombres={setEquiposNombres} setPlayers={setPlayers} setPalmares={setPalmares} regExtra={regExtra} onGoToPartido={goToPartido} isFavFn={isFav} onToggleFav={toggleFav}/>}

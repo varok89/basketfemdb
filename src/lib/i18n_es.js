@@ -3,7 +3,10 @@ export const STRINGS_ES = {
   "lang.other_name": "English",
   "lang.switch_to_other": "Cambiar a English",
 
+  "tab.hoy": "Hoy",
   "tab.home": "Mercado",
+  "profile.home_label": "Página de inicio por defecto",
+  "profile.home_hint": "Al entrar a la app te llevará directamente a esta sección.",
   "tab.favoritos": "Favoritos",
   "tab.jugadoras": "Jugadoras",
   "tab.equipos": "Equipos",
