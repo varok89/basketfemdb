@@ -2352,14 +2352,23 @@ function parseGeniusUrl(url) {
 
 // Mapa país → códigos de organización Genius conocidos.
 // Ampliar según se descubran nuevos (ver documentación Notion 🔗 Genius Match).
+// Slugs de organización en hosted.dcd.shared.geniussports.com/{ORG}/en/schedule.
+// Verificados con curl al schedule real. OJO: el slug de una fed en el tracker
+// fibalivestats /u/{slug}/ NO tiene por qué coincidir con el slug de hosted.
+// Ejemplo: Luxemburgo aparece como /u/LUX/... en tracker pero NO tiene endpoint
+// hosted conocido (FLB es Líbano, no Luxemburgo).
 const PAIS_TO_ORGS = {
   "Dinamarca": ["DAM"],
   "Bélgica": ["BB"],
   "Belgica": ["BB"],
   "Reino Unido": ["WBBL"],
   "Islandia": ["KKI"],
-  "Luxemburgo": ["FLB"],
+  "Luxemburgo": ["LUX"], // Slug del tracker fibalivestats. hosted.dcd/LUX devuelve 200 vacío — solo hay partidos individuales, no calendario. Ver mensaje explicativo en autodetectar().
 };
+
+// Palabras que descartan una competición aunque haya score fuzzy: toda la BD
+// es baloncesto femenino, así que Men/Boys/Masculino nunca son candidatas.
+const RX_NO_FEMENINO = /\b(men|men's|mens|boys|masculino|masculin|maschile|maschili|herren|homens|homme|hommes|man)\b/i;
 
 // Tokens genéricos que no aportan al fuzzy match de nombres de competición.
 const TOKENS_GENERICOS = new Set(["women","womens","womans","femenino","femenina","league","basketball","liga","cup","copa","division","div","premier","the","de","el","la","of","por","and","y","top","1","2","a","b"]);
@@ -2452,6 +2461,7 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
         const r = await callFn("genius-inspeccionar", { org: o });
         if (!r?.ok) { fallos.push(`${o}: ${r?.error || "sin datos"}`); continue; }
         (r.competiciones || []).forEach(c => {
+          if (RX_NO_FEMENINO.test(c.nombre)) return; // toda la BD es femenina
           todas.push({ org: o, fed: r.fed || o, comp_id: c.comp_id, nombre: c.nombre, score: scoreLigaVsComp(liga.nombre, c.nombre) });
         });
       } catch (e) { fallos.push(`${o}: ${String(e.message || e)}`); }
@@ -2463,8 +2473,9 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
     const conMatch = todas.filter(c => c.score >= 0.2);
     const top = conMatch.length ? conMatch.slice(0, 5) : todas.slice(0, 8);
     setAutoCandidatas(top);
-    if (!todas.length) setMsg(`⚠ ${orgs.join(",")} no devolvió competiciones. ${fallos.join(" · ") || ""}`);
-    else if (!conMatch.length) setMsg(`ℹ Sin match automático para "${liga.nombre}". Elige a mano entre las ${todas.length} de ${orgs.join(",")}.`);
+    if (!todas.length) {
+      setMsg(`⚠ ${orgs.join(",")} no publica calendario en hosted.dcd (solo tracker de partidos individuales por gameId). No podemos autodetectar competición ni cargar calendario para esta liga. ${fallos.join(" · ") || ""}`);
+    } else if (!conMatch.length) setMsg(`ℹ Sin match automático para "${liga.nombre}". Elige a mano entre las ${todas.length} de ${orgs.join(",")}.`);
     else setMsg(`✅ ${top.length} candidata${top.length > 1 ? "s" : ""} — elige la correcta`);
     setBusy(false);
   };
