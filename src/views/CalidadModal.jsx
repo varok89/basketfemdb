@@ -2430,6 +2430,7 @@ const PAIS_TO_ORGS = {
   "Luxemburgo": ["LUX"], // Slug del tracker fibalivestats. hosted.dcd/LUX devuelve 200 vacío — solo hay partidos individuales, no calendario. Ver mensaje explicativo en autodetectar().
   "República Checa": ["CBFFE"], // Mismo caso que LUX: hosted.dcd/CBFFE responde 200 con body vacío. Fed usa Genius solo para tracker por gameId.
   "Republica Checa": ["CBFFE"],
+  "Eslovaquia": ["SBA"], // Slovak Basketball Association — liga "Tipos EXZ 2026-27" (Extraliga Žien). hosted.dcd/SBA vacío; solo tracker fibalive por gameId.
 };
 
 // Palabras que descartan una competición aunque haya score fuzzy: toda la BD
