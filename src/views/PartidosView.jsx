@@ -180,7 +180,7 @@ function emptyBoxRow(idEquipo,nombre,idJugadora,dorsal){
   BOX_NUM_COLS.forEach(k=>{r[k]=0;});
   return r;
 }
-function BoxscoreEditor({idPartido,local,visit,rosterLocal,rosterVisit,onClose,onSaved}){
+function BoxscoreEditor({idPartido,local,visit,rosterLocal,rosterVisit,allJug,onClose,onSaved}){
   const [rows,setRows]=useState(null);
   const [saving,setSaving]=useState(false);
   const [err,setErr]=useState("");
@@ -232,20 +232,48 @@ function BoxscoreEditor({idPartido,local,visit,rosterLocal,rosterVisit,onClose,o
   const th={padding:"6px 4px",fontSize:"10px",fontWeight:700,color:"var(--fx-muted2)",textTransform:"uppercase",letterSpacing:"0.3px",whiteSpace:"nowrap",textAlign:"center",borderBottom:"2px solid var(--fx-border2)"};
   const td={padding:"4px 4px",borderBottom:"1px solid var(--fx-border2)",verticalAlign:"middle"};
   const equipoLabel=idEq=>idEq===local?.id_equipo?(local?.nombre||"Local"):idEq===visit?.id_equipo?(visit?.nombre||"Visitante"):"—";
+  const normQ=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
   const AddRosterBtn=({idEquipo,roster,label})=>{
     const [open,setOpen]=useState(false);
+    const [mode,setMode]=useState("roster"); // roster | buscar
+    const [q,setQ]=useState("");
     const usados=new Set(rows.filter(r=>r.id_equipo===idEquipo&&r.id_jugadora).map(r=>r.id_jugadora));
     const disponibles=(roster||[]).filter(p=>!usados.has(p.id_jugadora));
+    const busqueda=useMemo(()=>{
+      if(mode!=="buscar"||q.trim().length<2) return [];
+      const nq=normQ(q.trim());
+      return (allJug||[]).filter(p=>!usados.has(p.id_jugadora)&&normQ(p.nombre).includes(nq)).slice(0,30);
+    },[mode,q,usados]);
+    const cerrar=()=>{setOpen(false);setMode("roster");setQ("");};
     return(
       <div style={{position:"relative",display:"inline-block"}}>
         <button onClick={()=>setOpen(o=>!o)} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"8px",padding:"6px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>+ {label}</button>
         {open&&(
-          <div style={{position:"absolute",top:"36px",left:0,zIndex:10,background:"var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"10px",boxShadow:"0 6px 20px rgba(0,0,0,0.15)",minWidth:"220px",maxHeight:"320px",overflowY:"auto"}}>
-            {disponibles.map(p=><button key={p.id_jugadora} onClick={()=>{addFromRoster(idEquipo,p);setOpen(false);}} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"7px 12px",fontSize:"12px",color:"var(--fx-text)",cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.background="var(--fx-hover)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>{p.nombre}</button>)}
-            {disponibles.length===0&&<div style={{padding:"10px 12px",fontSize:"11px",color:"var(--fx-muted2)"}}>Sin jugadoras disponibles</div>}
-            <div style={{borderTop:"1px solid var(--fx-border2)"}}>
-              <button onClick={()=>{addLibre(idEquipo);setOpen(false);}} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"7px 12px",fontSize:"11px",color:"var(--fx-muted)",cursor:"pointer",fontStyle:"italic"}}>+ Fila en blanco (nombre libre)</button>
-            </div>
+          <div style={{position:"absolute",top:"36px",left:0,zIndex:10,background:"var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"10px",boxShadow:"0 6px 20px rgba(0,0,0,0.15)",minWidth:"260px",maxHeight:"380px",overflowY:"auto"}}>
+            {mode==="roster"?(<>
+              {disponibles.map(p=><button key={p.id_jugadora} onClick={()=>{addFromRoster(idEquipo,p);cerrar();}} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"7px 12px",fontSize:"12px",color:"var(--fx-text)",cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.background="var(--fx-hover)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>{p.nombre}</button>)}
+              {disponibles.length===0&&<div style={{padding:"10px 12px",fontSize:"11px",color:"var(--fx-muted2)"}}>Sin jugadoras en el roster</div>}
+              <div style={{borderTop:"1px solid var(--fx-border2)"}}>
+                {allJug&&<button onClick={()=>setMode("buscar")} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"7px 12px",fontSize:"11px",color:"#9333ea",cursor:"pointer",fontWeight:700}}>🔍 Buscar en toda la BD…</button>}
+                <button onClick={()=>{addLibre(idEquipo);cerrar();}} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"7px 12px",fontSize:"11px",color:"var(--fx-muted)",cursor:"pointer",fontStyle:"italic"}}>+ Fila en blanco (nombre libre)</button>
+              </div>
+            </>):(<>
+              <div style={{padding:"8px 10px",borderBottom:"1px solid var(--fx-border2)",display:"flex",gap:"6px",alignItems:"center"}}>
+                <button onClick={()=>{setMode("roster");setQ("");}} title="Volver al roster" style={{background:"transparent",border:"none",cursor:"pointer",fontSize:"14px",color:"var(--fx-muted)",padding:"2px 6px"}}>←</button>
+                <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Nombre de jugadora…" style={{flex:1,padding:"6px 8px",borderRadius:"6px",border:"1px solid var(--fx-border)",fontSize:"12px",background:"var(--fx-card)",color:"var(--fx-text)"}}/>
+              </div>
+              {q.trim().length<2?<div style={{padding:"10px 12px",fontSize:"11px",color:"var(--fx-muted2)"}}>Escribe 2 letras…</div>
+                :busqueda.length===0?<div style={{padding:"10px 12px",fontSize:"11px",color:"var(--fx-muted2)"}}>Sin resultados</div>
+                :busqueda.map(p=>{
+                  const enRoster=(roster||[]).some(r=>r.id_jugadora===p.id_jugadora);
+                  return(
+                    <button key={p.id_jugadora} onClick={()=>{addFromRoster(idEquipo,p);cerrar();}} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"7px 12px",fontSize:"12px",color:"var(--fx-text)",cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.background="var(--fx-hover)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                      {p.nombre}
+                      {!enRoster&&<span style={{marginLeft:"6px",fontSize:"10px",color:"#9333ea",fontWeight:700}}>· fuera de plantilla</span>}
+                    </button>
+                  );
+                })}
+            </>)}
           </div>
         )}
       </div>
@@ -339,7 +367,7 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
     })();
     return ()=>{cancel=true;};
   },[idPartido,reloadTick]);
-  const editorEl=editing&&<BoxscoreEditor idPartido={idPartido} local={local} visit={visit} rosterLocal={rosterLocal} rosterVisit={rosterVisit} onClose={()=>setEditing(false)} onSaved={()=>setReloadTick(x=>x+1)}/>;
+  const editorEl=editing&&<BoxscoreEditor idPartido={idPartido} local={local} visit={visit} rosterLocal={rosterLocal} rosterVisit={rosterVisit} allJug={players} onClose={()=>setEditing(false)} onSaved={()=>setReloadTick(x=>x+1)}/>;
   const vincularTracker=async()=>{
     const {data}=await supabase.from("partidos").select("id_ext_fibalive").eq("id",idPartido).maybeSingle();
     const actual=data?.id_ext_fibalive||"";
