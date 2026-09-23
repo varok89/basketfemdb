@@ -85,6 +85,94 @@ function PartidoForm({initial,equipos,ligas,onSave,onCancel,saving}){
   );
 }
 
+/* ── ParcialesEditor (admin, edita partidos.parciales) ──── */
+function ParcialesEditor({idPartido,local,visit,parcialesActuales,resultadoLocal,resultadoVisit,onClose,onSaved}){
+  const inicial=parcialesActuales&&Array.isArray(parcialesActuales.local)&&Array.isArray(parcialesActuales.visitante)
+    ?{loc:[...parcialesActuales.local],vis:[...parcialesActuales.visitante],pr:parcialesActuales.prorroga?[...parcialesActuales.prorroga]:null}
+    :{loc:[0,0,0,0],vis:[0,0,0,0],pr:null};
+  const [loc,setLoc]=useState(inicial.loc);
+  const [vis,setVis]=useState(inicial.vis);
+  const [pr,setPr]=useState(inicial.pr); // [local,visit] o null
+  const [saving,setSaving]=useState(false);
+  const [err,setErr]=useState("");
+  const setQ=(lado,i,v)=>{
+    const n=Math.max(0,parseInt(v||"0",10)||0);
+    if(lado==="loc") setLoc(a=>a.map((x,j)=>j===i?n:x));
+    else setVis(a=>a.map((x,j)=>j===i?n:x));
+  };
+  const addQ=()=>{setLoc(a=>[...a,0]);setVis(a=>[...a,0]);};
+  const rmQ=()=>{if(loc.length>1){setLoc(a=>a.slice(0,-1));setVis(a=>a.slice(0,-1));}};
+  const togglePr=()=>setPr(p=>p?null:[0,0]);
+  const setPrVal=(i,v)=>{const n=Math.max(0,parseInt(v||"0",10)||0);setPr(p=>p?p.map((x,j)=>j===i?n:x):[0,0]);};
+  const sumLoc=loc.reduce((a,b)=>a+b,0)+(pr?pr[0]:0);
+  const sumVis=vis.reduce((a,b)=>a+b,0)+(pr?pr[1]:0);
+  const mismatchLoc=resultadoLocal!=null&&sumLoc!==resultadoLocal;
+  const mismatchVis=resultadoVisit!=null&&sumVis!==resultadoVisit;
+  const save=async()=>{
+    setSaving(true);setErr("");
+    const payload={local:loc,visitante:vis};
+    if(pr) payload.prorroga=pr;
+    const {error}=await supabase.from("partidos").update({parciales:payload}).eq("id",idPartido);
+    setSaving(false);
+    if(error){setErr(error.message);return;}
+    onSaved&&onSaved();onClose();
+  };
+  const borrar=async()=>{
+    if(!window.confirm("¿Borrar los parciales de este partido?"))return;
+    setSaving(true);setErr("");
+    const {error}=await supabase.from("partidos").update({parciales:null}).eq("id",idPartido);
+    setSaving(false);
+    if(error){setErr(error.message);return;}
+    onSaved&&onSaved();onClose();
+  };
+  return(
+    <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"var(--fx-card)",borderRadius:"14px",padding:"18px",maxWidth:"640px",width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,0.35)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}}>
+          <div style={{fontWeight:800,fontSize:"15px",color:"var(--fx-text)"}}>Editar parciales</div>
+          <button onClick={onClose} aria-label="Cerrar" style={{background:"transparent",border:"none",fontSize:"18px",cursor:"pointer",color:"var(--fx-muted)"}}>✕</button>
+        </div>
+        <div style={{overflowX:"auto"}}>
+          <table style={{borderCollapse:"collapse",fontSize:"13px",fontVariantNumeric:"tabular-nums",margin:"0 auto"}}>
+            <thead>
+              <tr style={{color:"var(--fx-muted2)",fontWeight:700}}>
+                <td style={{padding:"4px 8px"}}></td>
+                {loc.map((_,i)=><td key={i} style={{padding:"4px 8px",textAlign:"center"}}>Q{i+1}</td>)}
+                {pr&&<td style={{padding:"4px 8px",textAlign:"center",color:"#9333ea"}}>PR</td>}
+                <td style={{padding:"4px 8px",textAlign:"center"}}>Total</td>
+              </tr>
+            </thead>
+            <tbody>
+              {[["loc",loc,local,resultadoLocal,mismatchLoc,sumLoc,setQ.bind(null,"loc"),0],["vis",vis,visit,resultadoVisit,mismatchVis,sumVis,setQ.bind(null,"vis"),1]].map(([lado,arr,team,res,mism,sum,setter,prIdx])=>(
+                <tr key={lado} style={{borderTop:"1px solid var(--fx-border2)"}}>
+                  <td style={{padding:"4px 8px",fontWeight:700,color:"var(--fx-text)",maxWidth:"140px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{team?.nombre||"—"}</td>
+                  {arr.map((q,i)=><td key={i} style={{padding:"2px 4px"}}><input type="number" min="0" value={q} onChange={e=>setter(i,e.target.value)} style={{width:"48px",padding:"5px",borderRadius:"6px",border:"1px solid var(--fx-border)",fontSize:"13px",textAlign:"center",background:"var(--fx-hover)",color:"var(--fx-text)"}}/></td>)}
+                  {pr&&<td style={{padding:"2px 4px"}}><input type="number" min="0" value={pr[prIdx]} onChange={e=>setPrVal(prIdx,e.target.value)} style={{width:"48px",padding:"5px",borderRadius:"6px",border:"1px solid #9333ea",fontSize:"13px",textAlign:"center",background:"var(--fx-hover)",color:"var(--fx-text)"}}/></td>}
+                  <td style={{padding:"4px 8px",textAlign:"center",fontWeight:800,color:mism?"#dc2626":"var(--fx-text)"}}>
+                    {sum}{res!=null&&<span style={{fontSize:"11px",color:"var(--fx-muted2)"}}> /{res}</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {(mismatchLoc||mismatchVis)&&<div style={{marginTop:"10px",fontSize:"12px",color:"#dc2626",textAlign:"center"}}>⚠ La suma de cuartos no cuadra con el resultado final</div>}
+        <div style={{display:"flex",gap:"6px",marginTop:"14px",flexWrap:"wrap",justifyContent:"center"}}>
+          <button onClick={rmQ} disabled={loc.length<=1} style={{background:"var(--fx-hover)",color:"var(--fx-label)",border:"1px solid var(--fx-border)",borderRadius:"8px",padding:"6px 10px",fontSize:"12px",fontWeight:700,cursor:loc.length<=1?"not-allowed":"pointer",opacity:loc.length<=1?0.4:1}}>− cuarto</button>
+          <button onClick={addQ} style={{background:"var(--fx-hover)",color:"var(--fx-label)",border:"1px solid var(--fx-border)",borderRadius:"8px",padding:"6px 10px",fontSize:"12px",fontWeight:700,cursor:"pointer"}}>+ cuarto</button>
+          <button onClick={togglePr} style={{background:pr?"#9333ea":"var(--fx-hover)",color:pr?"#fff":"var(--fx-label)",border:"1px solid "+(pr?"#9333ea":"var(--fx-border)"),borderRadius:"8px",padding:"6px 10px",fontSize:"12px",fontWeight:700,cursor:"pointer"}}>{pr?"− prórroga":"+ prórroga"}</button>
+        </div>
+        {err&&<div style={{marginTop:"10px",fontSize:"12px",color:"#dc2626",textAlign:"center"}}>❌ {err}</div>}
+        <div style={{display:"flex",gap:"8px",marginTop:"14px",justifyContent:"flex-end"}}>
+          {parcialesActuales&&<button onClick={borrar} disabled={saving} style={{background:"transparent",color:"#dc2626",border:"1px solid #fecaca",borderRadius:"8px",padding:"8px 14px",fontSize:"12px",fontWeight:700,cursor:saving?"default":"pointer"}}>🗑 Borrar</button>}
+          <button onClick={onClose} style={{background:"var(--fx-hover)",color:"var(--fx-label)",border:"none",borderRadius:"8px",padding:"8px 14px",fontSize:"12px",fontWeight:700,cursor:"pointer"}}>Cancelar</button>
+          <button onClick={save} disabled={saving} style={{background:"#9333ea",color:"#fff",border:"none",borderRadius:"8px",padding:"8px 18px",fontSize:"13px",fontWeight:700,cursor:saving?"default":"pointer",opacity:saving?0.6:1}}>{saving?"Guardando…":"Guardar"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── BoxscoreEditor (admin, edición inline) ──────────────── */
 const BOX_NUM_COLS=["puntos","tc_anotados","tc_intentados","t3_anotados","t3_intentados","tl_anotados","tl_intentados","reb_ofensivos","reb_defensivos","reb_totales","asistencias","robos","tapones","perdidas","faltas","valoracion"];
 function emptyBoxRow(idEquipo,nombre,idJugadora,dorsal){
@@ -343,6 +431,13 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
 }
 
 function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,onToggleConvocatoria,onBack,onEdit,onGoToTeam,onGoToLeague,onGoToPlayer}){
+  const [editingParciales,setEditingParciales]=useState(false);
+  const [partidoLocal,setPartidoLocal]=useState(partido);
+  useEffect(()=>{setPartidoLocal(partido);},[partido]);
+  const recargarParciales=async()=>{
+    const {data}=await supabase.from("partidos").select("parciales").eq("id",partido.id).maybeSingle();
+    if(data) setPartidoLocal(p=>({...p,parciales:data.parciales}));
+  };
   const t = useT();
   const equipoMap=useMemo(()=>{const m={};equipos.forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap=useMemo(()=>{const m={};ligas.forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
@@ -474,28 +569,35 @@ function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,
             <span style={{fontSize:"11px",fontWeight:600,color:"var(--fx-muted)",textAlign:"center",maxWidth:"80px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{visit?.nombre||"—"}</span>
           </div>
         </div>
-        {partido.parciales&&partido.parciales.local&&(
+        {partidoLocal.parciales&&partidoLocal.parciales.local?(
           <div style={{marginTop:"14px",overflowX:"auto"}}>
             <table style={{margin:"0 auto",borderCollapse:"collapse",fontSize:"12px",fontVariantNumeric:"tabular-nums"}}>
               <thead>
                 <tr style={{color:"var(--fx-muted2)",fontWeight:700}}>
                   <td style={{padding:"3px 10px"}}></td>
-                  {partido.parciales.local.map((_,i)=><td key={i} style={{padding:"3px 10px",textAlign:"center"}}>Q{i+1}</td>)}
-                  {partido.parciales.prorroga&&<td style={{padding:"3px 10px",textAlign:"center"}}>PR</td>}
+                  {partidoLocal.parciales.local.map((_,i)=><td key={i} style={{padding:"3px 10px",textAlign:"center"}}>Q{i+1}</td>)}
+                  {partidoLocal.parciales.prorroga&&<td style={{padding:"3px 10px",textAlign:"center"}}>PR</td>}
+                  {isAdmin&&<td style={{padding:"3px 6px"}}><button onClick={()=>setEditingParciales(true)} title="Editar parciales" style={{background:"transparent",border:"none",cursor:"pointer",fontSize:"14px",color:"var(--fx-muted2)",padding:"2px"}}>✏️</button></td>}
                 </tr>
               </thead>
               <tbody>
                 {[["local",local],["visitante",visit]].map(([lado,team],fila)=>(
                   <tr key={lado} style={{borderTop:"1px solid var(--fx-border2)",color:"var(--fx-label)"}}>
                     <td style={{padding:"3px 10px",fontWeight:700,maxWidth:"110px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{team?.nombre||"—"}</td>
-                    {partido.parciales[lado].map((q,i)=><td key={i} style={{padding:"3px 10px",textAlign:"center"}}>{q}</td>)}
-                    {partido.parciales.prorroga&&<td style={{padding:"3px 10px",textAlign:"center",fontWeight:700,color:"#9333ea"}}>{partido.parciales.prorroga[fila]}</td>}
+                    {partidoLocal.parciales[lado].map((q,i)=><td key={i} style={{padding:"3px 10px",textAlign:"center"}}>{q}</td>)}
+                    {partidoLocal.parciales.prorroga&&<td style={{padding:"3px 10px",textAlign:"center",fontWeight:700,color:"#9333ea"}}>{partidoLocal.parciales.prorroga[fila]}</td>}
+                    {isAdmin&&<td/>}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
+        ):(isAdmin&&partidoLocal.resultado_local!=null&&(
+          <div style={{marginTop:"12px",textAlign:"center"}}>
+            <button onClick={()=>setEditingParciales(true)} style={{background:"var(--fx-hover)",color:"var(--fx-label)",border:"1px dashed var(--fx-border)",borderRadius:"8px",padding:"6px 14px",fontSize:"12px",fontWeight:700,cursor:"pointer"}}>✏️ Añadir parciales</button>
+          </div>
+        ))}
+        {editingParciales&&<ParcialesEditor idPartido={partidoLocal.id} local={local} visit={visit} parcialesActuales={partidoLocal.parciales} resultadoLocal={partidoLocal.resultado_local} resultadoVisit={partidoLocal.resultado_visitante} onClose={()=>setEditingParciales(false)} onSaved={recargarParciales}/>}
       </div>
 
       <BoxscorePartido idPartido={partido.id} equipoLocal={partido.id_equipo_local} equipoVisit={partido.id_equipo_visitante} local={local} visit={visit} players={players} onGoToPlayer={onGoToPlayer} isAdmin={isAdmin} rosterLocal={rosterLocal} rosterVisit={rosterVisit}/>
