@@ -2428,6 +2428,8 @@ const PAIS_TO_ORGS = {
   "Reino Unido": ["WBBL"],
   "Islandia": ["KKI"],
   "Luxemburgo": ["LUX"], // Slug del tracker fibalivestats. hosted.dcd/LUX devuelve 200 vacío — solo hay partidos individuales, no calendario. Ver mensaje explicativo en autodetectar().
+  "República Checa": ["CBFFE"], // Mismo caso que LUX: hosted.dcd/CBFFE responde 200 con body vacío. Fed usa Genius solo para tracker por gameId.
+  "Republica Checa": ["CBFFE"],
 };
 
 // Palabras que descartan una competición aunque haya score fuzzy: toda la BD
@@ -2570,7 +2572,19 @@ function GeniusMatchTab({ ligas, equipos, setEquipos, setLigas }) {
       setComps(r.competiciones || []);
       setFedInfo(r.fed || "");
       setMsg(`✅ ${r.competiciones?.length || 0} competiciones encontradas`);
-    } catch (e) { setMsg(`⚠ ${e.message || e}`); }
+    } catch (e) {
+      // Mismo patrón que analizarUrl: si el país tiene orgs conocidos, cae a
+      // autodetectar (que mostrará el mensaje explicativo si no publica calendario
+      // hosted.dcd — caso LUX y CBFFE). Evita el críptico "non-2xx status code".
+      const orgsPais = liga ? (PAIS_TO_ORGS[liga.pais] || []) : [];
+      if (orgsPais.length) {
+        setMsg(`⚠ Fallo con org "${org}" — probando autodetección por país…`);
+        setBusy(false); // autodetectar lo vuelve a poner
+        await autodetectar();
+        return;
+      }
+      setMsg(`⚠ ${e.message || e}`);
+    }
     finally { setBusy(false); }
   };
 
