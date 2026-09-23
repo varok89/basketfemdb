@@ -556,14 +556,29 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   const addPlayer=async f=>{
     setSaving(true);
     try{
-      const allJIds=players.map(p=>parseInt((p.id_jugadora||"J0").slice(1))).filter(n=>!isNaN(n));
-      const newId=firstFreeId(allJIds,"J",0);
       const trim=v=>String(v??"").trim()||null;
-      const newPlayer={id_jugadora:newId,nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,fecha_fallecimiento:f.fecha_fallecimiento||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null,id_espn:trim(f.id_espn),fiba_person_id:trim(f.fiba_person_id),id_feb:trim(f.id_feb),id_lfb:trim(f.id_lfb)};
-      const{error}=await supabase.from("jugadoras").insert(newPlayer);
-      if(error)throw error;
-      setPlayers(prev=>[...prev,{...newPlayer,seasons:[]}].sort((a,b)=>(a.id_jugadora||"").localeCompare(b.id_jugadora||"")));
-      setModal(null);
+      // Los edge-functions (scrapers WNBA/FIBA/FEB) insertan jugadoras y consumen
+      // IDs que el prop `players` en memoria no conoce. En vez de usar el "primer
+      // hueco" (16831…) sobre memoria, calculamos MAX(id_jugadora) contra BD y
+      // reintentamos MAX+N si por concurrencia otro cliente coge el mismo.
+      let ultimo=null,intento=0;
+      while(intento<5){
+        intento++;
+        const {data:top}=await supabase.from("jugadoras").select("id_jugadora").like("id_jugadora","J%").order("id_jugadora",{ascending:false}).limit(500);
+        const maxN=(top||[]).reduce((m,r)=>{const n=parseInt(String(r.id_jugadora).slice(1));return !isNaN(n)&&n>m?n:m;},0);
+        const newId="J"+(maxN+intento); // 1er intento MAX+1, si colisiona MAX+2, etc.
+        const newPlayer={id_jugadora:newId,nombre:f.nombre,posicion:f.posicion||null,posicion2:f.posicion2||null,nacionalidad:f.nacionalidad,nacionalidad2:f.nacionalidad2||null,fecha_nac:f.fecha_nac||null,fecha_fallecimiento:f.fecha_fallecimiento||null,altura_cm:f.altura_cm?parseInt(f.altura_cm):null,foto:f.foto||null,id_espn:trim(f.id_espn),fiba_person_id:trim(f.fiba_person_id),id_feb:trim(f.id_feb),id_lfb:trim(f.id_lfb)};
+        const{error}=await supabase.from("jugadoras").insert(newPlayer);
+        if(!error){
+          setPlayers(prev=>[...prev,{...newPlayer,seasons:[]}].sort((a,b)=>(a.id_jugadora||"").localeCompare(b.id_jugadora||"")));
+          setModal(null);
+          setSaving(false);
+          return;
+        }
+        ultimo=error;
+        if(!/duplicate key|jugadoras_pkey/i.test(error.message||"")) break;
+      }
+      throw ultimo||new Error("No se pudo asignar id_jugadora tras varios intentos");
     }catch(e){alert("Error al guardar jugadora: "+(e.message||e.details||JSON.stringify(e)));}
     setSaving(false);
   };
