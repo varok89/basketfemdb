@@ -803,6 +803,22 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     setFebBusy(false);
   }
 
+  // ── Modo roster FEB: dorsales + fecha_nac + altura por plantilla (1 request/equipo) ──
+  var frLigaState=useState("L001");var frLiga=frLigaState[0];var setFrLiga=frLigaState[1];
+  var frTempState=useState("2026-27");var frTemp=frTempState[0];var setFrTemp=frTempState[1];
+  var frDryState=useState(true);var frDry=frDryState[0];var setFrDry=frDryState[1];
+  var frBusyState=useState(false);var frBusy=frBusyState[0];var setFrBusy=frBusyState[1];
+  var frResState=useState(null);var frRes=frResState[0];var setFrRes=frResState[1];
+  async function runFebRoster(){
+    setFrBusy(true);setFrRes(null);
+    try{
+      var inv=await supabase.functions.invoke("enriquecer-jugadoras-feb",{body:{modo:"roster",id_liga:frLiga,temporada:frTemp,dry:frDry}});
+      if(inv.error){setFrRes({error:String((inv.error&&inv.error.message)||inv.error)});setFrBusy(false);return;}
+      setFrRes(inv.data||{});
+    }catch(e){setFrRes({error:String(e)});}
+    setFrBusy(false);
+  }
+
   var fixState=useState(null);
   var fixing=fixState[0];var setFixing=fixState[1];
   var ignoredState=useState(new Set());
@@ -1318,6 +1334,52 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                   <input type="checkbox" checked={febLoop} onChange={function(e){setFebLoop(e.target.checked);}}/> Loop: repetir hasta procesar todas las pendientes
                 </label>
                 <button onClick={runFebEnriq} disabled={febBusy} style={{background:febBusy?"#cbd5e1":(febDry?"#0f172a":"#9333ea"),color:"#fff",border:"none",borderRadius:"10px",padding:"11px 20px",fontWeight:700,fontSize:"13px",cursor:febBusy?"default":"pointer"}}>{febBusy?"Enriqueciendo…":(febDry?"▶ Probar":"⬇️ Enriquecer fichas")}</button>
+              </div>
+
+              {/* Modo roster: 1 request por equipo trae dorsal+fecha_nac+altura+nacionalidad de toda la plantilla */}
+              <div style={{marginTop:"20px",background:"var(--fx-hover)",border:"1px solid var(--fx-border)",borderRadius:"12px",padding:"14px"}}>
+                <div style={{fontWeight:800,fontSize:"14px",color:"var(--fx-text)",marginBottom:"6px"}}>🔢 Cargar plantilla completa por liga</div>
+                <p style={{fontSize:"12px",color:"var(--fx-muted)",margin:"0 0 12px"}}>Scrapea la ficha del equipo en FEB (~1 request por equipo). Captura <b>dorsal, fecha_nac, altura, nacionalidad</b> de todas las jugadoras del roster. Sólo actualiza campos que estén vacíos en BD. Recomendado en pretemporada o cuando se publican dorsales nuevos.</p>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"10px"}}>
+                  <label style={{fontSize:"12px",fontWeight:700,color:"var(--fx-label)"}}>Liga
+                    <select value={frLiga} onChange={function(e){setFrLiga(e.target.value);}} style={{width:"100%",marginTop:"4px",padding:"9px 10px",borderRadius:"10px",border:"1px solid var(--fx-border)",fontSize:"13px",boxSizing:"border-box"}}>
+                      <option value="L001">Liga Femenina Endesa (L001)</option>
+                      <option value="L002">Liga Femenina Challenge (L002)</option>
+                      <option value="L003">Liga Femenina 2 (L003)</option>
+                    </select>
+                  </label>
+                  <label style={{fontSize:"12px",fontWeight:700,color:"var(--fx-label)"}}>Temporada
+                    <input value={frTemp} onChange={function(e){setFrTemp(e.target.value);}} placeholder="2026-27" style={{width:"100%",marginTop:"4px",padding:"9px 10px",borderRadius:"10px",border:"1px solid var(--fx-border)",fontSize:"13px",boxSizing:"border-box"}}/>
+                  </label>
+                </div>
+                <label style={{display:"flex",alignItems:"center",gap:"8px",fontSize:"13px",color:"var(--fx-label)",cursor:"pointer",marginBottom:"10px"}}>
+                  <input type="checkbox" checked={frDry} onChange={function(e){setFrDry(e.target.checked);}}/> Prueba (dry-run): no escribe, solo informa de lo que haría
+                </label>
+                <button onClick={runFebRoster} disabled={frBusy} style={{background:frBusy?"#cbd5e1":(frDry?"#0f172a":"#9333ea"),color:"#fff",border:"none",borderRadius:"10px",padding:"11px 20px",fontWeight:700,fontSize:"13px",cursor:frBusy?"default":"pointer"}}>{frBusy?"Scrapeando plantillas…":(frDry?"▶ Probar":"⬇️ Cargar dorsales + datos")}</button>
+                {frRes&&(
+                  <div style={{marginTop:"12px",background:"var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"10px",padding:"12px",fontSize:"13px",color:"var(--fx-text)"}}>
+                    {frRes.error?<div style={{color:"#ef4444"}}>❌ {frRes.error}</div>:(
+                      <div>
+                        <div style={{fontWeight:700,marginBottom:"6px"}}>{frDry?"🔎 Prueba · ":"✅ "}{frRes.liga} · {frRes.temporada} · Equipos: {frRes.equipos_procesados}/{frRes.equipos_total}</div>
+                        <div style={{fontSize:"12px",color:"var(--fx-muted)"}}>
+                          Jugadoras en plantillas: <b>{frRes.jugadoras_encontradas}</b> · Matcheadas en BD: <b>{frRes.jugadoras_matcheadas}</b> · No en BD: <b>{frRes.jugadoras_no_en_bd?.length||0}</b>
+                        </div>
+                        <div style={{fontSize:"12px",marginTop:"6px"}}>
+                          🎂 Fechas: <b>{frRes.fecha_nac_actualizadas}</b> · 📏 Alturas: <b>{frRes.altura_actualizadas}</b> · 🌍 Nacs: <b>{frRes.nacionalidad_actualizadas}</b> · 🔢 Dorsales: <b>{frRes.dorsales_actualizados}</b>
+                        </div>
+                        {frRes.jugadoras_no_en_bd&&frRes.jugadoras_no_en_bd.length>0&&(
+                          <details style={{marginTop:"8px"}}>
+                            <summary style={{cursor:"pointer",fontSize:"12px",color:"var(--fx-amber-text)"}}>⚠️ {frRes.jugadoras_no_en_bd.length} jugadoras en FEB sin id_feb en BD (mostrar)</summary>
+                            <ul style={{margin:"6px 0 0",paddingLeft:"18px",maxHeight:"180px",overflowY:"auto",fontSize:"11px",color:"var(--fx-muted)"}}>
+                              {frRes.jugadoras_no_en_bd.slice(0,60).map(function(j,i){return <li key={i}>{j.nombre} <span style={{color:"var(--fx-muted2)"}}>(id_feb {j.id_feb} · equipo {j.id_equipo_feb})</span></li>;})}
+                            </ul>
+                          </details>
+                        )}
+                        {frRes.errores&&frRes.errores.length>0&&<div style={{marginTop:"6px",color:"#dc2626",fontSize:"12px"}}><b>Errores</b>: {frRes.errores.slice(0,10).join(" · ")}</div>}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               {febRes&&(
                 <div style={{marginTop:"16px",background: "var(--fx-hover)",border:"1px solid var(--fx-border)",borderRadius:"12px",padding:"14px"}}>
