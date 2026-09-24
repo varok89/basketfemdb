@@ -38,9 +38,14 @@ function PartidoRow({p,eqL,eqV,highlight,onGoToPartido,onGoToTeam}){
     <div
       onClick={clickable?()=>onGoToPartido(p.id):undefined}
       style={{display:"grid",gridTemplateColumns:"48px 1fr auto",gap:"8px",alignItems:"center",background:bg,border,borderRadius:"10px",padding:"8px 10px",marginBottom:"6px",cursor:clickable?"pointer":"default"}}>
-      <div style={{textAlign:"center",fontSize:"11px",fontWeight:800,color:est.color,lineHeight:1.1}}>
-        {est.live&&<div style={{width:6,height:6,background:"#dc2626",borderRadius:"50%",display:"inline-block",marginRight:4,animation:"bfdb-pulse 1.5s infinite"}}/>}
-        {est.txt}
+      <div style={{textAlign:"center",fontSize:"11px",fontWeight:800,color:est.color,lineHeight:1.1,display:"flex",flexDirection:"column",alignItems:"center",gap:"3px"}}>
+        <div>
+          {est.live&&<div style={{width:6,height:6,background:"#dc2626",borderRadius:"50%",display:"inline-block",marginRight:4,animation:"bfdb-pulse 1.5s infinite"}}/>}
+          {est.txt}
+        </div>
+        {p.link&&(
+          <a href={p.link} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title="Ver partido en directo" style={{fontSize:"14px",lineHeight:1,textDecoration:"none",color:"#dc2626"}}>📺</a>
+        )}
       </div>
       <div style={{minWidth:0}}>
         <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"3px",fontWeight:ganaL?800:600,color:ganaL?"var(--fx-text)":"var(--fx-muted)",fontSize:"13px"}}>
