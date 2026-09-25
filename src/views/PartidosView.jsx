@@ -1874,6 +1874,7 @@ function WNBATabla({filas, equipoMap, onGoToTeam, mostrarGB}){
 
 // Bracket WNBA estilo FIBA (KOBox + escudos + columnas alineadas)
 function WNBABracketAuto({globalRanked, playoffPartidos, equipoMap, onOpenPartido}){
+  const t = useT();
   const seeds={};
   globalRanked.slice(0,8).forEach((e,i)=>{seeds[e.id]=i+1;});
 
