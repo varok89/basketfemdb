@@ -1558,7 +1558,8 @@ function FaseFinal({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlayer}){
   const totalH=nBase*SLOT-GAME_GAP;
   const r16C=octS.map((_,i)=>i*SLOT+GAME_H/2);
   const qfC=qfS.map((_,i)=>{const c1=r16C[i*2]??i*SLOT*2+GAME_H/2,c2=r16C[i*2+1]??c1;return(c1+c2)/2;});
-  const sfC=sfS.map((_,i)=>{const c1=qfC[i*2]??r16C[i*4]??0,c2=qfC[i*2+1]??c1;return(c1+c2)/2;});
+  // Si no hay cuartos ni octavos (p.ej. Supercopa 4 equipos), sfC caia a 0 para todas y las semis se dibujaban superpuestas.
+  const sfC=sfS.map((_,i)=>{const c1=qfC[i*2]??r16C[i*4]??null,c2=qfC[i*2+1]??c1;if(c1==null&&c2==null)return (i+0.5)*totalH/sfS.length;return((c1??c2)+(c2??c1))/2;});
   const finC=sfC.length>=2?(sfC[0]+sfC[sfC.length-1])/2:sfC[0]??qfC[Math.floor(qfC.length/2)]??r16C[Math.floor(r16C.length/2)]??totalH/2;
   const GBox=({g,top,cap})=>!g?null:(<div style={{position:"absolute",top:top-GAME_H/2,left:0,width:GAME_W}}><KOBox p={g} equipoMap={equipoMap} caption={cap} onOpen={onOpenPartido}/></div>);
   const Conn=({froms,to})=>{const mn=Math.min(...froms),mx=Math.max(...froms);return(<svg style={{position:"absolute",top:0,left:0,width:CONN_W,height:totalH,overflow:"visible",pointerEvents:"none"}} viewBox={"0 0 "+CONN_W+" "+totalH}>{froms.map((f,fi)=><line key={fi} x1={0} y1={f} x2={CONN_W/2} y2={f} stroke="var(--fx-border)" strokeWidth={1.5}/>)}{mn!==mx&&<line x1={CONN_W/2} y1={mn} x2={CONN_W/2} y2={mx} stroke="var(--fx-border)" strokeWidth={1.5}/>}<line x1={CONN_W/2} y1={to} x2={CONN_W} y2={to} stroke="var(--fx-border)" strokeWidth={1.5}/></svg>);};
