@@ -614,13 +614,22 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   const addSeason=async f=>{
     setSaving(true);
     try{
-      const allIds=players.flatMap(p=>p.seasons||[]).map(s=>parseInt(s.id)).filter(n=>!isNaN(n));
-      const newId=Math.max(0,...allIds)+1;
-      const newSeason={id:newId,id_jugadora:selId,id_equipo:f.id_equipo,id_liga:f.id_liga,temporada:f.temporada};
-      const{error}=await supabase.from("temporadas").insert(newSeason);
-      if(error)throw error;
-      setPlayers(prev=>prev.map(p=>p.id_jugadora!==selId?p:{...p,seasons:[...(p.seasons||[]),newSeason]}));
-      setModal(null);}catch(e){alert("Error: "+e.message);}
+      let ultimo=null,newSeason=null;
+      for(let intento=1;intento<=5;intento++){
+        const {data:top}=await supabase.from("temporadas").select("id").order("id",{ascending:false}).limit(1);
+        const maxN=Number(top?.[0]?.id)||0;
+        const newId=maxN+intento;
+        newSeason={id:newId,id_jugadora:selId,id_equipo:f.id_equipo,id_liga:f.id_liga,temporada:f.temporada};
+        const{error}=await supabase.from("temporadas").insert(newSeason);
+        if(!error){
+          setPlayers(prev=>prev.map(p=>p.id_jugadora!==selId?p:{...p,seasons:[...(p.seasons||[]),newSeason]}));
+          setModal(null);setSaving(false);return;
+        }
+        ultimo=error;
+        if(!/duplicate key|temporadas_pkey/i.test(error.message||""))break;
+      }
+      throw ultimo||new Error("No se pudo asignar id de temporada tras varios intentos");
+    }catch(e){alert("Error: "+e.message);}
     setSaving(false);
   };
   const updSeason=async f=>{
@@ -642,12 +651,17 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     setSaving3(true);
     try{
       if(seasonModal==="add"){
-        const {data}=await supabase.from("temporadas_coach").select("id").order("id",{ascending:false}).limit(1);
-        const newId=(data?.[0]?.id||0)+1;
-        const newRow={id:newId,id_coach:coachId,...f,orden:parseInt(f.orden)||0};
-        const{error}=await supabase.from("temporadas_coach").insert(newRow);
-        if(error)throw error;
-        setTempCoach(prev=>[...prev,newRow]);
+        let ultimo=null,newRow=null;
+        for(let intento=1;intento<=5;intento++){
+          const {data}=await supabase.from("temporadas_coach").select("id").order("id",{ascending:false}).limit(1);
+          const maxN=Number(data?.[0]?.id)||0;
+          newRow={id:maxN+intento,id_coach:coachId,...f,orden:parseInt(f.orden)||0};
+          const{error}=await supabase.from("temporadas_coach").insert(newRow);
+          if(!error){setTempCoach(prev=>[...prev,newRow]);ultimo=null;break;}
+          ultimo=error;
+          if(!/duplicate key|temporadas_coach_pkey/i.test(error.message||""))break;
+        }
+        if(ultimo)throw ultimo;
       } else {
         const payload={...f,orden:parseInt(f.orden)||0};
         const{error}=await supabase.from("temporadas_coach").update(payload).eq("id",seasonModal.id);

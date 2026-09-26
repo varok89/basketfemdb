@@ -78,12 +78,17 @@ function CoachesView({coaches,tempCoach,equipos,ligas,players,palmares,onGoToPla
     setSaving2(true);
     try{
       if(seasonModal==="add"){
-        const {data}=await supabase.from("temporadas_coach").select("id").order("id",{ascending:false}).limit(1);
-        const newId=(data?.[0]?.id||0)+1;
-        const newRow={id:newId,id_coach:coachId,...f,orden:parseInt(f.orden)||0};
-        const{error}=await supabase.from("temporadas_coach").insert(newRow);
-        if(error)throw error;
-        setTempCoach(prev=>[...prev,newRow]);
+        let ultimo=null,newRow=null;
+        for(let intento=1;intento<=5;intento++){
+          const {data}=await supabase.from("temporadas_coach").select("id").order("id",{ascending:false}).limit(1);
+          const maxN=Number(data?.[0]?.id)||0;
+          newRow={id:maxN+intento,id_coach:coachId,...f,orden:parseInt(f.orden)||0};
+          const{error}=await supabase.from("temporadas_coach").insert(newRow);
+          if(!error){setTempCoach(prev=>[...prev,newRow]);ultimo=null;break;}
+          ultimo=error;
+          if(!/duplicate key|temporadas_coach_pkey/i.test(error.message||""))break;
+        }
+        if(ultimo)throw ultimo;
       } else {
         const payload={...f,orden:parseInt(f.orden)||0};
         const{error}=await supabase.from("temporadas_coach").update(payload).eq("id",seasonModal.id);

@@ -696,10 +696,18 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
         // Comprobar si ya está en ese equipo/liga/temporada
         const {data:ex}=await supabase.from("temporadas").select("id").eq("id_jugadora",best.id_jugadora).eq("id_equipo",lotEquipo).eq("id_liga",lotLiga).eq("temporada",lotTemp).maybeSingle();
         if(ex){yaEstaban.push(nombre);continue;}
-        // Insertar
-        const {error}=await supabase.from("temporadas").insert({id:nextId++,id_jugadora:best.id_jugadora,id_equipo:lotEquipo,id_liga:lotLiga,temporada:lotTemp,orden:0});
-        if(!error)anadidas.push(`${best.nombre} (${best.id_jugadora})`);
-        else noEncontradas.push(`${nombre} — error: ${error.message}`);
+        // Insertar con retry: si duplicate key (scraper insertó en medio), refresca MAX y reintenta
+        let errIns=null;
+        for(let intento=0;intento<5;intento++){
+          const {error}=await supabase.from("temporadas").insert({id:nextId++,id_jugadora:best.id_jugadora,id_equipo:lotEquipo,id_liga:lotLiga,temporada:lotTemp,orden:0});
+          if(!error){errIns=null;break;}
+          errIns=error;
+          if(!/duplicate key|temporadas_pkey/i.test(error.message||""))break;
+          const {data:m2}=await supabase.from("temporadas").select("id").order("id",{ascending:false}).limit(1);
+          nextId=(Number(m2?.[0]?.id)||nextId)+1;
+        }
+        if(!errIns)anadidas.push(`${best.nombre} (${best.id_jugadora})`);
+        else noEncontradas.push(`${nombre} — error: ${errIns.message}`);
       }
       // Ajustar secuencia
       // Intentar setval directamente

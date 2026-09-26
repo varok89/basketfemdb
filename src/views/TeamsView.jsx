@@ -450,13 +450,21 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
   const saveSquad=async(f)=>{
     setSaving(true);
     try{
-      const allIds=players.flatMap(p=>p.seasons||[]).map(s=>parseInt(s.id)).filter(n=>!isNaN(n));
-      const newId=Math.max(0,...allIds)+1;
-      const newSeason={id:newId,id_jugadora:f.id_jugadora,id_equipo:f.id_equipo,id_liga:f.id_liga,temporada:f.temporada};
-      const{error}=await supabase.from("temporadas").insert(newSeason);
-      if(error)throw error;
-      setPlayers(prev=>prev.map(p=>p.id_jugadora!==f.id_jugadora?p:{...p,seasons:[...(p.seasons||[]),newSeason]}));
-      setSquadModal(null);
+      let ultimo=null,newSeason=null;
+      for(let intento=1;intento<=5;intento++){
+        const {data:top}=await supabase.from("temporadas").select("id").order("id",{ascending:false}).limit(1);
+        const maxN=Number(top?.[0]?.id)||0;
+        const newId=maxN+intento;
+        newSeason={id:newId,id_jugadora:f.id_jugadora,id_equipo:f.id_equipo,id_liga:f.id_liga,temporada:f.temporada};
+        const{error}=await supabase.from("temporadas").insert(newSeason);
+        if(!error){
+          setPlayers(prev=>prev.map(p=>p.id_jugadora!==f.id_jugadora?p:{...p,seasons:[...(p.seasons||[]),newSeason]}));
+          setSquadModal(null);setSaving(false);return;
+        }
+        ultimo=error;
+        if(!/duplicate key|temporadas_pkey/i.test(error.message||""))break;
+      }
+      throw ultimo||new Error("No se pudo asignar id de temporada tras varios intentos");
     }catch(e){alert("Error: "+e.message);}
     setSaving(false);
   };
@@ -472,8 +480,8 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
       );
       const toAdd=squadList.filter(({player})=>!existing.has(player.id_jugadora));
       if(toAdd.length===0){alert("Todas las jugadoras ya tienen entrada en esa competición para "+temporada);setSaving(false);setDupModal(null);return;}
-      const allIds=players.flatMap(p=>p.seasons||[]).map(s=>parseInt(s.id)).filter(n=>!isNaN(n));
-      let nextId=Math.max(0,...allIds)+1;
+      const {data:top}=await supabase.from("temporadas").select("id").order("id",{ascending:false}).limit(1);
+      let nextId=(Number(top?.[0]?.id)||0)+1;
       const rows=toAdd.map(({player})=>({id:nextId++,id_jugadora:player.id_jugadora,id_equipo:eqId,id_liga:targetLiga,temporada}));
       const{error}=await supabase.from("temporadas").insert(rows);
       if(error)throw error;
