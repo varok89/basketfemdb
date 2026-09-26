@@ -1055,14 +1055,23 @@ function AnalyticsPanel({onClose}){
     (async()=>{
       setLoading(true);setErr("");
       const desde=new Date(Date.now()-dias*24*3600*1000).toISOString();
-      // Traemos todas las filas de la ventana y agregamos en cliente (barato hasta ~50k filas)
-      const {data:rows,error}=await supabase.from("visitas")
-        .select("created_at,path,session_id,id_usuario,referrer,user_agent,pais,ciudad,evento,meta")
-        .gte("created_at",desde)
-        .order("created_at",{ascending:false})
-        .limit(50000);
+      // Paginado: Supabase PostgREST tope 1000 filas por request, así que iteramos hasta traerlo todo (o 50k)
+      const rows=[];let errFinal=null;
+      for(let page=0;page<50;page++){
+        const from=page*1000,to=from+999;
+        const {data:batch,error}=await supabase.from("visitas")
+          .select("created_at,path,session_id,id_usuario,referrer,user_agent,pais,ciudad,evento,meta")
+          .gte("created_at",desde)
+          .order("created_at",{ascending:false})
+          .range(from,to);
+        if(cancel)return;
+        if(error){errFinal=error;break;}
+        if(!batch?.length)break;
+        rows.push(...batch);
+        if(batch.length<1000)break;
+      }
       if(cancel)return;
-      if(error){setErr(error.message);setLoading(false);return;}
+      if(errFinal){setErr(errFinal.message);setLoading(false);return;}
       const BOT=/bot|spider|crawler|preview|headless|lighthouse|slurp|facebookexternalhit|pingdom|uptime/i;
       const clean=(rows||[]).filter(r=>!r.user_agent||!BOT.test(r.user_agent));
       const byDay={},byPath={},byRef={},sesDay={},byPais={},byCiudad={},byDisp={},byBrow={},byEvento={};
