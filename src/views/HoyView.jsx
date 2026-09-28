@@ -1,5 +1,6 @@
-import React,{useMemo,useState} from "react";
+import React,{useMemo,useState,useEffect} from "react";
 import {useT} from "../lib/i18n";
+import {supabase} from "../lib/supabaseClient";
 
 const DAY_MS=86400000;
 const pad2=n=>String(n).padStart(2,"0");
@@ -106,9 +107,42 @@ export default function HoyView({partidos,equipos,ligas,user,favoritos,onToggleF
     return s;
   },[favoritos]);
 
+  // El cache del padre puede estar desactualizado. Refrescamos los partidos del día
+  // seleccionado directamente desde Supabase al montar y cada 60s mientras esté visible.
+  const [refresh,setRefresh]=useState({});
+  useEffect(()=>{
+    let cancel=false;
+    (async()=>{
+      const start=new Date(fechaObjetivo);const end=new Date(fechaObjetivo);end.setTime(end.getTime()+DAY_MS);
+      const {data,error}=await supabase.from("partidos")
+        .select("id,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,fecha_hora,es_live,periodo,parciales,notas,link")
+        .gte("fecha_hora",start.toISOString()).lt("fecha_hora",end.toISOString());
+      if(cancel||error)return;
+      setRefresh(prev=>{const m={...prev};(data||[]).forEach(p=>{m[p.id]=p;});return m;});
+    })();
+    return()=>{cancel=true;};
+  },[fechaObjetivo]);
+  useEffect(()=>{
+    if(diaOffset<-1||diaOffset>1)return; // solo autorefresh en ayer/hoy/mañana
+    const id=setInterval(async()=>{
+      const start=new Date(fechaObjetivo);const end=new Date(fechaObjetivo);end.setTime(end.getTime()+DAY_MS);
+      const {data,error}=await supabase.from("partidos")
+        .select("id,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,fecha_hora,es_live,periodo,parciales,notas,link")
+        .gte("fecha_hora",start.toISOString()).lt("fecha_hora",end.toISOString());
+      if(error)return;
+      setRefresh(prev=>{const m={...prev};(data||[]).forEach(p=>{m[p.id]=p;});return m;});
+    },60000);
+    return()=>clearInterval(id);
+  },[fechaObjetivo,diaOffset]);
+
   const partidosDia=useMemo(()=>{
-    return (partidos||[]).filter(p=>p.fecha_hora&&dayKey(new Date(p.fecha_hora))===keyObjetivo).sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
-  },[partidos,keyObjetivo]);
+    const propFilt=(partidos||[]).filter(p=>p.fecha_hora&&dayKey(new Date(p.fecha_hora))===keyObjetivo);
+    // Fresh de BD tiene prioridad sobre la prop (cache); merge por id
+    const byId=new Map();
+    propFilt.forEach(p=>byId.set(p.id,p));
+    Object.values(refresh).forEach(p=>{if(p.fecha_hora&&dayKey(new Date(p.fecha_hora))===keyObjetivo)byId.set(p.id,p);});
+    return [...byId.values()].sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
+  },[partidos,keyObjetivo,refresh]);
 
   const favDelDia=useMemo(()=>partidosDia.filter(p=>esFavPartido(p,favSet)),[partidosDia,favSet]);
 
