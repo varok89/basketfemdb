@@ -128,13 +128,18 @@ module.exports = async (req, res) => {
 
   try {
     const n = normalize(body);
-    const prefix = n.issueId ? `[SNT-${n.issueId}] ` : "[SNT] ";
+    // Rechazar pings sin issueId (installation events, verification, etc.). Antes
+    // creaban tarjetas vacias con titulo "[SNT] Sentry issue" que no aportan nada.
+    if (!n.issueId) {
+      res.status(200).json({ ok: true, skipped: "no_issue_id", body_keys: Object.keys(body || {}) });
+      return;
+    }
+    const prefix = `[SNT-${n.issueId}] `;
     const title = prefix + (n.title || "Sentry issue");
 
-    if (n.issueId) {
-      const existing = await notionSearchByPrefix(prefix);
-      if (existing) { res.status(200).json({ ok: true, dedup: true, page_id: existing.id }); return; }
-    }
+    const existing = await notionSearchByPrefix(prefix);
+    if (existing) { res.status(200).json({ ok: true, dedup: true, page_id: existing.id }); return; }
+
     const page = await notionCreatePage({ ...n, title });
     res.status(200).json({ ok: true, created: true, page_id: page.id });
   } catch (e) {
