@@ -1,4 +1,13 @@
-// cargar-calendario-custom v8
+// cargar-calendario-custom v11
+// v10: parser 'slovakbasket' para Extraliga Ženy (L038 nueva web
+//      exz.slovakbasket.sk). Cada partido incluye link
+//      livestats.dcd.shared.geniussports.com/webcast/SBA/{gameId}/ →
+//      live+boxscore automático via cron actualizar-resultados-fiba.
+//      La web pagina por mes: `procesarLiga` itera meses si el parser
+//      es 'slovakbasket' (placeholder {month} en url_calendario) y
+//      concatena HTMLs antes de parsear.
+// v9: fix regex parseSwissBp — [^\/>]* excluye `/` que aparece en
+//     pathToLogo; usar [\s\S]*? lazy.
 // v8: parser 'swissbp' para SB League Women (Suiza). XML feed de
 //     swiss.basketball/basketplan/showLeagueSchedule.do — cada GameRSS
 //     incluye liveStatsLink con matchId fibalive (slug SUI) → puede
@@ -221,8 +230,58 @@ function parseSwissBp(xml: string, tz: string): PartidoParseado[] {
   return out;
 }
 
+// Parser Extraliga Ženy (Eslovaquia) - nueva web exz.slovakbasket.sk
+// Cada .match-ticket incluye link livestats webcast/SBA/{fibaliveId}/ →
+// enlaza con cron actualizar-resultados-fiba para live+boxscore.
+// v11: decodifica HTML entities antes de matchear equipos, skip "Voľno".
+function decodeHtmlEntities(s: string): string {
+  return s.replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&nbsp;/g, " ");
+}
+function parseSlovakbasket(html: string, tz: string): PartidoParseado[] {
+  const out: PartidoParseado[] = [];
+  const rx = /<div class="col-lg-4[^"]*match-ticket">([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/g;
+  const seen = new Set<string>();
+  let m;
+  while ((m = rx.exec(html)) !== null) {
+    const chunk = m[1];
+    const idM = chunk.match(/\/match\/(\d+)\//);
+    if (!idM) continue;
+    const ext_id = idM[1];
+    if (seen.has(ext_id)) continue;
+    seen.add(ext_id);
+    const fechaM = chunk.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})\s+o\s+(\d{1,2}):(\d{2})/);
+    let fecha_iso: string | null = null;
+    if (fechaM) {
+      const [, d, mo, y, hh, mm] = fechaM;
+      fecha_iso = toISOFromLocal(`${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`, parseInt(hh, 10), parseInt(mm, 10), tz);
+    }
+    const titlesM = chunk.match(/<div class="titles">\s*([^<]+?)\s+-\s+([^<]+?)\s*<\/div>/);
+    if (!titlesM) continue;
+    const local = decodeHtmlEntities(titlesM[1].trim());
+    const visit = decodeHtmlEntities(titlesM[2].trim());
+    if (local === "Voľno" || visit === "Voľno") continue;
+    // Logos: 2 primeros <img> con Competitor/{id}
+    const logos = [...chunk.matchAll(/<img[^>]+src="([^"]+Competitor\/\d+[^"]+)"/g)].map(x => x[1]);
+    // Score si terminado: <span class="score">85</span> o similar
+    const scoreM = chunk.match(/(\d{2,3})\s*<span[^>]*>[:\-]<\/span>\s*(\d{2,3})/);
+    // fibalive matchId
+    const fibM = chunk.match(/livestats\.dcd\.shared\.geniussports\.com\/webcast\/[A-Z]+\/(\d+)/);
+    out.push({
+      ext_id, fecha_iso,
+      local_nombre: local, visit_nombre: visit,
+      local_logo: logos[0] || null, visit_logo: logos[1] || null,
+      score_local: scoreM ? parseInt(scoreM[1], 10) : null,
+      score_visit: scoreM ? parseInt(scoreM[2], 10) : null,
+      ext_fibalive: fibM ? fibM[1] : null,
+    });
+  }
+  return out;
+}
+
 const PARSERS: Record<string, (html: string, tz: string) => PartidoParseado[]> = {
-  flbb: parseFlbb, zbl: parseZbl, exz: parseExz, swissbp: parseSwissBp,
+  flbb: parseFlbb, zbl: parseZbl, exz: parseExz, swissbp: parseSwissBp, slovakbasket: parseSlovakbasket,
 };
 
 // Segunda pasada: para cada partido cuyo match_url exista y aún no tenga
@@ -317,12 +376,33 @@ async function procesarLiga(cfg: any, opts: { preview?: boolean } = {}): Promise
   const temporada = cfg.temporada || temporadaActual();
   let html: string;
   try {
-    const r = await fetch(cfg.url_calendario, {
-      headers: { "User-Agent": "Mozilla/5.0", "Accept": "text/html", "Cache-Control": "no-cache" },
-      signal: AbortSignal.timeout(20000),
-    });
-    if (!r.ok) return { ok: false, id_liga: cfg.id_liga, error: `HTTP ${r.status}` };
-    html = await r.text();
+    if (cfg.parser === "slovakbasket") {
+      // v10: iterar meses [now-1, now+8] y concatenar HTMLs (la web pagina por mes)
+      const now = new Date();
+      const meses: string[] = [];
+      for (let i = -1; i < 9; i++) {
+        const d = new Date(now.getUTCFullYear(), now.getUTCMonth() + i, 1);
+        meses.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+      }
+      const parts = await Promise.all(meses.map(async (mm) => {
+        try {
+          const url = cfg.url_calendario.replace("{month}", mm);
+          const r = await fetch(url, {
+            headers: { "User-Agent": "Mozilla/5.0", "Accept": "text/html", "Cache-Control": "no-cache" },
+            signal: AbortSignal.timeout(15000),
+          });
+          return r.ok ? await r.text() : "";
+        } catch { return ""; }
+      }));
+      html = parts.join("\n");
+    } else {
+      const r = await fetch(cfg.url_calendario, {
+        headers: { "User-Agent": "Mozilla/5.0", "Accept": "text/html", "Cache-Control": "no-cache" },
+        signal: AbortSignal.timeout(20000),
+      });
+      if (!r.ok) return { ok: false, id_liga: cfg.id_liga, error: `HTTP ${r.status}` };
+      html = await r.text();
+    }
   } catch (e) { return { ok: false, id_liga: cfg.id_liga, error: `fetch ${(e as Error).name}` }; }
 
   const partidos = parser(html, cfg.tz || "UTC");
