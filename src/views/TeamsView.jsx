@@ -15,7 +15,7 @@ import {
 } from "../lib/ui";
 
 function TeamForm({initial,onSave,onCancel,saving}){
-  const [f,setF]=useState({nombre:'',ciudad:'',pais:'',año_fundacion:'',escudo:'',tipo:'club',redes_sociales:'',pabellon:'',id_espn:'',id_fiba:'',id_ext:'',conferencia:'',...(initial||{})});
+  const [f,setF]=useState({nombre:'',ciudad:'',pais:'',año_fundacion:'',escudo:'',tipo:'club',redes_sociales:'',pabellon:'',id_espn:'',id_fiba:'',id_feb:'',conferencia:'',...(initial||{})});
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
   const inp={width:'100%',border:'1.5px solid var(--fx-border)',borderRadius:'10px',padding:'9px 12px',fontSize:'14px',outline:'none',boxSizing:'border-box'};
   return(<div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
@@ -36,7 +36,7 @@ function TeamForm({initial,onSave,onCancel,saving}){
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'12px'}}>
       <Fld label='ESPN'><input style={inp} value={f.id_espn||''} onChange={set('id_espn')} placeholder='2483'/></Fld>
       <Fld label='FIBA'><input style={inp} value={f.id_fiba||''} onChange={set('id_fiba')} placeholder='58145'/></Fld>
-      <Fld label='FEB'><input style={inp} value={f.id_ext||''} onChange={set('id_ext')} placeholder='981303'/></Fld>
+      <Fld label='FEB'><input style={inp} value={f.id_feb||''} onChange={set('id_feb')} placeholder='981303'/></Fld>
     </div>
     <div style={{display:'flex',gap:'10px',justifyContent:'flex-end',marginTop:'8px'}}>
       <button onClick={onCancel} style={{background:'var(--fx-hover)',border:'none',borderRadius:'10px',padding:'9px 20px',fontWeight:600,cursor:'pointer'}}>Cancelar</button>
@@ -432,13 +432,13 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
       if(teamModal==="addTeam"){
         const ids=equipos.map(e=>parseInt(e.id_equipo.replace("E",""))).filter(n=>!isNaN(n));
         const newId=firstFreeId(ids,"E",3);
-        const payload={...f,año_fundacion:f.año_fundacion===''||f.año_fundacion===null?null:parseInt(f.año_fundacion)||null,id_espn:f.id_espn?.trim()||null,id_fiba:f.id_fiba?.trim()||null,id_ext:f.id_ext?.trim()||null,conferencia:f.conferencia?.trim()||null};
+        const payload={...f,año_fundacion:f.año_fundacion===''||f.año_fundacion===null?null:parseInt(f.año_fundacion)||null,id_espn:f.id_espn?.trim()||null,id_fiba:f.id_fiba?.trim()||null,id_feb:f.id_feb?.trim()||null,conferencia:f.conferencia?.trim()||null};
         const newTeam={id_equipo:newId,...payload};
         const{error}=await supabase.from("equipos").insert(newTeam);
         if(error)throw error;
         setEquipos(prev=>[...prev,newTeam]);
       } else {
-        const payload={...f,año_fundacion:f.año_fundacion===''||f.año_fundacion===null?null:parseInt(f.año_fundacion)||null,id_espn:f.id_espn?.trim()||null,id_fiba:f.id_fiba?.trim()||null,id_ext:f.id_ext?.trim()||null,conferencia:f.conferencia?.trim()||null};
+        const payload={...f,año_fundacion:f.año_fundacion===''||f.año_fundacion===null?null:parseInt(f.año_fundacion)||null,id_espn:f.id_espn?.trim()||null,id_fiba:f.id_fiba?.trim()||null,id_feb:f.id_feb?.trim()||null,conferencia:f.conferencia?.trim()||null};
         const{error}=await supabase.from("equipos").update(payload).eq("id_equipo",selId);
         if(error)throw error;
         setEquipos(prev=>prev.map(e=>e.id_equipo!==selId?e:{...e,...payload}));
