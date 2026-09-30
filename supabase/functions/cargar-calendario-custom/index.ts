@@ -1,4 +1,8 @@
-// cargar-calendario-custom v7
+// cargar-calendario-custom v8
+// v8: parser 'swissbp' para SB League Women (Suiza). XML feed de
+//     swiss.basketball/basketplan/showLeagueSchedule.do — cada GameRSS
+//     incluye liveStatsLink con matchId fibalive (slug SUI) → puede
+//     enlazarse con cron actualizar-resultados-fiba para live+boxscore.
 // v7: fix duplicados equipos. `.limit(20000)` no funciona (PostgREST corta
 //     a 1000). Usar paginación `.range()` como cargar-calendario-genius.
 //     Además, red de seguridad `ilike("nombre", nombre.trim())` antes de
@@ -165,8 +169,60 @@ function parseExz(html: string, tz: string): PartidoParseado[] {
   return out;
 }
 
+// Parser SB League Women (Suiza) - XML feed basketplan via swiss.basketball
+// Cada <GameRSS> incluye liveStatsLink con matchId fibalive (slug SUI).
+function parseSwissBp(xml: string, tz: string): PartidoParseado[] {
+  const out: PartidoParseado[] = [];
+  const rx = /<GameRSS\s+([^>]*)>([\s\S]*?)<\/GameRSS>/g;
+  const attr = (s: string, k: string) => {
+    const r = new RegExp(`\\b${k}="([^"]*)"`).exec(s);
+    return r ? r[1] : null;
+  };
+  let m;
+  const seen = new Set<string>();
+  while ((m = rx.exec(xml)) !== null) {
+    const a = m[1];
+    const inner = m[2];
+    const ext_id = attr(a, "id");
+    if (!ext_id || seen.has(ext_id)) continue;
+    seen.add(ext_id);
+    const date = attr(a, "date"); // YYYY-MM-DD
+    const time = attr(a, "time"); // HH:MM
+    const live = attr(a, "liveStatsLink");
+    const fibM = live ? live.match(/\/(\d+)\/?$/) : null;
+    const ext_fibalive = fibM ? fibM[1] : null;
+    let hh = 0, mmn = 0;
+    if (time) {
+      const tp = time.split(":");
+      hh = parseInt(tp[0], 10) || 0;
+      mmn = parseInt(tp[1], 10) || 0;
+    }
+    const fecha_iso = date ? toISOFromLocal(date, hh, mmn, tz) : null;
+    const homeM = /<homeTeam\s+([\s\S]*?)\/>/.exec(inner);
+    const guestM = /<guestTeam\s+([\s\S]*?)\/>/.exec(inner);
+    if (!homeM || !guestM) continue;
+    const homeName = attr(homeM[1], "name");
+    const guestName = attr(guestM[1], "name");
+    if (!homeName || !guestName) continue;
+    const homeLogo = attr(homeM[1], "pathToLogo");
+    const guestLogo = attr(guestM[1], "pathToLogo");
+    const hs = attr(homeM[1], "result");
+    const vs = attr(guestM[1], "result");
+    out.push({
+      ext_id, fecha_iso,
+      local_nombre: homeName, visit_nombre: guestName,
+      local_logo: homeLogo ? `https://www.basketplan.ch/${homeLogo}` : null,
+      visit_logo: guestLogo ? `https://www.basketplan.ch/${guestLogo}` : null,
+      score_local: hs && hs !== "" ? parseInt(hs, 10) : null,
+      score_visit: vs && vs !== "" ? parseInt(vs, 10) : null,
+      ext_fibalive,
+    });
+  }
+  return out;
+}
+
 const PARSERS: Record<string, (html: string, tz: string) => PartidoParseado[]> = {
-  flbb: parseFlbb, zbl: parseZbl, exz: parseExz,
+  flbb: parseFlbb, zbl: parseZbl, exz: parseExz, swissbp: parseSwissBp,
 };
 
 // Segunda pasada: para cada partido cuyo match_url exista y aún no tenga
