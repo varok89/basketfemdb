@@ -1,4 +1,9 @@
-// cargar-calendario-custom v11
+// cargar-calendario-custom v12
+// v12: parser 'russiabasket' para Russian Women's Basketball Premier League
+//      (L018). Consume JSON API pro2.russiabasket.org/api/abc/comps/calendar.
+//      Rusia excluida de FIBA desde 2022 → sin fibalive, solo marcador final.
+//      Añadido rango cirílico а-яё a norm() para matcher equipos rusos.
+// v11: decodeHtmlEntities + skip Voľno en parser slovakbasket.
 // v10: parser 'slovakbasket' para Extraliga Ženy (L038 nueva web
 //      exz.slovakbasket.sk). Cada partido incluye link
 //      livestats.dcd.shared.geniussports.com/webcast/SBA/{gameId}/ →
@@ -33,8 +38,9 @@ const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const sb = createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
 
+// v12: añadido rango cirílico а-яё para equipos rusos
 const norm = (s: string) => (s || "").toLowerCase().normalize("NFD")
-  .replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  .replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9а-яё ]/g, " ").replace(/\s+/g, " ").trim();
 
 function temporadaActual(): string {
   const now = new Date();
@@ -280,8 +286,44 @@ function parseSlovakbasket(html: string, tz: string): PartidoParseado[] {
   return out;
 }
 
+// v12: parser Russian Women's Basketball Premier League (russiabasket.ru)
+// Consume JSON API pro2.russiabasket.org/api/abc/comps/calendar
+// Rusia NO publica en fibalivestats (excluida de FIBA desde 2022) — solo marcador final.
+function parseRussiabasket(json: string, tz: string): PartidoParseado[] {
+  const out: PartidoParseado[] = [];
+  let d: any;
+  try { d = JSON.parse(json); } catch { return out; }
+  const items = d?.items || [];
+  for (const it of items) {
+    const g = it?.game || {};
+    const ext_id = g.id ? String(g.id) : null;
+    if (!ext_id) continue;
+    const fecha_iso = g.scheduledTime ? new Date(g.scheduledTime).toISOString() : null;
+    const t1 = it.team1 || {};
+    const t2 = it.team2 || {};
+    const n1 = t1.name || "";
+    const n2 = t2.name || "";
+    if (!n1 || !n2) continue;
+    const r1 = t1.regionName || "";
+    const r2 = t2.regionName || "";
+    const local_nombre = r1 ? `${n1} (${r1})` : n1;
+    const visit_nombre = r2 ? `${n2} (${r2})` : n2;
+    const showScore = g.showScore === true || g.gameStatus === "Complete" || g.gameStatus === "Live";
+    out.push({
+      ext_id, fecha_iso,
+      local_nombre, visit_nombre,
+      local_logo: t1.logo || null, visit_logo: t2.logo || null,
+      score_local: showScore ? (g.score1 ?? null) : null,
+      score_visit: showScore ? (g.score2 ?? null) : null,
+      ext_fibalive: null, // Rusia sin fibalive
+    });
+  }
+  return out;
+}
+
 const PARSERS: Record<string, (html: string, tz: string) => PartidoParseado[]> = {
-  flbb: parseFlbb, zbl: parseZbl, exz: parseExz, swissbp: parseSwissBp, slovakbasket: parseSlovakbasket,
+  flbb: parseFlbb, zbl: parseZbl, exz: parseExz, swissbp: parseSwissBp,
+  slovakbasket: parseSlovakbasket, russiabasket: parseRussiabasket,
 };
 
 // Segunda pasada: para cada partido cuyo match_url exista y aún no tenga
