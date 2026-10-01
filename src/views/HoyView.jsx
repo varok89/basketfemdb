@@ -82,7 +82,7 @@ function saveColapsadas(s){
   try{localStorage.setItem(COLAPSO_KEY,JSON.stringify([...s]));}catch{}
 }
 
-export default function HoyView({partidos,equipos,ligas,user,favoritos,onToggleFav,onGoToPartido,onGoToTeam,onGoToLeague,lang}){
+export default function HoyView({partidos,equipos,ligas,user,favoritos,onToggleFav,onGoToPartido,onGoToTeam,onGoToLeague,onGoToClasificacion,lang}){
   const t=useT();
   const [diaOffset,setDiaOffset]=useState(0); // -1..+7
   const [subTab,setSubTab]=useState("todos"); // todos | favoritos | competiciones
@@ -259,6 +259,14 @@ export default function HoyView({partidos,equipos,ligas,user,favoritos,onToggleF
                     <div style={{fontSize:"11px",color:"var(--fx-muted)"}}>{liga.pais||""}</div>
                   </div>
                   <div style={{fontSize:"12px",color:"var(--fx-muted)",fontWeight:700,padding:"0 4px"}}>{pp.length}</div>
+                  {onGoToClasificacion&&(
+                    <button
+                      onClick={e=>{e.stopPropagation();onGoToClasificacion(liga.id_liga,pp[0]?.temporada||"");}}
+                      title={lang==="en"?"View standings":"Ver clasificación"}
+                      style={{background:"#f5f3ff",color:"#7c3aed",border:"1.5px solid #ddd6fe",borderRadius:"999px",padding:"3px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer",flexShrink:0}}>
+                      📊
+                    </button>
+                  )}
                   <button
                     onClick={()=>onToggleFav&&onToggleFav("liga",liga.id_liga)}
                     title={ligaFav?(lang==="en"?"Remove league from favorites":"Quitar liga de favoritos"):(lang==="en"?"Add league to favorites":"Añadir liga a favoritos")}
