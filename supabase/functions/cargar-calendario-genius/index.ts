@@ -1,8 +1,12 @@
-// cargar-calendario-genius v4
+// cargar-calendario-genius v5
+// v5: fallback iterar rounds 1..30 con early-stop si round vacío. El dropdown
+//     del schedule (fallback v4) a menudo no lista rounds (ej. KKI Islandia),
+//     así perdíamos todos los partidos salvo la jornada actual. Ahora si no
+//     detectamos rounds por dropdown, iteramos 1..30 y paramos tras 2 vacíos
+//     consecutivos.
 // v4: itera todos los rounds (?roundNumber=N). El schedule sólo devuelve
 //     ~6 partidos por round; antes solo cargábamos round 0 (jornada actual)
-//     y perdíamos el resto de la temporada. Ahora extrae el max round del
-//     HTML inicial y hace fetch de cada round.
+//     y perdíamos el resto de la temporada.
 // v3: paginación real al cargar equipos + red de seguridad anti-duplicados.
 // v2: base scraper Genius Sports hosted.dcd.shared.geniussports.com.
 
@@ -139,21 +143,32 @@ async function procesarLiga(liga: any, temporadaFijada?: string): Promise<any> {
   const htmlBase = await fetchRound(baseUrl, 0);
   if (!htmlBase) return { ok: false, id_liga: liga.id_liga, motivo: "HTTP base" };
   const rounds = [...htmlBase.matchAll(/roundNumber=(\d+)/g)].map(m => parseInt(m[1], 10)).filter(n => !isNaN(n));
-  const maxRound = rounds.length ? Math.max(...rounds) : 0;
+  const maxRound = rounds.length ? Math.max(...rounds) : 30;
 
   const gameIds = new Set<string>();
   const partidos: PartidoGenius[] = [];
-  const addPartidos = (html: string) => {
+  const addPartidos = (html: string): number => {
+    let nuevos = 0;
     for (const p of parseSchedule(html)) {
       if (gameIds.has(p.gameId)) continue;
       gameIds.add(p.gameId);
       partidos.push(p);
+      nuevos++;
     }
+    return nuevos;
   };
   addPartidos(htmlBase);
+  // v5: si rounds del dropdown no listados, iteramos 1..30 con early-stop (2 vacíos seguidos)
+  let vaciosSeguidos = 0;
   for (let rn = 1; rn <= maxRound; rn++) {
     const h = await fetchRound(baseUrl, rn);
-    if (h) addPartidos(h);
+    const n = h ? addPartidos(h) : 0;
+    if (n === 0) {
+      vaciosSeguidos++;
+      if (vaciosSeguidos >= 2 && !rounds.length) break;
+    } else {
+      vaciosSeguidos = 0;
+    }
   }
   if (partidos.length === 0) return { ok: true, id_liga: liga.id_liga, temporada, total_scrape: 0, motivo: "vacío" };
 
