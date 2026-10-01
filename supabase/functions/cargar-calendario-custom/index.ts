@@ -321,9 +321,39 @@ function parseRussiabasket(json: string, tz: string): PartidoParseado[] {
   return out;
 }
 
+// v13: parser Serie A1/A2 Italia (legabasketfemminile.it)
+// Consume JSON de /rm/v1/competitions/{slug}/{temporada}/calendar-index.json
+// Estructura: rounds[].matches[] con id (UUID), start_at ISO UTC, home/away.name, points.
+function parseLbf(json: string, tz: string): PartidoParseado[] {
+  const out: PartidoParseado[] = [];
+  let d: any;
+  try { d = JSON.parse(json); } catch { return out; }
+  for (const r of d?.rounds || []) {
+    for (const m of r?.matches || []) {
+      const ext_id = m?.id ? String(m.id) : null;
+      if (!ext_id) continue;
+      const fecha_iso = m.start_at || null;
+      const local_nombre = m?.home?.name || "";
+      const visit_nombre = m?.away?.name || "";
+      if (!local_nombre || !visit_nombre) continue;
+      const played = m.status === "complete" || m.status === "finished" || m.status === "live";
+      out.push({
+        ext_id, fecha_iso,
+        local_nombre, visit_nombre,
+        local_logo: m?.home?.logo_url || null,
+        visit_logo: m?.away?.logo_url || null,
+        score_local: played ? (m.home_points ?? null) : null,
+        score_visit: played ? (m.away_points ?? null) : null,
+        ext_fibalive: null,
+      });
+    }
+  }
+  return out;
+}
+
 const PARSERS: Record<string, (html: string, tz: string) => PartidoParseado[]> = {
   flbb: parseFlbb, zbl: parseZbl, exz: parseExz, swissbp: parseSwissBp,
-  slovakbasket: parseSlovakbasket, russiabasket: parseRussiabasket,
+  slovakbasket: parseSlovakbasket, russiabasket: parseRussiabasket, lbf: parseLbf,
 };
 
 // Segunda pasada: para cada partido cuyo match_url exista y aún no tenga
