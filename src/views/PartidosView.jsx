@@ -1905,13 +1905,15 @@ function WNBABracketAuto({globalRanked, playoffPartidos, equipoMap, onOpenPartid
   const pSemi=playoffPartidos.filter(p=>/^Semifinal/i.test(p.notas||""));
   const pFinal=playoffPartidos.filter(p=>/^Final/i.test(p.notas||""));
 
-  const sortBySeed=arr=>arr.slice().sort((a,b)=>{
+  // Orden de bracket (top→bottom): 1v8, 4v5, 2v7, 3v6 → Semi1=idx0+1, Semi2=idx2+3
+  const bracketOrder={1:0,4:1,2:2,3:3};
+  const sortBracket=arr=>arr.slice().sort((a,b)=>{
     const sa=Math.min(seeds[a[0].id_equipo_local]||99,seeds[a[0].id_equipo_visitante]||99);
     const sb=Math.min(seeds[b[0].id_equipo_local]||99,seeds[b[0].id_equipo_visitante]||99);
-    return sa-sb;
+    return (bracketOrder[sa]??sa)-(bracketOrder[sb]??sb);
   });
-  const series1R=sortBySeed(agrupaSerie(p1R));
-  const seriesSemi=sortBySeed(agrupaSerie(pSemi));
+  const series1R=sortBracket(agrupaSerie(p1R));
+  const seriesSemi=sortBracket(agrupaSerie(pSemi));
   const serieFinal=agrupaSerie(pFinal);
 
   function labelSerie(serie, needed){
@@ -1988,9 +1990,9 @@ function WNBABracketAuto({globalRanked, playoffPartidos, equipoMap, onOpenPartid
           {seriesSemi.length>0
             ? seriesSemi.map((s,i)=><SerieBox key={i} serie={s} needed={3} roundLabel={`Semi ${i+1}`}/>)
             : (()=>{
-                // Bracket WNBA fijo: Semi1=ganador(series1R[0]) vs ganador(series1R[3]) [1v8+4v5]
-                //                    Semi2=ganador(series1R[1]) vs ganador(series1R[2]) [2v7+3v6]
-                const semiPairs=[[0,3],[1,2]];
+                // Bracket WNBA fijo con series1R en orden [1v8, 4v5, 2v7, 3v6]:
+                // Semi1=ganador(idx0)+ganador(idx1) [top], Semi2=ganador(idx2)+ganador(idx3) [bottom]
+                const semiPairs=[[0,1],[2,3]];
                 return semiPairs.map(([a,b],i)=>{
                   const sA=series1R[a], sB=series1R[b];
                   const gA=sA?ganadorSerie(sA,2).ganador:null;
