@@ -308,7 +308,9 @@ function parseRussiabasket(json: string, tz: string): PartidoParseado[] {
     const r2 = t2.regionName || "";
     const local_nombre = r1 ? `${n1} (${r1})` : n1;
     const visit_nombre = r2 ? `${n2} (${r2})` : n2;
-    const showScore = g.showScore === true || g.gameStatus === "Complete" || g.gameStatus === "Live";
+    const showScore = g.showScore === true
+      || ["Complete","Live","Playing","InProgress","ResultConfirmed","Final"].includes(g.gameStatus)
+      || (Number(g.score1) > 0 || Number(g.score2) > 0);
     out.push({
       ext_id, fecha_iso,
       local_nombre, visit_nombre,
