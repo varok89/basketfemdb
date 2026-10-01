@@ -1342,8 +1342,9 @@ function EuroligaFases({psLiga,equipoMap,onOpenPartido,mvpPlayer,onGoToPlayer}){
       </div>
     </BracketCard>
   );
+  const r2ConGrupo=r2.filter(p=>/Grupo [A-Z]/i.test(nt(p)));
   const tabs=[...(previa.length?[["previa","Fase Previa"]]:[]),...(r1.length?[["primera","Primera Ronda"]]:[]),
-    ...(r2.length?[["segunda","Segunda Ronda"]]:[]),...(playins.length?[["playins","Play-Ins"]]:[]),...(six.length?[["six","Final Six"]]:[])];
+    ...(r2ConGrupo.length?[["segunda","Segunda Ronda"]]:[]),...(playins.length?[["playins","Play-Ins"]]:[]),...(six.length?[["six","Final Six"]]:[])];
   return(
     <div>
       <div style={{display:"flex",gap:"8px",marginBottom:"16px",flexWrap:"wrap"}}>
@@ -1904,8 +1905,13 @@ function WNBABracketAuto({globalRanked, playoffPartidos, equipoMap, onOpenPartid
   const pSemi=playoffPartidos.filter(p=>/^Semifinal/i.test(p.notas||""));
   const pFinal=playoffPartidos.filter(p=>/^Final/i.test(p.notas||""));
 
-  const series1R=agrupaSerie(p1R);
-  const seriesSemi=agrupaSerie(pSemi);
+  const sortBySeed=arr=>arr.slice().sort((a,b)=>{
+    const sa=Math.min(seeds[a[0].id_equipo_local]||99,seeds[a[0].id_equipo_visitante]||99);
+    const sb=Math.min(seeds[b[0].id_equipo_local]||99,seeds[b[0].id_equipo_visitante]||99);
+    return sa-sb;
+  });
+  const series1R=sortBySeed(agrupaSerie(p1R));
+  const seriesSemi=sortBySeed(agrupaSerie(pSemi));
   const serieFinal=agrupaSerie(pFinal);
 
   function labelSerie(serie, needed){
