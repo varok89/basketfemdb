@@ -1987,7 +1987,33 @@ function WNBABracketAuto({globalRanked, playoffPartidos, equipoMap, onOpenPartid
           <div style={{fontSize:"10px",fontWeight:800,color:"#7c3aed",textTransform:"uppercase",letterSpacing:"0.4px"}}>Semifinales · Bo5</div>
           {seriesSemi.length>0
             ? seriesSemi.map((s,i)=><SerieBox key={i} serie={s} needed={3} roundLabel={`Semi ${i+1}`}/>)
-            : [0,1].map(i=><BracketCol key={i} label={`Semi ${i+1}`}><div style={{background:"var(--fx-hover)",border:"1px dashed #cbd5e1",borderRadius:"10px",padding:"14px",width:"150px",fontSize:"11px",color:"var(--fx-muted2)",textAlign:"center"}}>{t("partidos.sin_juego")}</div></BracketCol>)}
+            : (()=>{
+                // Bracket WNBA fijo: Semi1=ganador(series1R[0]) vs ganador(series1R[3]) [1v8+4v5]
+                //                    Semi2=ganador(series1R[1]) vs ganador(series1R[2]) [2v7+3v6]
+                const semiPairs=[[0,3],[1,2]];
+                return semiPairs.map(([a,b],i)=>{
+                  const sA=series1R[a], sB=series1R[b];
+                  const gA=sA?ganadorSerie(sA,2).ganador:null;
+                  const gB=sB?ganadorSerie(sB,2).ganador:null;
+                  const eqA=gA?equipoMap[gA]:null;
+                  const eqB=gB?equipoMap[gB]:null;
+                  const row=(eq,seed)=>(
+                    <div style={{display:"flex",alignItems:"center",gap:"6px",padding:"6px 8px"}}>
+                      {eq?.escudo?<img loading="lazy" decoding="async" src={eq.escudo} alt="" style={{width:20,height:20,objectFit:"contain",flexShrink:0}} onError={e=>{e.currentTarget.style.display="none";}}/>:<div style={{width:20,height:20,borderRadius:"4px",border:"1px dashed #cbd5e1",flexShrink:0}}/>}
+                      <span style={{flex:1,fontSize:"12px",fontWeight:600,color:eq?"#334155":"#94a3b8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{eq?(seed?`(${seed}) `:"")+eq.nombre:"Por decidir"}</span>
+                    </div>
+                  );
+                  return(
+                    <BracketCol key={i} label={`Semi ${i+1}`}>
+                      <div style={{width:"180px",background:"var(--fx-hover)",border:"1px dashed #cbd5e1",borderRadius:"10px",overflow:"hidden"}}>
+                        {row(eqA,gA?seeds[gA]:null)}
+                        <div style={{height:"1px",background:"var(--fx-border)"}}/>
+                        {row(eqB,gB?seeds[gB]:null)}
+                      </div>
+                    </BracketCol>
+                  );
+                });
+              })()}
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:"14px",justifyContent:"center"}}>
           <div style={{fontSize:"10px",fontWeight:800,color:"#7c3aed",textTransform:"uppercase",letterSpacing:"0.4px"}}>🏆 Finales · Bo7</div>
