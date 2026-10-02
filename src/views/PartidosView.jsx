@@ -2290,9 +2290,12 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
     return m?(players||[]).find(p=>p.id_jugadora===m.id_jugadora)||null:null;
   },[mvps,players,ligaId,temporada]);
 
+  // WNBA tiene vista dedicada (Global/East/West/Playoffs), delegar antes del early-return
+  if(ligaId==="L006")return <WNBAClasificacion psLiga={psLiga} equipoMap={equipoMap} temporada={temporada} onOpenPartido={onOpenPartido} onGoToTeam={onGoToTeam} onBack={onBack}/>;
+
   // Euroliga: estructura propia (1a ronda, 2a ronda, play-ins, final six)
   const esEuroliga=useMemo(()=>psLiga.some(p=>/^Primera Ronda/i.test(p.notas||""))&&psLiga.some(p=>/^Segunda Ronda/i.test(p.notas||"")),[psLiga]);
-  if(!grupos.length&&!hayKO&&!hayBracketIV&&!hayPreviaIV)return(
+  if(!grupos.length&&!hayKO&&!hayBracketIV&&!hayPreviaIV&&!esEuroliga)return(
     <div style={{maxWidth:"700px",margin:"0 auto",padding:"16px"}}>
       <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"15px",cursor:"pointer",padding:"0 0 16px"}}>← Volver</button>
       <p style={{color:"var(--fx-muted2)",textAlign:"center",paddingTop:"40px"}}>{t("players.sin_partidos_resultado")}</p>
@@ -2306,8 +2309,6 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
       <EuroligaFases psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido} mvpPlayer={mvpPlayer} onGoToPlayer={onGoToPlayer}/>
     </div>
   );
-
-  if(ligaId==="L006")return <WNBAClasificacion psLiga={psLiga} equipoMap={equipoMap} temporada={temporada} onOpenPartido={onOpenPartido} onGoToTeam={onGoToTeam} onBack={onBack}/>;
 
   return(
     <div style={{maxWidth:"700px",margin:"0 auto",padding:"16px",fontFamily:"system-ui,sans-serif"}}>
