@@ -115,7 +115,7 @@ export default function HoyView({partidos,equipos,ligas,user,favoritos,onToggleF
     (async()=>{
       const start=new Date(fechaObjetivo);const end=new Date(fechaObjetivo);end.setTime(end.getTime()+DAY_MS);
       const {data,error}=await supabase.from("partidos")
-        .select("id,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,fecha_hora,es_live,periodo,parciales,notas,link")
+        .select("id,id_liga,temporada,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,fecha_hora,es_live,periodo,parciales,notas,link")
         .gte("fecha_hora",start.toISOString()).lt("fecha_hora",end.toISOString());
       if(cancel||error)return;
       setRefresh(prev=>{const m={...prev};(data||[]).forEach(p=>{m[p.id]=p;});return m;});
@@ -127,7 +127,7 @@ export default function HoyView({partidos,equipos,ligas,user,favoritos,onToggleF
     const id=setInterval(async()=>{
       const start=new Date(fechaObjetivo);const end=new Date(fechaObjetivo);end.setTime(end.getTime()+DAY_MS);
       const {data,error}=await supabase.from("partidos")
-        .select("id,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,fecha_hora,es_live,periodo,parciales,notas,link")
+        .select("id,id_liga,temporada,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,fecha_hora,es_live,periodo,parciales,notas,link")
         .gte("fecha_hora",start.toISOString()).lt("fecha_hora",end.toISOString());
       if(error)return;
       setRefresh(prev=>{const m={...prev};(data||[]).forEach(p=>{m[p.id]=p;});return m;});
