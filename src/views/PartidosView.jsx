@@ -2442,5 +2442,5 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
 }
 
 
-export { PartidosView };
+export { PartidosView, ClasificacionGrupos };
 export default PartidosView;

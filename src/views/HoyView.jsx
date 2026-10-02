@@ -165,7 +165,9 @@ export default function HoyView({partidos,equipos,ligas,user,favoritos,onToggleF
       if(!groups.has(l.id_liga)) groups.set(l.id_liga,{liga:l,partidos:[]});
       groups.get(l.id_liga).partidos.push(p);
     });
-    return [...groups.values()].sort((a,b)=>a.liga.nombre.localeCompare(b.liga.nombre));
+    // Ordenar partidos de cada liga por hora, luego ordenar ligas por su primer partido
+    for(const g of groups.values()) g.partidos.sort((a,b)=>new Date(a.fecha_hora)-new Date(b.fecha_hora));
+    return [...groups.values()].sort((a,b)=>new Date(a.partidos[0].fecha_hora)-new Date(b.partidos[0].fecha_hora));
   },[filtrados,ligaMap]);
 
   const btnDay=(off,label)=>{
