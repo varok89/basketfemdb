@@ -46,6 +46,7 @@ function RecordsLiga({idLiga, temporada, players, equipos, onGoToPlayer, onGoToT
   const [sortBy,setSortBy]=useState("val");
   const [sortDir,setSortDir]=useState("desc");
   const [search,setSearch]=useState("");
+  const [showTabla,setShowTabla]=useState(false);
   useEffect(()=>{
     if(!idLiga||!temporada)return;
     let cancel=false; setRows(null);
@@ -129,75 +130,85 @@ function RecordsLiga({idLiga, temporada, players, equipos, onGoToPlayer, onGoToT
           {card(t("records.ast"),records.ast,records.ast?records.ast.v.toFixed(1):"—")}
           {card(t("records.val"),records.val,records.val?records.val.v.toFixed(1):"—")}
         </div>
-        {jugadorasStats.length>0&&(()=>{
-          const q=search.trim().toLowerCase();
-          const filtered=jugadorasStats.filter(s=>{
-            if(!q)return true;
-            const p=playerMap[s.id_jugadora]; const eq=eqMap[s.id_equipo];
-            return (p?.nombre||"").toLowerCase().includes(q)||(eq?.nombre||"").toLowerCase().includes(q);
-          });
-          const dir=sortDir==="desc"?-1:1;
-          const sorted=[...filtered].sort((a,b)=>{
-            if(sortBy==="nombre"){const an=playerMap[a.id_jugadora]?.nombre||"";const bn=playerMap[b.id_jugadora]?.nombre||"";return an.localeCompare(bn,"es")*dir;}
-            if(sortBy==="equipo"){const an=eqMap[a.id_equipo]?.nombre||"";const bn=eqMap[b.id_equipo]?.nombre||"";return an.localeCompare(bn,"es")*dir;}
-            return (a[sortBy]-b[sortBy])*dir;
-          });
-          const header=(key,label,align="right")=>{
-            const activo=sortBy===key;
-            return (
-              <th onClick={()=>{if(activo)setSortDir(d=>d==="desc"?"asc":"desc");else{setSortBy(key);setSortDir(key==="nombre"||key==="equipo"?"asc":"desc");}}}
-                style={{padding:"8px 10px",textAlign:align,fontSize:"11px",fontWeight:800,color:activo?"#9333ea":"var(--fx-muted)",cursor:"pointer",userSelect:"none",whiteSpace:"nowrap",position:"sticky",top:0,background:"var(--fx-hover)"}}>
-                {label}{activo?(sortDir==="desc"?" ▾":" ▴"):""}
-              </th>
-            );
-          };
-          return (
-            <div style={{marginTop:"16px"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px",marginBottom:"8px",flexWrap:"wrap"}}>
-                <div style={{fontSize:"13px",fontWeight:700,color:"var(--fx-text)"}}>📊 Promedios por jugadora <span style={{color:"var(--fx-muted2)",fontWeight:400,fontSize:"12px"}}>({sorted.length})</span></div>
-                <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar jugadora o equipo…"
-                  style={{padding:"6px 10px",fontSize:"12px",border:"1px solid var(--fx-border)",borderRadius:"8px",background:"var(--fx-card)",color:"var(--fx-text)",minWidth:"180px"}}/>
-              </div>
-              <div style={{maxHeight:"420px",overflow:"auto",border:"1px solid var(--fx-border)",borderRadius:"10px"}}>
-                <table style={{width:"100%",borderCollapse:"collapse",fontSize:"12px"}}>
-                  <thead>
-                    <tr>
-                      {header("nombre","Jugadora","left")}
-                      {header("equipo","Equipo","left")}
-                      {header("pj","PJ")}
-                      {header("pts","PTS")}
-                      {header("reb","REB")}
-                      {header("ast","AST")}
-                      {header("val","VAL")}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sorted.map(s=>{
-                      const p=playerMap[s.id_jugadora]; const eq=eqMap[s.id_equipo];
-                      return (
-                        <tr key={s.id_jugadora}
-                          onClick={()=>p&&onGoToPlayer&&onGoToPlayer(p.id_jugadora)}
-                          style={{borderTop:"1px solid var(--fx-border2)",cursor:p?"pointer":"default"}}>
-                          <td style={{padding:"6px 10px",display:"flex",alignItems:"center",gap:"6px"}}>
-                            {p?.foto?<img loading="lazy" decoding="async" src={p.foto} alt="" style={{width:22,height:22,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>:<div style={{width:22,height:22,borderRadius:"50%",background:"var(--fx-border)",flexShrink:0}}/>}
-                            <span style={{color:"var(--fx-text)",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"160px"}}>{p?.nombre||s.id_jugadora}</span>
-                          </td>
-                          <td style={{padding:"6px 10px",color:"var(--fx-muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"140px"}}>{eq?.nombre||s.id_equipo}</td>
-                          <td style={{padding:"6px 10px",textAlign:"right",color:"var(--fx-muted)"}}>{s.pj}</td>
-                          <td style={{padding:"6px 10px",textAlign:"right",color:"var(--fx-text)",fontWeight:sortBy==="pts"?700:400}}>{s.pts.toFixed(1)}</td>
-                          <td style={{padding:"6px 10px",textAlign:"right",color:"var(--fx-text)",fontWeight:sortBy==="reb"?700:400}}>{s.reb.toFixed(1)}</td>
-                          <td style={{padding:"6px 10px",textAlign:"right",color:"var(--fx-text)",fontWeight:sortBy==="ast"?700:400}}>{s.ast.toFixed(1)}</td>
-                          <td style={{padding:"6px 10px",textAlign:"right",color:"var(--fx-text)",fontWeight:sortBy==="val"?700:400}}>{s.val.toFixed(1)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          );
-        })()}
+        {jugadorasStats.length>0&&(
+          <button onClick={()=>setShowTabla(true)}
+            style={{marginTop:"14px",width:"100%",padding:"10px 14px",background:"var(--fx-lila-bg)",color:"var(--fx-lila-text)",border:"1px solid var(--fx-lila-border)",borderRadius:"10px",fontSize:"13px",fontWeight:700,cursor:"pointer"}}>
+            📊 Ver tabla de promedios por jugadora ({jugadorasStats.length})
+          </button>
+        )}
       </>))}
+      {showTabla&&(()=>{
+        const q=search.trim().toLowerCase();
+        const filtered=jugadorasStats.filter(s=>{
+          if(!q)return true;
+          const p=playerMap[s.id_jugadora]; const eq=eqMap[s.id_equipo];
+          return (p?.nombre||"").toLowerCase().includes(q)||(eq?.nombre||"").toLowerCase().includes(q);
+        });
+        const dir=sortDir==="desc"?-1:1;
+        const sorted=[...filtered].sort((a,b)=>{
+          if(sortBy==="nombre"){const an=playerMap[a.id_jugadora]?.nombre||"";const bn=playerMap[b.id_jugadora]?.nombre||"";return an.localeCompare(bn,"es")*dir;}
+          if(sortBy==="equipo"){const an=eqMap[a.id_equipo]?.nombre||"";const bn=eqMap[b.id_equipo]?.nombre||"";return an.localeCompare(bn,"es")*dir;}
+          return (a[sortBy]-b[sortBy])*dir;
+        });
+        const header=(key,label,align="right")=>{
+          const activo=sortBy===key;
+          return (
+            <th onClick={()=>{if(activo)setSortDir(d=>d==="desc"?"asc":"desc");else{setSortBy(key);setSortDir(key==="nombre"||key==="equipo"?"asc":"desc");}}}
+              style={{padding:"10px 10px",textAlign:align,fontSize:"11px",fontWeight:800,color:activo?"#9333ea":"var(--fx-muted)",cursor:"pointer",userSelect:"none",whiteSpace:"nowrap",position:"sticky",top:0,background:"var(--fx-hover)",zIndex:1}}>
+              {label}{activo?(sortDir==="desc"?" ▾":" ▴"):""}
+            </th>
+          );
+        };
+        return (
+          <div style={{position:"fixed",inset:0,background:"var(--fx-bg)",zIndex:1500,display:"flex",flexDirection:"column"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",borderBottom:"1px solid var(--fx-border)",background:"var(--fx-card)",gap:"10px",flexWrap:"wrap"}}>
+              <div style={{display:"flex",alignItems:"center",gap:"10px",flex:1,minWidth:0}}>
+                <h2 style={{margin:0,fontSize:"16px",fontWeight:800,color:"var(--fx-text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>📊 Promedios · {temporada} <span style={{color:"var(--fx-muted2)",fontWeight:400,fontSize:"13px"}}>({sorted.length})</span></h2>
+              </div>
+              <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar jugadora o equipo…"
+                style={{padding:"7px 10px",fontSize:"13px",border:"1px solid var(--fx-border)",borderRadius:"8px",background:"var(--fx-card)",color:"var(--fx-text)",minWidth:"200px"}}/>
+              <button onClick={()=>setShowTabla(false)} aria-label="Cerrar"
+                style={{background:"transparent",border:"none",fontSize:"24px",cursor:"pointer",color:"var(--fx-muted)",padding:"4px 8px",lineHeight:1}}>✕</button>
+            </div>
+            <div style={{flex:1,overflow:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:"13px"}}>
+                <thead>
+                  <tr>
+                    {header("nombre","Jugadora","left")}
+                    {header("equipo","Equipo","left")}
+                    {header("pj","PJ")}
+                    {header("pts","PTS")}
+                    {header("reb","REB")}
+                    {header("ast","AST")}
+                    {header("val","VAL")}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.map(s=>{
+                    const p=playerMap[s.id_jugadora]; const eq=eqMap[s.id_equipo];
+                    return (
+                      <tr key={s.id_jugadora}
+                        onClick={()=>{if(p&&onGoToPlayer){setShowTabla(false);onGoToPlayer(p.id_jugadora);}}}
+                        style={{borderTop:"1px solid var(--fx-border2)",cursor:p?"pointer":"default"}}>
+                        <td style={{padding:"8px 10px",display:"flex",alignItems:"center",gap:"8px"}}>
+                          {p?.foto?<img loading="lazy" decoding="async" src={p.foto} alt="" style={{width:26,height:26,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>:<div style={{width:26,height:26,borderRadius:"50%",background:"var(--fx-border)",flexShrink:0}}/>}
+                          <span style={{color:"var(--fx-text)",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"200px"}}>{p?.nombre||s.id_jugadora}</span>
+                        </td>
+                        <td style={{padding:"8px 10px",color:"var(--fx-muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"180px"}}>{eq?.nombre||s.id_equipo}</td>
+                        <td style={{padding:"8px 10px",textAlign:"right",color:"var(--fx-muted)"}}>{s.pj}</td>
+                        <td style={{padding:"8px 10px",textAlign:"right",color:"var(--fx-text)",fontWeight:sortBy==="pts"?800:500}}>{s.pts.toFixed(1)}</td>
+                        <td style={{padding:"8px 10px",textAlign:"right",color:"var(--fx-text)",fontWeight:sortBy==="reb"?800:500}}>{s.reb.toFixed(1)}</td>
+                        <td style={{padding:"8px 10px",textAlign:"right",color:"var(--fx-text)",fontWeight:sortBy==="ast"?800:500}}>{s.ast.toFixed(1)}</td>
+                        <td style={{padding:"8px 10px",textAlign:"right",color:"var(--fx-text)",fontWeight:sortBy==="val"?800:500}}>{s.val.toFixed(1)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
