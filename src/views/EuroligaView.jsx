@@ -572,7 +572,7 @@ export default function EuroligaView({ user, equipos = [], onAbrirPerfil }) {
         supabase.from("euroliga_config").select("*").eq("temporada", TEMPORADA).order("orden"),
         supabase.from("euroliga_resultados").select("pregunta_id, ids").eq("temporada", TEMPORADA),
         supabase.from("partidos").select("id_equipo_local, id_equipo_visitante, notas")
-          .eq("id_liga", ID_LIGA).eq("temporada", TEMPORADA).like("notas", "Temporada regular%"),
+          .eq("id_liga", ID_LIGA).eq("temporada", TEMPORADA).like("notas", "Primera Ronda%"),
         supabase.from("temporadas")
           .select("id_jugadora, id_equipo, jugadoras(nombre, fecha_nac, foto)")
           .eq("id_liga", ID_LIGA).eq("temporada", TEMPORADA),
