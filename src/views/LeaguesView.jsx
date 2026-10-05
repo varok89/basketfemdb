@@ -43,6 +43,9 @@ function RecordsLiga({idLiga, temporada, players, equipos, onGoToPlayer, onGoToT
   const t = useT();
   const [rows,setRows]=useState(null);
   const [open,setOpen]=useState(false);
+  const [sortBy,setSortBy]=useState("val");
+  const [sortDir,setSortDir]=useState("desc");
+  const [search,setSearch]=useState("");
   useEffect(()=>{
     if(!idLiga||!temporada)return;
     let cancel=false; setRows(null);
@@ -56,8 +59,8 @@ function RecordsLiga({idLiga, temporada, players, equipos, onGoToPlayer, onGoToT
     return ()=>{cancel=true;};
   },[idLiga,temporada]);
 
-  const records=useMemo(()=>{
-    if(!rows||!rows.length)return null;
+  const {records,jugadorasStats}=useMemo(()=>{
+    if(!rows||!rows.length)return {records:null,jugadorasStats:[]};
     const byPlayer={};
     rows.forEach(r=>{
       const k=r.id_jugadora; if(!k)return;
@@ -69,15 +72,17 @@ function RecordsLiga({idLiga, temporada, players, equipos, onGoToPlayer, onGoToT
     });
     const avg=(field)=>Object.values(byPlayer).filter(b=>b.pj>=3).map(b=>({...b,v:b[field]/b.pj})).sort((a,b)=>b.v-a.v)[0]||null;
     const topBy=(field)=>[...rows].sort((a,b)=>(Number(b[field])||0)-(Number(a[field])||0))[0]||null;
+    const stats=Object.values(byPlayer).map(b=>({
+      id_jugadora:b.id_jugadora, id_equipo:b.id_equipo, pj:b.pj,
+      pts:b.pts/b.pj, reb:b.reb/b.pj, ast:b.ast/b.pj, val:b.val/b.pj,
+    }));
     return {
-      pts: avg("pts"),
-      reb: avg("reb"),
-      ast: avg("ast"),
-      val: avg("val"),
-      topGamePts: topBy("puntos"),
-      topGameReb: topBy("reb_totales"),
-      topGameAst: topBy("asistencias"),
-      topGameVal: topBy("valoracion"),
+      records:{
+        pts: avg("pts"), reb: avg("reb"), ast: avg("ast"), val: avg("val"),
+        topGamePts: topBy("puntos"), topGameReb: topBy("reb_totales"),
+        topGameAst: topBy("asistencias"), topGameVal: topBy("valoracion"),
+      },
+      jugadorasStats: stats,
     };
   },[rows]);
 
@@ -113,7 +118,7 @@ function RecordsLiga({idLiga, temporada, players, equipos, onGoToPlayer, onGoToT
       </button>
       {open&&(!records?(
         <div style={{fontSize:"13px",color:"var(--fx-muted)",textAlign:"center",padding:"20px 0"}}>Aún no hay estadísticas de esta temporada.</div>
-      ):(
+      ):(<>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:"10px"}}>
           {records.topGamePts&&card(t("records.top_game"),{id_jugadora:records.topGamePts.id_jugadora,id_equipo:records.topGamePts.id_equipo},records.topGamePts.puntos+" pts")}
           {records.topGameReb&&card(t("records.top_reb_game"),{id_jugadora:records.topGameReb.id_jugadora,id_equipo:records.topGameReb.id_equipo},records.topGameReb.reb_totales+" reb")}
@@ -124,7 +129,75 @@ function RecordsLiga({idLiga, temporada, players, equipos, onGoToPlayer, onGoToT
           {card(t("records.ast"),records.ast,records.ast?records.ast.v.toFixed(1):"—")}
           {card(t("records.val"),records.val,records.val?records.val.v.toFixed(1):"—")}
         </div>
-      ))}
+        {jugadorasStats.length>0&&(()=>{
+          const q=search.trim().toLowerCase();
+          const filtered=jugadorasStats.filter(s=>{
+            if(!q)return true;
+            const p=playerMap[s.id_jugadora]; const eq=eqMap[s.id_equipo];
+            return (p?.nombre||"").toLowerCase().includes(q)||(eq?.nombre||"").toLowerCase().includes(q);
+          });
+          const dir=sortDir==="desc"?-1:1;
+          const sorted=[...filtered].sort((a,b)=>{
+            if(sortBy==="nombre"){const an=playerMap[a.id_jugadora]?.nombre||"";const bn=playerMap[b.id_jugadora]?.nombre||"";return an.localeCompare(bn,"es")*dir;}
+            if(sortBy==="equipo"){const an=eqMap[a.id_equipo]?.nombre||"";const bn=eqMap[b.id_equipo]?.nombre||"";return an.localeCompare(bn,"es")*dir;}
+            return (a[sortBy]-b[sortBy])*dir;
+          });
+          const header=(key,label,align="right")=>{
+            const activo=sortBy===key;
+            return (
+              <th onClick={()=>{if(activo)setSortDir(d=>d==="desc"?"asc":"desc");else{setSortBy(key);setSortDir(key==="nombre"||key==="equipo"?"asc":"desc");}}}
+                style={{padding:"8px 10px",textAlign:align,fontSize:"11px",fontWeight:800,color:activo?"#9333ea":"var(--fx-muted)",cursor:"pointer",userSelect:"none",whiteSpace:"nowrap",position:"sticky",top:0,background:"var(--fx-hover)"}}>
+                {label}{activo?(sortDir==="desc"?" ▾":" ▴"):""}
+              </th>
+            );
+          };
+          return (
+            <div style={{marginTop:"16px"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px",marginBottom:"8px",flexWrap:"wrap"}}>
+                <div style={{fontSize:"13px",fontWeight:700,color:"var(--fx-text)"}}>📊 Promedios por jugadora <span style={{color:"var(--fx-muted2)",fontWeight:400,fontSize:"12px"}}>({sorted.length})</span></div>
+                <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar jugadora o equipo…"
+                  style={{padding:"6px 10px",fontSize:"12px",border:"1px solid var(--fx-border)",borderRadius:"8px",background:"var(--fx-card)",color:"var(--fx-text)",minWidth:"180px"}}/>
+              </div>
+              <div style={{maxHeight:"420px",overflow:"auto",border:"1px solid var(--fx-border)",borderRadius:"10px"}}>
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:"12px"}}>
+                  <thead>
+                    <tr>
+                      {header("nombre","Jugadora","left")}
+                      {header("equipo","Equipo","left")}
+                      {header("pj","PJ")}
+                      {header("pts","PTS")}
+                      {header("reb","REB")}
+                      {header("ast","AST")}
+                      {header("val","VAL")}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sorted.map(s=>{
+                      const p=playerMap[s.id_jugadora]; const eq=eqMap[s.id_equipo];
+                      return (
+                        <tr key={s.id_jugadora}
+                          onClick={()=>p&&onGoToPlayer&&onGoToPlayer(p.id_jugadora)}
+                          style={{borderTop:"1px solid var(--fx-border2)",cursor:p?"pointer":"default"}}>
+                          <td style={{padding:"6px 10px",display:"flex",alignItems:"center",gap:"6px"}}>
+                            {p?.foto?<img loading="lazy" decoding="async" src={p.foto} alt="" style={{width:22,height:22,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>:<div style={{width:22,height:22,borderRadius:"50%",background:"var(--fx-border)",flexShrink:0}}/>}
+                            <span style={{color:"var(--fx-text)",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"160px"}}>{p?.nombre||s.id_jugadora}</span>
+                          </td>
+                          <td style={{padding:"6px 10px",color:"var(--fx-muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"140px"}}>{eq?.nombre||s.id_equipo}</td>
+                          <td style={{padding:"6px 10px",textAlign:"right",color:"var(--fx-muted)"}}>{s.pj}</td>
+                          <td style={{padding:"6px 10px",textAlign:"right",color:"var(--fx-text)",fontWeight:sortBy==="pts"?700:400}}>{s.pts.toFixed(1)}</td>
+                          <td style={{padding:"6px 10px",textAlign:"right",color:"var(--fx-text)",fontWeight:sortBy==="reb"?700:400}}>{s.reb.toFixed(1)}</td>
+                          <td style={{padding:"6px 10px",textAlign:"right",color:"var(--fx-text)",fontWeight:sortBy==="ast"?700:400}}>{s.ast.toFixed(1)}</td>
+                          <td style={{padding:"6px 10px",textAlign:"right",color:"var(--fx-text)",fontWeight:sortBy==="val"?700:400}}>{s.val.toFixed(1)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })()}
+      </>))}
     </div>
   );
 }
