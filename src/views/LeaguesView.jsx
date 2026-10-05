@@ -73,9 +73,11 @@ function RecordsLiga({idLiga, temporada, players, equipos, onGoToPlayer, onGoToT
       pts: avg("pts"),
       reb: avg("reb"),
       ast: avg("ast"),
+      val: avg("val"),
       topGamePts: topBy("puntos"),
       topGameReb: topBy("reb_totales"),
       topGameAst: topBy("asistencias"),
+      topGameVal: topBy("valoracion"),
     };
   },[rows]);
 
@@ -112,13 +114,15 @@ function RecordsLiga({idLiga, temporada, players, equipos, onGoToPlayer, onGoToT
       {open&&(!records?(
         <div style={{fontSize:"13px",color:"var(--fx-muted)",textAlign:"center",padding:"20px 0"}}>Aún no hay estadísticas de esta temporada.</div>
       ):(
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:"10px"}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:"10px"}}>
           {records.topGamePts&&card(t("records.top_game"),{id_jugadora:records.topGamePts.id_jugadora,id_equipo:records.topGamePts.id_equipo},records.topGamePts.puntos+" pts")}
           {records.topGameReb&&card(t("records.top_reb_game"),{id_jugadora:records.topGameReb.id_jugadora,id_equipo:records.topGameReb.id_equipo},records.topGameReb.reb_totales+" reb")}
           {records.topGameAst&&card(t("records.top_ast_game"),{id_jugadora:records.topGameAst.id_jugadora,id_equipo:records.topGameAst.id_equipo},records.topGameAst.asistencias+" ast")}
+          {records.topGameVal&&card(t("records.top_val_game"),{id_jugadora:records.topGameVal.id_jugadora,id_equipo:records.topGameVal.id_equipo},records.topGameVal.valoracion+" val")}
           {card(t("records.pts"),records.pts,records.pts?records.pts.v.toFixed(1):"—")}
           {card(t("records.reb"),records.reb,records.reb?records.reb.v.toFixed(1):"—")}
           {card(t("records.ast"),records.ast,records.ast?records.ast.v.toFixed(1):"—")}
+          {card(t("records.val"),records.val,records.val?records.val.v.toFixed(1):"—")}
         </div>
       ))}
     </div>
