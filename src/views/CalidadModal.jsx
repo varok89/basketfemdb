@@ -532,9 +532,10 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   async function runFibaScan(){
     setFibaBusy(true);setFibaResults(null);setFibaApplyRes(null);
     try{
+      // v2: incluye eurobasket.com (dominio con ~40% de 404) y jugadoras sin foto, además de proballers.
       const {data:jugs,error}=await supabase.from("jugadoras")
         .select("id_jugadora,nombre,nacionalidad,fecha_nac,foto")
-        .ilike("foto","%proballers.com%")
+        .or("foto.ilike.%proballers.com%,foto.ilike.%eurobasket.com%,foto.is.null")
         .not("fecha_nac","is",null)
         .not("nacionalidad","is",null)
         .is("fiba_person_id",null);
@@ -1646,7 +1647,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           {tab==="fotos_fiba"&&(
             <div style={{padding:"4px"}}>
               <p style={{color: "var(--fx-muted)",fontSize:"13px",marginBottom:"14px"}}>
-                Busca fotos oficiales en FIBA para las jugadoras cuya foto guardada es de <b>proballers.com</b> (el 100% de esas URLs devuelve 404). Solo se procesan jugadoras con <b>fecha de nacimiento y nacionalidad</b> en la ficha — imprescindibles para el matching seguro.
+                Busca fotos oficiales en FIBA para las jugadoras cuya foto está en dominios conocidos como rotos (<b>proballers.com</b> y <b>eurobasket.com</b>) o para las que no tienen foto guardada. Solo se procesan jugadoras con <b>fecha de nacimiento y nacionalidad</b> en la ficha — imprescindibles para el matching seguro.
               </p>
               {!fibaResults&&(
                 <div style={{display:"flex",gap:"10px",flexWrap:"wrap",alignItems:"center"}}>
