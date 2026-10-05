@@ -208,13 +208,19 @@ function fmtFecha(iso){
   return d.toLocaleString("es-ES", {weekday:"short", day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit"});
 }
 
-function VerPrediccionesEndesaModal({target, temporada, jornada, equipos, onClose}){
+function VerPrediccionesEndesaModal({target, temporada, jornadaInicial, jornadasDisponibles, equipos, onClose}){
   const t = useT();
+  const [jornada, setJornada] = useState(jornadaInicial);
   const [rows, setRows] = useState(null);
   const [err, setErr] = useState("");
   const [partidos, setPartidos] = useState([]);
+  const jornadasOrd = useMemo(() => (jornadasDisponibles || []).slice().sort((a,b) => a - b), [jornadasDisponibles]);
+  const idx = jornadasOrd.indexOf(jornada);
+  const puedePrev = idx > 0;
+  const puedeNext = idx >= 0 && idx < jornadasOrd.length - 1;
 
   useEffect(() => {(async () => {
+    setRows(null); setErr("");
     const {data, error} = await supabase.rpc("endesa_ver_predicciones_jornada",
       {p_temporada: temporada, p_jornada: jornada, p_user_id: target.user_id});
     if (error) { setErr(error.message); return; }
@@ -243,7 +249,15 @@ function VerPrediccionesEndesaModal({target, temporada, jornada, equipos, onClos
             <UserAvatar avatar={target.avatar} googleUrl={target.google} nombre={target.nombre} size={40}/>
             <div>
               <div style={{fontSize:"15px",fontWeight:800,color:"var(--fx-text)"}}>{target.nombre}</div>
-              <div style={{fontSize:"11px",color:"var(--fx-muted2)"}}>{t("endesa.verpred.jornada",{n:jornada})}</div>
+              <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"2px"}}>
+                <button type="button" onClick={() => puedePrev && setJornada(jornadasOrd[idx-1])} disabled={!puedePrev}
+                  aria-label="Jornada anterior"
+                  style={{background:puedePrev?"var(--fx-hover)":"transparent",border:"1px solid var(--fx-border)",borderRadius:"6px",width:22,height:22,padding:0,cursor:puedePrev?"pointer":"not-allowed",color:puedePrev?"var(--fx-text)":"var(--fx-muted2)",fontSize:"11px",lineHeight:1}}>◀</button>
+                <span style={{fontSize:"11px",color:"var(--fx-muted2)",minWidth:"78px",textAlign:"center"}}>{t("endesa.verpred.jornada",{n:jornada})}</span>
+                <button type="button" onClick={() => puedeNext && setJornada(jornadasOrd[idx+1])} disabled={!puedeNext}
+                  aria-label="Jornada siguiente"
+                  style={{background:puedeNext?"var(--fx-hover)":"transparent",border:"1px solid var(--fx-border)",borderRadius:"6px",width:22,height:22,padding:0,cursor:puedeNext?"pointer":"not-allowed",color:puedeNext?"var(--fx-text)":"var(--fx-muted2)",fontSize:"11px",lineHeight:1}}>▶</button>
+              </div>
             </div>
           </div>
           <button onClick={onClose} aria-label={t("common.close")} style={{background:"transparent",border:"none",fontSize:"22px",cursor:"pointer",color:"var(--fx-muted)"}}>✕</button>
@@ -494,6 +508,11 @@ export default function EndesaView({user, equipos, onAbrirPerfil, isAdmin}){
     return jornadas.length ? jornadas[0].n : 1;
   }, [jornadas]);
 
+  const jornadasCerradas = useMemo(() => {
+    const now = Date.now();
+    return jornadas.filter(j => j.cierre && new Date(j.cierre).getTime() <= now).map(j => j.n);
+  }, [jornadas]);
+
   return (
     <div>
       <div style={{display:"flex",gap:"6px",marginBottom:"12px",flexWrap:"wrap"}}>
@@ -562,7 +581,7 @@ export default function EndesaView({user, equipos, onAbrirPerfil, isAdmin}){
       )}
 
       {verUser && (
-        <VerPrediccionesEndesaModal target={verUser} temporada={TEMP} jornada={verUserJornada} equipos={equipos} onClose={() => setVerUser(null)}/>
+        <VerPrediccionesEndesaModal target={verUser} temporada={TEMP} jornadaInicial={verUserJornada} jornadasDisponibles={jornadasCerradas} equipos={equipos} onClose={() => setVerUser(null)}/>
       )}
     </div>
   );
