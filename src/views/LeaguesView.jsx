@@ -160,15 +160,18 @@ function RecordsLiga({idLiga, temporada, players, equipos, onGoToPlayer, onGoToT
           );
         };
         return (
-          <div style={{position:"fixed",inset:0,background:"var(--fx-bg)",zIndex:1500,display:"flex",flexDirection:"column"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",borderBottom:"1px solid var(--fx-border)",background:"var(--fx-card)",gap:"10px",flexWrap:"wrap"}}>
+          <div onClick={()=>setShowTabla(false)}
+            style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.65)",zIndex:1500,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
+            <div onClick={e=>e.stopPropagation()}
+              style={{background:"var(--fx-card)",borderRadius:"14px",width:"100%",maxWidth:"860px",maxHeight:"85vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.3)",overflow:"hidden"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",borderBottom:"1px solid var(--fx-border)",gap:"10px",flexWrap:"wrap"}}>
               <div style={{display:"flex",alignItems:"center",gap:"10px",flex:1,minWidth:0}}>
                 <h2 style={{margin:0,fontSize:"16px",fontWeight:800,color:"var(--fx-text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>📊 Promedios · {temporada} <span style={{color:"var(--fx-muted2)",fontWeight:400,fontSize:"13px"}}>({sorted.length})</span></h2>
               </div>
               <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar jugadora o equipo…"
-                style={{padding:"7px 10px",fontSize:"13px",border:"1px solid var(--fx-border)",borderRadius:"8px",background:"var(--fx-card)",color:"var(--fx-text)",minWidth:"200px"}}/>
+                style={{padding:"7px 10px",fontSize:"13px",border:"1px solid var(--fx-border)",borderRadius:"8px",background:"var(--fx-hover)",color:"var(--fx-text)",minWidth:"180px",flex:"1 1 180px",maxWidth:"260px"}}/>
               <button onClick={()=>setShowTabla(false)} aria-label="Cerrar"
-                style={{background:"transparent",border:"none",fontSize:"24px",cursor:"pointer",color:"var(--fx-muted)",padding:"4px 8px",lineHeight:1}}>✕</button>
+                style={{background:"transparent",border:"none",fontSize:"22px",cursor:"pointer",color:"var(--fx-muted)",padding:"4px 8px",lineHeight:1}}>✕</button>
             </div>
             <div style={{flex:1,overflow:"auto"}}>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:"13px"}}>
@@ -205,6 +208,7 @@ function RecordsLiga({idLiga, temporada, players, equipos, onGoToPlayer, onGoToT
                   })}
                 </tbody>
               </table>
+            </div>
             </div>
           </div>
         );
