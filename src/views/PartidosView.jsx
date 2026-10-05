@@ -206,15 +206,16 @@ function BoxscoreEditor({idPartido,local,visit,rosterLocal,rosterVisit,allJug,on
     setRows(rs=>[...rs,{...emptyBoxRow(idEquipo,jug?.nombre||"",jug?.id_jugadora??null,dorsal),_isNew:true,_dirty:true}]);
   };
   const addLibre=idEquipo=>setRows(rs=>[...rs,{...emptyBoxRow(idEquipo,"",null,null),_isNew:true,_dirty:true}]);
-  // Asignar jugadora BD a una fila scraper: setea id_jugadora + aprende mapping global (jugadoras.id_russia/id_fpb/...)
+  // Asignar jugadora BD a una fila scraper: setea id_jugadora + aprende mapping global.
+  // Mira si la fila tiene id_russia/id_fpb/id_feb/id_espn/id_lfb/fiba_person_id y actualiza jugadoras.
   const asignarJugadora=async(i,jug)=>{
     if(!jug)return;
     const r=rows[i];
     setRows(rs=>rs.map((row,j)=>j===i?{...row,id_jugadora:jug.id_jugadora,nombre:jug.nombre||row.nombre,_dirty:true}:row));
-    if(r.fuente&&r.id_externo){
-      const campo=r.fuente==="russia"?"id_russia":r.fuente==="fpb"?"id_fpb":r.fuente==="feb"?"id_feb":r.fuente==="espn"?"id_espn":r.fuente==="lfb"?"id_lfb":null;
-      if(campo){
-        try{ await supabase.from("jugadoras").update({[campo]:r.id_externo}).eq("id_jugadora",jug.id_jugadora); }catch(e){/* silencioso */}
+    const EXT_COLS=["id_russia","id_fpb","id_feb","id_espn","id_lfb","fiba_person_id"];
+    for(const col of EXT_COLS){
+      if(r[col]){
+        try{ await supabase.from("jugadoras").update({[col]:r[col]}).eq("id_jugadora",jug.id_jugadora); }catch(e){/* silencioso */}
       }
     }
   };
@@ -410,15 +411,21 @@ function BoxscoreEditor({idPartido,local,visit,rosterLocal,rosterVisit,allJug,on
                       <input style={{...inpTxt,minWidth:"130px",flex:1}} value={r.nombre||""} onChange={e=>setCell(i,"nombre",e.target.value)}/>
                       <AsignarBdBtn fila={r} idEq={r.id_equipo} roster={r.id_equipo===local?.id_equipo?rosterLocal:(r.id_equipo===visit?.id_equipo?rosterVisit:[])} allJug={allJug} onPick={jug=>asignarJugadora(i,jug)}/>
                     </div>
-                    {r.fuente&&(
-                      <div style={{display:"flex",gap:"4px",alignItems:"center",marginTop:"2px",fontSize:"10px"}}>
-                        <span style={{padding:"1px 5px",borderRadius:"4px",background:r.id_jugadora?"var(--fx-green-bg)":"var(--fx-amber-hover)",color:r.id_jugadora?"var(--fx-green-text)":"#92400e",fontWeight:700}}>
-                          {r.fuente}{r.id_externo?":"+r.id_externo:""}
-                        </span>
-                        {!r.id_jugadora&&<span style={{color:"var(--fx-muted2)"}}>sin asignar</span>}
-                        {r.id_jugadora&&<span style={{color:"var(--fx-muted2)"}}>→ {r.id_jugadora}</span>}
-                      </div>
-                    )}
+                    {(()=>{
+                      const EXT_COLS=[["id_russia","russia"],["id_fpb","fpb"],["id_feb","feb"],["id_espn","espn"],["id_lfb","lfb"],["fiba_person_id","fiba"]];
+                      const encontrado=EXT_COLS.find(([col])=>r[col]);
+                      if(!encontrado)return null;
+                      const [col,label]=encontrado;
+                      return(
+                        <div style={{display:"flex",gap:"4px",alignItems:"center",marginTop:"2px",fontSize:"10px"}}>
+                          <span style={{padding:"1px 5px",borderRadius:"4px",background:r.id_jugadora?"var(--fx-green-bg)":"var(--fx-amber-hover)",color:r.id_jugadora?"var(--fx-green-text)":"#92400e",fontWeight:700}}>
+                            {label}:{r[col]}
+                          </span>
+                          {!r.id_jugadora&&<span style={{color:"var(--fx-muted2)"}}>sin asignar</span>}
+                          {r.id_jugadora&&<span style={{color:"var(--fx-muted2)"}}>→ {r.id_jugadora}</span>}
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td style={td}><input style={inpNum} value={r.dorsal??""} onChange={e=>setCell(i,"dorsal",e.target.value===""?null:Number(e.target.value))}/></td>
                   <td style={{...td,textAlign:"center"}}><input type="checkbox" checked={!!r.titular} onChange={e=>setCell(i,"titular",e.target.checked)}/></td>
