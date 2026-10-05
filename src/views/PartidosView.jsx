@@ -264,10 +264,13 @@ function BoxscoreEditor({idPartido,local,visit,rosterLocal,rosterVisit,allJug,on
   const equipoLabel=idEq=>idEq===local?.id_equipo?(local?.nombre||"Local"):idEq===visit?.id_equipo?(visit?.nombre||"Visitante"):"—";
   const normQ=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
   // Botón "Asignar BD" por fila: dropdown con roster + buscador global.
+  // Usa position:fixed para no cortarse con el overflow de la tabla.
   const AsignarBdBtn=({fila,idEq,roster,allJug,onPick})=>{
     const [open,setOpen]=useState(false);
     const [mode,setMode]=useState("roster");
     const [q,setQ]=useState("");
+    const [pos,setPos]=useState({top:0,left:0});
+    const btnRef=useRef(null);
     const disponibles=(roster||[]);
     const busq=useMemo(()=>{
       if(mode!=="buscar"||q.trim().length<2) return [];
@@ -275,35 +278,58 @@ function BoxscoreEditor({idPartido,local,visit,rosterLocal,rosterVisit,allJug,on
       return (allJug||[]).filter(p=>normQ(p.nombre).includes(nq)).slice(0,30);
     },[mode,q]);
     const cerrar=()=>{setOpen(false);setMode("roster");setQ("");};
+    const toggle=()=>{
+      if(open){cerrar();return;}
+      if(btnRef.current){
+        const r=btnRef.current.getBoundingClientRect();
+        const w=280;
+        let left=r.right-w; if(left<10)left=10;
+        if(left+w>window.innerWidth-10)left=window.innerWidth-w-10;
+        let top=r.bottom+4;
+        if(top+380>window.innerHeight)top=r.top-384;
+        if(top<10)top=10;
+        setPos({top,left,w});
+      }
+      setOpen(true);
+    };
+    useEffect(()=>{
+      if(!open)return;
+      const onKey=e=>{if(e.key==="Escape")cerrar();};
+      const onScroll=()=>cerrar();
+      document.addEventListener("keydown",onKey);
+      window.addEventListener("scroll",onScroll,true);
+      return()=>{document.removeEventListener("keydown",onKey);window.removeEventListener("scroll",onScroll,true);};
+    },[open]);
     return(
-      <div style={{position:"relative",display:"inline-block"}}>
-        <button onClick={()=>setOpen(o=>!o)} title={fila?.id_jugadora?`Reasignar (actual: ${fila.id_jugadora})`:"Asignar jugadora BD"} style={{background:fila?.id_jugadora?"var(--fx-hover)":"#9333ea",color:fila?.id_jugadora?"var(--fx-text)":"#fff",border:"none",borderRadius:"6px",padding:"4px 8px",fontWeight:700,fontSize:"11px",cursor:"pointer",whiteSpace:"nowrap"}}>
+      <>
+        <button ref={btnRef} onClick={toggle} title={fila?.id_jugadora?`Reasignar (actual: ${fila.id_jugadora})`:"Asignar jugadora BD"} style={{background:fila?.id_jugadora?"var(--fx-hover)":"#9333ea",color:fila?.id_jugadora?"var(--fx-text)":"#fff",border:"none",borderRadius:"6px",padding:"4px 8px",fontWeight:700,fontSize:"11px",cursor:"pointer",whiteSpace:"nowrap"}}>
           {fila?.id_jugadora?"↔":"🔗"} BD
         </button>
-        {open&&(
-          <div style={{position:"absolute",top:"28px",right:0,zIndex:10,background:"var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"10px",boxShadow:"0 6px 20px rgba(0,0,0,0.15)",minWidth:"260px",maxHeight:"380px",overflowY:"auto"}}>
+        {open&&(<>
+          <div onClick={cerrar} style={{position:"fixed",inset:0,zIndex:1500}}/>
+          <div onClick={e=>e.stopPropagation()} style={{position:"fixed",top:pos.top,left:pos.left,width:pos.w||280,zIndex:1600,background:"var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"10px",boxShadow:"0 8px 32px rgba(0,0,0,0.4)",maxHeight:"380px",overflowY:"auto"}}>
             {mode==="roster"?(<>
-              {disponibles.map(p=><button key={p.id_jugadora} onClick={()=>{onPick(p);cerrar();}} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"7px 12px",fontSize:"12px",color:"var(--fx-text)",cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.background="var(--fx-hover)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>{p.nombre}</button>)}
+              {disponibles.map(p=><button key={p.id_jugadora} onClick={()=>{onPick(p);cerrar();}} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"8px 12px",fontSize:"12px",color:"var(--fx-text)",cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.background="var(--fx-hover)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>{p.nombre}</button>)}
               {disponibles.length===0&&<div style={{padding:"10px 12px",fontSize:"11px",color:"var(--fx-muted2)"}}>Sin roster para este equipo</div>}
               <div style={{borderTop:"1px solid var(--fx-border2)"}}>
-                {allJug&&<button onClick={()=>setMode("buscar")} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"7px 12px",fontSize:"11px",color:"#9333ea",cursor:"pointer",fontWeight:700}}>🔍 Buscar en toda la BD…</button>}
+                {allJug&&<button onClick={()=>setMode("buscar")} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"8px 12px",fontSize:"11px",color:"#9333ea",cursor:"pointer",fontWeight:700}}>🔍 Buscar en toda la BD…</button>}
               </div>
             </>):(<>
-              <div style={{padding:"8px 10px",borderBottom:"1px solid var(--fx-border2)",display:"flex",gap:"6px",alignItems:"center"}}>
+              <div style={{padding:"8px 10px",borderBottom:"1px solid var(--fx-border2)",display:"flex",gap:"6px",alignItems:"center",position:"sticky",top:0,background:"var(--fx-card)",zIndex:1}}>
                 <button onClick={()=>{setMode("roster");setQ("");}} style={{background:"transparent",border:"none",cursor:"pointer",fontSize:"14px",color:"var(--fx-muted)",padding:"2px 6px"}}>←</button>
                 <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Nombre…" style={{flex:1,padding:"6px 8px",borderRadius:"6px",border:"1px solid var(--fx-border)",fontSize:"12px",background:"var(--fx-card)",color:"var(--fx-text)"}}/>
               </div>
               {q.trim().length<2?<div style={{padding:"10px 12px",fontSize:"11px",color:"var(--fx-muted2)"}}>Escribe 2 letras…</div>
                 :busq.length===0?<div style={{padding:"10px 12px",fontSize:"11px",color:"var(--fx-muted2)"}}>Sin resultados</div>
                 :busq.map(p=>(
-                  <button key={p.id_jugadora} onClick={()=>{onPick(p);cerrar();}} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"7px 12px",fontSize:"12px",color:"var(--fx-text)",cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.background="var(--fx-hover)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  <button key={p.id_jugadora} onClick={()=>{onPick(p);cerrar();}} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"8px 12px",fontSize:"12px",color:"var(--fx-text)",cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.background="var(--fx-hover)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                     {p.nombre}
                   </button>
                 ))}
             </>)}
           </div>
-        )}
-      </div>
+        </>)}
+      </>
     );
   };
   const AddRosterBtn=({idEquipo,roster,label})=>{
