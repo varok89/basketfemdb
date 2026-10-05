@@ -190,33 +190,63 @@ function BoxscoreEditor({idPartido,local,visit,rosterLocal,rosterVisit,allJug,on
       const {data,error}=await supabase.from("partido_boxscore").select("*").eq("id_partido",idPartido).order("titular",{ascending:false}).order("dorsal");
       if(cancel)return;
       if(error){setErr(error.message);setRows([]);return;}
-      setRows((data||[]).map(r=>({...r})));
+      setRows((data||[]).map(r=>({...r,_dirty:false,_isNew:false})));
     })();
     return()=>{cancel=true;};
   },[idPartido]);
-  const setCell=(i,k,v)=>setRows(rs=>rs.map((r,j)=>j===i?{...r,[k]:v}:r));
-  const del=i=>setRows(rs=>rs.filter((_,j)=>j!==i));
+  const setCell=(i,k,v)=>setRows(rs=>rs.map((r,j)=>j===i?{...r,[k]:v,_dirty:true}:r));
+  const del=i=>setRows(rs=>{
+    const r=rs[i];
+    if(r._isNew)return rs.filter((_,j)=>j!==i);
+    return rs.map((row,j)=>j===i?{...row,_deleted:true}:row);
+  });
   const addFromRoster=(idEquipo,jug)=>{
-    if(jug&&rows.some(r=>r.id_jugadora===jug.id_jugadora))return;
+    if(jug&&rows.some(r=>!r._deleted&&r.id_jugadora===jug.id_jugadora))return;
     const dorsal=(jug?.seasons||[]).find(s=>s.id_equipo===idEquipo)?.dorsal ?? null;
-    setRows(rs=>[...rs,emptyBoxRow(idEquipo,jug?.nombre||"",jug?.id_jugadora??null,dorsal)]);
+    setRows(rs=>[...rs,{...emptyBoxRow(idEquipo,jug?.nombre||"",jug?.id_jugadora??null,dorsal),_isNew:true,_dirty:true}]);
   };
-  const addLibre=idEquipo=>setRows(rs=>[...rs,emptyBoxRow(idEquipo,"",null,null)]);
+  const addLibre=idEquipo=>setRows(rs=>[...rs,{...emptyBoxRow(idEquipo,"",null,null),_isNew:true,_dirty:true}]);
+  // Asignar jugadora BD a una fila scraper: setea id_jugadora + aprende mapping global (jugadoras.id_russia/id_fpb/...)
+  const asignarJugadora=async(i,jug)=>{
+    if(!jug)return;
+    const r=rows[i];
+    setRows(rs=>rs.map((row,j)=>j===i?{...row,id_jugadora:jug.id_jugadora,nombre:jug.nombre||row.nombre,_dirty:true}:row));
+    if(r.fuente&&r.id_externo){
+      const campo=r.fuente==="russia"?"id_russia":r.fuente==="fpb"?"id_fpb":r.fuente==="feb"?"id_feb":r.fuente==="espn"?"id_espn":r.fuente==="lfb"?"id_lfb":null;
+      if(campo){
+        try{ await supabase.from("jugadoras").update({[campo]:r.id_externo}).eq("id_jugadora",jug.id_jugadora); }catch(e){/* silencioso */}
+      }
+    }
+  };
   const save=async()=>{
     setErr("");setSaving(true);
-    const sinNombre=rows.filter(r=>!(r.nombre&&r.nombre.trim()));
+    const activos=rows.filter(r=>!r._deleted);
+    const sinNombre=activos.filter(r=>!(r.nombre&&r.nombre.trim()));
     if(sinNombre.length){setErr(`${sinNombre.length} fila(s) sin nombre — obligatorio`);setSaving(false);return;}
-    const payload=rows.map(r=>{
-      const o={id_partido:idPartido,id_jugadora:r.id_jugadora||null,id_equipo:r.id_equipo||null,nombre:r.nombre.trim(),dorsal:r.dorsal===""||r.dorsal==null?null:Number(r.dorsal),minutos:r.minutos===""||r.minutos==null?null:r.minutos,titular:!!r.titular};
-      BOX_NUM_COLS.forEach(k=>{o[k]=Number(r[k])||0;});
-      return o;
-    });
-    const d=await supabase.from("partido_boxscore").delete().eq("id_partido",idPartido);
-    if(d.error){setErr(d.error.message);setSaving(false);return;}
-    if(payload.length){
-      const i=await supabase.from("partido_boxscore").insert(payload);
-      if(i.error){setErr(i.error.message);setSaving(false);return;}
-    }
+    const toDelete=rows.filter(r=>r._deleted&&r.id);
+    const toInsert=rows.filter(r=>r._isNew&&!r._deleted);
+    const toUpdate=rows.filter(r=>!r._isNew&&!r._deleted&&r._dirty&&r.id);
+    try{
+      if(toDelete.length){
+        const d=await supabase.from("partido_boxscore").delete().in("id",toDelete.map(r=>r.id));
+        if(d.error)throw d.error;
+      }
+      for(const r of toUpdate){
+        const o={id_jugadora:r.id_jugadora||null,id_equipo:r.id_equipo||null,nombre:r.nombre.trim(),dorsal:r.dorsal===""||r.dorsal==null?null:Number(r.dorsal),minutos:r.minutos===""||r.minutos==null?null:r.minutos,titular:!!r.titular};
+        BOX_NUM_COLS.forEach(k=>{o[k]=Number(r[k])||0;});
+        const u=await supabase.from("partido_boxscore").update(o).eq("id",r.id);
+        if(u.error)throw u.error;
+      }
+      if(toInsert.length){
+        const payload=toInsert.map(r=>{
+          const o={id_partido:idPartido,id_jugadora:r.id_jugadora||null,id_equipo:r.id_equipo||null,nombre:r.nombre.trim(),dorsal:r.dorsal===""||r.dorsal==null?null:Number(r.dorsal),minutos:r.minutos===""||r.minutos==null?null:r.minutos,titular:!!r.titular};
+          BOX_NUM_COLS.forEach(k=>{o[k]=Number(r[k])||0;});
+          return o;
+        });
+        const i=await supabase.from("partido_boxscore").insert(payload);
+        if(i.error)throw i.error;
+      }
+    }catch(e){setErr(e.message||String(e));setSaving(false);return;}
     setSaving(false);
     onSaved&&onSaved();
     onClose&&onClose();
@@ -233,6 +263,49 @@ function BoxscoreEditor({idPartido,local,visit,rosterLocal,rosterVisit,allJug,on
   const td={padding:"4px 4px",borderBottom:"1px solid var(--fx-border2)",verticalAlign:"middle"};
   const equipoLabel=idEq=>idEq===local?.id_equipo?(local?.nombre||"Local"):idEq===visit?.id_equipo?(visit?.nombre||"Visitante"):"—";
   const normQ=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+  // Botón "Asignar BD" por fila: dropdown con roster + buscador global.
+  const AsignarBdBtn=({fila,idEq,roster,allJug,onPick})=>{
+    const [open,setOpen]=useState(false);
+    const [mode,setMode]=useState("roster");
+    const [q,setQ]=useState("");
+    const disponibles=(roster||[]);
+    const busq=useMemo(()=>{
+      if(mode!=="buscar"||q.trim().length<2) return [];
+      const nq=normQ(q.trim());
+      return (allJug||[]).filter(p=>normQ(p.nombre).includes(nq)).slice(0,30);
+    },[mode,q]);
+    const cerrar=()=>{setOpen(false);setMode("roster");setQ("");};
+    return(
+      <div style={{position:"relative",display:"inline-block"}}>
+        <button onClick={()=>setOpen(o=>!o)} title={fila?.id_jugadora?`Reasignar (actual: ${fila.id_jugadora})`:"Asignar jugadora BD"} style={{background:fila?.id_jugadora?"var(--fx-hover)":"#9333ea",color:fila?.id_jugadora?"var(--fx-text)":"#fff",border:"none",borderRadius:"6px",padding:"4px 8px",fontWeight:700,fontSize:"11px",cursor:"pointer",whiteSpace:"nowrap"}}>
+          {fila?.id_jugadora?"↔":"🔗"} BD
+        </button>
+        {open&&(
+          <div style={{position:"absolute",top:"28px",right:0,zIndex:10,background:"var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"10px",boxShadow:"0 6px 20px rgba(0,0,0,0.15)",minWidth:"260px",maxHeight:"380px",overflowY:"auto"}}>
+            {mode==="roster"?(<>
+              {disponibles.map(p=><button key={p.id_jugadora} onClick={()=>{onPick(p);cerrar();}} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"7px 12px",fontSize:"12px",color:"var(--fx-text)",cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.background="var(--fx-hover)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>{p.nombre}</button>)}
+              {disponibles.length===0&&<div style={{padding:"10px 12px",fontSize:"11px",color:"var(--fx-muted2)"}}>Sin roster para este equipo</div>}
+              <div style={{borderTop:"1px solid var(--fx-border2)"}}>
+                {allJug&&<button onClick={()=>setMode("buscar")} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"7px 12px",fontSize:"11px",color:"#9333ea",cursor:"pointer",fontWeight:700}}>🔍 Buscar en toda la BD…</button>}
+              </div>
+            </>):(<>
+              <div style={{padding:"8px 10px",borderBottom:"1px solid var(--fx-border2)",display:"flex",gap:"6px",alignItems:"center"}}>
+                <button onClick={()=>{setMode("roster");setQ("");}} style={{background:"transparent",border:"none",cursor:"pointer",fontSize:"14px",color:"var(--fx-muted)",padding:"2px 6px"}}>←</button>
+                <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Nombre…" style={{flex:1,padding:"6px 8px",borderRadius:"6px",border:"1px solid var(--fx-border)",fontSize:"12px",background:"var(--fx-card)",color:"var(--fx-text)"}}/>
+              </div>
+              {q.trim().length<2?<div style={{padding:"10px 12px",fontSize:"11px",color:"var(--fx-muted2)"}}>Escribe 2 letras…</div>
+                :busq.length===0?<div style={{padding:"10px 12px",fontSize:"11px",color:"var(--fx-muted2)"}}>Sin resultados</div>
+                :busq.map(p=>(
+                  <button key={p.id_jugadora} onClick={()=>{onPick(p);cerrar();}} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"7px 12px",fontSize:"12px",color:"var(--fx-text)",cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.background="var(--fx-hover)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                    {p.nombre}
+                  </button>
+                ))}
+            </>)}
+          </div>
+        )}
+      </div>
+    );
+  };
   const AddRosterBtn=({idEquipo,roster,label})=>{
     const [open,setOpen]=useState(false);
     const [mode,setMode]=useState("roster"); // roster | buscar
@@ -304,9 +377,23 @@ function BoxscoreEditor({idPartido,local,visit,rosterLocal,rosterVisit,allJug,on
               {rows.map((r,i)=>{
                 const es=r.id_equipo===local?.id_equipo;
                 return(
-                <tr key={i} style={{background:es?"var(--fx-amber-bg)":"var(--fx-blue-bg)"}}>
+                <tr key={i} style={{background:r._deleted?"var(--fx-red-bg)":(es?"var(--fx-amber-bg)":"var(--fx-blue-bg)"),opacity:r._deleted?0.5:1}}>
                   <td style={{...td,fontSize:"11px",color:"var(--fx-muted)",padding:"4px 8px"}}>{equipoLabel(r.id_equipo)}</td>
-                  <td style={{...td,padding:"4px 6px"}}><input style={{...inpTxt,minWidth:"140px"}} value={r.nombre||""} onChange={e=>setCell(i,"nombre",e.target.value)}/></td>
+                  <td style={{...td,padding:"4px 6px"}}>
+                    <div style={{display:"flex",gap:"4px",alignItems:"center",flexWrap:"wrap"}}>
+                      <input style={{...inpTxt,minWidth:"130px",flex:1}} value={r.nombre||""} onChange={e=>setCell(i,"nombre",e.target.value)}/>
+                      <AsignarBdBtn fila={r} idEq={r.id_equipo} roster={r.id_equipo===local?.id_equipo?rosterLocal:(r.id_equipo===visit?.id_equipo?rosterVisit:[])} allJug={allJug} onPick={jug=>asignarJugadora(i,jug)}/>
+                    </div>
+                    {r.fuente&&(
+                      <div style={{display:"flex",gap:"4px",alignItems:"center",marginTop:"2px",fontSize:"10px"}}>
+                        <span style={{padding:"1px 5px",borderRadius:"4px",background:r.id_jugadora?"var(--fx-green-bg)":"var(--fx-amber-hover)",color:r.id_jugadora?"var(--fx-green-text)":"#92400e",fontWeight:700}}>
+                          {r.fuente}{r.id_externo?":"+r.id_externo:""}
+                        </span>
+                        {!r.id_jugadora&&<span style={{color:"var(--fx-muted2)"}}>sin asignar</span>}
+                        {r.id_jugadora&&<span style={{color:"var(--fx-muted2)"}}>→ {r.id_jugadora}</span>}
+                      </div>
+                    )}
+                  </td>
                   <td style={td}><input style={inpNum} value={r.dorsal??""} onChange={e=>setCell(i,"dorsal",e.target.value===""?null:Number(e.target.value))}/></td>
                   <td style={{...td,textAlign:"center"}}><input type="checkbox" checked={!!r.titular} onChange={e=>setCell(i,"titular",e.target.checked)}/></td>
                   <td style={td}><input style={inpMin} value={r.minutos??""} onChange={e=>setCell(i,"minutos",e.target.value)} placeholder="mm:ss"/></td>
