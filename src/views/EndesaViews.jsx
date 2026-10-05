@@ -229,7 +229,9 @@ function VerPrediccionesEndesaModal({target, temporada, jornada, equipos, onClos
   })();}, [jornada, temporada]);
 
   const eqMap = {};
-  (equipos || []).forEach(e => { eqMap[e.id_equipo] = e.nombre; });
+  (equipos || []).forEach(e => { eqMap[e.id_equipo] = {nombre: e.nombre, escudo: e.escudo}; });
+  const nomDe = id => eqMap[id]?.nombre || id || "—";
+  const escDe = id => eqMap[id]?.escudo;
   const partidoById = {};
   partidos.forEach(p => { partidoById[p.id] = p; });
 
@@ -253,9 +255,12 @@ function VerPrediccionesEndesaModal({target, temporada, jornada, equipos, onClos
           <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
             {rows.map(r => {
               const p = partidoById[r.id_partido] || {};
-              const nomL = eqMap[p.id_equipo_local] || p.id_equipo_local || "—";
-              const nomV = eqMap[p.id_equipo_visitante] || p.id_equipo_visitante || "—";
+              const nomL = nomDe(p.id_equipo_local);
+              const nomV = nomDe(p.id_equipo_visitante);
               const acierto = r.puntos > 0;
+              const idGan = r.pred_ganador === "L" ? p.id_equipo_local : (r.pred_ganador === "V" ? p.id_equipo_visitante : null);
+              const nomGan = idGan ? nomDe(idGan) : null;
+              const escGan = idGan ? escDe(idGan) : null;
               return (
                 <div key={r.id_partido} style={{border:"1px solid var(--fx-border)",borderRadius:"10px",padding:"10px 12px",background: acierto ? "rgba(34,197,94,0.08)" : "var(--fx-hover)"}}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px",marginBottom:"6px"}}>
@@ -265,10 +270,14 @@ function VerPrediccionesEndesaModal({target, temporada, jornada, equipos, onClos
                     )}
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                    {r.pred_ganador ? (
-                      <span style={{display:"inline-flex",alignItems:"center",gap:"6px",padding:"3px 10px",borderRadius:"6px",background:"var(--fx-lila-bg)",color:"#6b21a8",fontSize:"12px",fontWeight:700}}>
-                        {r.pred_ganador === "L" ? "1" : "2"} · {r.pred_diferencia}
-                      </span>
+                    {idGan ? (
+                      <div style={{display:"inline-flex",flexDirection:"column",alignItems:"flex-start",gap:"2px",padding:"5px 10px",borderRadius:"8px",background:"var(--fx-lila-bg)",border:"1px solid var(--fx-lila-border)"}}>
+                        <span style={{display:"inline-flex",alignItems:"center",gap:"6px",fontSize:"12px",fontWeight:800,color:"var(--fx-lila-text)"}}>
+                          {escGan ? <img src={escGan} alt="" style={{width:18,height:18,objectFit:"contain"}}/> : null}
+                          <span>{nomGan}</span>
+                        </span>
+                        <span style={{fontSize:"11px",fontWeight:700,color:"var(--fx-muted)"}}>+{r.pred_diferencia}</span>
+                      </div>
                     ) : (
                       <span style={{fontSize:"12px",color:"var(--fx-muted2)"}}>{t("endesa.verpred.no_pred")}</span>
                     )}
