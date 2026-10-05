@@ -305,6 +305,8 @@ export const STRINGS_ES = {
   "records.ast": "Máxima asistente",
   "records.val": "MVP (valoración)",
   "records.top_game": "Mejor anotación (1 partido)",
+  "records.top_reb_game": "Más rebotes (1 partido)",
+  "records.top_ast_game": "Más asistencias (1 partido)",
   "records.team_title": "🏆 Récords del equipo",
   "records.record": "Balance",
   "records.plusminus": "+/-",

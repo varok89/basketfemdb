@@ -68,13 +68,14 @@ function RecordsLiga({idLiga, temporada, players, equipos, onGoToPlayer, onGoToT
       if(!b.id_equipo)b.id_equipo=r.id_equipo;
     });
     const avg=(field)=>Object.values(byPlayer).filter(b=>b.pj>=3).map(b=>({...b,v:b[field]/b.pj})).sort((a,b)=>b.v-a.v)[0]||null;
-    const topGame=[...rows].sort((a,b)=>(Number(b.puntos)||0)-(Number(a.puntos)||0))[0];
+    const topBy=(field)=>[...rows].sort((a,b)=>(Number(b[field])||0)-(Number(a[field])||0))[0]||null;
     return {
       pts: avg("pts"),
       reb: avg("reb"),
       ast: avg("ast"),
-      val: avg("val"),
-      topGame,
+      topGamePts: topBy("puntos"),
+      topGameReb: topBy("reb_totales"),
+      topGameAst: topBy("asistencias"),
     };
   },[rows]);
 
@@ -112,11 +113,12 @@ function RecordsLiga({idLiga, temporada, players, equipos, onGoToPlayer, onGoToT
         <div style={{fontSize:"13px",color:"var(--fx-muted)",textAlign:"center",padding:"20px 0"}}>Aún no hay estadísticas de esta temporada.</div>
       ):(
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:"10px"}}>
+          {records.topGamePts&&card(t("records.top_game"),{id_jugadora:records.topGamePts.id_jugadora,id_equipo:records.topGamePts.id_equipo},records.topGamePts.puntos+" pts")}
+          {records.topGameReb&&card(t("records.top_reb_game"),{id_jugadora:records.topGameReb.id_jugadora,id_equipo:records.topGameReb.id_equipo},records.topGameReb.reb_totales+" reb")}
+          {records.topGameAst&&card(t("records.top_ast_game"),{id_jugadora:records.topGameAst.id_jugadora,id_equipo:records.topGameAst.id_equipo},records.topGameAst.asistencias+" ast")}
           {card(t("records.pts"),records.pts,records.pts?records.pts.v.toFixed(1):"—")}
           {card(t("records.reb"),records.reb,records.reb?records.reb.v.toFixed(1):"—")}
           {card(t("records.ast"),records.ast,records.ast?records.ast.v.toFixed(1):"—")}
-          {card(t("records.val"),records.val,records.val?records.val.v.toFixed(1):"—")}
-          {records.topGame&&card(t("records.top_game"),{id_jugadora:records.topGame.id_jugadora,id_equipo:records.topGame.id_equipo},records.topGame.puntos+" pts")}
         </div>
       ))}
     </div>

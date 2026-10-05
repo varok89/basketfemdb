@@ -305,6 +305,8 @@ export const STRINGS_EN = {
   "records.ast": "Top assist",
   "records.val": "MVP (PIR)",
   "records.top_game": "Best single-game score",
+  "records.top_reb_game": "Most rebounds (1 game)",
+  "records.top_ast_game": "Most assists (1 game)",
   "records.team_title": "🏆 Team records",
   "records.record": "Record",
   "records.plusminus": "+/-",
