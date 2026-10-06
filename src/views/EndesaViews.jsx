@@ -541,10 +541,10 @@ export default function EndesaView({user, equipos, onAbrirPerfil, isAdmin}){
               <tr>
                 <th style={{padding:"10px 12px",textAlign:"left",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>#</th>
                 <th style={{padding:"10px 12px",textAlign:"left",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("endesa.rank.user")}</th>
-                <th style={{padding:"10px 12px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("endesa.rank.preds")}</th>
+                <th style={{padding:"10px 12px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("endesa.rank.pts")}</th>
                 <th style={{padding:"10px 12px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("endesa.rank.hits")}</th>
+                <th style={{padding:"10px 12px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("endesa.rank.preds")}</th>
                 <th style={{padding:"10px 12px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>🔮</th>
-                <th style={{padding:"10px 12px",textAlign:"right",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("endesa.rank.pts")}</th>
               </tr>
             </thead>
             <tbody>
@@ -567,10 +567,10 @@ export default function EndesaView({user, equipos, onAbrirPerfil, isAdmin}){
                         </span>
                       </div>
                     </td>
-                    <td style={{padding:"10px 12px",textAlign:"center",color:"var(--fx-muted)"}}>{r.predicciones}</td>
+                    <td style={{padding:"10px 12px",textAlign:"center",fontWeight:800,color:"#9333ea",fontSize:"16px"}}>{r.puntos}</td>
                     <td style={{padding:"10px 12px",textAlign:"center",color:"var(--fx-muted)"}}>{r.aciertos}</td>
+                    <td style={{padding:"10px 12px",textAlign:"center",color:"var(--fx-muted)"}}>{r.predicciones}</td>
                     <td style={{padding:"10px 12px",textAlign:"center",color:"var(--fx-muted)",fontWeight:700}}>{r.puntos_bola||0}</td>
-                    <td style={{padding:"10px 12px",textAlign:"right",fontWeight:800,color:"#9333ea",fontSize:"16px"}}>{r.puntos}</td>
                   </tr>
                 );
               })}
