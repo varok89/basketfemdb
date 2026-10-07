@@ -1,11 +1,12 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { UserAvatar } from "../lib/avatar";
 import { useT, locale } from "../lib/i18n";
 import { evento as trackEv } from "../lib/track";
+import { lazyWithRetry } from "../lib/lazyWithRetry";
 
-const EndesaView = lazy(() => import("./EndesaViews"));
-const EuroligaView = lazy(() => import("./EuroligaView"));
+const EndesaView = lazyWithRetry(() => import("./EndesaViews"));
+const EuroligaView = lazyWithRetry(() => import("./EuroligaView"));
 
 function FlagSelect({value,options,onChange,disabled,placeholder,size}){
   const [open,setOpen]=useState(false);
