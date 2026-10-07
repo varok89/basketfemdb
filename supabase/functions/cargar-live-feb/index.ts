@@ -1,4 +1,5 @@
-// cargar-live-feb v1 - marcador live + parciales + boxscore usando API oficial FEB LiveStats
+// cargar-live-feb v2 - marcador live + parciales + boxscore usando API oficial FEB LiveStats
+// v2: auto-crea jugadoras ausentes (sin id_feb en BD) para poder vincularlas a mano después.
 // Fuente: https://intrafeb.feb.es/LiveStats.API/api/v1/{KeyFacts,BoxScore}/{pid}
 // Token Bearer embebido en el HTML de la ficha /partido/{pid} (<input id="_ctl0_token">).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -13,6 +14,8 @@ const PROXY_URL = Deno.env.get("PROXY_URL") || "https://labasketneta.app/api/pro
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
 const FEB_WEB = "https://baloncestoenvivo.feb.es";
 const FEB_API = "https://intrafeb.feb.es/LiveStats.API/api/v1";
+const FOTO_FEB = "https://imagenes.feb.es/Foto.aspx";
+const BUCKET_FOTOS = "fotos-jugadoras";
 const sb = createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 
@@ -79,6 +82,34 @@ async function fetchJsonApi(endpoint: string, pid: string, token: string): Promi
   } catch { return null; } finally { clearTimeout(to); }
 }
 
+async function cargarHuecosJug(): Promise<number[]> {
+  const all = new Set<number>();
+  for (let off = 0; off < 20; off++) {
+    const { data } = await sb.from("jugadoras").select("id_jugadora").order("id_jugadora", { ascending: true }).range(off * 1000, off * 1000 + 999);
+    if (!data || !data.length) break;
+    for (const r of data) { const n = parseInt(r.id_jugadora.slice(1), 10); if (!isNaN(n)) all.add(n); }
+    if (data.length < 1000) break;
+  }
+  const max = all.size ? Math.max(...all) : 0;
+  const huecos: number[] = [];
+  for (let i = 1; i <= max + 200; i++) { if (!all.has(i)) huecos.push(i); if (huecos.length >= 200) break; }
+  return huecos;
+}
+
+async function subirFotoFeb(cFeb: string, idJug: string): Promise<string | null> {
+  try {
+    const r = await fetch(`${FOTO_FEB}?c=${cFeb}`, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok || r.status === 404) { await r.body?.cancel(); return null; }
+    const buf = new Uint8Array(await r.arrayBuffer());
+    if (buf.length < 200) return null;
+    const ruta = `${idJug}.jpg`;
+    const { error } = await sb.storage.from(BUCKET_FOTOS).upload(ruta, buf, { contentType: "image/jpeg", upsert: true });
+    if (error) return null;
+    const { data: pub } = sb.storage.from(BUCKET_FOTOS).getPublicUrl(ruta);
+    return pub?.publicUrl || null;
+  } catch { return null; }
+}
+
 function parseMin(mf: string | null | undefined): number | null {
   if (!mf) return null;
   const m = /(\d+):(\d+)/.exec(mf);
@@ -124,7 +155,7 @@ async function procesarPartido(partido: any, dry: boolean): Promise<any> {
     if (error) return { pid, ok: false, motivo: `update ${error.message}` };
   }
 
-  let filas = 0, sinMapear = 0;
+  let filas = 0, sinMapear = 0, creadas = 0;
   if (bs?.BOXSCORE?.TEAM?.length === 2 && partido.id_equipo_local && partido.id_equipo_visitante) {
     const equipos = [
       { players: bs.BOXSCORE.TEAM[0].PLAYER || [], id_equipo: partido.id_equipo_local },
@@ -139,10 +170,26 @@ async function procesarPartido(partido: any, dry: boolean): Promise<any> {
       for (const j of data || []) if (j.id_feb) porIdFeb.set(String(j.id_feb), j.id_jugadora);
     }
     const rows: any[] = [];
+    let huecosJug: number[] | null = null;
+    let huecosIdx = 0;
+    const jugadorasCreadas: string[] = [];
     for (const t of equipos) {
       for (const p of t.players) {
         if (!p.id && !p.name) continue;
-        const idJug = p.id ? porIdFeb.get(String(p.id)) : null;
+        let idJug = p.id ? porIdFeb.get(String(p.id)) : null;
+        // v2: auto-crear jugadora si tiene id_feb y no está en BD (user la vinculará/renombrará a mano)
+        if (!idJug && p.id && !dry) {
+          if (!huecosJug) huecosJug = await cargarHuecosJug();
+          if (huecosIdx < huecosJug.length) {
+            const nuevoId = `J${huecosJug[huecosIdx++]}`;
+            const nombreLive = String(p.name || "").trim() || `FEB ${p.id}`;
+            const fotoUrl = await subirFotoFeb(String(p.id), nuevoId);
+            const row: any = { id_jugadora: nuevoId, nombre: nombreLive, id_feb: String(p.id) };
+            if (fotoUrl) row.foto = fotoUrl;
+            const { error } = await sb.from("jugadoras").insert(row);
+            if (!error) { idJug = nuevoId; porIdFeb.set(String(p.id), nuevoId); jugadorasCreadas.push(`${nuevoId} ${nombreLive}`); creadas++; }
+          }
+        }
         if (!idJug) { sinMapear++; continue; }
         rows.push({
           id_partido: partido.id,
@@ -175,6 +222,7 @@ async function procesarPartido(partido: any, dry: boolean): Promise<any> {
     pid, ok: true, status: statusText,
     marcador: `${puntosLoc}-${puntosVis}`, periodo: H.quarter, time: H.time,
     parciales_n: parcLoc.length, box_filas: filas, box_sin_mapear: sinMapear,
+    jugadoras_creadas: creadas,
     terminado,
   };
 }
