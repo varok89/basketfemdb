@@ -158,8 +158,8 @@ function RecordsEquipo({idEquipo, temporada, players, equipos, onGoToPlayer}){
     let cancel=false; setData(null);
     (async()=>{
       const [{data:parts},{data:boxes}]=await Promise.all([
-        supabase.from("partidos").select("id,fecha_hora,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante").or(`id_equipo_local.eq.${idEquipo},id_equipo_visitante.eq.${idEquipo}`).eq("temporada",temporada),
-        supabase.from("partido_boxscore").select("id_jugadora,id_equipo,puntos,tc_anotados,tc_intentados,t3_anotados,t3_intentados,tl_anotados,tl_intentados,partidos!inner(temporada,id_equipo_local,id_equipo_visitante)").eq("id_equipo",idEquipo).eq("partidos.temporada",temporada),
+        supabase.from("partidos").select("id,fecha_hora,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante").or(`id_equipo_local.eq.${idEquipo},id_equipo_visitante.eq.${idEquipo}`).eq("temporada",temporada).neq("id_liga","L107"),
+        supabase.from("partido_boxscore").select("id_jugadora,id_equipo,puntos,tc_anotados,tc_intentados,t3_anotados,t3_intentados,tl_anotados,tl_intentados,partidos!inner(temporada,id_liga,id_equipo_local,id_equipo_visitante)").eq("id_equipo",idEquipo).eq("partidos.temporada",temporada).neq("partidos.id_liga","L107"),
       ]);
       if(!cancel)setData({parts:parts||[],boxes:boxes||[]});
     })();
