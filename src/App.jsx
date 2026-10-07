@@ -1652,7 +1652,7 @@ export default function App(){
     // Caché de sesión: no recargar si ya están en memoria
     if(!forzar && players.length>0 && equipos.length>0){return;}
     // Hidratación desde localStorage (arranque instantáneo)
-    const CK="basketfemdb:cache:v8";
+    const CK="basketfemdb:cache:v9";
     let hidratado=false;
     if(!forzar){
       try{
@@ -1682,16 +1682,20 @@ export default function App(){
     setError(null);
     try{
       // Fase 1: críticas para Home (players/equipos/ligas/temporadas/partidos)
-      const [rJ,rE,rL,rT,rPar]=await Promise.all([
+      // NCAA (L020) se excluye del histórico para ahorrar egress, pero necesitamos las
+      // temporadas NCAA actuales para que Fichajes detecte los movimientos de la temporada.
+      const _ncaaY=String(new Date().getFullYear()-2);
+      const [rJ,rE,rL,rT,rTncaa,rPar]=await Promise.all([
         fetchAll("jugadoras",{order:"id_jugadora",select:"id_jugadora,nombre,posicion,posicion2,nacionalidad,nacionalidad2,fecha_nac,fecha_fallecimiento,altura_cm,foto"}),
         fetchAll("equipos",{order:"id_equipo"}),
         fetchAll("ligas",{order:"id_liga"}),
         fetchAll("dos_ultimas_temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.neq("id_liga","L020")}),
-        fetchAll("partidos",{order:"fecha_hora",select:"id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas,es_live,periodo,parciales,id_ext,fuente,bracket_pos,link,url_stats",filter:q=>q.neq("id_liga","L020").gte("temporada",String(new Date().getFullYear()-2))}),
+        fetchAll("temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.eq("id_liga","L020").gte("temporada",_ncaaY)}),
+        fetchAll("partidos",{order:"fecha_hora",select:"id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas,es_live,periodo,parciales,id_ext,fuente,bracket_pos,link,url_stats",filter:q=>q.neq("id_liga","L020").gte("temporada",_ncaaY)}),
       ]);
       if(rJ.error)throw rJ.error;if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rT.error)throw rT.error;
       const sbp={};
-      (rT.data||[]).forEach(t=>{if(!sbp[t.id_jugadora])sbp[t.id_jugadora]=[];sbp[t.id_jugadora].push(t);});
+      [...(rT.data||[]),...(rTncaa?.data||[])].forEach(t=>{if(!sbp[t.id_jugadora])sbp[t.id_jugadora]=[];sbp[t.id_jugadora].push(t);});
       const nuevosPlayers=(rJ.data||[]).map(j=>({...j,seasons:sbp[j.id_jugadora]||[]}));
       setPlayers(nuevosPlayers);
       setEquipos(rE.data||[]);
@@ -1771,7 +1775,7 @@ export default function App(){
         });
         setSeasonsFull(true);
         try{
-          const CK="basketfemdb:cache:v8";
+          const CK="basketfemdb:cache:v9";
           const raw=localStorage.getItem(CK);
           if(raw){
             const c=JSON.parse(raw);
@@ -1802,7 +1806,7 @@ export default function App(){
         });
         setPartidosFull(true);
         try{
-          const CK="basketfemdb:cache:v8";
+          const CK="basketfemdb:cache:v9";
           const raw=localStorage.getItem(CK);
           if(raw){
             const c=JSON.parse(raw);
