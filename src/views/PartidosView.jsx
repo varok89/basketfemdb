@@ -1839,9 +1839,9 @@ function SerieBox({partidosSerie,equipoMap,compacto,onOpen}){
 
 /* ── WNBAClasificacion ─────────────────────────────────────
    Módulo específico WNBA (L006). Tabs Global / East / West / Playoffs.
-   Regular vs playoff se distingue por notas "Playoff 1R" / "Semifinal" / "Final".
+   Regular vs playoff se distingue por notas "Playoff 1R" / "Playoff SF" / "Playoff Final".
    Tiebreakers WNBA oficiales: H2H → V vs top-8 → V vs top-4 → point differential. */
-const WNBA_RONDA_RE=/^(Playoff 1R|Semifinal|Final|Commissioner)/i;
+const WNBA_RONDA_RE=/^(Playoff |Commissioner)/i;
 
 function calcStatsWNBA(partidos){
   const s={};
@@ -2020,8 +2020,8 @@ function WNBABracketAuto({globalRanked, playoffPartidos, equipoMap, onOpenPartid
   }
 
   const p1R=playoffPartidos.filter(p=>/^Playoff 1R/i.test(p.notas||""));
-  const pSemi=playoffPartidos.filter(p=>/^Semifinal/i.test(p.notas||""));
-  const pFinal=playoffPartidos.filter(p=>/^Final/i.test(p.notas||""));
+  const pSemi=playoffPartidos.filter(p=>/^Playoff SF/i.test(p.notas||""));
+  const pFinal=playoffPartidos.filter(p=>/^Playoff Final/i.test(p.notas||""));
 
   // Orden de bracket (top→bottom): 1v8, 4v5, 2v7, 3v6 → Semi1=idx0+1, Semi2=idx2+3
   const bracketOrder={1:0,4:1,2:2,3:3};
