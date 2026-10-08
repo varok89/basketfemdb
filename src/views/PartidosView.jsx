@@ -296,10 +296,8 @@ function BoxscoreEditor({idPartido,local,visit,rosterLocal,rosterVisit,allJug,on
     useEffect(()=>{
       if(!open)return;
       const onKey=e=>{if(e.key==="Escape")cerrar();};
-      const onScroll=()=>cerrar();
       document.addEventListener("keydown",onKey);
-      window.addEventListener("scroll",onScroll,true);
-      return()=>{document.removeEventListener("keydown",onKey);window.removeEventListener("scroll",onScroll,true);};
+      return()=>{document.removeEventListener("keydown",onKey);};
     },[open]);
     return(
       <>
@@ -307,8 +305,8 @@ function BoxscoreEditor({idPartido,local,visit,rosterLocal,rosterVisit,allJug,on
           {fila?.id_jugadora?"↔":"🔗"} BD
         </button>
         {open&&(<>
-          <div onClick={cerrar} style={{position:"fixed",inset:0,zIndex:1500}}/>
-          <div onClick={e=>e.stopPropagation()} style={{position:"fixed",top:pos.top,left:pos.left,width:pos.w||280,zIndex:1600,background:"var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"10px",boxShadow:"0 8px 32px rgba(0,0,0,0.4)",maxHeight:"380px",overflowY:"auto"}}>
+          <div onMouseDown={cerrar} style={{position:"fixed",inset:0,zIndex:1500}}/>
+          <div onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} style={{position:"fixed",top:pos.top,left:pos.left,width:pos.w||280,zIndex:1600,background:"var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"10px",boxShadow:"0 8px 32px rgba(0,0,0,0.4)",maxHeight:"380px",overflowY:"auto"}}>
             {mode==="roster"?(<>
               {disponibles.map(p=><button key={p.id_jugadora} onClick={()=>{onPick(p);cerrar();}} style={{display:"block",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"8px 12px",fontSize:"12px",color:"var(--fx-text)",cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.background="var(--fx-hover)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>{p.nombre}</button>)}
               {disponibles.length===0&&<div style={{padding:"10px 12px",fontSize:"11px",color:"var(--fx-muted2)"}}>Sin roster para este equipo</div>}
