@@ -10,12 +10,12 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   useEffect(function(){
     if(!isAdmin)return;
     (async function(){
-      // Criterio: tienen id_feb (vienen de boxscore FEB) + sin ningún dato biográfico editado
+      // Criterio: tiene al menos un id externo (vienen de un scraper) + sin ningún dato biográfico
       var {data}=await supabase.from("jugadoras")
-        .select("id_jugadora,nombre,id_feb,foto,fecha_nac,altura_cm,posicion,nacionalidad")
-        .not("id_feb","is",null)
+        .select("id_jugadora,nombre,id_feb,fiba_person_id,id_russia,id_fpb,id_espn,id_lfb,foto,fecha_nac,altura_cm,posicion,nacionalidad")
+        .or("id_feb.not.is.null,fiba_person_id.not.is.null,id_russia.not.is.null,id_fpb.not.is.null,id_espn.not.is.null,id_lfb.not.is.null")
         .is("fecha_nac",null).is("altura_cm",null).is("posicion",null).is("nacionalidad",null)
-        .order("id_jugadora",{ascending:false}).limit(500);
+        .order("id_jugadora",{ascending:false}).limit(1000);
       setHuerfanas(data||[]);
     })();
   },[isAdmin,tab]);
@@ -3265,10 +3265,13 @@ function FusionarJugadorasTab({huerfanas,setHuerfanas,players}){
       }
       if(paraBorrar.length){await supabase.from("temporadas").delete().in("id",paraBorrar);}
       if(paraMover.length){await supabase.from("temporadas").update({id_jugadora:destino.id_jugadora}).in("id",paraMover);}
-      // 3) Copia id_feb y foto al destino si no los tiene
+      // 3) Copia TODOS los ids externos y la foto al destino si no los tiene
       const patch={};
-      if(origen.id_feb&&!destino.id_feb)patch.id_feb=origen.id_feb;
-      if(origen.foto&&!destino.foto)patch.foto=origen.foto;
+      const extCols=["id_feb","fiba_person_id","id_russia","id_fpb","id_espn","id_lfb"];
+      // Fetch destino actual completo (puede faltar en el estado local)
+      const {data:destFull}=await supabase.from("jugadoras").select("id_feb,fiba_person_id,id_russia,id_fpb,id_espn,id_lfb,foto").eq("id_jugadora",destino.id_jugadora).maybeSingle();
+      for(const col of extCols){ if(origen[col]&&!destFull?.[col])patch[col]=origen[col]; }
+      if(origen.foto&&!destFull?.foto)patch.foto=origen.foto;
       if(Object.keys(patch).length){await supabase.from("jugadoras").update(patch).eq("id_jugadora",destino.id_jugadora);}
       // 4) Borra la huérfana
       const {error:e4}=await supabase.from("jugadoras").delete().eq("id_jugadora",origen.id_jugadora);
@@ -3293,7 +3296,7 @@ function FusionarJugadorasTab({huerfanas,setHuerfanas,players}){
               {h.foto?<img src={h.foto} alt="" style={{width:"34px",height:"34px",borderRadius:"50%",objectFit:"cover"}}/>:<div style={{width:"34px",height:"34px",borderRadius:"50%",background:"var(--fx-border)"}}/>}
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontWeight:700,fontSize:"13px",color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.nombre}</div>
-                <div style={{fontSize:"10px",color:"var(--fx-muted2)"}}>{h.id_jugadora} · id_feb={h.id_feb}</div>
+                <div style={{fontSize:"10px",color:"var(--fx-muted2)"}}>{h.id_jugadora} · {[h.id_feb&&`feb=${h.id_feb}`,h.fiba_person_id&&`fiba=${h.fiba_person_id}`,h.id_russia&&`rus=${h.id_russia}`,h.id_fpb&&`fpb=${h.id_fpb}`,h.id_espn&&`espn=${h.id_espn}`,h.id_lfb&&`lfb=${h.id_lfb}`].filter(Boolean).join(" · ")}</div>
               </div>
               <button onClick={()=>{setSel({origen:h});setQ("");setMsg("");}} disabled={busy} style={{background:sel&&sel.origen.id_jugadora===h.id_jugadora?"#9333ea":"var(--fx-card)",color:sel&&sel.origen.id_jugadora===h.id_jugadora?"#fff":"var(--fx-text)",border:"1.5px solid var(--fx-border)",borderRadius:"8px",padding:"5px 10px",fontWeight:700,fontSize:"11px",cursor:"pointer"}}>🔀 Fusionar con…</button>
             </div>

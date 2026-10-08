@@ -1,4 +1,8 @@
-// actualizar-resultados-fiba v39
+// actualizar-resultados-fiba v40
+// v40: refrescarLiveOnce incluye partidos en ventana [-3h,+15min] aunque es_live=false
+//   (FIBA no siempre marca is_live=true a tiempo, lo detectamos por status).
+//   Setea es_live/periodo según status FIBA. Antes solo refrescaba es_live=true y los partidos
+//   quedaban pintados como FT por fechas pasadas sin marcador actualizado.
 // v39: egress-gate. En modo cron, filtra eventos activos a solo los que
 //   tienen partido en ventana [-1h, +3h] o es_live=true. Antes descargaba
 //   el HTML de games de cada evento activo (hoy en fecha_ini..fecha_fin)
@@ -485,7 +489,15 @@ async function procesarEvento(ev:{url:string;idLiga:string;temporada:string;slug
 
 async function refrescarLiveOnce():Promise<string[]>{
   const refrescados:string[]=[];
-  const{data:lives}=await sb.from('partidos').select('id,id_ext,periodo,resultado_local,resultado_visitante').eq('es_live',true).not('id_ext','is',null).limit(50);
+  // v40: incluye también partidos en ventana [-3h,+15min] aunque es_live=false
+  // porque FIBA no siempre marca es_live y perdíamos marcadores en vivo.
+  const now=Date.now();
+  const desde=new Date(now-3*3600*1000).toISOString();
+  const hasta=new Date(now+15*60*1000).toISOString();
+  const{data:lives}=await sb.from('partidos').select('id,id_ext,periodo,resultado_local,resultado_visitante,es_live,fecha_hora')
+    .eq('fuente','fiba').not('id_ext','is',null)
+    .or(`es_live.eq.true,and(fecha_hora.gte.${desde},fecha_hora.lte.${hasta})`)
+    .limit(50);
   for(const p of (lives||[])){
     try{
       const r=await fetch(`https://www.fiba.basketball/en/events/api/game-live-info/${p.id_ext}/light?_cb=${Date.now()}`,{
@@ -500,13 +512,21 @@ async function refrescarLiveOnce():Promise<string[]>{
       const qStr=String(c?.quarter||'');
       const qm=/^Q(\d+)$/.exec(qStr);const otm=/^OT(\d*)$/.exec(qStr);
       const periodo=qm?parseInt(qm[1]):otm?4+Math.max(1,parseInt(otm[1]||'1')):null;
+      // status FIBA: 1=pre, 3=live, 5+ = finished
+      const statusNum=Number(c?.status||0);
+      const rt=String(c?.remainingTime||'').trim();
+      const finished=statusNum>=5||(periodo!=null&&periodo>=4&&(rt==='00:00'||rt==='0:00')&&String(c?.quarterStatus||'').toUpperCase()!=='S');
+      const live=statusNum===3||(!finished&&(sa>0||sv>0));
       const upd:any={};
       if(p.resultado_local!==sa)upd.resultado_local=sa;
       if(p.resultado_visitante!==sv)upd.resultado_visitante=sv;
-      if(periodo!=null&&p.periodo!==periodo)upd.periodo=periodo;
+      if(periodo!=null&&p.periodo!==periodo)upd.periodo=finished?null:periodo;
+      const newLive=!!live&&!finished;
+      if(!!p.es_live!==newLive)upd.es_live=newLive;
+      if(finished&&p.periodo!=null)upd.periodo=null;
       if(Object.keys(upd).length){
         await sb.from('partidos').update(upd).eq('id',p.id);
-        refrescados.push(`${p.id_ext}:${sa}-${sv}${periodo!=null?' Q'+periodo:''}`);
+        refrescados.push(`${p.id_ext}:${sa}-${sv}${periodo!=null?' Q'+periodo:''}${finished?' FT':live?' LIVE':''}`);
       }
     }catch{/* silent */}
   }
@@ -551,7 +571,14 @@ Deno.serve(async(req)=>{
     const{data:eventos,error}=await sb.from('fiba_eventos').select('id_liga,temporada,slug,codigos').eq('activo',true).lte('fecha_ini',new Date().toISOString().slice(0,10)).gte('fecha_fin',new Date().toISOString().slice(0,10));
     if(error)throw new Error(`BD: ${error.message}`);
     const liveRefresh:string[]=[];
-    const{count:liveCount}=await sb.from('partidos').select('id',{count:'exact',head:true}).eq('es_live',true).not('id_ext','is',null);
+    // v40: entrar al loop live también cuando hay partido FIBA en ventana [-3h,+15min] sin resultado,
+    // porque FIBA no siempre marca es_live=true y perdíamos marcadores en vivo.
+    const _now=Date.now();
+    const _vDesde=new Date(_now-3*3600*1000).toISOString();
+    const _vHasta=new Date(_now+15*60*1000).toISOString();
+    const{count:liveCount}=await sb.from('partidos').select('id',{count:'exact',head:true})
+      .eq('fuente','fiba').not('id_ext','is',null)
+      .or(`es_live.eq.true,and(fecha_hora.gte.${_vDesde},fecha_hora.lte.${_vHasta})`);
     if(liveCount&&liveCount>0){
       const t0=Date.now();
       for(let i=0;i<10;i++){
