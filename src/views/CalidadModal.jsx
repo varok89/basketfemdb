@@ -10,21 +10,15 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   useEffect(function(){
     if(!isAdmin)return;
     (async function(){
-      // Criterio: tiene al menos un id externo (vienen de un scraper) y
-      // (nombre con formato live "X. APELLIDO" / todo mayúsculas) o le falta
-      // alguno de los campos biográficos clave (biografía incompleta).
+      // Marcador fiable de jugadora creada por un scraper de boxscore:
+      // tiene algún id externo + le faltan altura_cm Y posición (los 2 campos
+      // que ningún scraper de boxscore puede rellenar sin visitar la ficha).
       var {data}=await supabase.from("jugadoras")
         .select("id_jugadora,nombre,id_feb,fiba_person_id,id_russia,id_fpb,id_espn,id_lfb,foto,fecha_nac,altura_cm,posicion,nacionalidad")
         .or("id_feb.not.is.null,fiba_person_id.not.is.null,id_russia.not.is.null,id_fpb.not.is.null,id_espn.not.is.null,id_lfb.not.is.null")
-        .order("id_jugadora",{ascending:false}).limit(3000);
-      // Filtrar en JS: nombre live (upper o inicial) O biografía incompleta
-      var reLive=/^[A-ZÁÉÍÓÚÀÈÌÒÙÄËÏÖÜÑÇŠĆŽŁĐĐ'`\- ]{3,}$|^[A-ZÁÉÍÓÚÑ]\.?\s+[A-ZÁÉÍÓÚÑ'`\- ]{2,}$/;
-      var huerf=(data||[]).filter(function(h){
-        var biogr=h.fecha_nac&&h.altura_cm&&h.posicion&&h.nacionalidad;
-        var nombreLive=reLive.test((h.nombre||"").trim());
-        return !biogr||nombreLive;
-      });
-      setHuerfanas(huerf);
+        .is("altura_cm",null).is("posicion",null)
+        .order("id_jugadora",{ascending:false}).limit(2000);
+      setHuerfanas(data||[]);
     })();
   },[isAdmin,tab]);
   // ── Estado del sistema (pestaña Ops) ──
