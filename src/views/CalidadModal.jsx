@@ -8,17 +8,46 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   // ── Jugadoras huérfanas creadas desde boxscore (fusionar) ──
   var [huerfanas,setHuerfanas]=useState([]);
   useEffect(function(){
-    if(!isAdmin)return;
+    if(!isAdmin||tab!=="fusionar-jug")return;
     (async function(){
-      // Marcador fiable de jugadora creada por un scraper de boxscore:
-      // tiene algún id externo + le faltan altura_cm Y posición (los 2 campos
-      // que ningún scraper de boxscore puede rellenar sin visitar la ficha).
-      var {data}=await supabase.from("jugadoras")
-        .select("id_jugadora,nombre,id_feb,fiba_person_id,id_russia,id_fpb,id_espn,id_lfb,foto,fecha_nac,altura_cm,posicion,nacionalidad")
-        .or("id_feb.not.is.null,fiba_person_id.not.is.null,id_russia.not.is.null,id_fpb.not.is.null,id_espn.not.is.null,id_lfb.not.is.null")
-        .is("altura_cm",null).is("posicion",null)
-        .order("id_jugadora",{ascending:false}).limit(2000);
-      setHuerfanas(data||[]);
+      // Paso 1: IDs de partidos recientes (últimos 30 días)
+      var desde=new Date(Date.now()-30*24*3600*1000).toISOString();
+      var {data:parts}=await supabase.from("partidos").select("id,fecha_hora,id_liga").gte("fecha_hora",desde).limit(5000);
+      var pIds=(parts||[]).map(p=>p.id);
+      if(!pIds.length){setHuerfanas([]);return;}
+      // Paso 2: id_jugadora + fecha + equipo + liga del boxscore de esos partidos
+      var jugMeta={}; // id_jugadora -> {ultFecha, idLiga, idEquipo}
+      var batchSize=200;
+      for(var i=0;i<pIds.length;i+=batchSize){
+        var batch=pIds.slice(i,i+batchSize);
+        var {data:bx}=await supabase.from("partido_boxscore").select("id_jugadora,id_equipo,id_partido").in("id_partido",batch);
+        var pMap={};(parts||[]).forEach(p=>{pMap[p.id]={fecha:p.fecha_hora,liga:p.id_liga};});
+        for(var b of (bx||[])){
+          if(!b.id_jugadora)continue;
+          var m=pMap[b.id_partido];if(!m)continue;
+          var prev=jugMeta[b.id_jugadora];
+          if(!prev||m.fecha>prev.ultFecha){
+            jugMeta[b.id_jugadora]={ultFecha:m.fecha,idLiga:m.liga,idEquipo:b.id_equipo};
+          }
+        }
+      }
+      var jIds=Object.keys(jugMeta);
+      if(!jIds.length){setHuerfanas([]);return;}
+      // Paso 3: fetch jugadoras con altura+posicion null y algún id externo
+      var all=[];
+      for(var k=0;k<jIds.length;k+=500){
+        var {data:js}=await supabase.from("jugadoras")
+          .select("id_jugadora,nombre,id_feb,fiba_person_id,id_russia,id_fpb,id_espn,id_lfb,foto,fecha_nac,altura_cm,posicion,nacionalidad")
+          .in("id_jugadora",jIds.slice(k,k+500))
+          .is("altura_cm",null).is("posicion",null);
+        for(var j of (js||[])){
+          var tieneExt=j.id_feb||j.fiba_person_id||j.id_russia||j.id_fpb||j.id_espn||j.id_lfb;
+          if(!tieneExt)continue;
+          all.push({...j,...jugMeta[j.id_jugadora]});
+        }
+      }
+      all.sort((a,b)=>(b.ultFecha||"").localeCompare(a.ultFecha||""));
+      setHuerfanas(all);
     })();
   },[isAdmin,tab]);
   // ── Estado del sistema (pestaña Ops) ──
@@ -1570,7 +1599,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           )}
           {tab==="genius"&&<GeniusMatchTab ligas={ligas} equipos={equipos} setEquipos={setEquipos} setLigas={setLigas}/>}
           {tab==="scrapers-custom"&&<ScrapersCustomTab ligas={ligas}/>}
-          {tab==="fusionar-jug"&&<FusionarJugadorasTab huerfanas={huerfanas} setHuerfanas={setHuerfanas} players={players}/>}
+          {tab==="fusionar-jug"&&<FusionarJugadorasTab huerfanas={huerfanas} setHuerfanas={setHuerfanas} players={players} equipos={equipos} ligas={ligas}/>}
           {tab==="lleno_fiba"&&(
             <div style={{padding:"4px"}}>
               <p style={{color: "var(--fx-muted)",fontSize:"13px",marginBottom:"14px"}}>
@@ -3237,12 +3266,24 @@ function ScrapersCustomTab({ ligas }) {
   );
 }
 
-function FusionarJugadorasTab({huerfanas,setHuerfanas,players}){
+function FusionarJugadorasTab({huerfanas,setHuerfanas,players,equipos,ligas}){
   const [q,setQ]=useState("");
+  const [qFiltro,setQFiltro]=useState("");
   const [sel,setSel]=useState(null); // {origen, destino}
   const [busy,setBusy]=useState(false);
   const [msg,setMsg]=useState("");
   const normalize=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+  const equipoMap=useMemo(()=>{const m={};(equipos||[]).forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
+  const ligaMap=useMemo(()=>{const m={};(ligas||[]).forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
+  const huerfFiltradas=useMemo(()=>{
+    if(!qFiltro.trim())return huerfanas;
+    const nq=normalize(qFiltro.trim());
+    return huerfanas.filter(h=>{
+      const eq=equipoMap[h.idEquipo]?.nombre||"";
+      const lg=ligaMap[h.idLiga]?.nombre||"";
+      return normalize(h.nombre).includes(nq)||normalize(eq).includes(nq)||normalize(lg).includes(nq);
+    });
+  },[qFiltro,huerfanas,equipoMap,ligaMap]);
   const candidatas=useMemo(function(){
     if(!q.trim()||!sel)return [];
     const nq=normalize(q.trim());
@@ -3288,21 +3329,26 @@ function FusionarJugadorasTab({huerfanas,setHuerfanas,players}){
   return(
     <div>
       <p style={{color:"var(--fx-muted)",fontSize:"13px",marginBottom:"14px"}}>
-        Jugadoras creadas automáticamente desde boxscores (tienen <code>id_feb</code> pero sin biografía). Fusiona cada una con la jugadora real de tu BD para que no queden huérfanas. La fusión reasigna sus líneas de boxscore y temporadas, copia la foto y el <code>id_feb</code>, y borra el placeholder.
+        Jugadoras creadas automáticamente desde boxscores de los <b>últimos 30 días</b> (con id externo + sin altura/posición). Fusiona cada una con la jugadora real de tu BD. La fusión reasigna boxscores, temporadas, copia foto + ids externos y borra el placeholder.
       </p>
+      <input value={qFiltro} onChange={e=>setQFiltro(e.target.value)} placeholder="Filtrar por nombre, equipo o liga…" style={{width:"100%",padding:"8px 10px",borderRadius:"8px",border:"1.5px solid var(--fx-border)",fontSize:"12px",boxSizing:"border-box",marginBottom:"10px"}}/>
       {msg&&<div style={{padding:"8px 12px",marginBottom:"10px",borderRadius:"8px",background:"var(--fx-hover)",fontSize:"12px"}}>{msg}</div>}
-      {huerfanas.length===0?<div style={{padding:"20px",textAlign:"center",color:"var(--fx-muted2)",fontSize:"13px"}}>No hay huérfanas 🎉</div>:
+      <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginBottom:"8px"}}>{huerfFiltradas.length} {huerfFiltradas.length===1?"huérfana":"huérfanas"}</div>
+      {huerfFiltradas.length===0?<div style={{padding:"20px",textAlign:"center",color:"var(--fx-muted2)",fontSize:"13px"}}>No hay huérfanas 🎉</div>:
         <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
-          {huerfanas.map(h=>(
+          {huerfFiltradas.map(h=>{
+            const eqN=equipoMap[h.idEquipo]?.nombre||h.idEquipo||"?";
+            const lgN=ligaMap[h.idLiga]?.nombre||h.idLiga||"?";
+            return(
             <div key={h.id_jugadora} style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 10px",background:"var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)"}}>
               {h.foto?<img src={h.foto} alt="" style={{width:"34px",height:"34px",borderRadius:"50%",objectFit:"cover"}}/>:<div style={{width:"34px",height:"34px",borderRadius:"50%",background:"var(--fx-border)"}}/>}
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontWeight:700,fontSize:"13px",color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.nombre}</div>
-                <div style={{fontSize:"10px",color:"var(--fx-muted2)"}}>{h.id_jugadora} · {[h.id_feb&&`feb=${h.id_feb}`,h.fiba_person_id&&`fiba=${h.fiba_person_id}`,h.id_russia&&`rus=${h.id_russia}`,h.id_fpb&&`fpb=${h.id_fpb}`,h.id_espn&&`espn=${h.id_espn}`,h.id_lfb&&`lfb=${h.id_lfb}`].filter(Boolean).join(" · ")}</div>
+                <div style={{fontSize:"10px",color:"var(--fx-muted2)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{eqN} · {lgN} · {h.ultFecha?.slice(0,10)||""}</div>
               </div>
               <button onClick={()=>{setSel({origen:h});setQ("");setMsg("");}} disabled={busy} style={{background:sel&&sel.origen.id_jugadora===h.id_jugadora?"#9333ea":"var(--fx-card)",color:sel&&sel.origen.id_jugadora===h.id_jugadora?"#fff":"var(--fx-text)",border:"1.5px solid var(--fx-border)",borderRadius:"8px",padding:"5px 10px",fontWeight:700,fontSize:"11px",cursor:"pointer"}}>🔀 Fusionar con…</button>
             </div>
-          ))}
+          );})}
         </div>
       }
       {sel&&(
