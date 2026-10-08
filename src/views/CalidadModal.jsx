@@ -5,6 +5,20 @@ import { COUNTRY_CODES, countryCode, flagEmoji, NO_COUNTRY_FLAGS, checkIdGaps, F
 function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach,onReload,isAdmin,setPlayers,setEquipos,setLigas,setCoaches,setTempCoach}){
   var tabState=useState("incompletas");
   var tab=tabState[0];var setTab=tabState[1];
+  // ── Jugadoras huérfanas creadas desde boxscore (fusionar) ──
+  var [huerfanas,setHuerfanas]=useState([]);
+  useEffect(function(){
+    if(!isAdmin)return;
+    (async function(){
+      // Criterio: tienen id_feb (vienen de boxscore FEB) + sin ningún dato biográfico editado
+      var {data}=await supabase.from("jugadoras")
+        .select("id_jugadora,nombre,id_feb,foto,fecha_nac,altura_cm,posicion,nacionalidad")
+        .not("id_feb","is",null)
+        .is("fecha_nac",null).is("altura_cm",null).is("posicion",null).is("nacionalidad",null)
+        .order("id_jugadora",{ascending:false}).limit(500);
+      setHuerfanas(data||[]);
+    })();
+  },[isAdmin,tab]);
   // ── Estado del sistema (pestaña Ops) ──
   var [estadoData,setEstadoData]=useState(null);
   var [estadoBusy,setEstadoBusy]=useState(false);
@@ -1253,6 +1267,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       {key:"lotes",label:"Alta por lotes",count:0},
       {key:"genius",label:"🔗 Genius Match",count:0},
       {key:"scrapers-custom",label:"🔧 Scrapers custom",count:0},
+      {key:"fusionar-jug",label:"🔀 Fusionar jugadoras",count:huerfanas.length},
     ]},{title:"🩺 Ops",items:[
       {key:"estado",label:"Estado sistema",count:0},
     ]}]:[]),
@@ -1553,6 +1568,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           )}
           {tab==="genius"&&<GeniusMatchTab ligas={ligas} equipos={equipos} setEquipos={setEquipos} setLigas={setLigas}/>}
           {tab==="scrapers-custom"&&<ScrapersCustomTab ligas={ligas}/>}
+          {tab==="fusionar-jug"&&<FusionarJugadorasTab huerfanas={huerfanas} setHuerfanas={setHuerfanas} players={players}/>}
           {tab==="lleno_fiba"&&(
             <div style={{padding:"4px"}}>
               <p style={{color: "var(--fx-muted)",fontSize:"13px",marginBottom:"14px"}}>
@@ -3215,6 +3231,93 @@ function ScrapersCustomTab({ ligas }) {
           })}
         </div>
       </div>
+    </div>
+  );
+}
+
+function FusionarJugadorasTab({huerfanas,setHuerfanas,players}){
+  const [q,setQ]=useState("");
+  const [sel,setSel]=useState(null); // {origen, destino}
+  const [busy,setBusy]=useState(false);
+  const [msg,setMsg]=useState("");
+  const normalize=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+  const candidatas=useMemo(function(){
+    if(!q.trim()||!sel)return [];
+    const nq=normalize(q.trim());
+    return (players||[]).filter(p=>p.id_jugadora!==sel.origen&&normalize(p.nombre).includes(nq)).slice(0,30);
+  },[q,sel,players]);
+  async function fusionar(destino){
+    if(!sel||busy)return;
+    setBusy(true);setMsg("");
+    const origen=sel.origen;
+    try{
+      // 1) Reasigna boxscores
+      const {error:e1}=await supabase.from("partido_boxscore").update({id_jugadora:destino.id_jugadora}).eq("id_jugadora",origen.id_jugadora);
+      if(e1)throw new Error("boxscores: "+e1.message);
+      // 2) temporadas: borra las del origen que ya existan en destino (misma liga+temporada+equipo), reasigna el resto
+      const {data:tOrig}=await supabase.from("temporadas").select("id,id_liga,temporada,id_equipo").eq("id_jugadora",origen.id_jugadora);
+      const {data:tDest}=await supabase.from("temporadas").select("id_liga,temporada,id_equipo").eq("id_jugadora",destino.id_jugadora);
+      const keyD=new Set((tDest||[]).map(t=>t.id_liga+"|"+t.temporada+"|"+t.id_equipo));
+      const paraBorrar=[],paraMover=[];
+      for(const t of (tOrig||[])){
+        const k=t.id_liga+"|"+t.temporada+"|"+t.id_equipo;
+        if(keyD.has(k))paraBorrar.push(t.id); else paraMover.push(t.id);
+      }
+      if(paraBorrar.length){await supabase.from("temporadas").delete().in("id",paraBorrar);}
+      if(paraMover.length){await supabase.from("temporadas").update({id_jugadora:destino.id_jugadora}).in("id",paraMover);}
+      // 3) Copia id_feb y foto al destino si no los tiene
+      const patch={};
+      if(origen.id_feb&&!destino.id_feb)patch.id_feb=origen.id_feb;
+      if(origen.foto&&!destino.foto)patch.foto=origen.foto;
+      if(Object.keys(patch).length){await supabase.from("jugadoras").update(patch).eq("id_jugadora",destino.id_jugadora);}
+      // 4) Borra la huérfana
+      const {error:e4}=await supabase.from("jugadoras").delete().eq("id_jugadora",origen.id_jugadora);
+      if(e4)throw new Error("delete origen: "+e4.message);
+      setHuerfanas(prev=>prev.filter(h=>h.id_jugadora!==origen.id_jugadora));
+      setSel(null);setQ("");setMsg("✅ "+origen.nombre+" → "+destino.nombre);
+    }catch(e){
+      setMsg("❌ "+e.message);
+    }
+    setBusy(false);
+  }
+  return(
+    <div>
+      <p style={{color:"var(--fx-muted)",fontSize:"13px",marginBottom:"14px"}}>
+        Jugadoras creadas automáticamente desde boxscores (tienen <code>id_feb</code> pero sin biografía). Fusiona cada una con la jugadora real de tu BD para que no queden huérfanas. La fusión reasigna sus líneas de boxscore y temporadas, copia la foto y el <code>id_feb</code>, y borra el placeholder.
+      </p>
+      {msg&&<div style={{padding:"8px 12px",marginBottom:"10px",borderRadius:"8px",background:"var(--fx-hover)",fontSize:"12px"}}>{msg}</div>}
+      {huerfanas.length===0?<div style={{padding:"20px",textAlign:"center",color:"var(--fx-muted2)",fontSize:"13px"}}>No hay huérfanas 🎉</div>:
+        <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+          {huerfanas.map(h=>(
+            <div key={h.id_jugadora} style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 10px",background:"var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)"}}>
+              {h.foto?<img src={h.foto} alt="" style={{width:"34px",height:"34px",borderRadius:"50%",objectFit:"cover"}}/>:<div style={{width:"34px",height:"34px",borderRadius:"50%",background:"var(--fx-border)"}}/>}
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:"13px",color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.nombre}</div>
+                <div style={{fontSize:"10px",color:"var(--fx-muted2)"}}>{h.id_jugadora} · id_feb={h.id_feb}</div>
+              </div>
+              <button onClick={()=>{setSel({origen:h});setQ("");setMsg("");}} disabled={busy} style={{background:sel&&sel.origen.id_jugadora===h.id_jugadora?"#9333ea":"var(--fx-card)",color:sel&&sel.origen.id_jugadora===h.id_jugadora?"#fff":"var(--fx-text)",border:"1.5px solid var(--fx-border)",borderRadius:"8px",padding:"5px 10px",fontWeight:700,fontSize:"11px",cursor:"pointer"}}>🔀 Fusionar con…</button>
+            </div>
+          ))}
+        </div>
+      }
+      {sel&&(
+        <div style={{marginTop:"14px",padding:"12px",background:"var(--fx-card)",border:"2px solid #9333ea",borderRadius:"12px"}}>
+          <div style={{fontSize:"12px",fontWeight:700,color:"var(--fx-text)",marginBottom:"8px"}}>Fusionar <span style={{color:"#9333ea"}}>{sel.origen.nombre}</span> con:</div>
+          <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Buscar jugadora de la BD…" style={{width:"100%",padding:"8px 10px",borderRadius:"8px",border:"1.5px solid var(--fx-border)",fontSize:"13px",boxSizing:"border-box",marginBottom:"8px"}}/>
+          <div style={{maxHeight:"240px",overflowY:"auto"}}>
+            {q.trim().length<2?<div style={{padding:"8px",fontSize:"11px",color:"var(--fx-muted2)"}}>Escribe 2 letras…</div>:
+              candidatas.length===0?<div style={{padding:"8px",fontSize:"11px",color:"var(--fx-muted2)"}}>Sin resultados</div>:
+                candidatas.map(c=>(
+                  <button key={c.id_jugadora} onClick={()=>fusionar(c)} disabled={busy} style={{display:"flex",alignItems:"center",gap:"8px",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"6px 8px",cursor:"pointer",borderRadius:"6px"}} onMouseEnter={e=>e.currentTarget.style.background="var(--fx-hover)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                    {c.foto?<img src={c.foto} alt="" style={{width:"26px",height:"26px",borderRadius:"50%",objectFit:"cover"}}/>:<div style={{width:"26px",height:"26px",borderRadius:"50%",background:"var(--fx-border)"}}/>}
+                    <div style={{flex:1,minWidth:0,fontSize:"12px",color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.nombre} <span style={{color:"var(--fx-muted2)",fontSize:"10px"}}>({c.id_jugadora})</span></div>
+                  </button>
+                ))
+            }
+          </div>
+          <button onClick={()=>{setSel(null);setQ("");}} style={{marginTop:"8px",background:"transparent",border:"1px solid var(--fx-border)",borderRadius:"6px",padding:"4px 10px",fontSize:"11px",cursor:"pointer",color:"var(--fx-muted)"}}>Cancelar</button>
+        </div>
+      )}
     </div>
   );
 }
