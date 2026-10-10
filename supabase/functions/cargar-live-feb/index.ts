@@ -8,7 +8,6 @@ import { z } from "npm:zod@3.23.8";
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const SCRAPER_KEY = Deno.env.get("SCRAPER_KEY") || Deno.env.get("SCRAPERAPI_KEY") || "752029defdfd6c80cd78f15f9737eab8";
 const PROXY_KEY = Deno.env.get("SCRAPER_PROXY_KEY") || "";
 const PROXY_URL = Deno.env.get("PROXY_URL") || "https://labasketneta.app/api/proxy-feb";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
@@ -53,15 +52,10 @@ async function fetchProxy(url: string): Promise<string | null> {
     return await r.text();
   } catch { return null; } finally { clearTimeout(to); }
 }
-async function fetchScraperapi(url: string): Promise<string> {
-  const r = await fetch(`https://api.scraperapi.com/?api_key=${SCRAPER_KEY}&url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(45000) });
-  if (!r.ok) throw new Error(`scraperapi ${r.status}`);
-  return await r.text();
-}
 async function getHtml(url: string): Promise<string> {
   const d = await fetchDirect(url); if (d && d.length > 2000) return d;
   const p = await fetchProxy(url); if (p && p.length > 2000) return p;
-  return await fetchScraperapi(url);
+  throw new Error("getHtml: direct and proxy failed");
 }
 
 function extraerToken(html: string): string | null {
