@@ -1315,13 +1315,32 @@ function calcTablaGrupo(ps){
     });
     Object.values(stats).forEach(e=>{e.dif=e.pf-e.pc;});
 
-    // Ordenar con desempate FIBA
+    // Ordenar con desempate FEB/FIBA:
+    //   1) puntos
+    //   2) head-to-head SOLO si todos los empatados ya se han enfrentado al menos
+    //      una vez entre sí (round-robin completo). Si no, salta a diferencia global.
+    //      Es como FEB desempata: hasta que no haya round-robin, pondera dif general.
+    //   3) diferencia general
+    //   4) puntos a favor
     const arr=Object.values(stats);
+    const jugadoEntre={};
+    ps.forEach(p=>{
+      if(p.resultado_local==null||p.resultado_visitante==null)return;
+      if(getPartidoEstado(p)==="en_juego")return;
+      const k=[p.id_equipo_local,p.id_equipo_visitante].sort().join("|");
+      jugadoEntre[k]=(jugadoEntre[k]||0)+1;
+    });
     arr.sort((a,b)=>{
       if(b.pts!==a.pts)return b.pts-a.pts;
-      // Head-to-head entre empatados con los mismos puntos
       const tied=arr.filter(x=>x.pts===a.pts).map(x=>x.id);
-      if(tied.length>=2){
+      let roundRobinCompleto=tied.length>=2;
+      for(let i=0;i<tied.length&&roundRobinCompleto;i++){
+        for(let j=i+1;j<tied.length;j++){
+          const k=[tied[i],tied[j]].sort().join("|");
+          if(!jugadoEntre[k]){roundRobinCompleto=false;break;}
+        }
+      }
+      if(roundRobinCompleto){
         const hthStats={};
         tied.forEach(id=>{hthStats[id]={pts:0,pf:0,pc:0};});
         ps.forEach(p=>{
