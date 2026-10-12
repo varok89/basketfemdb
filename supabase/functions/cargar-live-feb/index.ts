@@ -112,6 +112,17 @@ function parseMin(mf: string | null | undefined): number | null {
 }
 const nInt = (v: any): number => { const n = parseInt(String(v ?? "").replace(/[^\d-]/g, ""), 10); return isNaN(n) ? 0 : n; };
 
+// "APELLIDOS, NOMBRE" (acta FEB) o "Nombre Apellidos" (Genius) → "Nombre Apellidos" title-case
+function normalizarNombreActa(raw: string): string {
+  let s = (raw || "").trim();
+  if (!s) return "";
+  if (s.includes(",")) {
+    const [apellidos, nombre] = s.split(",").map((x) => x.trim());
+    s = `${nombre} ${apellidos}`.trim();
+  }
+  return s.toLowerCase().replace(/\b([a-zñáéíóúü])/g, (c) => c.toUpperCase());
+}
+
 async function procesarPartido(partido: any, dry: boolean): Promise<any> {
   const pid = String(partido.id_ext);
   const html = await getHtml(`${FEB_WEB}/partido/${pid}`);
@@ -171,17 +182,29 @@ async function procesarPartido(partido: any, dry: boolean): Promise<any> {
       for (const p of t.players) {
         if (!p.id && !p.name) continue;
         let idJug = p.id ? porIdFeb.get(String(p.id)) : null;
-        // v2: auto-crear jugadora si tiene id_feb y no está en BD (user la vinculará/renombrará a mano)
+        // v3: auto-crear jugadora si tiene id_feb y no está en BD + fila en temporadas
         if (!idJug && p.id && !dry) {
           if (!huecosJug) huecosJug = await cargarHuecosJug();
           if (huecosIdx < huecosJug.length) {
             const nuevoId = `J${huecosJug[huecosIdx++]}`;
-            const nombreLive = String(p.name || "").trim() || `FEB ${p.id}`;
+            const nombreLive = normalizarNombreActa(String(p.name || "")) || `FEB ${p.id}`;
             const fotoUrl = await subirFotoFeb(String(p.id), nuevoId);
             const row: any = { id_jugadora: nuevoId, nombre: nombreLive, id_feb: String(p.id) };
             if (fotoUrl) row.foto = fotoUrl;
             const { error } = await sb.from("jugadoras").insert(row);
-            if (!error) { idJug = nuevoId; porIdFeb.set(String(p.id), nuevoId); jugadorasCreadas.push(`${nuevoId} ${nombreLive}`); creadas++; }
+            if (!error) {
+              idJug = nuevoId;
+              porIdFeb.set(String(p.id), nuevoId);
+              jugadorasCreadas.push(`${nuevoId} ${nombreLive}`);
+              creadas++;
+              // Crear fila en temporadas para que la jugadora aparezca en el roster del equipo
+              await sb.from("temporadas").insert({
+                id_jugadora: nuevoId,
+                id_equipo: t.id_equipo,
+                id_liga: partido.id_liga,
+                temporada: partido.temporada,
+              });
+            }
           }
         }
         if (!idJug) { sinMapear++; continue; }

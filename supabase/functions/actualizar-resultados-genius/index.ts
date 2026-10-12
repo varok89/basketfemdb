@@ -20,6 +20,32 @@ const sb = createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
 const norm = (s: string) => (s || "").toLowerCase().normalize("NFD")
   .replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 
+// "APELLIDOS, NOMBRE" (acta FEB) o "Nombre Apellidos" (Genius) → "Nombre Apellidos" title-case
+function normalizarNombreActa(raw: string): string {
+  let s = (raw || "").trim();
+  if (!s) return "";
+  if (s.includes(",")) {
+    const [apellidos, nombre] = s.split(",").map((x) => x.trim());
+    s = `${nombre} ${apellidos}`.trim();
+  }
+  return s.toLowerCase().replace(/\b([a-zñáéíóúü])/g, (c) => c.toUpperCase());
+}
+
+async function cargarHuecosJug(): Promise<number[]> {
+  const all = new Set<number>();
+  for (let off = 0; off < 20; off++) {
+    const { data } = await sb.from("jugadoras").select("id_jugadora")
+      .order("id_jugadora", { ascending: true }).range(off * 1000, off * 1000 + 999);
+    if (!data || !data.length) break;
+    for (const r of data) { const n = parseInt(r.id_jugadora.slice(1), 10); if (!isNaN(n)) all.add(n); }
+    if (data.length < 1000) break;
+  }
+  const max = all.size ? Math.max(...all) : 0;
+  const huecos: number[] = [];
+  for (let i = 1; i <= max + 200; i++) { if (!all.has(i)) huecos.push(i); if (huecos.length >= 200) break; }
+  return huecos;
+}
+
 interface GeniusPlayer {
   firstName?: string; familyName?: string; shirtNumber?: string | number;
   starter?: number; active?: number;
@@ -147,7 +173,7 @@ function mapearJugadora(
 async function cargarBoxscore(
   idPartido: number, d: GeniusData, idLocal: string, idVisit: string,
   idLiga: string, temporada: string
-): Promise<{filas: number; sin_mapear: number}> {
+): Promise<{filas: number; sin_mapear: number; creadas: number}> {
   const { data: temps } = await sb.from("temporadas")
     .select("id_jugadora, id_equipo, jugadoras(nombre)")
     .eq("id_liga", idLiga).eq("temporada", temporada)
@@ -165,10 +191,33 @@ async function cargarBoxscore(
 
   const filas: any[] = [];
   let sinMapear = 0;
-  const push = (players: GeniusPlayer[], idEquipo: string, idx: ReturnType<typeof indexarRoster>) => {
+  let creadas = 0;
+  let huecosJug: number[] | null = null;
+  let huecosIdx = 0;
+  const push = async (players: GeniusPlayer[], idEquipo: string, idx: ReturnType<typeof indexarRoster>) => {
     for (const p of players) {
       if (!p.firstName && !p.familyName) continue;
-      const idJug = mapearJugadora(idx, p);
+      let idJug = mapearJugadora(idx, p);
+      const nombreCrudo = `${p.firstName || ""} ${p.familyName || ""}`.trim();
+      // Auto-crear jugadora + temporadas cuando no hay match (sinó queda id_jugadora=null)
+      if (!idJug && nombreCrudo) {
+        if (!huecosJug) huecosJug = await cargarHuecosJug();
+        if (huecosIdx < huecosJug.length) {
+          const nuevoId = `J${huecosJug[huecosIdx++]}`;
+          const nombreNuevo = normalizarNombreActa(nombreCrudo);
+          const { error } = await sb.from("jugadoras").insert({ id_jugadora: nuevoId, nombre: nombreNuevo });
+          if (!error) {
+            idJug = nuevoId;
+            creadas++;
+            await sb.from("temporadas").insert({
+              id_jugadora: nuevoId,
+              id_equipo: idEquipo,
+              id_liga: idLiga,
+              temporada: temporada,
+            });
+          }
+        }
+      }
       if (!idJug) sinMapear++;
       filas.push({
         id_partido: idPartido,
@@ -197,14 +246,14 @@ async function cargarBoxscore(
       });
     }
   };
-  push(playersArray(d.tm?.["1"]?.pl), idLocal, idxLocal);
-  push(playersArray(d.tm?.["2"]?.pl), idVisit, idxVisit);
+  await push(playersArray(d.tm?.["1"]?.pl), idLocal, idxLocal);
+  await push(playersArray(d.tm?.["2"]?.pl), idVisit, idxVisit);
 
-  if (filas.length === 0) return { filas: 0, sin_mapear: 0 };
+  if (filas.length === 0) return { filas: 0, sin_mapear: 0, creadas: 0 };
   await sb.from("partido_boxscore").delete().eq("id_partido", idPartido);
   const { error } = await sb.from("partido_boxscore").insert(filas);
   if (error) throw new Error(`Insert boxscore: ${error.message}`);
-  return { filas: filas.length, sin_mapear: sinMapear };
+  return { filas: filas.length, sin_mapear: sinMapear, creadas };
 }
 
 async function procesarPartido(p: any): Promise<any> {
