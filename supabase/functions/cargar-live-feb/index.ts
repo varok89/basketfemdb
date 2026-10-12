@@ -116,6 +116,8 @@ function parseMin(mf: string | null | undefined): number | null {
 const nInt = (v: any): number => { const n = parseInt(String(v ?? "").replace(/[^\d-]/g, ""), 10); return isNaN(n) ? 0 : n; };
 
 // "APELLIDOS, NOMBRE" (acta FEB) o "Nombre Apellidos" (Genius) → "Nombre Apellidos" title-case
+// NOTA: no usar \b (en JS \b no considera ñ ni letras acentuadas como word chars,
+// causando "PeÑA" en vez de "Peña"). Split por whitespace y capitalizar primera letra.
 function normalizarNombreActa(raw: string): string {
   let s = (raw || "").trim();
   if (!s) return "";
@@ -123,7 +125,9 @@ function normalizarNombreActa(raw: string): string {
     const [apellidos, nombre] = s.split(",").map((x) => x.trim());
     s = `${nombre} ${apellidos}`.trim();
   }
-  return s.toLowerCase().replace(/\b([a-zñáéíóúü])/g, (c) => c.toUpperCase());
+  return s.toLowerCase().split(/(\s+)/).map((w) =>
+    w.length > 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w
+  ).join("");
 }
 
 // Normaliza para comparar: minúsculas, sin tildes, sin puntuación, espacios colapsados
