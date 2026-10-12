@@ -1,10 +1,11 @@
 /* ── La Basketneta Service Worker ── */
 const CACHE_NAME = "basketneta-v4";
-const API_CACHE  = "basketneta-api-v1";
+const API_CACHE  = "basketneta-api-v2";
 const API_MAX_ENTRIES = 200;
 
-/* Solo cachea GETs a estas tablas públicas de Supabase (nunca perfiles / favoritos / quinielas) */
-const API_PUBLIC_PATTERN = /\/rest\/v1\/(jugadoras|equipos|ligas|coaches|partidos|partido_boxscore|temporadas|carreras)(\?|$)/;
+/* Solo cachea GETs a estas tablas estáticas (nunca partidos/boxscore → siempre red para live).
+   Excluidas: perfiles, favoritos, quinielas (privadas), partidos y partido_boxscore (live). */
+const API_PUBLIC_PATTERN = /\/rest\/v1\/(jugadoras|equipos|ligas|coaches|temporadas|carreras)(\?|$)/;
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
@@ -23,6 +24,13 @@ self.addEventListener("activate", (e) => {
     )
   );
   self.clients.claim();
+});
+
+/* Permite a la app vaciar el cache de API al pulsar el botón 🔄 */
+self.addEventListener("message", (e) => {
+  if (e.data && e.data.type === "BUST_API_CACHE") {
+    caches.delete(API_CACHE).catch(() => {});
+  }
 });
 
 async function trimCache(name, max) {

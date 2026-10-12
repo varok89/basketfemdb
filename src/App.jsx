@@ -1627,6 +1627,8 @@ export default function App(){
   const loadAll = async(forzar=false)=>{
     // Caché de sesión: no recargar si ya están en memoria
     if(!forzar && players.length>0 && equipos.length>0){return;}
+    // Al forzar refresh, invalidar también el cache del Service Worker (SWR en API GET)
+    if(forzar){try{navigator.serviceWorker?.controller?.postMessage({type:"BUST_API_CACHE"});}catch(e){}}
     // Hidratación desde localStorage (arranque instantáneo)
     const CK="basketfemdb:cache:v9";
     let hidratado=false;
