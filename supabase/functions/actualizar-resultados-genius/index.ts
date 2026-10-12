@@ -256,7 +256,7 @@ async function cargarBoxscore(
   return { filas: filas.length, sin_mapear: sinMapear, creadas };
 }
 
-async function procesarPartido(p: any): Promise<any> {
+async function procesarPartido(p: any, force = false): Promise<any> {
   if (!p.id_ext) return { id: p.id, ok: false, motivo: "sin id_ext" };
   const d = await fetchGeniusData(String(p.id_ext));
   if (!d || !d.tm?.["1"] || !d.tm?.["2"]) return { id: p.id, ok: false, motivo: "sin datos" };
@@ -283,10 +283,14 @@ async function procesarPartido(p: any): Promise<any> {
 
   let boxRes: any = null;
   if (terminado && p.id_equipo_local && p.id_equipo_visitante) {
-    const { count: yaHay } = await sb.from("partido_boxscore")
-      .select("id_partido", { count: "exact", head: true })
-      .eq("id_partido", p.id);
-    if ((yaHay ?? 0) === 0) {
+    let cargar = force;
+    if (!cargar) {
+      const { count: yaHay } = await sb.from("partido_boxscore")
+        .select("id_partido", { count: "exact", head: true })
+        .eq("id_partido", p.id);
+      cargar = (yaHay ?? 0) === 0;
+    }
+    if (cargar) {
       try {
         boxRes = await cargarBoxscore(p.id, d, p.id_equipo_local, p.id_equipo_visitante, p.id_liga, p.temporada);
       } catch (e) { boxRes = { error: String(e) }; }
@@ -314,7 +318,7 @@ Deno.serve(async (req) => {
         .select("id, id_ext, id_liga, temporada, id_equipo_local, id_equipo_visitante, es_live, fuente")
         .eq("id", body.id_partido).maybeSingle();
       if (error || !p) return json({ ok: false, error: "partido no encontrado" }, 404);
-      const res = await procesarPartido(p);
+      const res = await procesarPartido(p, body.force === true);
       return json({ ok: true, modo: "manual", resultado: res });
     }
 

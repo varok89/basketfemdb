@@ -1,5 +1,8 @@
-// cargar-live-feb v2 - marcador live + parciales + boxscore usando API oficial FEB LiveStats
-// v2: auto-crea jugadoras ausentes (sin id_feb en BD) para poder vincularlas a mano después.
+// cargar-live-feb v4 - marcador live + parciales + boxscore usando API oficial FEB LiveStats
+// v4: antes de crear jugadora nueva, matchea por nombre normalizado en toda la BD →
+//     si existe sin id_feb, backfillea id_feb + foto. Evita duplicados tipo Ola Duda.
+// v3: normaliza nombre acta FEB "APELLIDOS, NOMBRE" → "Nombre Apellidos" + crea temporadas.
+// v2: auto-crea jugadoras ausentes (sin id_feb en BD).
 // Fuente: https://intrafeb.feb.es/LiveStats.API/api/v1/{KeyFacts,BoxScore}/{pid}
 // Token Bearer embebido en el HTML de la ficha /partido/{pid} (<input id="_ctl0_token">).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -123,6 +126,13 @@ function normalizarNombreActa(raw: string): string {
   return s.toLowerCase().replace(/\b([a-zñáéíóúü])/g, (c) => c.toUpperCase());
 }
 
+// Normaliza para comparar: minúsculas, sin tildes, sin puntuación, espacios colapsados
+function normKey(raw: string): string {
+  return (raw || "").toLowerCase().normalize("NFD")
+    .replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ").trim();
+}
+
 async function procesarPartido(partido: any, dry: boolean): Promise<any> {
   const pid = String(partido.id_ext);
   const html = await getHtml(`${FEB_WEB}/partido/${pid}`);
@@ -160,7 +170,7 @@ async function procesarPartido(partido: any, dry: boolean): Promise<any> {
     if (error) return { pid, ok: false, motivo: `update ${error.message}` };
   }
 
-  let filas = 0, sinMapear = 0, creadas = 0;
+  let filas = 0, sinMapear = 0, creadas = 0, backfills = 0;
   if (bs?.BOXSCORE?.TEAM?.length === 2 && partido.id_equipo_local && partido.id_equipo_visitante) {
     const equipos = [
       { players: bs.BOXSCORE.TEAM[0].PLAYER || [], id_equipo: partido.id_equipo_local },
@@ -177,20 +187,55 @@ async function procesarPartido(partido: any, dry: boolean): Promise<any> {
     const rows: any[] = [];
     let huecosJug: number[] | null = null;
     let huecosIdx = 0;
+    let allJugsByNorm: Map<string, {id: string; id_feb: string | null; foto: string | null}> | null = null;
     const jugadorasCreadas: string[] = [];
     for (const t of equipos) {
       for (const p of t.players) {
         if (!p.id && !p.name) continue;
         let idJug = p.id ? porIdFeb.get(String(p.id)) : null;
+        // v4: fallback match por nombre normalizado antes de crear nueva.
+        //     Si encuentra jugadora sin id_feb, backfillea id_feb + foto.
+        if (!idJug && p.name && !dry) {
+          const nombreNorm = normKey(normalizarNombreActa(String(p.name)));
+          if (nombreNorm) {
+            if (!allJugsByNorm) {
+              allJugsByNorm = new Map();
+              for (let off = 0; off < 25; off++) {
+                const { data } = await sb.from("jugadoras").select("id_jugadora,nombre,id_feb,foto")
+                  .order("id_jugadora", { ascending: true }).range(off * 1000, off * 1000 + 999);
+                if (!data || !data.length) break;
+                for (const j of data) {
+                  const k = normKey(j.nombre || "");
+                  if (k && !allJugsByNorm.has(k)) allJugsByNorm.set(k, { id: j.id_jugadora, id_feb: j.id_feb, foto: j.foto });
+                }
+                if (data.length < 1000) break;
+              }
+            }
+            const hit = allJugsByNorm.get(nombreNorm);
+            if (hit) {
+              idJug = hit.id;
+              if (p.id) porIdFeb.set(String(p.id), hit.id);
+              // Backfill id_feb y foto si faltan
+              const upd: Record<string, unknown> = {};
+              if (!hit.id_feb && p.id) upd.id_feb = String(p.id);
+              if (!hit.foto && p.id) upd.foto = `${FOTO_FEB}?c=${p.id}`;
+              if (Object.keys(upd).length) {
+                await sb.from("jugadoras").update(upd).eq("id_jugadora", hit.id);
+                backfills++;
+              }
+            }
+          }
+        }
         // v3: auto-crear jugadora si tiene id_feb y no está en BD + fila en temporadas
         if (!idJug && p.id && !dry) {
           if (!huecosJug) huecosJug = await cargarHuecosJug();
           if (huecosIdx < huecosJug.length) {
             const nuevoId = `J${huecosJug[huecosIdx++]}`;
             const nombreLive = normalizarNombreActa(String(p.name || "")) || `FEB ${p.id}`;
-            const fotoUrl = await subirFotoFeb(String(p.id), nuevoId);
-            const row: any = { id_jugadora: nuevoId, nombre: nombreLive, id_feb: String(p.id) };
-            if (fotoUrl) row.foto = fotoUrl;
+            const row: any = {
+              id_jugadora: nuevoId, nombre: nombreLive, id_feb: String(p.id),
+              foto: `${FOTO_FEB}?c=${p.id}`,
+            };
             const { error } = await sb.from("jugadoras").insert(row);
             if (!error) {
               idJug = nuevoId;
@@ -239,7 +284,7 @@ async function procesarPartido(partido: any, dry: boolean): Promise<any> {
     pid, ok: true, status: statusText,
     marcador: `${puntosLoc}-${puntosVis}`, periodo: H.quarter, time: H.time,
     parciales_n: parcLoc.length, box_filas: filas, box_sin_mapear: sinMapear,
-    jugadoras_creadas: creadas,
+    jugadoras_creadas: creadas, backfills,
     terminado,
   };
 }
