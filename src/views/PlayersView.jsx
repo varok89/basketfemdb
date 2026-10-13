@@ -811,7 +811,9 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
                 <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
                   {merged.map((s,i)=>{
                     const isCoach=s._type==="coach";
-                    const eq=equipoMap[s.id_equipo],lig=ligaMap[s.id_liga];
+                    const eqBase=equipoMap[s.id_equipo];
+                    const eq=eqBase?{...eqBase,...resolveTeamData(s.id_equipo,s.temporada,equiposNombres,equipoMap)}:null;
+                    const lig=ligaMap[s.id_liga];
                     const dotColor=isCoach?(i===0?"#3b82f6":"#93c5fd"):(i===0?"#9333ea":"#fdba74");
                     return(
                       <div key={(isCoach?"c":"p")+s.id} style={{display:"flex",gap:"16px",alignItems:"flex-start",paddingLeft:"32px",position:"relative"}}>

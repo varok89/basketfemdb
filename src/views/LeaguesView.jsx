@@ -8,7 +8,7 @@ import {
   inp, firstFreeId,
   FlagImg, MultiFlag, TeamBadge, LeagueBadge,
   Fld, CalendarSubscribeBtn, Breadcrumbs, Modal, ConfirmDel,
-  PaisDropdown,
+  PaisDropdown, resolveTeamData,
 } from "../lib/ui";
 
 function LeagueForm({initial,onSave,onCancel,saving}){
@@ -217,7 +217,7 @@ function RecordsLiga({idLiga, temporada, players, equipos, onGoToPlayer, onGoToT
   );
 }
 
-function CampeonesPorTemporada({pal, equipoMap, effectiveYear, selId, selectedNombre, onGoToTeam}){
+function CampeonesPorTemporada({pal, equipoMap, equiposNombres, effectiveYear, selId, selectedNombre, onGoToTeam}){
   const [open,setOpen]=useState(false);
   return (
     <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"24px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginTop:"14px"}}>
@@ -227,9 +227,10 @@ function CampeonesPorTemporada({pal, equipoMap, effectiveYear, selId, selectedNo
       </button>
       {open&&<div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
         {pal.map((p,i)=>{
-          const eq=equipoMap[p.id_equipo];
+          const eqBase=equipoMap[p.id_equipo];
+          const eq=eqBase?{...eqBase,...resolveTeamData(p.id_equipo,p.temporada,equiposNombres,equipoMap)}:null;
           return(
-            <div key={i} onClick={()=>onGoToTeam(eq?.id_equipo,effectiveYear,{tab:"ligas",id:selId,label:selectedNombre})}
+            <div key={i} onClick={()=>onGoToTeam(p.id_equipo,effectiveYear,{tab:"ligas",id:selId,label:selectedNombre})}
               style={{display:"flex",alignItems:"center",gap:"14px",padding:"10px 14px",background:"var(--fx-amber-bg)",borderRadius:"12px",border:"1.5px solid var(--fx-amber-border)",cursor:"pointer",transition:"all 0.15s"}}
               onMouseEnter={e=>{e.currentTarget.style.background="var(--fx-amber-hover)";e.currentTarget.style.borderColor="var(--fx-amber-hover-border)";}}
               onMouseLeave={e=>{e.currentTarget.style.background="var(--fx-amber-bg)";e.currentTarget.style.borderColor="var(--fx-amber-border)";}}>
@@ -245,7 +246,7 @@ function CampeonesPorTemporada({pal, equipoMap, effectiveYear, selId, selectedNo
   );
 }
 
-function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,onGoToTeam,onGoToPlayer,onGoToClasificacion,isAdmin,onReload,openLigaId,onClearLiga,onGoToTab,navHistory,onGoBack,setLigas,regExtra,isFavFn,onToggleFav}){
+function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,equiposNombres,onGoToTeam,onGoToPlayer,onGoToClasificacion,isAdmin,onReload,openLigaId,onClearLiga,onGoToTab,navHistory,onGoBack,setLigas,regExtra,isFavFn,onToggleFav}){
   const t = useT();
   const [selId,setSelId]     = useState(openLigaId||null);
   useEffect(()=>{if(openLigaId){setSelId(openLigaId);onClearLiga&&onClearLiga();}},[openLigaId]);
@@ -426,7 +427,7 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
         {(()=>{
           const pal=(palmares||[]).filter(p=>p.id_liga===selId).sort((a,b)=>b.temporada.localeCompare(a.temporada));
           if(!pal.length)return null;
-          return <CampeonesPorTemporada pal={pal} equipoMap={equipoMap} effectiveYear={effectiveYear} selId={selId} selectedNombre={selected?.nombre} onGoToTeam={onGoToTeam}/>;
+          return <CampeonesPorTemporada pal={pal} equipoMap={equipoMap} equiposNombres={equiposNombres} effectiveYear={effectiveYear} selId={selId} selectedNombre={selected?.nombre} onGoToTeam={onGoToTeam}/>;
         })()}
       </div>
     );
