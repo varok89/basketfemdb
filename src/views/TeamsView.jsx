@@ -616,7 +616,15 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
     if(!selected||!effectiveYear)return [];
     const ids=[...new Set(selected.players.filter(({season})=>season.temporada===effectiveYear).map(({season})=>season.id_liga).filter(Boolean))];
     const esQuali=n=>/^clasificaci/i.test(n)||/qualifier|quali/i.test(n);
-    return ids.map(id=>ligaMap[id]).filter(Boolean).sort((a,b)=>{const qa=esQuali(a.nombre),qb=esQuali(b.nombre);return qa!==qb?(qa?1:-1):a.nombre.localeCompare(b.nombre,"es");});
+    // Prioridad: 1) ligas domésticas (tipo=liga), 2) resto, 3) qualifiers al final; alfabético dentro de cada grupo
+    const esDomestica=l=>l.tipo==='liga';
+    return ids.map(id=>ligaMap[id]).filter(Boolean).sort((a,b)=>{
+      const qa=esQuali(a.nombre),qb=esQuali(b.nombre);
+      if(qa!==qb)return qa?1:-1;
+      const da=esDomestica(a),db=esDomestica(b);
+      if(da!==db)return da?-1:1;
+      return a.nombre.localeCompare(b.nombre,"es");
+    });
   },[selected,effectiveYear,ligaMap]);
   const effectiveLiga = ligasInYear.length>1?(selLiga&&ligasInYear.some(l=>l.id_liga===selLiga)?selLiga:ligasInYear[0].id_liga):null;
   const squad       = selected
