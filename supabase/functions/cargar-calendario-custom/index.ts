@@ -1,4 +1,9 @@
-// cargar-calendario-custom v12
+// cargar-calendario-custom v15
+// v15: enriquecerFibaliveDesdeMatchPages soporta JSON de legabasketfemminile.it
+//      (/rm/v1/matches/{uuid}.json → genius_id). Permite enganchar L008 Serie A1
+//      y L061 Serie A2 al cron genius-live-refresh (vía id_ext_fibalive).
+// v14: parseLbf añade match_url (JSON LBF) y acepta status "final" como played.
+// v13: parser 'lbf' para Serie A1/A2 Italia (legabasketfemminile.it).
 // v12: parser 'russiabasket' para Russian Women's Basketball Premier League
 //      (L018). Consume JSON API pro2.russiabasket.org/api/abc/comps/calendar.
 //      Rusia excluida de FIBA desde 2022 → sin fibalive, solo marcador final.
@@ -326,6 +331,8 @@ function parseRussiabasket(json: string, tz: string): PartidoParseado[] {
 // v13: parser Serie A1/A2 Italia (legabasketfemminile.it)
 // Consume JSON de /rm/v1/competitions/{slug}/{temporada}/calendar-index.json
 // Estructura: rounds[].matches[] con id (UUID), start_at ISO UTC, home/away.name, points.
+// v14: añadido match_url al endpoint /rm/v1/matches/{uuid}.json y status "final"
+//      a lista de "played" (LBF marca el partido terminado como "final").
 function parseLbf(json: string, tz: string): PartidoParseado[] {
   const out: PartidoParseado[] = [];
   let d: any;
@@ -338,7 +345,7 @@ function parseLbf(json: string, tz: string): PartidoParseado[] {
       const local_nombre = m?.home?.name || "";
       const visit_nombre = m?.away?.name || "";
       if (!local_nombre || !visit_nombre) continue;
-      const played = m.status === "complete" || m.status === "finished" || m.status === "live";
+      const played = m.status === "complete" || m.status === "finished" || m.status === "live" || m.status === "final";
       out.push({
         ext_id, fecha_iso,
         local_nombre, visit_nombre,
@@ -347,6 +354,7 @@ function parseLbf(json: string, tz: string): PartidoParseado[] {
         score_local: played ? (m.home_points ?? null) : null,
         score_visit: played ? (m.away_points ?? null) : null,
         ext_fibalive: null,
+        match_url: `https://www.legabasketfemminile.it/rm/v1/matches/${ext_id}.json`,
       });
     }
   }
@@ -371,14 +379,25 @@ async function enriquecerFibaliveDesdeMatchPages(partidos: PartidoParseado[]): P
     while (queue.length) {
       const p = queue.shift(); if (!p) return;
       try {
+        // v15: endpoint JSON LBF (legabasketfemminile.it/rm/v1/matches/{uuid}.json) → genius_id directo.
+        //      Resto de parsers (flbb etc.) usan HTML con regex sobre URL de fibalivestats.
+        const esLbfJson = /legabasketfemminile\.it\/rm\/v1\/matches\//.test(p.match_url!);
         const r = await fetch(p.match_url!, {
-          headers: { "User-Agent": "Mozilla/5.0", "Accept": "text/html" },
+          headers: { "User-Agent": "Mozilla/5.0", "Accept": esLbfJson ? "application/json" : "text/html" },
           signal: AbortSignal.timeout(12000),
         });
         if (!r.ok) continue;
-        const html = await r.text();
-        const m = html.match(/fibalivestats\.dcd\.shared\.geniussports\.com\/u\/[A-Z]+\/(\d+)/);
-        if (m) { p.ext_fibalive = m[1]; hits++; }
+        if (esLbfJson) {
+          try {
+            const j = await r.json();
+            const gid = j?.genius_id;
+            if (gid != null && String(gid).match(/^\d+$/)) { p.ext_fibalive = String(gid); hits++; }
+          } catch { /* ignore */ }
+        } else {
+          const html = await r.text();
+          const m = html.match(/fibalivestats\.dcd\.shared\.geniussports\.com\/u\/[A-Z]+\/(\d+)/);
+          if (m) { p.ext_fibalive = m[1]; hits++; }
+        }
       } catch { /* ignore */ }
     }
   }

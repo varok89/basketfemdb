@@ -1,7 +1,14 @@
-// actualizar-resultados-genius v1
+// actualizar-resultados-genius v3
+// v3: boxscore también live. En cada tick se recarga el boxscore mientras el
+//     partido está es_live. Si está terminado y ya hay filas, se salta
+//     (evita re-escritura redundante). Si está terminado y no hay filas o
+//     force=true, se carga igual que antes.
+// v2: usa partidos.id_ext_fibalive como gameId Genius preferentemente, fallback
+//     a id_ext. Permite ligas donde id_ext es un UUID propio y el gameId Genius
+//     vive en id_ext_fibalive (p.ej. L008/L061 Italia tras enrich LBF).
 // Live tracking para ligas que se sirven vía Genius Sports SDK
 // (fibalivestats.dcd.shared.geniussports.com). Ligas se marcan con
-// ligas.fuente_live='genius'. Los partidos deben tener id_ext = gameId.
+// ligas.fuente_live='genius'. gameId = id_ext_fibalive ?? id_ext.
 //
 // Modo cron (sin body): busca todas las ligas Genius con partidos en
 // ventana ±4h o es_live=true → refresca todos.
@@ -261,8 +268,9 @@ async function cargarBoxscore(
 }
 
 async function procesarPartido(p: any, force = false): Promise<any> {
-  if (!p.id_ext) return { id: p.id, ok: false, motivo: "sin id_ext" };
-  const d = await fetchGeniusData(String(p.id_ext));
+  const gameId = p.id_ext_fibalive || p.id_ext;
+  if (!gameId) return { id: p.id, ok: false, motivo: "sin gameId" };
+  const d = await fetchGeniusData(String(gameId));
   if (!d || !d.tm?.["1"] || !d.tm?.["2"]) return { id: p.id, ok: false, motivo: "sin datos" };
 
   const scA = d.tm["1"].score, scB = d.tm["2"].score;
@@ -286,8 +294,11 @@ async function procesarPartido(p: any, force = false): Promise<any> {
   await sb.from("partidos").update(upd).eq("id", p.id);
 
   let boxRes: any = null;
-  if (terminado && p.id_equipo_local && p.id_equipo_visitante) {
-    let cargar = force;
+  if (p.id_equipo_local && p.id_equipo_visitante) {
+    // v2: cargar boxscore también live (en cada tick). Si partido terminado y
+    // ya hay filas, solo re-cargar con force=true (evita delete+insert redundante
+    // en cada tick cron sobre partidos ya cerrados).
+    let cargar = force || !terminado;
     if (!cargar) {
       const { count: yaHay } = await sb.from("partido_boxscore")
         .select("id_partido", { count: "exact", head: true })
@@ -301,7 +312,7 @@ async function procesarPartido(p: any, force = false): Promise<any> {
     }
   }
 
-  return { id: p.id, id_ext: p.id_ext, ok: true, score: `${scA}-${scB}`, periodo, clock: d.clock, terminado, boxscore: boxRes };
+  return { id: p.id, gameId, ok: true, score: `${scA}-${scB}`, periodo, clock: d.clock, terminado, boxscore: boxRes };
 }
 
 Deno.serve(async (req) => {
@@ -319,7 +330,7 @@ Deno.serve(async (req) => {
 
     if (body.id_partido) {
       const { data: p, error } = await sb.from("partidos")
-        .select("id, id_ext, id_liga, temporada, id_equipo_local, id_equipo_visitante, es_live, fuente")
+        .select("id, id_ext, id_ext_fibalive, id_liga, temporada, id_equipo_local, id_equipo_visitante, es_live, fuente")
         .eq("id", body.id_partido).maybeSingle();
       if (error || !p) return json({ ok: false, error: "partido no encontrado" }, 404);
       const res = await procesarPartido(p, body.force === true);
@@ -334,9 +345,9 @@ Deno.serve(async (req) => {
     const desde = new Date(ahora.getTime() - 30 * 60 * 1000).toISOString();
     const hasta = new Date(ahora.getTime() + 4 * 60 * 60 * 1000).toISOString();
     const { data: partidos } = await sb.from("partidos")
-      .select("id, id_ext, id_liga, temporada, id_equipo_local, id_equipo_visitante, es_live, fuente")
+      .select("id, id_ext, id_ext_fibalive, id_liga, temporada, id_equipo_local, id_equipo_visitante, es_live, fuente")
       .in("id_liga", idLigas)
-      .not("id_ext", "is", null)
+      .or("id_ext.not.is.null,id_ext_fibalive.not.is.null")
       .or(`es_live.eq.true,and(fecha_hora.gte.${desde},fecha_hora.lte.${hasta})`);
 
     if (!partidos || partidos.length === 0) return json({ ok: true, mensaje: "Sin partidos activos" });

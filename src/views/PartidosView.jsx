@@ -1372,10 +1372,14 @@ function calcClasificacion(partidos, equipoMap){
   const grupos={};
   const ligaRegular=[]; // partidos sin "Group X": jornadas de liga regular (excluye playoffs y eliminatorias)
   partidos.forEach(p=>{
-    const m=p.notas&&p.notas.match(/^(Group [A-Z])/i);
-    const m2=!m&&p.notas&&p.notas.match(/Grupo ([A-Z])\b/i);
-    if(m||m2){
-      const g=m?m[1].toUpperCase():("Grupo "+m2[1].toUpperCase());
+    const notas=p.notas||"";
+    // Clave incluye fase (ej. "Clasificatorio · Grupo A" vs "Temporada regular · Grupo A")
+    // para no fusionar fases distintas que comparten letra de grupo.
+    const fullMatch=notas.match(/^(.+?)\s*·\s*Grupo ([A-Z])\b/i);
+    const m=!fullMatch&&notas.match(/^(Group [A-Z])/i);
+    const m2=!fullMatch&&!m&&notas.match(/Grupo ([A-Z])\b/i);
+    if(fullMatch||m||m2){
+      const g=fullMatch?`${fullMatch[1].trim()} · Grupo ${fullMatch[2].toUpperCase()}`:(m?m[1].toUpperCase():("Grupo "+m2[1].toUpperCase()));
       if(!grupos[g])grupos[g]=[];
       grupos[g].push(p);
       return;
@@ -2394,7 +2398,15 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
     return m;
   },[equipos,temporada,equiposNombres,equipoMapBase]);
   const psLiga=useMemo(()=>partidos.filter(p=>p.id_liga===ligaId&&(p.temporada||"")===(temporada||"")),[partidos,ligaId,temporada]);
-  const grupos=useMemo(()=>calcClasificacion(psLiga,equipoMap),[psLiga,equipoMap]);
+  // Separar grupos "Clasificatorio" (fase previa) del resto (temporada regular).
+  const {grupos,clasifPrevios}=useMemo(()=>{
+    const all=calcClasificacion(psLiga,equipoMap);
+    return{
+      grupos:all.filter(g=>!/^Clasificatorio\b/i.test(g.nombre)),
+      clasifPrevios:all.filter(g=>/^Clasificatorio\b/i.test(g.nombre)),
+    };
+  },[psLiga,equipoMap]);
+  const hayClasifPrev=clasifPrevios.length>0;
   const liga=useMemo(()=>(ligas||[]).find(l=>l.id_liga===ligaId),[ligas,ligaId]);
   const modoLiga=liga?.tipo==="liga";
   const hayKO=useMemo(()=>!modoLiga&&psLiga.some(p=>p.notas&&!/playoff/i.test(p.notas)&&(/#\d+/.test(p.notas)||/^octavos/i.test(p.notas))),[psLiga,modoLiga]);
@@ -2454,7 +2466,7 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
       {(()=>{
         const tabs=modoLiga
           ?[...(multiGrupo?grupos.map((g,i)=>[`grp${i}`,g.nombre]):[["grupos",t("teams.classification")]]),...(hayPlayoffs?[["final",t("teams.playoffs")]]:[])]
-          :[...(hayPreviaIV?[["previa","Fase previa"]]:[]),...(grupos.length?[["grupos","Group Phase"]]:[]),...(hayCL1316?[["cl1316","Class. 13-16"]]:[]),...(hayCL912?[["cl912","Class. 9-12"]]:[]),...(hayCL58?[["cl58","Class. 5-8"]]:[]),...((hayKO||hayBracketIV)?[["final","Bracket"]]:[]),...(hayStanding?[["standing","🏅 Standing"]]:[])];
+          :[...(hayPreviaIV?[["previa","Fase previa"]]:[]),...(hayClasifPrev?[["clasif","Clasificatorio"]]:[]),...(grupos.length?[["grupos","Group Phase"]]:[]),...(hayCL1316?[["cl1316","Class. 13-16"]]:[]),...(hayCL912?[["cl912","Class. 9-12"]]:[]),...(hayCL58?[["cl58","Class. 5-8"]]:[]),...((hayKO||hayBracketIV)?[["final","Bracket"]]:[]),...(hayStanding?[["standing","🏅 Standing"]]:[])];
         if(tabs.length<=1)return null;
         return(
           <div style={{display:"flex",gap:"8px",marginBottom:"16px"}}>
@@ -2502,11 +2514,15 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
       {vista==="final"&&hayPlayoffs&&<PlayoffBracket psLiga={psLiga} equipoMap={equipoMap} onOpenPartido={onOpenPartido} showAscenso={!!zl.ascenso}/>}
       {vista==="standing"&&hayKO&&<StandingFinal psLiga={psLiga} equipoMap={equipoMap} temporada={temporada} onGoToTeam={onGoToTeam} mvpPlayer={mvpPlayer} onGoToPlayer={onGoToPlayer}/>}
       {vista==="grupos"&&!grupos.length&&<p style={{color:"var(--fx-muted2)",textAlign:"center",paddingTop:"40px"}}>{t("players.sin_partidos_resultado")}</p>}
-      {grupos.map(({nombre,equipos:eqs},gi)=>{
+      {[...grupos.map(g=>({...g,_src:"grupos"})),...clasifPrevios.map(g=>({...g,_src:"clasif"}))].map(({nombre,equipos:eqs,_src},gi)=>{
         const grpKey=`grp${gi}`;
-        if(modoLiga&&grupos.length>1&&vista!==grpKey)return null;
-        if(modoLiga&&grupos.length<=1&&vista!=="grupos")return null;
-        if(!modoLiga&&vista!=="grupos")return null;
+        if(_src==="clasif"){ if(vista!=="clasif")return null; }
+        else{
+          if(modoLiga&&grupos.length>1&&vista!==grpKey)return null;
+          if(modoLiga&&grupos.length<=1&&vista!=="grupos")return null;
+          if(!modoLiga&&vista!=="grupos")return null;
+        }
+        const sinZonas=_src==="clasif";
         return(
         <div key={nombre} style={{background:"var(--fx-card)",borderRadius:"16px",overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",marginBottom:"16px"}}>
           <div style={{background:"var(--fx-lila-bg)",padding:"10px 16px",borderBottom:"1px solid var(--fx-lila-border)"}}>
@@ -2530,12 +2546,12 @@ function ClasificacionGrupos({partidos,equipos,ligas,ligaId,temporada,vistaInici
               <tbody>
                 {eqs.map((eq,i)=>{
                   const team=equipoMap[eq.id];
-                  const zonaAsc=modoLiga&&zl.ascenso&&i<zl.ascenso;
-                  const zonaPOAsc=modoLiga&&zl.playoffAsc&&!zonaAsc&&i<zl.playoffAsc;
-                  const zonaPO=modoLiga&&!zonaAsc&&!zonaPOAsc&&i<PLAYOFF_PUESTOS;
-                  const zonaDesc=modoLiga&&i>=eqs.length-DESCENSO_PUESTOS;
-                  const fondo=modoLiga?(zonaDesc?"var(--fx-red-bg)":zonaAsc?"var(--fx-green-bg)":zonaPOAsc?"var(--fx-blue-bg)":zonaPO?"var(--fx-lila-bg)":"transparent"):(i===0?"var(--fx-lila-bg)":i<2?"var(--fx-lila-bg)":"transparent");
-                  const borde=modoLiga?(zonaDesc?"3px solid #ef4444":zonaAsc?"3px solid #16a34a":zonaPOAsc?"3px solid #2563eb":zonaPO?"3px solid #9333ea":"3px solid transparent"):undefined;
+                  const zonaAsc=!sinZonas&&modoLiga&&zl.ascenso&&i<zl.ascenso;
+                  const zonaPOAsc=!sinZonas&&modoLiga&&zl.playoffAsc&&!zonaAsc&&i<zl.playoffAsc;
+                  const zonaPO=!sinZonas&&modoLiga&&!zonaAsc&&!zonaPOAsc&&i<PLAYOFF_PUESTOS;
+                  const zonaDesc=!sinZonas&&modoLiga&&i>=eqs.length-DESCENSO_PUESTOS;
+                  const fondo=sinZonas?"transparent":(modoLiga?(zonaDesc?"var(--fx-red-bg)":zonaAsc?"var(--fx-green-bg)":zonaPOAsc?"var(--fx-blue-bg)":zonaPO?"var(--fx-lila-bg)":"transparent"):(i===0?"var(--fx-lila-bg)":i<2?"var(--fx-lila-bg)":"transparent"));
+                  const borde=sinZonas?undefined:(modoLiga?(zonaDesc?"3px solid #ef4444":zonaAsc?"3px solid #16a34a":zonaPOAsc?"3px solid #2563eb":zonaPO?"3px solid #9333ea":"3px solid transparent"):undefined);
                   return(
                     <tr key={eq.id} onClick={()=>onGoToTeam&&onGoToTeam(eq.id,temporada)}
                       style={{borderTop:"1px solid var(--fx-border2)",background:fondo,cursor:onGoToTeam?"pointer":"default",borderLeft:borde}}>
