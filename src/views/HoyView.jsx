@@ -1,6 +1,7 @@
 import React,{useMemo,useState,useEffect} from "react";
 import {useT} from "../lib/i18n";
 import {supabase} from "../lib/supabaseClient";
+import {ChannelFavicon} from "../lib/utils";
 
 const DAY_MS=86400000;
 const pad2=n=>String(n).padStart(2,"0");
@@ -45,7 +46,9 @@ function PartidoRow({p,eqL,eqV,highlight,onGoToPartido,onGoToTeam}){
           {est.txt}
         </div>
         {p.link&&(
-          <a href={p.link} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title="Ver partido en directo" style={{fontSize:"14px",lineHeight:1,textDecoration:"none",color:"#dc2626"}}>📺</a>
+          <a href={p.link} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} title="Ver partido en directo" style={{lineHeight:1,textDecoration:"none",display:"inline-flex",alignItems:"center"}}>
+            <ChannelFavicon link={p.link} size={16}/>
+          </a>
         )}
       </div>
       <div style={{minWidth:0}}>

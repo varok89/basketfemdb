@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo, useCallback, lazy } from "react";
 import { supabase, callFn } from "../lib/supabaseClient";
 import { useT, locale } from "../lib/i18n";
 import { Avatar, Fld, TeamBadge, inp, resolveTeamData } from "../lib/ui";
+import { ChannelFavicon } from "../lib/utils";
 import { evento as trackEv } from "../lib/track";
 
 /* ── PartidoForm ─────────────────────────────────────────── */
@@ -806,7 +807,7 @@ function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px",gap:"8px",flexWrap:"wrap"}}>
         <button onClick={onBack} style={{background:"none",border:"none",color:"#9333ea",fontWeight:700,fontSize:"15px",cursor:"pointer",padding:0}}>← Volver</button>
         <div style={{display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}>
-          {partido.link&&<a href={partido.link} target="_blank" rel="noopener noreferrer" style={{background:"#7c3aed",color:"#fff",borderRadius:"20px",padding:"7px 16px",fontSize:"12px",fontWeight:700,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"5px"}}>▶ Ver partido</a>}
+          {partido.link&&<a href={partido.link} target="_blank" rel="noopener noreferrer" style={{background:"#7c3aed",color:"#fff",borderRadius:"20px",padding:"7px 16px",fontSize:"12px",fontWeight:700,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"6px"}}><ChannelFavicon link={partido.link} size={16}/> Ver partido</a>}
           {partido.url_stats&&<a href={partido.url_stats} target="_blank" rel="noopener noreferrer" style={{background:"#0f172a",color:"#fff",borderRadius:"20px",padding:"7px 16px",fontSize:"12px",fontWeight:700,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"5px"}}>📊 Stats FIBA</a>}
           {isAdmin&&onEdit&&<button onClick={onEdit} style={{background:"var(--fx-hover)",color:"var(--fx-label)",border:"none",borderRadius:"20px",padding:"7px 16px",fontSize:"12px",fontWeight:700,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:"5px"}}>✏️ Editar</button>}
         </div>
@@ -1262,7 +1263,7 @@ function PartidosView({partidos,equipos,ligas,players,mvps,equiposNombres,openCl
                   </div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"10px",flexWrap:"wrap"}}>
-                  {p.link&&<a href={p.link} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{background:"#7c3aed",color:"#fff",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,textDecoration:"none"}}>▶ Ver</a>}
+                  {p.link&&<a href={p.link} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{background:"#7c3aed",color:"#fff",borderRadius:"20px",padding:"4px 10px",fontSize:"11px",fontWeight:700,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"5px"}}><ChannelFavicon link={p.link} size={14}/> Ver</a>}
                   {p.url_stats&&<a href={p.url_stats} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{background:"#0f172a",color:"#fff",borderRadius:"20px",padding:"4px 12px",fontSize:"11px",fontWeight:700,textDecoration:"none"}}>📊 Stats</a>}
                   {isAdmin&&<>
                     <button onClick={e=>{e.stopPropagation();setModal(p);}} aria-label="Editar partido" style={{background:"var(--fx-hover)",border:"none",borderRadius:"20px",padding:"4px 10px",fontSize:"11px",fontWeight:600,cursor:"pointer",color:"var(--fx-label)"}}>✏️</button>

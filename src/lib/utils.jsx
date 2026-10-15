@@ -257,3 +257,26 @@ export function FibaRow({entry,onApply,onPlaceholder,showActions}){
     </div>
   );
 }
+
+/* ── Favicon de canal de TV / streaming ─────────────────────────
+   Usa la API pública Google Favicon: funciona para cualquier dominio sin
+   mantenimiento manual. onError hace fallback a un emoji 📺. */
+export function channelHostname(link){
+  if(!link) return null;
+  try{
+    const u = new URL(link);
+    return u.hostname.replace(/^www\./,"");
+  }catch{return null;}
+}
+export function channelFaviconUrl(link, size=32){
+  const h = channelHostname(link);
+  return h ? `https://www.google.com/s2/favicons?domain=${h}&sz=${size}` : null;
+}
+export function ChannelFavicon({link, size=18, title}){
+  const [err,setErr] = useState(false);
+  const url = channelFaviconUrl(link, Math.max(16,size)*2);
+  if(!url||err) return <span style={{fontSize:size+"px",lineHeight:1}} title={title||channelHostname(link)}>📺</span>;
+  return <img src={url} alt="" title={title||channelHostname(link)} width={size} height={size}
+    style={{display:"inline-block",verticalAlign:"middle",borderRadius:"3px",flexShrink:0}}
+    loading="lazy" decoding="async" onError={()=>setErr(true)}/>;
+}
