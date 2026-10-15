@@ -275,8 +275,13 @@ export function channelFaviconUrl(link){
 export function ChannelFavicon({link, size=18, title}){
   const [err,setErr] = useState(false);
   const url = channelFaviconUrl(link);
-  if(!url||err) return <span style={{fontSize:size+"px",lineHeight:1}} title={title||channelHostname(link)}>📺</span>;
-  return <img src={url} alt="" title={title||channelHostname(link)} width={size} height={size}
-    style={{display:"inline-block",verticalAlign:"middle",flexShrink:0,background:"transparent"}}
-    loading="lazy" decoding="async" onError={()=>setErr(true)}/>;
+  const t = title||channelHostname(link);
+  if(!url||err) return <span style={{fontSize:size+"px",lineHeight:1}} title={t}>📺</span>;
+  const pad = 2, box = size + pad*2;
+  return <span title={t} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",
+    width:box+"px",height:box+"px",padding:pad+"px",background:"#fff",borderRadius:"50%",flexShrink:0,
+    boxShadow:"0 0 0 1px rgba(255,255,255,0.15)"}}>
+    <img src={url} alt="" width={size} height={size}
+      style={{display:"block"}} loading="lazy" decoding="async" onError={()=>setErr(true)}/>
+  </span>;
 }
