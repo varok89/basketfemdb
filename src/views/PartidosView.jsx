@@ -468,6 +468,7 @@ function BoxscoreEditor({idPartido,local,visit,rosterLocal,rosterVisit,allJug,on
 function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,onGoToPlayer,isAdmin,rosterLocal,rosterVisit}){
   const t = useT();
   const [rows,setRows]=useState(null);
+  const [vista,setVista]=useState("stats"); // "stats" | "box"
   const [tab,setTab]=useState("ambos");
   const [sortK,setSortK]=useState("puntos");
   const [sortD,setSortD]=useState("desc");
@@ -477,7 +478,7 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
   useEffect(()=>{
     let cancel=false; setRows(null);
     (async()=>{
-      const {data}=await supabase.from("partido_boxscore").select("id_jugadora,id_equipo,nombre,titular,minutos,puntos,tc_anotados,tc_intentados,t3_anotados,t3_intentados,tl_anotados,tl_intentados,reb_totales,asistencias,robos,tapones,perdidas,faltas,valoracion").eq("id_partido",idPartido);
+      const {data}=await supabase.from("partido_boxscore").select("id_jugadora,id_equipo,nombre,titular,minutos,puntos,tc_anotados,tc_intentados,t3_anotados,t3_intentados,tl_anotados,tl_intentados,reb_ofensivos,reb_defensivos,reb_totales,asistencias,robos,tapones,perdidas,faltas,valoracion").eq("id_partido",idPartido);
       if(!cancel){
         setRows(data||[]);
         if((data||[]).length) trackEv("boxscore_abierto",{id_partido:idPartido,filas:data.length});
@@ -512,17 +513,38 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
 
   const N=v=>{if(typeof v==="string"&&v.indexOf(":")>=0){const p=v.split(":");return (parseInt(p[0],10)||0)+(parseInt(p[1],10)||0)/60;}return Number(v)||0;};
   const filt=tab==="local"?rows.filter(r=>r.id_equipo===equipoLocal):tab==="visit"?rows.filter(r=>r.id_equipo===equipoVisit):rows;
-  const cols=[{k:"nombre",l:"Jugadora"},{k:"minutos",l:"MIN"},{k:"puntos",l:"PTS"},{k:"tc_anotados",l:"TC"},{k:"t3_anotados",l:"T3"},{k:"tl_anotados",l:"TL"},{k:"reb_totales",l:"REB"},{k:"asistencias",l:"AST"},{k:"robos",l:"ROB"},{k:"tapones",l:"TAP"},{k:"perdidas",l:"PER"},{k:"faltas",l:"FAL"},{k:"valoracion",l:"VAL"}];
-  const sorted=[...filt].sort((a,b)=>{
+  const cols=[{k:"nombre",l:"Jugadora"},{k:"minutos",l:"MIN"},{k:"puntos",l:"PTS"},{k:"tc_anotados",l:"TC"},{k:"t2_anotados",l:"T2"},{k:"t3_anotados",l:"T3"},{k:"tl_anotados",l:"TL"},{k:"reb_totales",l:"REB"},{k:"asistencias",l:"AST"},{k:"robos",l:"ROB"},{k:"tapones",l:"TAP"},{k:"perdidas",l:"PER"},{k:"faltas",l:"FAL"},{k:"valoracion",l:"VAL"}];
+  // Añadir T2 derivado (TC - T3) para ordenar y mostrar
+  const withT2=filt.map(r=>({...r,t2_anotados:(Number(r.tc_anotados)||0)-(Number(r.t3_anotados)||0),t2_intentados:(Number(r.tc_intentados)||0)-(Number(r.t3_intentados)||0)}));
+  const sorted=[...withT2].sort((a,b)=>{
     if(sortK==="nombre")return sortD==="asc"?(a.nombre||"").localeCompare(b.nombre||""):(b.nombre||"").localeCompare(a.nombre||"");
     const d=N(a[sortK])-N(b[sortK]); return sortD==="asc"?d:-d;
   });
+  // Totales por equipo (sumas de las jugadoras visibles en el tab actual)
+  const sumBy=(arr,k)=>arr.reduce((s,r)=>s+(Number(r[k])||0),0);
+  const totalesEq=(idEq)=>{
+    const r=rows.filter(x=>x.id_equipo===idEq);
+    const tc_a=sumBy(r,"tc_anotados"),tc_i=sumBy(r,"tc_intentados");
+    const t3_a=sumBy(r,"t3_anotados"),t3_i=sumBy(r,"t3_intentados");
+    const tl_a=sumBy(r,"tl_anotados"),tl_i=sumBy(r,"tl_intentados");
+    return{
+      pts:sumBy(r,"puntos"),
+      tc_a,tc_i,t2_a:tc_a-t3_a,t2_i:tc_i-t3_i,t3_a,t3_i,tl_a,tl_i,
+      reb_of:sumBy(r,"reb_ofensivos"),reb_def:sumBy(r,"reb_defensivos"),reb:sumBy(r,"reb_totales"),
+      ast:sumBy(r,"asistencias"),rob:sumBy(r,"robos"),tap:sumBy(r,"tapones"),
+      per:sumBy(r,"perdidas"),fal:sumBy(r,"faltas"),val:sumBy(r,"valoracion"),
+    };
+  };
+  const totLocal=totalesEq(equipoLocal),totVisit=totalesEq(equipoVisit);
+  // Totales a mostrar en pie de boxscore (según sub-tab local/visit/ambos)
+  const totalesPieEquipos=tab==="local"?[["local",local,totLocal]]:tab==="visit"?[["visit",visit,totVisit]]:[["local",local,totLocal],["visit",visit,totVisit]];
   const clickSort=k=>{if(sortK===k)setSortD(d=>d==="desc"?"asc":"desc");else{setSortK(k);setSortD(k==="nombre"?"asc":"desc");}};
   const th={padding:"7px 5px",fontSize:"10px",fontWeight:700,color:"var(--fx-muted2)",whiteSpace:"nowrap",cursor:"pointer",borderBottom:"2px solid #f1f5f9",userSelect:"none"};
   const td={padding:"7px 5px",fontSize:"12px",color:"var(--fx-text)",textAlign:"center",whiteSpace:"nowrap",borderBottom:"1px solid var(--fx-border2)"};
   const Esc=({e})=>e&&e.escudo?<img loading="lazy" decoding="async" src={e.escudo} alt="" style={{width:18,height:18,objectFit:"contain"}}/>:null;
   const tabBtn=(k,content)=><button key={k} onClick={()=>setTab(k)} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:"5px",padding:"9px 6px",borderRadius:"10px",border:"none",cursor:"pointer",fontWeight:700,fontSize:"12px",background:tab===k?"#9333ea":"#f1f5f9",color:tab===k?"#fff":"#64748b",minWidth:0}}>{content}</button>;
 
+  const vistaBtn=(k,lbl)=><button key={k} onClick={()=>setVista(k)} style={{flex:1,padding:"10px 8px",borderRadius:"10px",border:"none",cursor:"pointer",fontWeight:700,fontSize:"13px",background:vista===k?"#9333ea":"var(--fx-hover)",color:vista===k?"#fff":"var(--fx-muted)"}}>{lbl}</button>;
   return(<>
     <div style={{background:"var(--fx-card)",borderRadius:"20px",padding:"16px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",overflowX:"auto"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"0 0 12px",gap:"10px",flexWrap:"wrap"}}>
@@ -532,6 +554,12 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
           <button onClick={()=>setEditing(true)} style={{background:"var(--fx-hover)",color:"var(--fx-label)",border:"none",borderRadius:"10px",padding:"6px 14px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>✏️ Editar boxscore</button>
         </div>}
       </div>
+      <div style={{display:"flex",gap:"8px",marginBottom:"14px"}}>
+        {vistaBtn("stats","📊 Estadísticas")}
+        {vistaBtn("box","👥 Boxscore")}
+      </div>
+      {vista==="stats"&&<EstadisticasPartido local={local} visit={visit} tLocal={totLocal} tVisit={totVisit}/>}
+      {vista==="box"&&<>
       <div style={{display:"flex",gap:"8px",marginBottom:"14px"}}>
         {tabBtn("ambos",<><Esc e={local}/><Esc e={visit}/></>)}
         {tabBtn("local",<><Esc e={local}/><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{local&&local.nombre}</span></>)}
@@ -557,6 +585,7 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
               <td style={td}>{r.minutos}</td>
               <td style={{...td,fontWeight:700}}>{r.puntos}</td>
               <td style={td}>{r.tc_anotados}/{r.tc_intentados}</td>
+              <td style={td}>{r.t2_anotados}/{r.t2_intentados}</td>
               <td style={td}>{r.t3_anotados}/{r.t3_intentados}</td>
               <td style={td}>{r.tl_anotados}/{r.tl_intentados}</td>
               <td style={td}>{r.reb_totales}</td>
@@ -568,12 +597,115 @@ function BoxscorePartido({idPartido,equipoLocal,equipoVisit,local,visit,players,
               <td style={{...td,fontWeight:700}}>{r.valoracion}</td>
             </tr>
             );})}
+          {totalesPieEquipos.map(([k,eq,tt])=>(
+            <tr key={"tot-"+k} style={{background:"var(--fx-hover)",borderTop:"2px solid var(--fx-border)",fontWeight:800}}>
+              <td style={{...td,textAlign:"left",fontWeight:800}}>
+                <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
+                  <Esc e={eq}/><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>Totales {eq?.nombre||""}</span>
+                </div>
+              </td>
+              <td style={td}>—</td>
+              <td style={{...td,fontWeight:800}}>{tt.pts}</td>
+              <td style={td}>{tt.tc_a}/{tt.tc_i}</td>
+              <td style={td}>{tt.t2_a}/{tt.t2_i}</td>
+              <td style={td}>{tt.t3_a}/{tt.t3_i}</td>
+              <td style={td}>{tt.tl_a}/{tt.tl_i}</td>
+              <td style={td}>{tt.reb}</td>
+              <td style={td}>{tt.ast}</td>
+              <td style={td}>{tt.rob}</td>
+              <td style={td}>{tt.tap}</td>
+              <td style={td}>{tt.per}</td>
+              <td style={td}>{tt.fal}</td>
+              <td style={{...td,fontWeight:800}}>{tt.val}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
       <div style={{fontSize:"10px",color:"#cbd5e1",marginTop:"8px"}}><span style={{display:"inline-block",width:"3px",height:"10px",background:"#9333ea",borderRadius:"1px",verticalAlign:"middle",marginRight:"4px"}}></span>{t("boxscore.starter_hint")}</div>
+      </>}
     </div>
     {editorEl}
   </>);
+}
+
+/* ── Panel "Estadísticas" del partido (totales por equipo) ─────── */
+function EstadisticasPartido({local,visit,tLocal,tVisit}){
+  const CL="#16a34a", CV="#7c3aed"; // local verde, visitante púrpura
+  const pct=(a,i)=>i>0?Math.round(a*100/i):0;
+  // Círculo donut con % en el centro.
+  const Donut=({val,color,size=64,stroke=7})=>{
+    const r=(size-stroke)/2, c=2*Math.PI*r;
+    const off=c*(1-Math.max(0,Math.min(100,val))/100);
+    return(
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{display:"block"}}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--fx-border2)" strokeWidth={stroke}/>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round" transform={`rotate(-90 ${size/2} ${size/2})`}/>
+        <text x="50%" y="52%" textAnchor="middle" dominantBaseline="middle" fontSize="13" fontWeight="800" fill="var(--fx-text)">{val}%</text>
+      </svg>
+    );
+  };
+  const FilaTiros=({label,aL,iL,aV,iV})=>(
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 4px",gap:"8px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:"10px",minWidth:0,flex:1}}>
+        <span style={{fontSize:"13px",fontWeight:700,color:"var(--fx-text)",minWidth:"50px",textAlign:"right"}}>{aL}/{iL}</span>
+        <Donut val={pct(aL,iL)} color={CL}/>
+      </div>
+      <div style={{flex:"0 0 auto",fontSize:"12px",fontWeight:700,color:"var(--fx-muted)",textAlign:"center",padding:"0 6px"}}>{label}</div>
+      <div style={{display:"flex",alignItems:"center",gap:"10px",minWidth:0,flex:1,justifyContent:"flex-end"}}>
+        <Donut val={pct(aV,iV)} color={CV}/>
+        <span style={{fontSize:"13px",fontWeight:700,color:"var(--fx-text)",minWidth:"50px",textAlign:"left"}}>{aV}/{iV}</span>
+      </div>
+    </div>
+  );
+  const Barra=({label,vL,vV})=>{
+    const tot=Math.max(1,vL+vV);
+    const pL=(vL/tot)*100, pV=(vV/tot)*100;
+    return(
+      <div style={{padding:"8px 4px"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"4px",fontSize:"13px",fontWeight:700}}>
+          <span style={{color:"var(--fx-text)"}}>{vL}</span>
+          <span style={{color:"var(--fx-muted)",fontSize:"12px"}}>{label}</span>
+          <span style={{color:"var(--fx-text)"}}>{vV}</span>
+        </div>
+        <div style={{display:"flex",height:"6px",borderRadius:"3px",overflow:"hidden",background:"var(--fx-border2)"}}>
+          <div style={{width:pL+"%",background:CL}}/>
+          <div style={{width:pV+"%",background:CV}}/>
+        </div>
+      </div>
+    );
+  };
+  return(
+    <div style={{padding:"4px 0"}}>
+      {/* Cabecera equipos */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"8px",padding:"0 4px"}}>
+        <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
+          {local?.escudo&&<img src={local.escudo} alt="" style={{width:22,height:22,objectFit:"contain"}}/>}
+          <span style={{fontWeight:700,fontSize:"12px",color:CL}}>{local?.nombre||""}</span>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
+          <span style={{fontWeight:700,fontSize:"12px",color:CV}}>{visit?.nombre||""}</span>
+          {visit?.escudo&&<img src={visit.escudo} alt="" style={{width:22,height:22,objectFit:"contain"}}/>}
+        </div>
+      </div>
+      <FilaTiros label="Tiros libres" aL={tLocal.tl_a} iL={tLocal.tl_i} aV={tVisit.tl_a} iV={tVisit.tl_i}/>
+      <FilaTiros label="Tiros de 2" aL={tLocal.t2_a} iL={tLocal.t2_i} aV={tVisit.t2_a} iV={tVisit.t2_i}/>
+      <FilaTiros label="Tiros de 3" aL={tLocal.t3_a} iL={tLocal.t3_i} aV={tVisit.t3_a} iV={tVisit.t3_i}/>
+      <FilaTiros label="Tiros de campo" aL={tLocal.tc_a} iL={tLocal.tc_i} aV={tVisit.tc_a} iV={tVisit.tc_i}/>
+      <div style={{height:"1px",background:"var(--fx-border)",margin:"8px 0"}}/>
+      {(tLocal.reb_of>0||tVisit.reb_of>0||tLocal.reb_def>0||tVisit.reb_def>0)&&<>
+        <Barra label="Rebotes" vL={tLocal.reb} vV={tVisit.reb}/>
+        <Barra label="Rebotes defensivos" vL={tLocal.reb_def} vV={tVisit.reb_def}/>
+        <Barra label="Rebotes ofensivos" vL={tLocal.reb_of} vV={tVisit.reb_of}/>
+      </>}
+      {!(tLocal.reb_of>0||tVisit.reb_of>0||tLocal.reb_def>0||tVisit.reb_def>0)&&
+        <Barra label="Rebotes" vL={tLocal.reb} vV={tVisit.reb}/>}
+      <Barra label="Asistencias" vL={tLocal.ast} vV={tVisit.ast}/>
+      <Barra label="Robos" vL={tLocal.rob} vV={tVisit.rob}/>
+      <Barra label="Tapones" vL={tLocal.tap} vV={tVisit.tap}/>
+      <Barra label="Pérdidas" vL={tLocal.per} vV={tVisit.per}/>
+      <Barra label="Faltas" vL={tLocal.fal} vV={tVisit.fal}/>
+    </div>
+  );
 }
 
 function PartidoFichaView({partido,equipos,ligas,players,equiposNombres,isAdmin,onToggleConvocatoria,onBack,onEdit,onGoToTeam,onGoToLeague,onGoToPlayer}){
