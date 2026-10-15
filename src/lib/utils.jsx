@@ -268,15 +268,15 @@ export function channelHostname(link){
     return u.hostname.replace(/^www\./,"");
   }catch{return null;}
 }
-export function channelFaviconUrl(link, size=32){
+export function channelFaviconUrl(link){
   const h = channelHostname(link);
-  return h ? `https://www.google.com/s2/favicons?domain=${h}&sz=${size}` : null;
+  return h ? `https://icons.duckduckgo.com/ip3/${h}.ico` : null;
 }
 export function ChannelFavicon({link, size=18, title}){
   const [err,setErr] = useState(false);
-  const url = channelFaviconUrl(link, Math.max(16,size)*2);
+  const url = channelFaviconUrl(link);
   if(!url||err) return <span style={{fontSize:size+"px",lineHeight:1}} title={title||channelHostname(link)}>📺</span>;
   return <img src={url} alt="" title={title||channelHostname(link)} width={size} height={size}
-    style={{display:"inline-block",verticalAlign:"middle",borderRadius:"3px",flexShrink:0}}
+    style={{display:"inline-block",verticalAlign:"middle",flexShrink:0,background:"transparent"}}
     loading="lazy" decoding="async" onError={()=>setErr(true)}/>;
 }
