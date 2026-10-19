@@ -1297,6 +1297,7 @@ export default function App(){
   const [partidos,setPartidos]             = useState([]);
   const [partidosFull,setPartidosFull]     = useState(false);
   const [seasonsFull,setSeasonsFull]       = useState(false);
+  const [playersFull,setPlayersFull]       = useState(false);
   const [mvps,setMvps]                     = useState([]);
   const [boxCount,setBoxCount]             = useState(0);
   const [totalCounts,setTotalCounts]       = useState({partidos:0,temporadas:0});
@@ -1609,6 +1610,7 @@ export default function App(){
     try{
       const p=(players||[]).find(x=>x.id_jugadora===id);
       registrarEvento("visita_jugadora",{id, id_liga:p?.id_liga});
+      if(!p) ensurePlayerLoaded(id);
     }catch{}
   };
   const goToCoach  = (id,from=null)=>{pushNav(from,"cuerpo_tecnico",id);setOpenCoachId(id);setTab("cuerpo_tecnico");scrollTop();try{registrarEvento("visita_coach",id);}catch{}};
@@ -1648,6 +1650,7 @@ export default function App(){
             setPartidos(c.partidos||[]);
             if(c.partidosFull) setPartidosFull(true);
             if(c.seasonsFull) setSeasonsFull(true);
+            if(c.playersFull) setPlayersFull(true);
             setMvps(c.mvps||[]);
             setIsFirstLoad(false);
             setLoading(false);
@@ -1664,7 +1667,10 @@ export default function App(){
       // temporadas NCAA actuales para que Fichajes detecte los movimientos de la temporada.
       const _ncaaY=String(new Date().getFullYear()-2);
       const [rJ,rE,rL,rT,rTncaa,rPar]=await Promise.all([
-        fetchAll("jugadoras",{order:"id_jugadora",select:"id_jugadora,nombre,posicion,posicion2,nacionalidad,nacionalidad2,fecha_nac,fecha_fallecimiento,altura_cm,foto"}),
+        // Bootstrap: solo jugadoras con actividad desde 2024 (~16k en vez de ~20k).
+        // Las históricas se cargan bajo demanda al entrar en pestañas catálogo (jugadoras,
+        // equipos, ligas, cuerpo_tecnico, comparar, favoritos) o al abrir una ficha por URL.
+        fetchAll(playersFull?"jugadoras":"v_jugadoras_activas",{order:"id_jugadora",select:"id_jugadora,nombre,posicion,posicion2,nacionalidad,nacionalidad2,fecha_nac,fecha_fallecimiento,altura_cm,foto"}),
         fetchAll("equipos",{order:"id_equipo"}),
         fetchAll("ligas",{order:"id_liga"}),
         fetchAll("dos_ultimas_temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.neq("id_liga","L020")}),
@@ -1707,6 +1713,7 @@ export default function App(){
               equiposNombres:rEN?.data||[],
               partidos:rPar?.data||[],
               mvps:rMvp?.data||[],
+              playersFull,
             }));
           }catch(e){try{localStorage.removeItem(CK);}catch(_){}}
           try{
@@ -1766,6 +1773,54 @@ export default function App(){
     })();
   },[tab,seasonsFull]);
 
+  // Carga completa de jugadoras (incluye histórico <2024) al entrar en pestañas catálogo.
+  // El bootstrap trae solo las ~16k activas (v_jugadoras_activas); las históricas se
+  // añaden aquí para que buscador, listados, equipos/ligas/coaches con roster histórico
+  // y comparador vean el conjunto completo.
+  useEffect(()=>{
+    if(playersFull) return;
+    const tabsFull=new Set(["jugadoras","equipos","ligas","cuerpo_tecnico","comparar","favoritos"]);
+    if(!tabsFull.has(tab)) return;
+    (async()=>{
+      try{
+        const {data}=await fetchAll("jugadoras",{order:"id_jugadora",select:"id_jugadora,nombre,posicion,posicion2,nacionalidad,nacionalidad2,fecha_nac,fecha_fallecimiento,altura_cm,foto"});
+        let merged=[];
+        setPlayers(prev=>{
+          const byId=new Map(prev.map(p=>[p.id_jugadora,p]));
+          merged=(data||[]).map(j=>{
+            const ex=byId.get(j.id_jugadora);
+            return ex?{...j,seasons:ex.seasons||[]}:{...j,seasons:[]};
+          });
+          return merged;
+        });
+        setPlayersFull(true);
+        try{
+          const CK="basketfemdb:cache:v9";
+          const raw=localStorage.getItem(CK);
+          if(raw){const c=JSON.parse(raw);c.players=merged;c.playersFull=true;localStorage.setItem(CK,JSON.stringify(c));}
+        }catch(e){}
+      }catch(e){console.warn("Carga completa jugadoras falló:",e.message||e);}
+    })();
+  },[tab,playersFull]);
+
+  // Fetch on-demand de una jugadora que no está en memoria (p.ej. URL directa a
+  // /jugadoras/:id de una histórica cuando el bootstrap solo trajo las activas).
+  const ensurePlayerLoaded=async(id)=>{
+    if(!id) return;
+    if((players||[]).some(p=>p.id_jugadora===id)) return;
+    try{
+      const {data,error}=await supabase.from("jugadoras")
+        .select("id_jugadora,nombre,posicion,posicion2,nacionalidad,nacionalidad2,fecha_nac,fecha_fallecimiento,altura_cm,foto")
+        .eq("id_jugadora",id).maybeSingle();
+      if(error||!data) return;
+      const {data:tempRows}=await supabase.from("temporadas")
+        .select("id,id_jugadora,id_equipo,id_liga,temporada,orden")
+        .eq("id_jugadora",id).order("orden");
+      const nueva={...data,seasons:tempRows||[]};
+      setPlayers(prev=>prev.some(p=>p.id_jugadora===id)?prev:[...prev,nueva]);
+    }catch(e){console.warn("ensurePlayerLoaded:",e?.message||e);}
+  };
+
   // Carga bajo demanda del histórico de partidos al entrar en "partidos"
   useEffect(()=>{
     if(tab!=="partidos"||partidosFull) return;
@@ -1804,7 +1859,7 @@ export default function App(){
     const parts=pathname.split("/").filter(Boolean);
     // Limpiar siempre primero: si el usuario retrocede a una pantalla sin ficha abierta
     // (p.ej. la home), hay que vaciar los openXId o la UI no reflejará el cambio.
-    setOpenPlayerId(parts.length===2&&parts[0]==="jugadoras"?parts[1]:null);
+    {const pid=parts.length===2&&parts[0]==="jugadoras"?parts[1]:null;setOpenPlayerId(pid);if(pid) ensurePlayerLoaded(pid);}
     setOpenTeamId(parts.length===2&&parts[0]==="equipos"?parts[1]:null);
     setOpenCoachId(parts.length===2&&parts[0]==="coaches"?parts[1]:null);
     // Para /partidos se guarda [] (array nuevo en cada llamada): así un popstate que
