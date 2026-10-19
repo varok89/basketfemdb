@@ -303,8 +303,8 @@ function VerPrediccionesEndesaModal({target, temporada, jornadaInicial, jornadas
                       <span style={{fontSize:"12px",color:"var(--fx-muted2)"}}>{t("endesa.verpred.no_pred")}</span>
                     )}
                     {exacta && (
-                      <span style={{display:"inline-flex",alignItems:"center",gap:"3px",padding:"3px 7px",borderRadius:"6px",background:"#eab308",color:"#422006",fontSize:"10px",fontWeight:900,letterSpacing:"0.3px",textTransform:"uppercase"}}>
-                        ⭐ {t("endesa.verpred.exacta")}
+                      <span title={t("endesa.verpred.exacta")} style={{display:"inline-flex",alignItems:"center",padding:"3px 6px",borderRadius:"6px",background:"#eab308",fontSize:"12px",lineHeight:1}}>
+                        ⭐
                       </span>
                     )}
                     <span style={{marginLeft: exacta ? "0" : "auto", fontSize:"13px", fontWeight: exacta ? 900 : 800, color: exacta ? "#eab308" : acierto ? "#16a34a" : "var(--fx-muted2)"}}>{r.puntos} pts</span>
