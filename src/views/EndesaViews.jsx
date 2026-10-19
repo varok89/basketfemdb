@@ -271,12 +271,19 @@ function VerPrediccionesEndesaModal({target, temporada, jornadaInicial, jornadas
               const p = partidoById[r.id_partido] || {};
               const nomL = nomDe(p.id_equipo_local);
               const nomV = nomDe(p.id_equipo_visitante);
+              const exacta = r.puntos === 6;
               const acierto = r.puntos > 0;
               const idGan = r.pred_ganador === "L" ? p.id_equipo_local : (r.pred_ganador === "V" ? p.id_equipo_visitante : null);
               const nomGan = idGan ? nomDe(idGan) : null;
               const escGan = idGan ? escDe(idGan) : null;
               return (
-                <div key={r.id_partido} style={{border:"1px solid var(--fx-border)",borderRadius:"10px",padding:"10px 12px",background: acierto ? "rgba(34,197,94,0.08)" : "var(--fx-hover)"}}>
+                <div key={r.id_partido} style={{
+                  border: exacta ? "1px solid #eab308" : "1px solid var(--fx-border)",
+                  borderRadius:"10px", padding:"10px 12px",
+                  background: exacta ? "linear-gradient(135deg, rgba(234,179,8,0.18), rgba(234,179,8,0.04))"
+                                     : acierto ? "rgba(34,197,94,0.08)" : "var(--fx-hover)",
+                  boxShadow: exacta ? "0 0 0 2px rgba(234,179,8,0.25)" : "none",
+                }}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px",marginBottom:"6px"}}>
                     <div style={{fontSize:"12px",color:"var(--fx-muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{nomL} <span style={{opacity:0.6}}>vs</span> {nomV}</div>
                     {r.resultado_local != null && r.resultado_visitante != null && (
@@ -295,7 +302,12 @@ function VerPrediccionesEndesaModal({target, temporada, jornadaInicial, jornadas
                     ) : (
                       <span style={{fontSize:"12px",color:"var(--fx-muted2)"}}>{t("endesa.verpred.no_pred")}</span>
                     )}
-                    <span style={{marginLeft:"auto",fontSize:"13px",fontWeight:800,color: acierto ? "#16a34a" : "var(--fx-muted2)"}}>{r.puntos} pts</span>
+                    {exacta && (
+                      <span style={{display:"inline-flex",alignItems:"center",gap:"3px",padding:"3px 7px",borderRadius:"6px",background:"#eab308",color:"#422006",fontSize:"10px",fontWeight:900,letterSpacing:"0.3px",textTransform:"uppercase"}}>
+                        ⭐ {t("endesa.verpred.exacta")}
+                      </span>
+                    )}
+                    <span style={{marginLeft: exacta ? "0" : "auto", fontSize:"13px", fontWeight: exacta ? 900 : 800, color: exacta ? "#eab308" : acierto ? "#16a34a" : "var(--fx-muted2)"}}>{r.puntos} pts</span>
                   </div>
                 </div>
               );
@@ -543,12 +555,13 @@ export default function EndesaView({user, equipos, onAbrirPerfil, isAdmin}){
                 <th style={{padding:"10px 12px",textAlign:"left",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("endesa.rank.user")}</th>
                 <th style={{padding:"10px 12px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("endesa.rank.pts")}</th>
                 <th style={{padding:"10px 12px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("endesa.rank.hits")}</th>
+                <th style={{padding:"10px 12px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}} title={t("endesa.rank.exactas_tip")}>⭐</th>
                 <th style={{padding:"10px 12px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>{t("endesa.rank.preds")}</th>
                 <th style={{padding:"10px 12px",textAlign:"center",fontSize:"11px",color:"var(--fx-muted)",fontWeight:700}}>🔮</th>
               </tr>
             </thead>
             <tbody>
-              {ranking.length === 0 && <tr><td colSpan={6} style={{padding:"24px",textAlign:"center",color:"var(--fx-muted2)"}}>{t("endesa.rank.empty")}</td></tr>}
+              {ranking.length === 0 && <tr><td colSpan={7} style={{padding:"24px",textAlign:"center",color:"var(--fx-muted2)"}}>{t("endesa.rank.empty")}</td></tr>}
               {ranking.map((r, i) => {
                 const google = r.user_id === user.id ? user.user_metadata?.avatar_url : null;
                 const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
@@ -569,6 +582,7 @@ export default function EndesaView({user, equipos, onAbrirPerfil, isAdmin}){
                     </td>
                     <td style={{padding:"10px 12px",textAlign:"center",fontWeight:800,color:"#9333ea",fontSize:"16px"}}>{r.puntos}</td>
                     <td style={{padding:"10px 12px",textAlign:"center",color:"var(--fx-muted)"}}>{r.aciertos}</td>
+                    <td style={{padding:"10px 12px",textAlign:"center",color: (r.exactas||0)>0 ? "#eab308" : "var(--fx-muted2)",fontWeight: (r.exactas||0)>0 ? 800 : 500}}>{r.exactas||0}</td>
                     <td style={{padding:"10px 12px",textAlign:"center",color:"var(--fx-muted)"}}>{r.predicciones}</td>
                     <td style={{padding:"10px 12px",textAlign:"center",color:"var(--fx-muted)",fontWeight:700}}>{r.puntos_bola||0}</td>
                   </tr>
