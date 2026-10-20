@@ -1631,15 +1631,31 @@ export default function App(){
     if(!forzar && players.length>0 && equipos.length>0){return;}
     // Al forzar refresh, invalidar también el cache del Service Worker (SWR en API GET)
     if(forzar){try{navigator.serviceWorker?.controller?.postMessage({type:"BUST_API_CACHE"});}catch(e){}}
-    // Hidratación desde localStorage (arranque instantáneo)
     const CK="basketfemdb:cache:v9";
+    const TTL_MS=7*24*60*60*1000; // 7 días
+    // Cache versionado server-driven: app_meta.cache_version. Bump desde SQL
+    // (SELECT bump_cache_version()) invalida todos los caches locales activos.
+    let serverVer=null;
+    try{
+      const {data}=await supabase.from("app_meta").select("value").eq("key","cache_version").maybeSingle();
+      serverVer=parseInt(data?.value,10);
+      if(!Number.isFinite(serverVer)) serverVer=null;
+    }catch(e){/* red offline → tolerante, hidrata del cache local igualmente */}
     let hidratado=false;
     if(!forzar){
       try{
         const raw=localStorage.getItem(CK);
         if(raw){
           const c=JSON.parse(raw);
-          if(c&&Array.isArray(c.players)&&Array.isArray(c.equipos)&&c.players.length&&c.equipos.length){
+          const edad=Date.now()-(c.cachedAt||0);
+          const vLocal=c.v||0;
+          const stale=(serverVer!=null && vLocal<serverVer) || edad>TTL_MS;
+          if(stale){
+            // Cache obsoleto: wipe + bust SW + skip hidratación → se verá
+            // skeleton una fracción de segundo pero datos siempre coherentes.
+            try{localStorage.removeItem(CK);}catch(_){}
+            try{navigator.serviceWorker?.controller?.postMessage({type:"BUST_API_CACHE"});}catch(_){}
+          }else if(c&&Array.isArray(c.players)&&Array.isArray(c.equipos)&&c.players.length&&c.equipos.length){
             setPlayers(c.players);
             setEquipos(c.equipos);
             setLigas(c.ligas||[]);
@@ -1714,6 +1730,8 @@ export default function App(){
               partidos:rPar?.data||[],
               mvps:rMvp?.data||[],
               playersFull,
+              v:serverVer||1,
+              cachedAt:Date.now(),
             }));
           }catch(e){try{localStorage.removeItem(CK);}catch(_){}}
           try{
