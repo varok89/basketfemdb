@@ -1,4 +1,6 @@
-// cargar-live-wnbl v1
+// cargar-live-wnbl v2
+// v2: no escribir rl/rv con 0-0 antes del tip-off (Rosetta devuelve home/away_score=0
+//     para partidos not_started). Si BD ya tiene 0-0 escrito mal, lo revierte a NULL.
 // Live marcador + status para WNBL (Australia, L029).
 // Nivel 1: solo marcador final/live y estado. No incluye parciales ni boxscore
 // porque la API pública de Rosetta no expone esos datos (requerirían API key
@@ -121,11 +123,20 @@ async function procesarPartido(p: any, matchesIndex: Map<string, RosettaMatch>, 
   const scB = toInt(m.away_score);
   const status = (m.match_status || "").toLowerCase();
   const terminado = status === "complete" || status === "final";
-  const live = !terminado && (status === "live" || status === "in_progress" || (scA != null && scA > 0));
+  const live = !terminado && (status === "live" || status === "in_progress" || ((scA || 0) > 0 || (scB || 0) > 0));
+  // Rosetta devuelve home_score=0, away_score=0 para partidos no empezados;
+  // solo escribimos marcador si está en vivo o acabado para no pisar NULL con 0-0.
+  const empezado = terminado || live;
   const upd: any = {};
   if (!p.id_ext) upd.id_ext = m.id;
-  if (scA != null && scA !== p.resultado_local) upd.resultado_local = scA;
-  if (scB != null && scB !== p.resultado_visitante) upd.resultado_visitante = scB;
+  if (empezado) {
+    if (scA != null && scA !== p.resultado_local) upd.resultado_local = scA;
+    if (scB != null && scB !== p.resultado_visitante) upd.resultado_visitante = scB;
+  } else if (p.resultado_local != null || p.resultado_visitante != null) {
+    // Corrige partidos marcados por error con 0-0 antes del tip-off.
+    upd.resultado_local = null;
+    upd.resultado_visitante = null;
+  }
   if (!!live !== !!p.es_live) upd.es_live = !!live;
   if (!p.fuente) upd.fuente = "wnbl";
   const fechaRaw = m.start_time_datetime || m.start_time;
