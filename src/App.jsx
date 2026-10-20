@@ -450,16 +450,19 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
     (async()=>{
       const map={};
       for(const jid of favJugIds){
-        // Buscar el partido más reciente por fecha donde jugó
-        const {data:boxes}=await supabase.from("partido_boxscore").select("*").eq("id_jugadora",jid).limit(50);
-        if(boxes&&boxes.length){
-          const pIds=[...new Set(boxes.map(b=>b.id_partido))];
-          const {data:partis}=await supabase.from("partidos").select("id,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,fecha_hora,id_liga").in("id",pIds).not("resultado_local","is",null).order("fecha_hora",{ascending:false}).limit(1);
-          if(partis&&partis[0]){
-            const partido=partis[0];
-            const box=boxes.find(b=>b.id_partido===partido.id);
-            if(box)map[jid]={box,partido};
-          }
+        // Boxscore más reciente de la jugadora en un partido jugado.
+        // Join a partidos + order por fecha_hora DESC. Antes traíamos
+        // limit(50) sin orden → boxscores de carreras largas perdían
+        // los más recientes y se mostraba un partido antiguo.
+        const {data:rows}=await supabase.from("partido_boxscore")
+          .select("*,partidos!inner(id,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,fecha_hora,id_liga)")
+          .eq("id_jugadora",jid)
+          .not("partidos.resultado_local","is",null)
+          .order("fecha_hora",{foreignTable:"partidos",ascending:false})
+          .limit(1);
+        if(rows&&rows[0]){
+          const {partidos:partido,...box}=rows[0];
+          if(partido)map[jid]={box,partido};
         }
       }
       setFavBoxscores(map);
