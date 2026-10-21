@@ -5,6 +5,25 @@ import { COUNTRY_CODES, countryCode, flagEmoji, NO_COUNTRY_FLAGS, checkIdGaps, F
 function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach,onReload,isAdmin,setPlayers,setEquipos,setLigas,setCoaches,setTempCoach}){
   var tabState=useState("incompletas");
   var tab=tabState[0];var setTab=tabState[1];
+  var [monitorOpen,setMonitorOpen]=useState(false);
+  var [monitorData,setMonitorData]=useState(null);
+  var [monitorBusy,setMonitorBusy]=useState(false);
+  var [monitorErr,setMonitorErr]=useState("");
+  async function cargarMonitor(){
+    setMonitorBusy(true);setMonitorErr("");
+    try{
+      var r=await supabase.rpc("monitor_servicios");
+      if(r.error)throw r.error;
+      setMonitorData(r.data||[]);
+    }catch(e){setMonitorErr(e.message||String(e));}
+    finally{setMonitorBusy(false);}
+  }
+  useEffect(function(){
+    if(!monitorOpen)return;
+    cargarMonitor();
+    var id=setInterval(cargarMonitor,30000);
+    return function(){clearInterval(id);};
+  },[monitorOpen]);
   // ── Jugadoras huérfanas creadas desde boxscore (fusionar) ──
   var [huerfanas,setHuerfanas]=useState([]);
   useEffect(function(){
@@ -2265,7 +2284,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}}>
                   <p style={{color: "var(--fx-muted)",fontSize:"12px",margin:0}}>Uptime, cron pings, backup en Backblaze, deploys y visitas. {d&&<span style={{color: "var(--fx-muted2)"}}>· actualizado {fmtDate(d.ts)}</span>}</p>
                   <div style={{display:"flex",gap:"6px"}}>
-                    <button onClick={async function(){var r=await supabase.rpc("get_monitor_token");var t=r.data;if(!t){alert("Sin permisos o monitor_token no configurado");return;}window.open("https://qvtxqckuolacvnvrvysu.supabase.co/functions/v1/monitor-ui?token="+encodeURIComponent(t),"_blank","noopener");}} title="Panel Nagios en nueva pestaña (funciona aunque la app esté caída)" style={{background:"#1e293b",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>🩺 Monitor</button>
+                    <button onClick={function(){setMonitorOpen(true);}} title="Panel Nagios con estado de scrappers, ligas y BD" style={{background:"#1e293b",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>🩺 Monitor</button>
                     <button onClick={cargarEstado} disabled={estadoBusy} style={{background:estadoBusy?"#cbd5e1":"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"12px",cursor:estadoBusy?"default":"pointer"}}>{estadoBusy?"⏳ Cargando…":"🔄 Refrescar"}</button>
                   </div>
                 </div>
@@ -2373,6 +2392,62 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           </div>
         </div>
       )}
+      {monitorOpen&&(function(){
+        var rows=monitorData||[];
+        var totals={ok:0,warn:0,crit:0,disabled:0,unknown:0};
+        rows.forEach(function(r){if(totals[r.status]!==undefined)totals[r.status]++;});
+        var COLOR={ok:"#16a34a",warn:"#eab308",crit:"#dc2626",disabled:"#64748b",unknown:"#94a3b8"};
+        var LABEL={ok:"OK",warn:"WARN",crit:"CRIT",disabled:"OFF",unknown:"?"};
+        var orden={crit:0,warn:1,disabled:2,unknown:3,ok:4};
+        function fmtAge(iso){if(!iso)return"—";var d=Date.now()-new Date(iso).getTime();if(d<0)return"—";var s=Math.floor(d/1000);if(s<60)return s+"s";if(s<3600)return Math.floor(s/60)+"m";if(s<86400)return Math.floor(s/3600)+"h";return Math.floor(s/86400)+"d";}
+        var byCat={};rows.forEach(function(r){(byCat[r.categoria]=byCat[r.categoria]||[]).push(r);});
+        var titulos={cron:"Crons",liga:"Ligas automatizadas",bd:"Base de datos"};
+        return(
+          <div onClick={function(){setMonitorOpen(false);}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:1100,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"20px",overflowY:"auto"}}>
+            <div onClick={function(e){e.stopPropagation();}} style={{background:"#0f172a",color:"#e2e8f0",borderRadius:"14px",width:"1000px",maxWidth:"100%",padding:"18px 22px",boxShadow:"0 20px 60px rgba(0,0,0,0.5)"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"4px"}}>
+                <h2 style={{margin:0,fontSize:"18px",fontWeight:800}}>🩺 Monitor de salud</h2>
+                <div style={{display:"flex",gap:"6px"}}>
+                  <button onClick={cargarMonitor} disabled={monitorBusy} style={{background:"#334155",color:"#fff",border:"none",borderRadius:"8px",padding:"6px 12px",fontWeight:700,fontSize:"11px",cursor:monitorBusy?"default":"pointer"}}>{monitorBusy?"⏳":"🔄"}</button>
+                  <button onClick={function(){setMonitorOpen(false);}} style={{background:"transparent",color:"#94a3b8",border:"none",fontSize:"22px",cursor:"pointer",padding:"0 6px"}}>×</button>
+                </div>
+              </div>
+              <div style={{color:"#64748b",fontSize:"11px",marginBottom:"10px"}}>{rows.length} servicios · autorefresh 30s{monitorBusy?" · cargando…":""}</div>
+              <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"14px"}}>
+                <span style={{background:COLOR.crit,color:"#fff",fontWeight:700,fontSize:"11px",padding:"3px 9px",borderRadius:"6px"}}>CRIT {totals.crit}</span>
+                <span style={{background:COLOR.warn,color:"#fff",fontWeight:700,fontSize:"11px",padding:"3px 9px",borderRadius:"6px"}}>WARN {totals.warn}</span>
+                <span style={{background:COLOR.ok,color:"#fff",fontWeight:700,fontSize:"11px",padding:"3px 9px",borderRadius:"6px"}}>OK {totals.ok}</span>
+                {totals.disabled>0&&<span style={{background:COLOR.disabled,color:"#fff",fontWeight:700,fontSize:"11px",padding:"3px 9px",borderRadius:"6px"}}>OFF {totals.disabled}</span>}
+                {totals.unknown>0&&<span style={{background:COLOR.unknown,color:"#fff",fontWeight:700,fontSize:"11px",padding:"3px 9px",borderRadius:"6px"}}>? {totals.unknown}</span>}
+              </div>
+              {monitorErr&&<div style={{color:"#dc2626",fontSize:"12px",marginBottom:"8px"}}>❌ {monitorErr}</div>}
+              {Object.keys(byCat).sort().map(function(cat){
+                var lista=byCat[cat].slice().sort(function(a,b){return (orden[a.status]??9)-(orden[b.status]??9)||a.servicio.localeCompare(b.servicio);});
+                return(
+                  <div key={cat} style={{marginBottom:"18px"}}>
+                    <div style={{fontSize:"11px",color:"#94a3b8",textTransform:"uppercase",letterSpacing:"1px",fontWeight:700,margin:"8px 0 6px"}}>{titulos[cat]||cat} ({lista.length})</div>
+                    <table style={{width:"100%",background:"#1e293b",borderRadius:"6px",overflow:"hidden",fontSize:"12px",borderCollapse:"collapse"}}>
+                      <thead><tr style={{color:"#64748b",fontSize:"10px",textAlign:"left",borderBottom:"1px solid #334155"}}>
+                        <th style={{padding:"5px 8px"}}>Estado</th><th style={{padding:"5px 8px"}}>Servicio</th><th style={{padding:"5px 8px"}}>Host</th><th style={{padding:"5px 8px"}}>Último</th><th style={{padding:"5px 8px"}}>Dur</th><th style={{padding:"5px 8px",width:"100%"}}>Info</th>
+                      </tr></thead>
+                      <tbody>{lista.map(function(r){return(
+                        <tr key={r.servicio_id} style={{borderBottom:"1px solid #0f172a"}}>
+                          <td style={{padding:"6px 8px",whiteSpace:"nowrap"}}><span style={{display:"inline-block",background:COLOR[r.status]||"#64748b",color:"#fff",fontWeight:800,padding:"1px 7px",borderRadius:"3px",fontSize:"10px"}}>{LABEL[r.status]||r.status}</span></td>
+                          <td style={{padding:"6px 8px",fontWeight:600}}>{r.servicio}</td>
+                          <td style={{padding:"6px 8px",color:"#94a3b8"}}>{r.host}</td>
+                          <td style={{padding:"6px 8px",color:"#94a3b8",whiteSpace:"nowrap"}}>{fmtAge(r.last_check)}</td>
+                          <td style={{padding:"6px 8px",color:"#94a3b8",whiteSpace:"nowrap"}}>{r.duracion_s!=null?r.duracion_s+"s":"—"}</td>
+                          <td style={{padding:"6px 8px",color:"#cbd5e1",fontSize:"11px"}}>{r.info}</td>
+                        </tr>
+                      );})}</tbody>
+                    </table>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
