@@ -2264,7 +2264,10 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
               <div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}}>
                   <p style={{color: "var(--fx-muted)",fontSize:"12px",margin:0}}>Uptime, cron pings, backup en Backblaze, deploys y visitas. {d&&<span style={{color: "var(--fx-muted2)"}}>· actualizado {fmtDate(d.ts)}</span>}</p>
-                  <button onClick={cargarEstado} disabled={estadoBusy} style={{background:estadoBusy?"#cbd5e1":"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"12px",cursor:estadoBusy?"default":"pointer"}}>{estadoBusy?"⏳ Cargando…":"🔄 Refrescar"}</button>
+                  <div style={{display:"flex",gap:"6px"}}>
+                    <button onClick={async function(){var r=await supabase.rpc("get_monitor_token");var t=r.data;if(!t){alert("Sin permisos o monitor_token no configurado");return;}window.open("https://qvtxqckuolacvnvrvysu.supabase.co/functions/v1/monitor-ui?token="+encodeURIComponent(t),"_blank","noopener");}} title="Panel Nagios en nueva pestaña (funciona aunque la app esté caída)" style={{background:"#1e293b",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 12px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>🩺 Monitor</button>
+                    <button onClick={cargarEstado} disabled={estadoBusy} style={{background:estadoBusy?"#cbd5e1":"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"12px",cursor:estadoBusy?"default":"pointer"}}>{estadoBusy?"⏳ Cargando…":"🔄 Refrescar"}</button>
+                  </div>
                 </div>
                 {estadoErr&&<div style={{color:"#dc2626",fontSize:"12px",marginBottom:"10px"}}>❌ {estadoErr}</div>}
                 {!d&&!estadoBusy&&<div style={{textAlign:"center",padding:"40px 0",color: "var(--fx-muted2)",fontSize:"13px"}}>Pulsa <b>Refrescar</b> para consultar el estado.</div>}
