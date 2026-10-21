@@ -1,7 +1,7 @@
 // src/views/LeaguesView.jsx
 // Extraído de App.jsx (Fase 4 refactor, 2026-09-15).
 import { useState, useEffect, useMemo } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { supabase, fetchAll } from "../lib/supabaseClient";
 import { useT } from "../lib/i18n";
 import {
   TIPO_LABELS, TIPO_COLORS,
@@ -297,7 +297,10 @@ function LeaguesView({ligas,players,equipos,palmares,coaches,tempCoach,partidos,
   useEffect(()=>{
     if(!selected||extraTemp[selected.id_liga]) return;
     (async()=>{
-      const {data}=await supabase.from("temporadas").select("id_jugadora,id_equipo,temporada").eq("id_liga",selected.id_liga).limit(20000);
+      // PostgREST cap server-side ~1000: fetchAll pagina en lotes para
+      // ligas grandes (WNBA/NCAA/históricos). Antes .limit(20000) se
+      // truncaba a 1000 silenciosamente → faltaban equipos/jugadoras.
+      const {data}=await fetchAll("temporadas",{order:"id",select:"id_jugadora,id_equipo,temporada",filter:q=>q.eq("id_liga",selected.id_liga)});
       setExtraTemp(m=>({...m,[selected.id_liga]:data||[]}));
     })();
   },[selected]);
