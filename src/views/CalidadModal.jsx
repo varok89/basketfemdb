@@ -1342,9 +1342,6 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       {key:"escudos_rotos",label:"Escudos rotos",count:brokenInfo.broken.length},
       ...(isAdmin?[{key:"fotos_fiba",label:"Fotos → FIBA",count:fibaResults?.altos?.length||0}]:[]),
     ]},
-    {title:"📅 Estructura",items:[
-      {key:"huecos",label:"Huecos IDs",count:0},
-    ]},
     ...(isAdmin?[{title:"🛠 Alta masiva",items:[
       {key:"scraper",label:"Scraper FIBA",count:0},
       {key:"feb-fichas",label:"Rellenar desde FEB",count:febPend||0},
@@ -2087,26 +2084,6 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                   </button>
                 </div>
               </div>
-            </div>
-          )}
-                    {tab==="huecos"&&(
-            <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
-              {Object.entries(huecos||{}).map(function(entry){
-                var tabla=entry[0];var info=entry[1];
-                return(
-                <div key={tabla} style={{background: "var(--fx-hover)",borderRadius:"12px",padding:"14px",border:"1px solid var(--fx-border)"}}>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"8px"}}>
-                    <span style={{fontWeight:700,fontSize:"14px",color: "var(--fx-text)",textTransform:"capitalize"}}>{tabla.replace("_"," ")}</span>
-                    <span style={{background:info.total>0?"var(--fx-blue-bg)":"var(--fx-green-bg)",color:info.total>0?"var(--fx-blue-text)":"#16a34a",borderRadius:"8px",padding:"2px 10px",fontSize:"12px",fontWeight:700}}>
-                      {info.total>0?info.total+" huecos":"Sin huecos"}
-                    </span>
-                  </div>
-                  <div style={{fontSize:"13px",color: "var(--fx-label)"}}>Próximo ID libre: <b style={{color:"#9333ea"}}>{info.nextFree}</b></div>
-                  {info.gaps.length>0&&<div style={{marginTop:"6px",fontSize:"11px",color: "var(--fx-muted2)"}}>Huecos: {info.gaps.join(", ")}{info.total>15?" …":""}</div>}
-                  <div style={{marginTop:"4px",fontSize:"11px",color: "var(--fx-muted2)"}}>Siguiente al más alto: <b style={{color: "var(--fx-muted)"}}>{info.nextAfterMax}</b></div>
-                </div>
-                );
-              })}
             </div>
           )}
           {tab==="escudos_rotos"&&(
