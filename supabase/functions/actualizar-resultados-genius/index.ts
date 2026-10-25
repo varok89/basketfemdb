@@ -1,4 +1,12 @@
-// actualizar-resultados-genius v3
+// actualizar-resultados-genius v4
+// v4: previene parciales corruptos por reasignación de gameId en Genius.
+//     - No se marca es_live=false si suma(parciales) != score (±1): fuerza
+//       que el partido siga procesándose hasta que Genius envíe parciales
+//       coherentes con el marcador final.
+//     - No se aceptan actualizaciones donde el score Genius sea MENOR al ya
+//       guardado en BD (síntoma de que el gameId se reasignó a otro partido).
+//     - partidoTerminado endurecido: elimina caso clock==="" (transitorio).
+//     - Quitado .slice(0, 25): procesa todos los partidos activos del tick.
 // v3: boxscore también live. En cada tick se recarga el boxscore mientras el
 //     partido está es_live. Si está terminado y ya hay filas, se salta
 //     (evita re-escritura redundante). Si está terminado y no hay filas o
@@ -92,13 +100,15 @@ async function fetchGeniusData(gameId: string): Promise<GeniusData | null> {
   } catch { return null; }
 }
 
+// v4: elimina caso clock==="" (ambiguo, puede ser transitorio entre periodos
+// y disparar un falso "terminado"). Requiere explícitamente "00:00" o "0:00".
 function partidoTerminado(d: GeniusData): boolean {
   const clock = (d.clock || "").trim();
   const period = d.period || 0;
   const inOT = d.inOT || 0;
   const scA = d.tm?.["1"]?.score, scB = d.tm?.["2"]?.score;
   if (scA == null || scB == null) return false;
-  if (clock !== "00:00" && clock !== "0:00" && clock !== "") return false;
+  if (clock !== "00:00" && clock !== "0:00") return false;
   if (inOT === 0 && period >= 4) return true;
   if (inOT > 0 && period >= 4 + inOT) return true;
   return false;
@@ -276,17 +286,34 @@ async function procesarPartido(p: any, force = false): Promise<any> {
   const scA = d.tm["1"].score, scB = d.tm["2"].score;
   if (scA == null || scB == null) return { id: p.id, ok: false, motivo: "sin marcador" };
 
+  // v4: Protección anti-reasignación de gameId. Genius recicla gameIds entre
+  // competiciones (visto en EuroLeague 21-oct: ids pasaron a partidos juveniles
+  // sudamericanos tras acabar la jornada). Si el score servido es MENOR que el
+  // ya guardado en BD, casi seguro que el gameId se reasignó: no tocar nada.
+  const bdScA = p.resultado_local, bdScB = p.resultado_visitante;
+  if (!force && bdScA != null && bdScB != null && (scA < bdScA || scB < bdScB)) {
+    return { id: p.id, gameId, ok: false, motivo: "score Genius menor que BD (reasignación?)", score_genius: `${scA}-${scB}`, score_bd: `${bdScA}-${bdScB}` };
+  }
+
   const terminado = partidoTerminado(d);
   const periodo = d.period ?? null;
   const parcLoc = [d.tm["1"].p1_score, d.tm["1"].p2_score, d.tm["1"].p3_score, d.tm["1"].p4_score].filter(x => x != null);
   const parcVis = [d.tm["2"].p1_score, d.tm["2"].p2_score, d.tm["2"].p3_score, d.tm["2"].p4_score].filter(x => x != null);
   const parciales = parcLoc.length && parcVis.length ? { local: parcLoc, visitante: parcVis } : null;
 
+  // v4: coherencia parciales↔score. Si no cuadran, mantenemos el partido como
+  // "no terminado" aunque Genius diga que lo está, para que siga entrando en
+  // la ventana live del siguiente tick hasta reconciliar.
+  const sumLoc = parcLoc.reduce((a, b) => a + b, 0);
+  const sumVis = parcVis.reduce((a, b) => a + b, 0);
+  const parcialesCuadran = parciales != null && Math.abs(sumLoc - scA) <= 1 && Math.abs(sumVis - scB) <= 1;
+  const terminadoReal = terminado && parcialesCuadran;
+
   const upd: any = {
     resultado_local: scA,
     resultado_visitante: scB,
-    es_live: !terminado,
-    periodo: terminado ? null : periodo,
+    es_live: !terminadoReal,
+    periodo: terminadoReal ? null : periodo,
   };
   if (parciales) upd.parciales = parciales;
   if (!p.fuente) upd.fuente = "genius";
@@ -295,10 +322,7 @@ async function procesarPartido(p: any, force = false): Promise<any> {
 
   let boxRes: any = null;
   if (p.id_equipo_local && p.id_equipo_visitante) {
-    // v2: cargar boxscore también live (en cada tick). Si partido terminado y
-    // ya hay filas, solo re-cargar con force=true (evita delete+insert redundante
-    // en cada tick cron sobre partidos ya cerrados).
-    let cargar = force || !terminado;
+    let cargar = force || !terminadoReal;
     if (!cargar) {
       const { count: yaHay } = await sb.from("partido_boxscore")
         .select("id_partido", { count: "exact", head: true })
@@ -312,7 +336,7 @@ async function procesarPartido(p: any, force = false): Promise<any> {
     }
   }
 
-  return { id: p.id, gameId, ok: true, score: `${scA}-${scB}`, periodo, clock: d.clock, terminado, boxscore: boxRes };
+  return { id: p.id, gameId, ok: true, score: `${scA}-${scB}`, periodo, clock: d.clock, terminado: terminadoReal, parciales_cuadran: parcialesCuadran, boxscore: boxRes };
 }
 
 Deno.serve(async (req) => {
@@ -330,7 +354,7 @@ Deno.serve(async (req) => {
 
     if (body.id_partido) {
       const { data: p, error } = await sb.from("partidos")
-        .select("id, id_ext, id_ext_fibalive, id_liga, temporada, id_equipo_local, id_equipo_visitante, es_live, fuente")
+        .select("id, id_ext, id_ext_fibalive, id_liga, temporada, id_equipo_local, id_equipo_visitante, es_live, fuente, resultado_local, resultado_visitante")
         .eq("id", body.id_partido).maybeSingle();
       if (error || !p) return json({ ok: false, error: "partido no encontrado" }, 404);
       const res = await procesarPartido(p, body.force === true);
@@ -345,15 +369,16 @@ Deno.serve(async (req) => {
     const desde = new Date(ahora.getTime() - 30 * 60 * 1000).toISOString();
     const hasta = new Date(ahora.getTime() + 4 * 60 * 60 * 1000).toISOString();
     const { data: partidos } = await sb.from("partidos")
-      .select("id, id_ext, id_ext_fibalive, id_liga, temporada, id_equipo_local, id_equipo_visitante, es_live, fuente")
+      .select("id, id_ext, id_ext_fibalive, id_liga, temporada, id_equipo_local, id_equipo_visitante, es_live, fuente, resultado_local, resultado_visitante")
       .in("id_liga", idLigas)
       .or("id_ext.not.is.null,id_ext_fibalive.not.is.null")
       .or(`es_live.eq.true,and(fecha_hora.gte.${desde},fecha_hora.lte.${hasta})`);
 
     if (!partidos || partidos.length === 0) return json({ ok: true, mensaje: "Sin partidos activos" });
 
+    // v4: quitado .slice(0, 25). Procesamos todos los partidos activos del tick.
     const resultados: any[] = [];
-    for (const p of partidos.slice(0, 25)) {
+    for (const p of partidos) {
       try {
         resultados.push(await procesarPartido(p));
       } catch (e) {

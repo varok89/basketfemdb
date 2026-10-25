@@ -1,4 +1,9 @@
-// actualizar-resultados-fiba v40
+// actualizar-resultados-fiba v41
+// v41: refrescarLiveOnce excluye partidos de ligas con fuente_live='genius'
+//   (L004 EuroLeague Women, L005 EuroCup Women). Esos los gestiona
+//   actualizar-resultados-genius que sí lee parciales por cuarto. Antes este
+//   edge pisaba es_live=false al final del partido sin tocar parciales,
+//   dejando parciales congelados a medias (Q1+Q2 pero resultado final).
 // v40: refrescarLiveOnce incluye partidos en ventana [-3h,+15min] aunque es_live=false
 //   (FIBA no siempre marca is_live=true a tiempo, lo detectamos por status).
 //   Setea es_live/periodo según status FIBA. Antes solo refrescaba es_live=true y los partidos
@@ -412,6 +417,10 @@ async function crearEvento(idLiga:string,temporada:string,slug:string,refreshFec
   await sb.from('fiba_eventos').upsert({id_liga:idLiga,temporada,slug,activo:true,fecha_ini:fechaMin||new Date().toISOString().slice(0,10),fecha_fin:fechaMax||new Date().toISOString().slice(0,10),codigos},{onConflict:'id_liga,temporada,slug'});
   return{ok:true,modo:'crear_evento',juegos_fiba:juegos.length,creados,ya_existian:yaExistian,slots_actualizados:slotsActualizados,notas_rellenas:notasRellenas,fechas_refrescadas:fechasRefrescadas,sin_mapear:[...new Set(sinMapear)],fecha_ini:fechaMin,fecha_fin:fechaMax,codigos_generados:Object.keys(codigos).length,activo:true};}
 async function procesarEvento(ev:{url:string;idLiga:string;temporada:string;slug:string;codigos:Record<string,string>;refreshFechas:boolean}):Promise<any>{
+  // v41: no procesar ligas gestionadas por genius (L004 EuroLeague, L005 EuroCup).
+  // El edge genius gestiona esos partidos (parciales por cuarto incluidos).
+  const{data:liga}=await sb.from('ligas').select('fuente_live').eq('id_liga',ev.idLiga).maybeSingle();
+  if(liga?.fuente_live==='genius')return{ok:true,modo:'skip',motivo:`liga ${ev.idLiga} gestionada por genius`};
   const html=await descargarHtml(ev.url);const juegos=extraerPartidos(html);
   const{data:cands}=await sb.from('partidos').select('id,id_ext,notas,bracket_pos,id_equipo_local,id_equipo_visitante,fecha_hora,resultado_local,resultado_visitante,es_live,periodo').eq('id_liga',ev.idLiga).eq('temporada',ev.temporada).or('resultado_local.is.null,es_live.is.true');
   const candidatos=cands||[];const{porOrgId,porCodigo,porNombre}=await cargarEquiposLiga(ev.idLiga,ev.temporada,ev.slug);
@@ -491,13 +500,21 @@ async function refrescarLiveOnce():Promise<string[]>{
   const refrescados:string[]=[];
   // v40: incluye también partidos en ventana [-3h,+15min] aunque es_live=false
   // porque FIBA no siempre marca es_live y perdíamos marcadores en vivo.
+  // v41: excluir ligas con fuente_live='genius' (L004/L005). Esos partidos los
+  // gestiona actualizar-resultados-genius que sí lee parciales por cuarto.
+  // FIBA aquí no toca parciales y cerraba es_live=false prematuramente,
+  // dejando parciales a medias.
+  const{data:ligasGenius}=await sb.from('ligas').select('id_liga').eq('fuente_live','genius');
+  const idLigasGenius=(ligasGenius||[]).map(l=>l.id_liga);
   const now=Date.now();
   const desde=new Date(now-3*3600*1000).toISOString();
   const hasta=new Date(now+15*60*1000).toISOString();
-  const{data:lives}=await sb.from('partidos').select('id,id_ext,periodo,resultado_local,resultado_visitante,es_live,fecha_hora')
+  let q=sb.from('partidos').select('id,id_ext,id_liga,periodo,resultado_local,resultado_visitante,es_live,fecha_hora')
     .eq('fuente','fiba').not('id_ext','is',null)
     .or(`es_live.eq.true,and(fecha_hora.gte.${desde},fecha_hora.lte.${hasta})`)
     .limit(50);
+  if(idLigasGenius.length) q=q.not('id_liga','in',`(${idLigasGenius.map(l=>`"${l}"`).join(',')})`);
+  const{data:lives}=await q;
   for(const p of (lives||[])){
     try{
       const r=await fetch(`https://www.fiba.basketball/en/events/api/game-live-info/${p.id_ext}/light?_cb=${Date.now()}`,{

@@ -182,6 +182,7 @@ const COUNTRY_CODES = {
   "kirguistan":"kg",
   "malaui":"mw",
   "namibia":"na",
+  "barein":"bh",
 };
 
 export { COUNTRY_CODES };

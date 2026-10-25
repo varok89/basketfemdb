@@ -9,6 +9,39 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   var [monitorData,setMonitorData]=useState(null);
   var [monitorBusy,setMonitorBusy]=useState(false);
   var [monitorErr,setMonitorErr]=useState("");
+  // Auto-saneo (v1 sanear_calidad + v2 auto_enriquecer_v2): logs + flags v2
+  var [autoLogs,setAutoLogs]=useState(null);
+  var [autoBusy,setAutoBusy]=useState(false);
+  var [autoErr,setAutoErr]=useState("");
+  var [autoFlags,setAutoFlags]=useState({v2_fuzzy_merge:false,v2_ciudad_patron:false});
+  async function cargarAutoLogs(){
+    setAutoBusy(true);setAutoErr("");
+    try{
+      var r=await supabase.from("calidad_log").select("id,ts,dry,resultado,tiempo_ms").order("ts",{ascending:false}).limit(20);
+      if(r.error)throw r.error;
+      setAutoLogs(r.data||[]);
+      var f=await supabase.from("app_meta").select("key,value").in("key",["v2_fuzzy_merge","v2_ciudad_patron"]);
+      if(!f.error&&f.data){var m={};f.data.forEach(function(x){m[x.key]=x.value==="true";});setAutoFlags(m);}
+    }catch(e){setAutoErr(e.message||String(e));}
+    finally{setAutoBusy(false);}
+  }
+  async function toggleAutoFlag(key){
+    var nuevoValor=!autoFlags[key];
+    try{
+      var r=await supabase.from("app_meta").update({value:nuevoValor?"true":"false",updated_at:new Date().toISOString()}).eq("key",key);
+      if(r.error)throw r.error;
+      setAutoFlags(function(f){var n=Object.assign({},f);n[key]=nuevoValor;return n;});
+    }catch(e){setAutoErr(e.message||String(e));}
+  }
+  async function runAutoAhora(fn){
+    setAutoBusy(true);setAutoErr("");
+    try{
+      var r=await supabase.rpc(fn,{dry:false});
+      if(r.error)throw r.error;
+      await cargarAutoLogs();
+    }catch(e){setAutoErr(e.message||String(e));}
+    finally{setAutoBusy(false);}
+  }
   async function cargarMonitor(){
     setMonitorBusy(true);setMonitorErr("");
     try{
@@ -18,6 +51,9 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     }catch(e){setMonitorErr(e.message||String(e));}
     finally{setMonitorBusy(false);}
   }
+  useEffect(function(){
+    if(tab==="auto-saneo"&&!autoLogs)cargarAutoLogs();
+  },[tab]);
   useEffect(function(){
     if(!monitorOpen)return;
     cargarMonitor();
@@ -1320,6 +1356,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       {key:"fusionar-jug",label:"🔀 Fusionar jugadoras",count:huerfanas.length},
     ]},{title:"🩺 Ops",items:[
       {key:"estado",label:"Estado sistema",count:0},
+      {key:"auto-saneo",label:"🤖 Auto-saneo",count:0},
     ]}]:[]),
   ];
   var CAL_TABS=CAL_GROUPS.flatMap(g=>g.items);
@@ -2445,6 +2482,84 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                 );
               })}
             </div>
+          </div>
+        );
+      })()}
+      {tab==="auto-saneo"&&(function(){
+        var fmtDate=function(v){if(!v)return"—";var dt=new Date(v);return dt.toLocaleString("es-ES",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});};
+        var since=function(v){if(!v)return"";var dt=new Date(v);var s=(Date.now()-dt.getTime())/1000;if(s<60)return"hace "+Math.round(s)+"s";if(s<3600)return"hace "+Math.round(s/60)+" min";if(s<86400)return"hace "+Math.round(s/3600)+" h";return"hace "+Math.round(s/86400)+" d";};
+        var pill=function(txt,color){return<span style={{background:color+"22",color:color,fontSize:"10px",fontWeight:700,padding:"2px 7px",borderRadius:"10px",border:"1px solid "+color+"55"}}>{txt}</span>;};
+        var toggleBtn=function(key,label){
+          var activo=autoFlags[key];
+          return(
+            <button onClick={function(){toggleAutoFlag(key);}} style={{background:activo?"#16a34a":"var(--fx-hover)",color:activo?"#fff":"var(--fx-text)",border:"1px solid "+(activo?"#16a34a":"var(--fx-border)"),borderRadius:"8px",padding:"5px 10px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>
+              {activo?"✓":"✗"} {label}
+            </button>
+          );
+        };
+        return(
+          <div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}}>
+              <p style={{color:"var(--fx-muted)",fontSize:"12px",margin:0}}>
+                Cron diario 05:00 (v1 limpieza) + cron semanal domingo 06:00 (v2 enriquecer). Historial de ejecuciones.
+              </p>
+              <button onClick={cargarAutoLogs} disabled={autoBusy} style={{background:autoBusy?"#cbd5e1":"#9333ea",color:"#fff",border:"none",borderRadius:"10px",padding:"6px 12px",fontWeight:700,fontSize:"12px",cursor:autoBusy?"default":"pointer"}}>{autoBusy?"⏳":"🔄"}</button>
+            </div>
+            {autoErr&&<div style={{color:"#dc2626",fontSize:"12px",marginBottom:"10px"}}>❌ {autoErr}</div>}
+            <div style={{background:"var(--fx-hover)",border:"1px solid var(--fx-border)",borderRadius:"12px",padding:"12px",marginBottom:"12px"}}>
+              <div style={{fontSize:"12px",fontWeight:800,marginBottom:"8px",color:"var(--fx-text)"}}>⚙️ Flags v2 (dry-run por defecto, activar bajo riesgo propio)</div>
+              <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"8px"}}>
+                {toggleBtn("v2_fuzzy_merge","Fuzzy merge equipos")}
+                {toggleBtn("v2_ciudad_patron","Ciudad desde patrón")}
+              </div>
+              <div style={{display:"flex",gap:"6px"}}>
+                <button onClick={function(){runAutoAhora("sanear_calidad");}} disabled={autoBusy} style={{background:"#1e293b",color:"#fff",border:"none",borderRadius:"8px",padding:"5px 10px",fontSize:"11px",fontWeight:700,cursor:autoBusy?"default":"pointer"}}>▶ Ejecutar v1 ahora</button>
+                <button onClick={function(){runAutoAhora("auto_enriquecer_v2");}} disabled={autoBusy} style={{background:"#1e293b",color:"#fff",border:"none",borderRadius:"8px",padding:"5px 10px",fontSize:"11px",fontWeight:700,cursor:autoBusy?"default":"pointer"}}>▶ Ejecutar v2 ahora</button>
+              </div>
+            </div>
+            {!autoLogs&&!autoBusy&&<div style={{textAlign:"center",padding:"30px 0",color:"var(--fx-muted2)",fontSize:"13px"}}>Pulsa 🔄 para cargar historial.</div>}
+            {autoLogs&&autoLogs.length===0&&<div style={{textAlign:"center",padding:"30px 0",color:"var(--fx-muted2)",fontSize:"13px"}}>Sin ejecuciones registradas.</div>}
+            {autoLogs&&autoLogs.length>0&&(
+              <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+                {autoLogs.map(function(log){
+                  var r=log.resultado||{};
+                  var fase=r.fase||"v1";
+                  var color=fase==="v2"?"#9333ea":"#0891b2";
+                  var totalCambios=(r.nac_normalizadas||0)+(r.nac_vacias_a_null||0)+(r.equipos_fusionados||0)+(r.ciudades_rellenadas||0);
+                  return(
+                    <details key={log.id} style={{background:"var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"10px"}}>
+                      <summary style={{cursor:"pointer",padding:"10px 12px",listStyle:"none",display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}>
+                        {pill(fase.toUpperCase(),color)}
+                        {log.dry&&pill("DRY","#64748b")}
+                        <span style={{fontSize:"12px",fontWeight:700,color:"var(--fx-text)"}}>{fmtDate(log.ts)}</span>
+                        <span style={{fontSize:"11px",color:"var(--fx-muted)"}}>{since(log.ts)}</span>
+                        <span style={{flex:1}}></span>
+                        {r.nac_normalizadas>0&&pill(r.nac_normalizadas+" nacs","#16a34a")}
+                        {r.nac_vacias_a_null>0&&pill(r.nac_vacias_a_null+" vacías→null","#16a34a")}
+                        {r.equipos_fusionados>0&&pill(r.equipos_fusionados+" fusiones","#eab308")}
+                        {r.ciudades_rellenadas>0&&pill(r.ciudades_rellenadas+" ciudades","#eab308")}
+                        {totalCambios===0&&pill("sin cambios","#64748b")}
+                        <span style={{fontSize:"10px",color:"var(--fx-muted2)"}}>{log.tiempo_ms}ms</span>
+                      </summary>
+                      {Array.isArray(r.detalles)&&r.detalles.length>0&&(
+                        <div style={{padding:"4px 14px 12px"}}>
+                          <ul style={{margin:0,paddingLeft:"18px",maxHeight:"240px",overflowY:"auto",fontSize:"12px",color:"var(--fx-text)"}}>
+                            {r.detalles.map(function(d,i){
+                              var txt="";
+                              if(d.tipo==="nac_normalizada")txt="Nacionalidad: '"+d.de+"' → '"+d.a+"' ("+d.n+" jugadoras)";
+                              else if(d.tipo==="equipo_fusionado"||d.tipo==="fuzzy_merge")txt="Fusión equipos: keeper "+d.keeper+" ("+(d.keeper_nombre||"")+") ← borrados "+(d.borrados_nombres?d.borrados_nombres.join(", "):(d.borrados||[]).join(", "));
+                              else if(d.tipo==="ciudad_patron")txt="Ciudad: "+d.id+" "+d.nombre+" → "+d.ciudad;
+                              else txt=JSON.stringify(d);
+                              return <li key={i} style={{marginBottom:"2px"}}>{txt}</li>;
+                            })}
+                          </ul>
+                        </div>
+                      )}
+                    </details>
+                  );
+                })}
+              </div>
+            )}
           </div>
         );
       })()}
