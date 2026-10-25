@@ -1343,7 +1343,6 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       ...(isAdmin?[{key:"fotos_fiba",label:"Fotos → FIBA",count:fibaResults?.altos?.length||0}]:[]),
     ]},
     {title:"📅 Estructura",items:[
-      {key:"duplicadas",label:"Temp. duplicadas",count:(duplicadas||[]).length},
       {key:"huecos",label:"Huecos IDs",count:0},
     ]},
     ...(isAdmin?[{title:"🛠 Alta masiva",items:[
@@ -2477,7 +2476,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                   var r=log.resultado||{};
                   var fase=r.fase||"v1";
                   var color=fase==="v2"?"#9333ea":"#0891b2";
-                  var totalCambios=(r.nac_normalizadas||0)+(r.nac_vacias_a_null||0)+(r.equipos_fusionados||0)+(r.ciudades_rellenadas||0);
+                  var totalCambios=(r.nac_normalizadas||0)+(r.nac_vacias_a_null||0)+(r.equipos_fusionados||0)+(r.ciudades_rellenadas||0)+(r.temporadas_duplicadas||0);
                   return(
                     <details key={log.id} style={{background:"var(--fx-card)",border:"1px solid var(--fx-border)",borderRadius:"10px"}}>
                       <summary style={{cursor:"pointer",padding:"10px 12px",listStyle:"none",display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap"}}>
@@ -2488,7 +2487,8 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                         <span style={{flex:1}}></span>
                         {r.nac_normalizadas>0&&pill(r.nac_normalizadas+" nacs","#16a34a")}
                         {r.nac_vacias_a_null>0&&pill(r.nac_vacias_a_null+" vacías→null","#16a34a")}
-                        {r.equipos_fusionados>0&&pill(r.equipos_fusionados+" fusiones","#eab308")}
+                        {r.equipos_fusionados>0&&pill(r.equipos_fusionados+" fusiones eq","#eab308")}
+                        {r.temporadas_duplicadas>0&&pill(r.temporadas_duplicadas+" temps dup","#eab308")}
                         {r.ciudades_rellenadas>0&&pill(r.ciudades_rellenadas+" ciudades","#eab308")}
                         {totalCambios===0&&pill("sin cambios","#64748b")}
                         <span style={{fontSize:"10px",color:"var(--fx-muted2)"}}>{log.tiempo_ms}ms</span>
@@ -2500,6 +2500,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                               var txt="";
                               if(d.tipo==="nac_normalizada")txt="Nacionalidad: '"+d.de+"' → '"+d.a+"' ("+d.n+" jugadoras)";
                               else if(d.tipo==="equipo_fusionado"||d.tipo==="fuzzy_merge")txt="Fusión equipos: keeper "+d.keeper+" ("+(d.keeper_nombre||"")+") ← borrados "+(d.borrados_nombres?d.borrados_nombres.join(", "):(d.borrados||[]).join(", "));
+                              else if(d.tipo==="temporada_duplicada")txt="Temp duplicada: "+d.jugadora+" @ "+d.equipo+" ("+d.liga+" "+d.temporada+") keeper="+d.keeper;
                               else if(d.tipo==="ciudad_patron")txt="Ciudad: "+d.id+" "+d.nombre+" → "+d.ciudad;
                               else txt=JSON.stringify(d);
                               return <li key={i} style={{marginBottom:"2px"}}>{txt}</li>;
