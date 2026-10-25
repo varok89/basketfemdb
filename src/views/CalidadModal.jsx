@@ -1334,7 +1334,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
     {title:"📇 Fichas",items:[
       {key:"incompletas",label:"Incompletas",count:incompletasTotal},
       {key:"duplicados_nombre",label:"Duplicados nombre",count:totalNameDupes},
-      {key:"nacionalidades",label:"Nacionalidades",count:nacInfo.sinBandera.length+nacInfo.variantes.length+nacInfo.nacDup.length},
+      {key:"nacionalidades",label:"Nacionalidades",count:nacInfo.sinBandera.length+nacInfo.nacDup.length},
       ...(isAdmin?[{key:"lleno_fiba",label:"Rellenar desde FIBA",count:llenoResults?.conDiff?.length||0}]:[]),
     ]},
     {title:"🎬 Fotos & escudos",items:[
@@ -2161,7 +2161,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           )}
           {tab==="nacionalidades"&&(
             <div>
-              {nacInfo.sinBandera.length===0&&nacInfo.variantes.length===0&&nacInfo.nacDup.length===0?(
+              {nacInfo.sinBandera.length===0&&nacInfo.nacDup.length===0?(
                 <div style={{textAlign:"center",padding:"40px 0",color: "var(--fx-muted2)"}}><div style={{fontSize:"36px"}}>✅</div><p>Todas las nacionalidades tienen bandera y no hay duplicados</p></div>
               ):(
                 <div style={{display:"flex",flexDirection:"column",gap:"18px"}}>
@@ -2182,54 +2182,6 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
                               );})}
                               {item.count>item.players.length&&<span style={{fontSize:"11px",color: "var(--fx-muted2)",alignSelf:"center"}}>+{item.count-item.players.length} más</span>}
                             </div>
-                          </div>
-                        );})}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <h3 style={{fontWeight:800,fontSize:"13px",color: "var(--fx-text)",margin:"0 0 8px"}}>🔀 Variantes del mismo país ({nacInfo.variantes.length})</h3>
-                    <p style={{color: "var(--fx-muted2)",fontSize:"11px",margin:"0 0 8px"}}>Distintas grafías en la base de datos que resuelven a la misma bandera. Ojo: algunas son intencionadas (p. ej. "Islas Vírgenes de EE.UU.").</p>
-                    {nacInfo.variantes.length===0?<p style={{color: "var(--fx-muted2)",fontSize:"12px",margin:0}}>Ninguna.</p>:(
-                      <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
-                        {nacInfo.variantes.map(function(item){
-                          var mayor=item.variantes[0];
-                          var minor=item.variantes.slice(1);
-                          var totalMin=minor.reduce(function(a,v){return a+v.count;},0);
-                          return(
-                          <div key={item.code} style={{display:"flex",alignItems:"center",gap:"10px",padding:"10px 14px",background: "var(--fx-hover)",borderRadius:"10px",border:"1px solid var(--fx-border)"}}>
-                            <span style={{fontSize:"18px",flexShrink:0}}>{flagEmoji(item.code)}</span>
-                            <div style={{fontSize:"13px",color: "var(--fx-text)",minWidth:0,flex:1}}>
-                              {item.variantes.map(function(v,i){return(
-                                <span key={v.valor}>{i>0&&<span style={{color:"#cbd5e1"}}> · </span>}<b>"{v.valor}"</b> <span style={{color: "var(--fx-muted2)",fontSize:"11px"}}>({v.count})</span></span>
-                              );})}
-                            </div>
-                            {isAdmin&&(
-                              <button
-                                disabled={nacFixing===item.code}
-                                onClick={async function(){
-                                  var minorLabels=minor.map(function(v){return '"'+v.valor+'" ('+v.count+')';}).join(", ");
-                                  var msg=totalMin+" jugadora"+(totalMin===1?"":"s")+" pasarán de "+minorLabels+' a "'+mayor.valor+'". ¿Confirmar?';
-                                  if(!window.confirm(msg))return;
-                                  setNacFixing(item.code);
-                                  try{
-                                    var valores=minor.map(function(v){return v.valor;});
-                                    var r1=await supabase.from("jugadoras").update({nacionalidad:mayor.valor}).in("nacionalidad",valores);
-                                    var r2=await supabase.from("jugadoras").update({nacionalidad2:mayor.valor}).in("nacionalidad2",valores);
-                                    if(r1.error||r2.error){window.alert("Error: "+((r1.error||r2.error).message||"desconocido"));return;}
-                                    setPlayers(function(prev){return prev.map(function(p){
-                                      var np=Object.assign({},p);
-                                      if(valores.indexOf(p.nacionalidad)>=0)np.nacionalidad=mayor.valor;
-                                      if(valores.indexOf(p.nacionalidad2)>=0)np.nacionalidad2=mayor.valor;
-                                      return np;
-                                    });});
-                                  }finally{setNacFixing(null);}
-                                }}
-                                title={'Cambiar todas las variantes minoritarias a "'+mayor.valor+'"'}
-                                style={{flexShrink:0,background:nacFixing===item.code?"var(--fx-hover)":"#9333ea",color:nacFixing===item.code?"var(--fx-muted)":"#fff",border:"none",borderRadius:"8px",padding:"6px 10px",fontSize:"11px",fontWeight:700,cursor:nacFixing===item.code?"wait":"pointer"}}>
-                                {nacFixing===item.code?"…":"→ Normalizar"}
-                              </button>
-                            )}
                           </div>
                         );})}
                       </div>
