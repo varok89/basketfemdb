@@ -450,23 +450,11 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
     (async()=>{
       const map={};
       for(const jid of favJugIds){
-        // Último partido jugado + boxscore de la jugadora.
-        // Fix v10.1: PostgREST .order({foreignTable:"partidos"}) NO ordena
-        // la query principal, solo las rows embebidas → traía un partido
-        // aleatorio. Invertimos: query desde partidos con inner join a
-        // partido_boxscore filtrando por jugadora. Así order DESC se aplica
-        // sobre la tabla principal y limit(1) devuelve el más reciente real.
-        const {data:rows}=await supabase.from("partidos")
-          .select("id,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,fecha_hora,id_liga,partido_boxscore!inner(*)")
-          .eq("partido_boxscore.id_jugadora",jid)
-          .not("resultado_local","is",null)
-          .order("fecha_hora",{ascending:false})
-          .limit(1);
-        if(rows&&rows[0]){
-          const {partido_boxscore:boxes,...partido}=rows[0];
-          const box=Array.isArray(boxes)?boxes[0]:boxes;
-          if(partido&&box)map[jid]={box,partido};
-        }
+        // Fix v10.2: RPC server-side evita problemas con PostgREST embed
+        // inverso y order por foreign table. 1 query, 1 row, mínimo payload.
+        const {data,error}=await supabase.rpc("ultimo_partido_jugadora",{_jid:jid});
+        if(error){console.warn("ultimo_partido_jugadora",jid,error.message);continue;}
+        if(data?.partido&&data?.box)map[jid]={box:data.box,partido:data.partido};
       }
       setFavBoxscores(map);
     })();
