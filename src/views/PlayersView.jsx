@@ -353,8 +353,8 @@ function StatsJugadora({idJugadora,equipos,ligas,equiposNombres,onOpenPartido}){
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(58px,1fr))",gap:"8px"}}>
             {cards.map(([l,v])=>(<div key={l} style={{textAlign:"center",background:"var(--fx-lila-bg)",borderRadius:"12px",padding:"10px 4px"}}><div style={{fontSize:"18px",fontWeight:800,color:"var(--fx-text)"}}>{v}</div><div style={{fontSize:"10px",color:"var(--fx-muted2)",fontWeight:600}}>{l}</div></div>))}
           </div>
-          <div style={{display:"flex",gap:"16px",marginTop:"12px",flexWrap:"wrap"}}>
-            {pcts.map(([l,v])=>(<div key={l} style={{fontSize:"12px",color:"var(--fx-muted)"}}><span style={{fontWeight:700,color:"var(--fx-text)"}}>{v==null?"—":v+"%"}</span> {l}</div>))}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"8px",marginTop:"10px"}}>
+            {pcts.map(([l,v])=>(<div key={l} style={{textAlign:"center",background:"var(--fx-hover)",borderRadius:"10px",padding:"8px 4px",border:"1px solid var(--fx-border)"}}><div style={{fontSize:"14px",fontWeight:800,color:"var(--fx-text)"}}>{v==null?"—":v+"%"}</div><div style={{fontSize:"10px",color:"var(--fx-muted2)",fontWeight:600,marginTop:"2px"}}>{l}</div></div>))}
           </div>
         </div>
         <div style={{background:"var(--fx-card)",borderRadius:"18px",padding:"14px",boxShadow:"0 1px 6px rgba(0,0,0,0.07)",overflowX:"auto"}}>
