@@ -450,19 +450,22 @@ function FavoritosView({players,equipos,ligas,partidos,favoritos,user,onGoToPlay
     (async()=>{
       const map={};
       for(const jid of favJugIds){
-        // Boxscore más reciente de la jugadora en un partido jugado.
-        // Join a partidos + order por fecha_hora DESC. Antes traíamos
-        // limit(50) sin orden → boxscores de carreras largas perdían
-        // los más recientes y se mostraba un partido antiguo.
-        const {data:rows}=await supabase.from("partido_boxscore")
-          .select("*,partidos!inner(id,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,fecha_hora,id_liga)")
-          .eq("id_jugadora",jid)
-          .not("partidos.resultado_local","is",null)
-          .order("fecha_hora",{foreignTable:"partidos",ascending:false})
+        // Último partido jugado + boxscore de la jugadora.
+        // Fix v10.1: PostgREST .order({foreignTable:"partidos"}) NO ordena
+        // la query principal, solo las rows embebidas → traía un partido
+        // aleatorio. Invertimos: query desde partidos con inner join a
+        // partido_boxscore filtrando por jugadora. Así order DESC se aplica
+        // sobre la tabla principal y limit(1) devuelve el más reciente real.
+        const {data:rows}=await supabase.from("partidos")
+          .select("id,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,fecha_hora,id_liga,partido_boxscore!inner(*)")
+          .eq("partido_boxscore.id_jugadora",jid)
+          .not("resultado_local","is",null)
+          .order("fecha_hora",{ascending:false})
           .limit(1);
         if(rows&&rows[0]){
-          const {partidos:partido,...box}=rows[0];
-          if(partido)map[jid]={box,partido};
+          const {partido_boxscore:boxes,...partido}=rows[0];
+          const box=Array.isArray(boxes)?boxes[0]:boxes;
+          if(partido&&box)map[jid]={box,partido};
         }
       }
       setFavBoxscores(map);
