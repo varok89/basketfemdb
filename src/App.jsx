@@ -1630,20 +1630,18 @@ export default function App(){
   };
 
   const loadAll = async(forzar=false)=>{
-    // Caché de sesión: no recargar si ya están en memoria
-    if(!forzar && players.length>0 && equipos.length>0){return;}
-    // Al forzar refresh, invalidar también el cache del Service Worker (SWR en API GET)
+    // v10 (sprint perf 2026-10-27):
+    // - Hidratación cache local SIEMPRE primero, sin esperar a nada.
+    // - Fase 1 critical SIN jugadoras ni temporadas: solo equipos+ligas+partidos
+    //   ventana ±30d. Pintura Home ultra-rápida.
+    // - Fase 2 background: jugadoras+seasons+histórico partidos+palmares+coach+mvps.
+    // - SIEMPRE revalida en bg aunque haya cache local fresco (SWR real).
+    //   Fixea el bug "datos antiguos" que teníamos.
     if(forzar){try{navigator.serviceWorker?.controller?.postMessage({type:"BUST_API_CACHE"});}catch(e){}}
-    const CK="basketfemdb:cache:v9";
-    const TTL_MS=7*24*60*60*1000; // 7 días
-    // Cache versionado server-driven: app_meta.cache_version. Bump desde SQL
-    // (SELECT bump_cache_version()) invalida todos los caches locales activos.
-    let serverVer=null;
-    try{
-      const {data}=await supabase.from("app_meta").select("value").eq("key","cache_version").maybeSingle();
-      serverVer=parseInt(data?.value,10);
-      if(!Number.isFinite(serverVer)) serverVer=null;
-    }catch(e){/* red offline → tolerante, hidrata del cache local igualmente */}
+    const CK="basketfemdb:cache:v10";
+    const TTL_MS=7*24*60*60*1000;
+
+    // === PASO 0: Hidratar cache local SINCRÓNICAMENTE (primera pintura) ===
     let hidratado=false;
     if(!forzar){
       try{
@@ -1651,26 +1649,19 @@ export default function App(){
         if(raw){
           const c=JSON.parse(raw);
           const edad=Date.now()-(c.cachedAt||0);
-          const vLocal=c.v||0;
-          const stale=(serverVer!=null && vLocal<serverVer) || edad>TTL_MS;
-          if(stale){
-            // Cache obsoleto: wipe + bust SW + skip hidratación → se verá
-            // skeleton una fracción de segundo pero datos siempre coherentes.
-            try{localStorage.removeItem(CK);}catch(_){}
-            try{navigator.serviceWorker?.controller?.postMessage({type:"BUST_API_CACHE"});}catch(_){}
-          }else if(c&&Array.isArray(c.players)&&Array.isArray(c.equipos)&&c.players.length&&c.equipos.length){
-            setPlayers(c.players);
+          if(edad<=TTL_MS && Array.isArray(c.equipos) && c.equipos.length){
             setEquipos(c.equipos);
             setLigas(c.ligas||[]);
+            setPartidos(c.partidos||[]);
+            if(Array.isArray(c.players)&&c.players.length) setPlayers(c.players);
             setPalmares(c.palmares||[]);
             setCoaches(c.coaches||[]);
             setTempCoach(c.tempCoach||[]);
             setEquiposNombres(c.equiposNombres||[]);
-            setPartidos(c.partidos||[]);
+            setMvps(c.mvps||[]);
             if(c.partidosFull) setPartidosFull(true);
             if(c.seasonsFull) setSeasonsFull(true);
             if(c.playersFull) setPlayersFull(true);
-            setMvps(c.mvps||[]);
             setIsFirstLoad(false);
             setLoading(false);
             hidratado=true;
@@ -1680,42 +1671,52 @@ export default function App(){
     }
     if(!hidratado) setLoading(isFirstLoad);
     setError(null);
+
+    // cache_version del servidor en paralelo (no bloquea pintura).
+    const serverVerPromise=supabase.from("app_meta").select("value").eq("key","cache_version").maybeSingle()
+      .then(r=>{const v=parseInt(r.data?.value,10);return Number.isFinite(v)?v:null;}).catch(()=>null);
+
     try{
-      // Fase 1: críticas para Home (players/equipos/ligas/temporadas/partidos)
-      // NCAA (L020) se excluye del histórico para ahorrar egress, pero necesitamos las
-      // temporadas NCAA actuales para que Fichajes detecte los movimientos de la temporada.
-      const _ncaaY=String(new Date().getFullYear()-2);
-      const [rJ,rE,rL,rT,rTncaa,rPar]=await Promise.all([
-        // Bootstrap: solo jugadoras con actividad desde 2024 (~16k en vez de ~20k).
-        // Las históricas se cargan bajo demanda al entrar en pestañas catálogo (jugadoras,
-        // equipos, ligas, cuerpo_tecnico, comparar, favoritos) o al abrir una ficha por URL.
-        fetchAll(playersFull?"jugadoras":"v_jugadoras_activas",{order:"id_jugadora",select:"id_jugadora,nombre,posicion,posicion2,nacionalidad,nacionalidad2,fecha_nac,fecha_fallecimiento,altura_cm,foto"}),
+      // === FASE 1: critical para Home (sin jugadoras ni temporadas) ===
+      // Ventana corta de partidos: ±30d. El histórico completo llega en Fase 2.
+      const _hace30d=new Date(Date.now()-30*86400*1000).toISOString();
+      const [rE,rL,rPar]=await Promise.all([
         fetchAll("equipos",{order:"id_equipo"}),
         fetchAll("ligas",{order:"id_liga"}),
-        fetchAll("dos_ultimas_temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.neq("id_liga","L020")}),
-        fetchAll("temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.eq("id_liga","L020").gte("temporada",_ncaaY)}),
-        fetchAll("partidos",{order:"fecha_hora",select:"id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas,es_live,periodo,parciales,id_ext,fuente,bracket_pos,link,url_stats",filter:q=>q.neq("id_liga","L020").gte("temporada",_ncaaY)}),
+        fetchAll("partidos",{order:"fecha_hora",select:"id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas,es_live,periodo,parciales,id_ext,fuente,bracket_pos,link,url_stats",filter:q=>q.neq("id_liga","L020").gte("fecha_hora",_hace30d)}),
       ]);
-      if(rJ.error)throw rJ.error;if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rT.error)throw rT.error;
-      const sbp={};
-      [...(rT.data||[]),...(rTncaa?.data||[])].forEach(t=>{if(!sbp[t.id_jugadora])sbp[t.id_jugadora]=[];sbp[t.id_jugadora].push(t);});
-      const nuevosPlayers=(rJ.data||[]).map(j=>({...j,seasons:sbp[j.id_jugadora]||[]}));
-      setPlayers(nuevosPlayers);
+      if(rE.error)throw rE.error;if(rL.error)throw rL.error;if(rPar.error)throw rPar.error;
       setEquipos(rE.data||[]);
       setLigas(rL.data||[]);
-      setPartidos(rPar?.data||[]);
+      setPartidos(rPar.data||[]);
       setIsFirstLoad(false);
       if(!hidratado) setLoading(false);
-      // Fase 2: secundarias en background (no bloquean Home)
+
+      // === FASE 2: jugadoras + seasons + histórico + resto en background ===
       (async()=>{
         try{
-          const [rP,rC,rTC,rEN,rMvp]=await Promise.all([
+          const _ncaaY=String(new Date().getFullYear()-2);
+          const [rJ,rT,rTncaa,rParHist,rP,rC,rTC,rEN,rMvp,serverVer]=await Promise.all([
+            fetchAll(playersFull?"jugadoras":"v_jugadoras_activas",{order:"id_jugadora",select:"id_jugadora,nombre,posicion,posicion2,nacionalidad,nacionalidad2,fecha_nac,fecha_fallecimiento,altura_cm,foto"}),
+            fetchAll("dos_ultimas_temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.neq("id_liga","L020")}),
+            fetchAll("temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.eq("id_liga","L020").gte("temporada",_ncaaY)}),
+            fetchAll("partidos",{order:"fecha_hora",select:"id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas,es_live,periodo,parciales,id_ext,fuente,bracket_pos,link,url_stats",filter:q=>q.neq("id_liga","L020").gte("temporada",_ncaaY).lt("fecha_hora",_hace30d)}),
             fetchAll("palmares",{order:"temporada"}),
             fetchAll("coach",{order:"id_coach"}),
             fetchAll("temporadas_coach",{order:"id"}),
             fetchAll("equipos_nombres",{order:"id"}),
             fetchAll("mvps",{order:"id"}),
+            serverVerPromise,
           ]);
+          const sbp={};
+          [...(rT.data||[]),...(rTncaa?.data||[])].forEach(t=>{if(!sbp[t.id_jugadora])sbp[t.id_jugadora]=[];sbp[t.id_jugadora].push(t);});
+          const nuevosPlayers=(rJ.data||[]).map(j=>({...j,seasons:sbp[j.id_jugadora]||[]}));
+          setPlayers(nuevosPlayers);
+          // Merge ventana+histórico sin duplicados por id
+          const todosPartidos=[...(rPar.data||[]),...(rParHist?.data||[])];
+          const vistosP=new Set();
+          const partidosUnicos=todosPartidos.filter(p=>{if(vistosP.has(p.id))return false;vistosP.add(p.id);return true;});
+          setPartidos(partidosUnicos);
           setPalmares(rP.data||[]);
           setCoaches(rC.data||[]);
           setTempCoach(rTC.data||[]);
@@ -1730,7 +1731,7 @@ export default function App(){
               coaches:rC.data||[],
               tempCoach:rTC.data||[],
               equiposNombres:rEN?.data||[],
-              partidos:rPar?.data||[],
+              partidos:partidosUnicos,
               mvps:rMvp?.data||[],
               playersFull,
               v:serverVer||1,
@@ -1750,8 +1751,6 @@ export default function App(){
       })();
     }catch(e){
       const msg=e.message||"Error cargando datos";
-      // Token con iat en el futuro (reloj desincronizado en algún momento):
-      // limpiar sesión y recargar para forzar un token nuevo.
       if(/issued at future|JWT/i.test(msg)){
         try{await supabase.auth.signOut();}catch(_){}
         try{Object.keys(localStorage).filter(k=>k.startsWith("sb-")).forEach(k=>localStorage.removeItem(k));}catch(_){}
