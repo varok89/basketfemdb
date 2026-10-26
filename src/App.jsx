@@ -1688,7 +1688,11 @@ export default function App(){
         try{
           const _ncaaY=String(new Date().getFullYear()-2);
           const [rJ,rT,rTncaa,rParHist,rP,rC,rTC,rEN,rMvp,serverVer]=await Promise.all([
-            fetchAll(playersFull?"jugadoras":"v_jugadoras_activas",{order:"id_jugadora",select:"id_jugadora,nombre,posicion,posicion2,nacionalidad,nacionalidad2,fecha_nac,fecha_fallecimiento,altura_cm,foto"}),
+            // Fase A fuerte: bootstrap trae slim (sin fecha_nac/altura_cm, solo
+            // visibles en ficha). Si playersFull=true o si entra a tabs catálogo,
+            // dispara el fetch completo que SÍ los trae. ensurePlayerLoaded
+            // también los trae para fichas por URL directa.
+            fetchAll(playersFull?"jugadoras":"v_jugadoras_activas",{order:"id_jugadora",select:playersFull?"id_jugadora,nombre,posicion,posicion2,nacionalidad,nacionalidad2,fecha_nac,fecha_fallecimiento,altura_cm,foto":"id_jugadora,nombre,posicion,posicion2,nacionalidad,nacionalidad2,fecha_fallecimiento,foto"}),
             fetchAll("dos_ultimas_temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.neq("id_liga","L020")}),
             fetchAll("temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden",filter:q=>q.eq("id_liga","L020").gte("temporada",_ncaaY)}),
             fetchAll("partidos",{order:"fecha_hora",select:"id,fecha_hora,temporada,id_liga,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante,notas,es_live,periodo,parciales,id_ext,fuente,bracket_pos,link,url_stats",filter:q=>q.neq("id_liga","L020").gte("temporada",_ncaaY).lt("fecha_hora",_hace30d)}),
