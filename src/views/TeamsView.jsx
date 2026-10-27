@@ -468,14 +468,14 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
     }catch(e){alert("Error: "+e.message);}
     setSaving(false);
   };
-  const toggleActiva=async(seasonRow,nextActiva)=>{
-    const motivo=nextActiva?null:"manual";
-    // Propagar a todas las competiciones del mismo equipo/temporada (Liga + Copa + Eurocup...)
-    const{error}=await supabase.from("temporadas").update({activa:nextActiva,motivo_baja:motivo})
+  const setMotivo=async(seasonRow,motivo)=>{
+    // motivo: null (activa) | 'manual' (ya no está, sticky) | 'lesionada' (vuelve sola al jugar)
+    const activa=motivo===null;
+    const{error}=await supabase.from("temporadas").update({activa,motivo_baja:motivo})
       .eq("id_jugadora",seasonRow.id_jugadora).eq("id_equipo",seasonRow.id_equipo).eq("temporada",seasonRow.temporada);
     if(error){alert("Error: "+error.message);return;}
     setPlayers(prev=>prev.map(p=>p.id_jugadora!==seasonRow.id_jugadora?p:
-      {...p,seasons:(p.seasons||[]).map(s=>(s.id_equipo===seasonRow.id_equipo&&s.temporada===seasonRow.temporada)?{...s,activa:nextActiva,motivo_baja:motivo}:s)}));
+      {...p,seasons:(p.seasons||[]).map(s=>(s.id_equipo===seasonRow.id_equipo&&s.temporada===seasonRow.temporada)?{...s,activa,motivo_baja:motivo}:s)}));
   };
   const duplicateSquad=async(squadList,targetLiga,temporada)=>{
     setSaving(true);
@@ -638,8 +638,9 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
   const effectiveLiga = ligasInYear.length>1?(selLiga&&ligasInYear.some(l=>l.id_liga===selLiga)?selLiga:ligasInYear[0].id_liga):null;
   const squad       = selected
     ?(()=>{const list=[...new Map(selected.players.filter(({season})=>(!effectiveYear||season.temporada===effectiveYear)&&(!effectiveLiga||season.id_liga===effectiveLiga)).map(({player,season})=>[player.id_jugadora,{player,season}])).values()];
-       // Inactivas al final, resto en el orden original.
-       return [...list.filter(x=>x.season.activa!==false),...list.filter(x=>x.season.activa===false)];
+       // Orden: activas → lesionadas → ya no está (al final en gris).
+       const rank=s=>s.activa!==false?0:(s.motivo_baja==="lesionada"?1:2);
+       return list.slice().sort((a,b)=>rank(a.season)-rank(b.season));
      })()
     :[];
 
@@ -758,18 +759,28 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
           </div>
           {showPlantilla&&(squad.length===0?<div style={{textAlign:"center",padding:"30px",color:"var(--fx-muted2)"}}>{t("teams.no_players_season")}</div>
             :<div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
-              {squad.map(({player,season},i)=>{const inactiva=season.activa===false;return(
+              {squad.map(({player,season},i)=>{
+                const inactiva=season.activa===false;
+                const lesionada=season.motivo_baja==="lesionada";
+                const badge=lesionada?{txt:"LESIONADA",bg:"#fef3c7",fg:"#b45309"}:(inactiva?{txt:"YA NO ESTÁ",bg:"#e2e8f0",fg:"var(--fx-muted)"}:null);
+                return(
                 <div key={i} onClick={()=>onGoToPlayer(player.id_jugadora,{tab:"equipos",id:selId,label:eq?.nombre})}
-                  style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",background:"var(--fx-hover)",borderRadius:"12px",border:"1.5px solid var(--fx-border)",cursor:"pointer",transition:"all 0.15s",opacity:inactiva?0.55:1,filter:inactiva?"grayscale(0.6)":"none"}}
+                  style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",background:"var(--fx-hover)",borderRadius:"12px",border:"1.5px solid var(--fx-border)",cursor:"pointer",transition:"all 0.15s",opacity:inactiva?(lesionada?0.75:0.55):1,filter:inactiva&&!lesionada?"grayscale(0.6)":"none"}}
                   onMouseEnter={e=>{e.currentTarget.style.borderColor="#c084fc";e.currentTarget.style.background="var(--fx-amber-bg)";}}
                   onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--fx-border)";e.currentTarget.style.background="var(--fx-hover)";}}>
                   <Avatar photo={player.foto} name={player.nombre} size={44} fontSize={16} fallecida={!!player.fecha_fallecimiento}/>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:700,fontSize:"14px",color:"#9333ea",display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>{player.nombre}{inactiva&&<span style={{background:"var(--fx-muted-bg,#e2e8f0)",color:"var(--fx-muted)",fontSize:"10px",fontWeight:700,padding:"2px 7px",borderRadius:"10px",letterSpacing:"0.3px"}}>YA NO ESTÁ</span>}</div>
+                    <div style={{fontWeight:700,fontSize:"14px",color:"#9333ea",display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>{player.nombre}{badge&&<span style={{background:badge.bg,color:badge.fg,fontSize:"10px",fontWeight:700,padding:"2px 7px",borderRadius:"10px",letterSpacing:"0.3px"}}>{badge.txt}</span>}</div>
                     <div style={{fontSize:"12px",color:"var(--fx-muted)",marginTop:"2px",display:"flex",alignItems:"center",gap:"3px"}}>{player.nacionalidad&&<FlagImg country={player.nacionalidad}/>}{player.nacionalidad2&&<FlagImg country={player.nacionalidad2}/>}{player.altura_cm&&<span>{player.nacionalidad||player.nacionalidad2?" · ":""}{player.altura_cm} cm</span>}</div>
                   </div>
                   <div className="bfdb-player-card-right" style={{display:"flex",flexDirection:"column",gap:"3px",alignItems:"flex-end",flexShrink:0}}><div className="bfdb-player-badges" style={{display:"flex",gap:"3px",flexWrap:"wrap",justifyContent:"flex-end"}}>{player.posicion&&<span style={posStyle(player.posicion)}>{player.posicion}</span>}{player.posicion2&&<span style={posStyle(player.posicion2)}>{player.posicion2}</span>}</div>{esEquipoEuropeo(eq.pais)&&STATUS_BADGE[playerStatus(player.nacionalidad,player.nacionalidad2)]}</div>
-                  {isAdmin&&<button onClick={e=>{e.stopPropagation();toggleActiva(season,inactiva);}} title={inactiva?"Reactivar en todas las competiciones":"Marcar ya no está (todas las competiciones)"} style={{background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"8px",padding:"4px 8px",fontSize:"11px",fontWeight:700,cursor:"pointer",color:inactiva?"#16a34a":"#dc2626"}}>{inactiva?"↩":"✕"}</button>}
+                  {isAdmin&&<div style={{display:"flex",gap:"4px"}} onClick={e=>e.stopPropagation()}>
+                    {!inactiva&&<>
+                      <button onClick={()=>setMotivo(season,"lesionada")} title="Marcar lesionada (vuelve sola al jugar)" style={{background:"var(--fx-card)",border:"1.5px solid #fde68a",borderRadius:"8px",padding:"4px 7px",fontSize:"12px",cursor:"pointer"}}>🏥</button>
+                      <button onClick={()=>setMotivo(season,"manual")} title="Ya no está (todas las competiciones)" style={{background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"8px",padding:"4px 8px",fontSize:"11px",fontWeight:700,cursor:"pointer",color:"#dc2626"}}>✕</button>
+                    </>}
+                    {inactiva&&<button onClick={()=>setMotivo(season,null)} title="Reactivar" style={{background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"8px",padding:"4px 8px",fontSize:"11px",fontWeight:700,cursor:"pointer",color:"#16a34a"}}>↩</button>}
+                  </div>}
                 </div>
               );})}
             </div>)}
