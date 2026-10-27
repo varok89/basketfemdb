@@ -762,7 +762,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
               {squad.map(({player,season},i)=>{
                 const inactiva=season.activa===false;
                 const lesionada=season.motivo_baja==="lesionada";
-                const badge=lesionada?{txt:"LESIONADA",bg:"#fef3c7",fg:"#b45309"}:(inactiva?{txt:"YA NO ESTÁ",bg:"#e2e8f0",fg:"var(--fx-muted)"}:null);
+                const badge=lesionada?{icon:"✚",bg:"#fee2e2",fg:"#dc2626",title:"Lesionada"}:(inactiva?{icon:"✕",bg:"#fee2e2",fg:"#dc2626",title:"Ya no está en el equipo"}:null);
                 return(
                 <div key={i} onClick={()=>onGoToPlayer(player.id_jugadora,{tab:"equipos",id:selId,label:eq?.nombre})}
                   style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",background:"var(--fx-hover)",borderRadius:"12px",border:"1.5px solid var(--fx-border)",cursor:"pointer",transition:"all 0.15s",opacity:inactiva?(lesionada?0.75:0.55):1,filter:inactiva&&!lesionada?"grayscale(0.6)":"none"}}
@@ -770,7 +770,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
                   onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--fx-border)";e.currentTarget.style.background="var(--fx-hover)";}}>
                   <Avatar photo={player.foto} name={player.nombre} size={44} fontSize={16} fallecida={!!player.fecha_fallecimiento}/>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:700,fontSize:"14px",color:"#9333ea",display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>{player.nombre}{badge&&<span style={{background:badge.bg,color:badge.fg,fontSize:"10px",fontWeight:700,padding:"2px 7px",borderRadius:"10px",letterSpacing:"0.3px"}}>{badge.txt}</span>}</div>
+                    <div style={{fontWeight:700,fontSize:"14px",color:"#9333ea",display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>{player.nombre}{badge&&<span title={badge.title} style={{background:badge.bg,color:badge.fg,fontSize:"13px",fontWeight:900,width:"20px",height:"20px",display:"inline-flex",alignItems:"center",justifyContent:"center",borderRadius:"50%",lineHeight:1}}>{badge.icon}</span>}</div>
                     <div style={{fontSize:"12px",color:"var(--fx-muted)",marginTop:"2px",display:"flex",alignItems:"center",gap:"3px"}}>{player.nacionalidad&&<FlagImg country={player.nacionalidad}/>}{player.nacionalidad2&&<FlagImg country={player.nacionalidad2}/>}{player.altura_cm&&<span>{player.nacionalidad||player.nacionalidad2?" · ":""}{player.altura_cm} cm</span>}</div>
                   </div>
                   <div className="bfdb-player-card-right" style={{display:"flex",flexDirection:"column",gap:"3px",alignItems:"flex-end",flexShrink:0}}><div className="bfdb-player-badges" style={{display:"flex",gap:"3px",flexWrap:"wrap",justifyContent:"flex-end"}}>{player.posicion&&<span style={posStyle(player.posicion)}>{player.posicion}</span>}{player.posicion2&&<span style={posStyle(player.posicion2)}>{player.posicion2}</span>}</div>{esEquipoEuropeo(eq.pais)&&STATUS_BADGE[playerStatus(player.nacionalidad,player.nacionalidad2)]}</div>
