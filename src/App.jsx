@@ -292,7 +292,9 @@ function HomeView({players,equipos,ligas,palmares,coaches,tempCoach,onGoToPlayer
     // cada jugadora+equipo es la que registró el fichaje. Duplicar una plantilla a otra
     // competición (copa doméstica/continental) crea filas nuevas con id más alto que se
     // descartan aquí, para que un cambio de competición no reaparezca como movimiento.
-    const currentAll=players.flatMap(p=>(p.seasons||[]).map(s=>({...s,player:p}))).filter(s=>s.temporada===currentSeason&&!esSeleccion(s.id_equipo)).sort((a,b)=>a.id-b.id);
+    // Una jugadora marcada activa=false (manual/lesionada/auto) nunca cuenta como fichaje:
+    // asi podemos registrar en la plantilla historica a quien firmo pero nunca jugo sin ensuciar el feed.
+    const currentAll=players.flatMap(p=>(p.seasons||[]).map(s=>({...s,player:p}))).filter(s=>s.temporada===currentSeason&&!esSeleccion(s.id_equipo)&&s.activa!==false).sort((a,b)=>a.id-b.id);
     const seen=new Set();const deduped=[];
     currentAll.forEach(s=>{const k=s.id_jugadora+"|"+s.id_equipo;if(!seen.has(k)){seen.add(k);deduped.push(s);}});
     return deduped.filter(s=>{
