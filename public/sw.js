@@ -1,6 +1,6 @@
 /* ── La Basketneta Service Worker ── */
-const CACHE_NAME = "basketneta-v4";
-const API_CACHE  = "basketneta-api-v2";
+const CACHE_NAME = "basketneta-v5";
+const API_CACHE  = "basketneta-api-v3";
 const API_MAX_ENTRIES = 200;
 
 /* Solo cachea GETs a estas tablas estáticas (nunca partidos/boxscore → siempre red para live).

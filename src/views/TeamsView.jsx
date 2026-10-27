@@ -474,8 +474,19 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
     const{error}=await supabase.from("temporadas").update({activa,motivo_baja:motivo})
       .eq("id_jugadora",seasonRow.id_jugadora).eq("id_equipo",seasonRow.id_equipo).eq("temporada",seasonRow.temporada);
     if(error){alert("Error: "+error.message);return;}
-    setPlayers(prev=>prev.map(p=>p.id_jugadora!==seasonRow.id_jugadora?p:
-      {...p,seasons:(p.seasons||[]).map(s=>(s.id_equipo===seasonRow.id_equipo&&s.temporada===seasonRow.temporada)?{...s,activa,motivo_baja:motivo}:s)}));
+    setPlayers(prev=>{
+      const next=prev.map(p=>p.id_jugadora!==seasonRow.id_jugadora?p:
+        {...p,seasons:(p.seasons||[]).map(s=>(s.id_equipo===seasonRow.id_equipo&&s.temporada===seasonRow.temporada)?{...s,activa,motivo_baja:motivo}:s)});
+      // Write-through: persistir cambio al cache local y al SW API cache para
+      // que un refresh inmediato no muestre el estado anterior.
+      try{
+        const CK="basketfemdb:cache:v11";
+        const raw=localStorage.getItem(CK);
+        if(raw){const c=JSON.parse(raw);c.players=next;localStorage.setItem(CK,JSON.stringify(c));}
+      }catch{}
+      try{navigator.serviceWorker?.controller?.postMessage({type:"BUST_API_CACHE"});}catch{}
+      return next;
+    });
   };
   const duplicateSquad=async(squadList,targetLiga,temporada)=>{
     setSaving(true);
