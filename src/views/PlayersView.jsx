@@ -467,7 +467,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
     if(!pl)return;
     // Siempre refrescar carrera completa al abrir ficha (el cache/RLS puede tener menos filas de las reales)
     (async()=>{
-      const {data}=await supabase.from("temporadas").select("id,id_jugadora,id_equipo,id_liga,temporada,orden").eq("id_jugadora",selId).order("temporada",{ascending:false}).limit(200);
+      const {data}=await supabase.from("temporadas").select("id,id_jugadora,id_equipo,id_liga,temporada,orden,activa,motivo_baja").eq("id_jugadora",selId).order("temporada",{ascending:false}).limit(200);
       if(!data)return;
       setPlayers(prev=>prev.map(p=>p.id_jugadora===selId?{...p,seasons:data}:p));
     })();

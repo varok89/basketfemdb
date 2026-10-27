@@ -1765,7 +1765,7 @@ export default function App(){
     if(tab!=="jugadoras"||seasonsFull) return;
     (async()=>{
       try{
-        const {data}=await fetchAll("temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden"});
+        const {data}=await fetchAll("temporadas",{order:"id_jugadora",select:"id,id_jugadora,id_equipo,id_liga,temporada,orden,activa,motivo_baja"});
         const byPlayer={};
         (data||[]).forEach(t=>{if(!byPlayer[t.id_jugadora])byPlayer[t.id_jugadora]=[];byPlayer[t.id_jugadora].push(t);});
         let merged=[];
