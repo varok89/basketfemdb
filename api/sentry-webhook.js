@@ -83,18 +83,22 @@ async function notionCreatePage({ title, level, url, culprit, project, environme
   return await r.json();
 }
 
-// Normaliza el payload de Sentry. Legacy webhook manda campos planos,
-// Internal Integration manda { action, data: { event: {...} } }.
+// Normaliza el payload de Sentry. Distintos formatos:
+// - Legacy webhook alert: campos planos (body.id, body.message, body.event.issue_id)
+// - Internal Integration (Sentry Apps): { action, data: { event, issue, triggered_rule } }
+// - Issue Alert v2: { action, data: { issue: {...} } } sin event embebido
 function normalize(body) {
-  const ev = body?.data?.event || body?.event || body || {};
-  const issueId = String(body?.data?.event?.issue_id
-    || body?.event?.issue_id
-    || body?.id
-    || body?.issue_id
-    || ev.issue_id
-    || ev.id
-    || "");
-  const title = ev.title || ev.message || body?.message || body?.title || "Sentry issue";
+  const ev = body?.data?.event || body?.event || {};
+  const iss = body?.data?.issue || body?.issue || {};
+  const issueId = String(
+    iss.id || iss.shortId || iss.short_id ||
+    ev.issue_id || ev.issue?.id ||
+    body?.data?.event?.issue_id || body?.event?.issue_id ||
+    body?.issue_id || body?.id ||
+    ev.id ||
+    ""
+  );
+  const title = iss.title || ev.title || ev.message || body?.message || body?.title || iss.culprit || "Sentry issue";
   const level = ev.level || body?.level || "error";
   const project = ev.project_slug || body?.project_slug || body?.project || body?.project_name || "";
   const environment = ev.environment || body?.environment || "";
@@ -128,11 +132,21 @@ module.exports = async (req, res) => {
 
   try {
     const n = normalize(body);
-    // Rechazar pings sin issueId (installation events, verification, etc.). Antes
-    // creaban tarjetas vacias con titulo "[SNT] Sentry issue" que no aportan nada.
-    if (!n.issueId) {
-      res.status(200).json({ ok: true, skipped: "no_issue_id", body_keys: Object.keys(body || {}) });
+    // Rechazar solo installation/verification pings (action sin issue meaningful).
+    // Antes rechazábamos todo lo sin issueId pero eso perdía bugs reales de Sentry
+    // en formatos nuevos. Fix: aceptamos si hay título útil, generando issueId
+    // sintético (hash corto del título) como fallback para dedup.
+    const installationPings = ["installation.created","installation.deleted","verify"];
+    if (installationPings.includes(body?.action) || (!n.issueId && !n.title)) {
+      res.status(200).json({ ok: true, skipped: "installation_or_empty", action: body?.action, body_keys: Object.keys(body || {}) });
       return;
+    }
+    if (!n.issueId) {
+      // Fallback: hash del título normalizado (sin números, lower) para dedup estable
+      const tnorm = String(n.title).toLowerCase().replace(/\d+/g, "").replace(/\s+/g, " ").trim();
+      let h = 0;
+      for (let i = 0; i < tnorm.length; i++) h = ((h << 5) - h + tnorm.charCodeAt(i)) | 0;
+      n.issueId = "h" + Math.abs(h).toString(36);
     }
     const prefix = `[SNT-${n.issueId}] `;
     const title = prefix + (n.title || "Sentry issue");
