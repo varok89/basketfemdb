@@ -1631,7 +1631,7 @@ export default function App(){
     // - SIEMPRE revalida en bg aunque haya cache local fresco (SWR real).
     //   Fixea el bug "datos antiguos" que teníamos.
     if(forzar){try{navigator.serviceWorker?.controller?.postMessage({type:"BUST_API_CACHE"});}catch(e){}}
-    const CK="basketfemdb:cache:v10";
+    const CK="basketfemdb:cache:v11";
     const TTL_MS=7*24*60*60*1000;
 
     // === PASO 0: Hidratar cache local SINCRÓNICAMENTE (primera pintura) ===
@@ -1777,7 +1777,7 @@ export default function App(){
         });
         setSeasonsFull(true);
         try{
-          const CK="basketfemdb:cache:v9";
+          const CK="basketfemdb:cache:v11";
           const raw=localStorage.getItem(CK);
           if(raw){
             const c=JSON.parse(raw);
@@ -1812,7 +1812,7 @@ export default function App(){
         });
         setPlayersFull(true);
         try{
-          const CK="basketfemdb:cache:v9";
+          const CK="basketfemdb:cache:v11";
           const raw=localStorage.getItem(CK);
           if(raw){const c=JSON.parse(raw);c.players=merged;c.playersFull=true;localStorage.setItem(CK,JSON.stringify(c));}
         }catch(e){}
@@ -1831,7 +1831,7 @@ export default function App(){
         .eq("id_jugadora",id).maybeSingle();
       if(error||!data) return;
       const {data:tempRows}=await supabase.from("temporadas")
-        .select("id,id_jugadora,id_equipo,id_liga,temporada,orden")
+        .select("id,id_jugadora,id_equipo,id_liga,temporada,orden,activa,motivo_baja")
         .eq("id_jugadora",id).order("orden");
       const nueva={...data,seasons:tempRows||[]};
       setPlayers(prev=>prev.some(p=>p.id_jugadora===id)?prev:[...prev,nueva]);
@@ -1856,7 +1856,7 @@ export default function App(){
         });
         setPartidosFull(true);
         try{
-          const CK="basketfemdb:cache:v9";
+          const CK="basketfemdb:cache:v11";
           const raw=localStorage.getItem(CK);
           if(raw){
             const c=JSON.parse(raw);
