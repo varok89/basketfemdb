@@ -468,11 +468,14 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
     }catch(e){alert("Error: "+e.message);}
     setSaving(false);
   };
-  const toggleActiva=async(seasonId,nextActiva)=>{
+  const toggleActiva=async(seasonRow,nextActiva)=>{
     const motivo=nextActiva?null:"manual";
-    const{error}=await supabase.from("temporadas").update({activa:nextActiva,motivo_baja:motivo}).eq("id",seasonId);
+    // Propagar a todas las competiciones del mismo equipo/temporada (Liga + Copa + Eurocup...)
+    const{error}=await supabase.from("temporadas").update({activa:nextActiva,motivo_baja:motivo})
+      .eq("id_jugadora",seasonRow.id_jugadora).eq("id_equipo",seasonRow.id_equipo).eq("temporada",seasonRow.temporada);
     if(error){alert("Error: "+error.message);return;}
-    setPlayers(prev=>prev.map(p=>({...p,seasons:(p.seasons||[]).map(s=>s.id===seasonId?{...s,activa:nextActiva,motivo_baja:motivo}:s)})));
+    setPlayers(prev=>prev.map(p=>p.id_jugadora!==seasonRow.id_jugadora?p:
+      {...p,seasons:(p.seasons||[]).map(s=>(s.id_equipo===seasonRow.id_equipo&&s.temporada===seasonRow.temporada)?{...s,activa:nextActiva,motivo_baja:motivo}:s)}));
   };
   const duplicateSquad=async(squadList,targetLiga,temporada)=>{
     setSaving(true);
@@ -766,7 +769,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
                     <div style={{fontSize:"12px",color:"var(--fx-muted)",marginTop:"2px",display:"flex",alignItems:"center",gap:"3px"}}>{player.nacionalidad&&<FlagImg country={player.nacionalidad}/>}{player.nacionalidad2&&<FlagImg country={player.nacionalidad2}/>}{player.altura_cm&&<span>{player.nacionalidad||player.nacionalidad2?" · ":""}{player.altura_cm} cm</span>}</div>
                   </div>
                   <div className="bfdb-player-card-right" style={{display:"flex",flexDirection:"column",gap:"3px",alignItems:"flex-end",flexShrink:0}}><div className="bfdb-player-badges" style={{display:"flex",gap:"3px",flexWrap:"wrap",justifyContent:"flex-end"}}>{player.posicion&&<span style={posStyle(player.posicion)}>{player.posicion}</span>}{player.posicion2&&<span style={posStyle(player.posicion2)}>{player.posicion2}</span>}</div>{esEquipoEuropeo(eq.pais)&&STATUS_BADGE[playerStatus(player.nacionalidad,player.nacionalidad2)]}</div>
-                  {isAdmin&&<button onClick={e=>{e.stopPropagation();toggleActiva(season.id,inactiva);}} title={inactiva?"Reactivar en la plantilla":"Marcar como ya no está"} style={{background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"8px",padding:"4px 8px",fontSize:"11px",fontWeight:700,cursor:"pointer",color:inactiva?"#16a34a":"#dc2626"}}>{inactiva?"↩":"✕"}</button>}
+                  {isAdmin&&<button onClick={e=>{e.stopPropagation();toggleActiva(season,inactiva);}} title={inactiva?"Reactivar en todas las competiciones":"Marcar ya no está (todas las competiciones)"} style={{background:"var(--fx-card)",border:"1.5px solid var(--fx-border)",borderRadius:"8px",padding:"4px 8px",fontSize:"11px",fontWeight:700,cursor:"pointer",color:inactiva?"#16a34a":"#dc2626"}}>{inactiva?"↩":"✕"}</button>}
                 </div>
               );})}
             </div>)}
