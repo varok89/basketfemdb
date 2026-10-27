@@ -480,7 +480,7 @@ function TeamsView({equipos,players,ligas,palmares,coaches,tempCoach,onGoToPlaye
       // Write-through: persistir cambio al cache local y al SW API cache para
       // que un refresh inmediato no muestre el estado anterior.
       try{
-        const CK="basketfemdb:cache:v11";
+        const CK="basketfemdb:cache:v12";
         const raw=localStorage.getItem(CK);
         if(raw){const c=JSON.parse(raw);c.players=next;localStorage.setItem(CK,JSON.stringify(c));}
       }catch{}
