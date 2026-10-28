@@ -76,10 +76,10 @@ function card(d, baseUrl) {
   const text = (txt, style) => el("div", { display: "flex", ...style }, txt);
 
   const statRow = (icon, label, value) => el("div", {
-    display: "flex", alignItems: "center", gap: "14px", flex: 1,
+    display: "flex", alignItems: "center", gap: "14px",
   }, [
-    text(icon, { fontSize: "44px" }),
-    text(`${label}: ${value}`, { fontSize: "46px", fontWeight: 400, color: COL_TEXT, fontFamily: "Bebas Neue", letterSpacing: "1px" }),
+    text(icon, { fontSize: "40px" }),
+    text(`${label}: ${value}`, { fontSize: "44px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", letterSpacing: "0.5px" }),
   ]);
 
   const escudoJugadora = d.box.id_equipo === d.par.id_equipo_local ? d.eqL.escudo : d.eqV.escudo;
@@ -120,31 +120,31 @@ function card(d, baseUrl) {
                  : text("👤", { fontSize: "120px" }),
           ].filter(Boolean)),
           el("div", { display: "flex", width: "100%", height: "3px", background: COL_TEXT, marginTop: "6px", marginBottom: "10px" }, []),
-          text(nombre.toUpperCase(), { fontSize: "52px", fontWeight: 400, color: COL_TEXT, letterSpacing: "2px", fontFamily: "Bebas Neue", lineHeight: 0.95 }),
+          text(nombre.toUpperCase(), { fontSize: "52px", fontWeight: 700, color: COL_TEXT, letterSpacing: "2px", fontFamily: "Oswald", lineHeight: 0.95 }),
           el("div", { display: "flex", flexDirection: "row", gap: "16px", marginTop: "14px", justifyContent: "space-around" }, [
             ["T2", pT2], ["T3", pT3], ["TL", pTL],
           ].map(([lbl, v]) => el("div", { display: "flex", flexDirection: "column", alignItems: "center" }, [
-            text(lbl, { fontSize: "24px", fontWeight: 400, color: COL_TEXT, fontFamily: "Bebas Neue", marginBottom: "4px", letterSpacing: "2px" }),
+            text(lbl, { fontSize: "24px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", marginBottom: "4px", letterSpacing: "2px" }),
             el("div", {
               display: "flex", justifyContent: "center", alignItems: "center",
               width: "100px", height: "100px", borderRadius: "50%",
               background: "#fff", border: `3px solid ${COL_TEXT}`,
             }, [
-              text(`${v}%`, { fontSize: "28px", fontWeight: 400, color: COL_TEXT, fontFamily: "Bebas Neue", letterSpacing: "1px" }),
+              text(`${v}%`, { fontSize: "28px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", letterSpacing: "1px" }),
             ]),
           ]))),
         ]),
         // Columna derecha: liga + score + stats
         el("div", {
-          flex: 1, display: "flex", flexDirection: "column", gap: "8px",
+          flex: 1, display: "flex", flexDirection: "column", gap: "2px",
         }, [
           el("div", { display: "flex", alignItems: "center", gap: "12px", marginBottom: "4px" }, [
             d.ligaLogo ? img(d.ligaLogo, 54, 54) : null,
-            text(liga.toUpperCase(), { fontSize: "36px", fontWeight: 400, color: COL_TEXT, letterSpacing: "2px", fontFamily: "Bebas Neue" }),
+            text(liga.toUpperCase(), { fontSize: "36px", fontWeight: 700, color: COL_TEXT, letterSpacing: "2px", fontFamily: "Oswald" }),
           ].filter(Boolean)),
           el("div", { display: "flex", alignItems: "center", gap: "14px", marginBottom: "14px" }, [
             d.eqL.escudo ? img(d.eqL.escudo, 90, 90) : el("div", { width: 90, height: 90, display: "flex" }, []),
-            el("div", { display: "flex", flex: 1, justifyContent: "center", fontSize: "88px", fontWeight: 400, color: COL_TEXT, fontFamily: "Bebas Neue", lineHeight: 1, letterSpacing: "2px" }, score),
+            el("div", { display: "flex", flex: 1, justifyContent: "center", fontSize: "88px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", lineHeight: 1, letterSpacing: "2px" }, score),
             d.eqV.escudo ? img(d.eqV.escudo, 90, 90) : el("div", { width: 90, height: 90, display: "flex" }, []),
           ]),
           statRow("⏱️", "MINUTOS", mins),
@@ -173,17 +173,17 @@ export default async function handler(req) {
 
   const baseUrl = `${url.protocol}//${url.host}`;
   try {
-    const [d, fontBebas, fontInter] = await Promise.all([
+    const [d, fontOswald700, fontOswald400] = await Promise.all([
       datos(jugadora, parseInt(partido, 10)),
-      loadFont("https://cdn.jsdelivr.net/npm/@fontsource/bebas-neue/files/bebas-neue-latin-400-normal.woff"),
-      loadFont("https://cdn.jsdelivr.net/npm/@fontsource/inter/files/inter-latin-700-normal.woff"),
+      loadFont("https://cdn.jsdelivr.net/npm/@fontsource/oswald/files/oswald-latin-700-normal.woff"),
+      loadFont("https://cdn.jsdelivr.net/npm/@fontsource/oswald/files/oswald-latin-400-normal.woff"),
     ]);
     if (!d) return new Response(JSON.stringify({ error: "sin datos (jugadora, partido o boxscore no existe)" }), { status: 404, headers: { "Content-Type": "application/json" } });
     return new ImageResponse(card(d, baseUrl), {
       width: 1080, height: 900,
       fonts: [
-        { name: "Bebas Neue", data: fontBebas, weight: 400, style: "normal" },
-        { name: "Inter", data: fontInter, weight: 700, style: "normal" },
+        { name: "Oswald", data: fontOswald400, weight: 400, style: "normal" },
+        { name: "Oswald", data: fontOswald700, weight: 700, style: "normal" },
       ],
       headers: { "cache-control": "public, max-age=300, s-maxage=300" },
     });
