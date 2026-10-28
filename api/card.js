@@ -78,8 +78,8 @@ function card(d, baseUrl) {
   const statRow = (icon, label, value) => el("div", {
     display: "flex", alignItems: "center", gap: "14px",
   }, [
-    text(icon, { fontSize: "40px" }),
-    text(`${label}: ${value}`, { fontSize: "44px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", letterSpacing: "0.5px" }),
+    text(icon, { fontSize: "32px" }),
+    text(`${label}: ${value}`, { fontSize: "34px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", letterSpacing: "0.5px" }),
   ]);
 
   const escudoJugadora = d.box.id_equipo === d.par.id_equipo_local ? d.eqL.escudo : d.eqV.escudo;
@@ -138,11 +138,11 @@ function card(d, baseUrl) {
         }, [
           el("div", { display: "flex", alignItems: "center", gap: "12px", marginBottom: "4px" }, [
             d.ligaLogo ? img(d.ligaLogo, 54, 54) : null,
-            text(liga.toUpperCase(), { fontSize: "36px", fontWeight: 700, color: COL_TEXT, letterSpacing: "2px", fontFamily: "Oswald" }),
+            text(liga.toUpperCase(), { fontSize: "30px", fontWeight: 700, color: COL_TEXT, letterSpacing: "2px", fontFamily: "Oswald" }),
           ].filter(Boolean)),
           el("div", { display: "flex", alignItems: "center", gap: "14px", marginBottom: "14px" }, [
             d.eqL.escudo ? img(d.eqL.escudo, 90, 90) : el("div", { width: 90, height: 90, display: "flex" }, []),
-            el("div", { display: "flex", flex: 1, justifyContent: "center", fontSize: "88px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", lineHeight: 1, letterSpacing: "2px" }, score),
+            el("div", { display: "flex", flex: 1, justifyContent: "center", fontSize: "72px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", lineHeight: 1, letterSpacing: "2px" }, score),
             d.eqV.escudo ? img(d.eqV.escudo, 90, 90) : el("div", { width: 90, height: 90, display: "flex" }, []),
           ]),
           statRow("⏱️", "MINUTOS", mins),
@@ -191,7 +191,7 @@ export default async function handler(req) {
     ]);
     if (!d) return new Response(JSON.stringify({ error: "sin datos (jugadora, partido o boxscore no existe)" }), { status: 404, headers: { "Content-Type": "application/json" } });
     return new ImageResponse(card(d, baseUrl), {
-      width: 1080, height: 900,
+      width: 1080, height: 1080,
       fonts: [
         { name: "Oswald", data: fontOswald400, weight: 400, style: "normal" },
         { name: "Oswald", data: fontOswald700, weight: 700, style: "normal" },
