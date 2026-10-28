@@ -110,7 +110,7 @@ function card(d, baseUrl) {
         img(LOGO, 120, 120),
       ]),
       el("div", {
-        display: "flex", flex: 1, marginTop: "72px", gap: "28px",
+        display: "flex", flex: 1, marginTop: "72px", gap: "64px",
       }, [
         // Columna izquierda: foto + nombre + %tiros
         el("div", { display: "flex", flexDirection: "column", width: `${PHOTO}px`, position: "relative" }, [
@@ -130,7 +130,7 @@ function card(d, baseUrl) {
             ]) : text("👤", { fontSize: "120px" }),
           ]),
           text(nombre.toUpperCase(), { fontSize: "60px", fontWeight: 700, color: COL_TEXT, letterSpacing: "2px", fontFamily: "Oswald", lineHeight: 0.95, marginTop: "10px" }),
-          text(`T2: ${pT2}%  |  T3: ${pT3}%  |  TL: ${pTL}%`, { fontSize: "32px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", marginTop: "10px", letterSpacing: "1px" }),
+          text(`T2 ${t2m}/${t2i} (${pT2}%)  |  T3 ${d.box.t3_anotados || 0}/${d.box.t3_intentados || 0} (${pT3}%)  |  TL ${d.box.tl_anotados || 0}/${d.box.tl_intentados || 0} (${pTL}%)`, { fontSize: "24px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", marginTop: "10px", letterSpacing: "0.5px" }),
         ].filter(Boolean)),
         // Columna derecha: liga+score arriba, stats centradas verticalmente
         el("div", {
