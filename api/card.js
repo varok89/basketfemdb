@@ -148,13 +148,15 @@ function card(d, baseUrl) {
               d.eqV.escudo ? img(d.eqV.escudo, 70, 70) : el("div", { width: 70, height: 70, display: "flex" }, []),
             ]),
           ]),
-          el("div", { display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }, [
+          el("div", { display: "flex", flex: 2 }, []),
+          el("div", { display: "flex", flexDirection: "column" }, [
             statRow("⏱️", "MINUTOS", mins),
             statRow("🏀", "PUNTOS", pts),
             statRow("📊", "REBOTES", reb),
             statRow("🤾", "ASISTENCIAS", ast),
             statRow("🏆", "VALORACIÓN", val),
           ]),
+          el("div", { display: "flex", flex: 5 }, []),
         ]),
       ]),
     ]),
