@@ -121,7 +121,18 @@ function card(d, baseUrl) {
           ].filter(Boolean)),
           el("div", { display: "flex", width: "100%", height: "3px", background: COL_TEXT, marginTop: "6px", marginBottom: "10px" }, []),
           text(nombre.toUpperCase(), { fontSize: "40px", fontWeight: 900, color: COL_TEXT, letterSpacing: "1px", fontFamily: "Inter", lineHeight: 1 }),
-          text(`T2: ${pT2}%  |  T3: ${pT3}%  |  TL: ${pTL}%`, { fontSize: "22px", fontWeight: 700, color: COL_MUTED, marginTop: "8px", fontFamily: "Inter" }),
+          el("div", { display: "flex", flexDirection: "row", gap: "16px", marginTop: "14px", justifyContent: "space-around" }, [
+            ["T2", pT2], ["T3", pT3], ["TL", pTL],
+          ].map(([lbl, v]) => el("div", { display: "flex", flexDirection: "column", alignItems: "center" }, [
+            text(lbl, { fontSize: "18px", fontWeight: 900, color: COL_TEXT, fontFamily: "Inter", marginBottom: "4px" }),
+            el("div", {
+              display: "flex", justifyContent: "center", alignItems: "center",
+              width: "100px", height: "100px", borderRadius: "50%",
+              background: "#fff", border: `3px solid ${COL_TEXT}`,
+            }, [
+              text(`${v}%`, { fontSize: "22px", fontWeight: 900, color: COL_TEXT, fontFamily: "Inter" }),
+            ]),
+          ]))),
         ]),
         // Columna derecha: liga + score + stats
         el("div", {
