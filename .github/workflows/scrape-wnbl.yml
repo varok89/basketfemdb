@@ -20,9 +20,7 @@ jobs:
         with:
           node-version: '22'
       - name: Install deps
-        run: |
-          npm install --no-save @supabase/supabase-js@^2.39 playwright@^1.48
-          npx playwright install --with-deps chromium
+        run: npm install --no-save @supabase/supabase-js@^2.39
       - name: Run scraper
         env:
           SUPABASE_URL: https://${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co

@@ -1,16 +1,10 @@
 #!/usr/bin/env node
 // scrape-wnbl-boxscores.mjs
-// Scraper WNBL (L029) via Sofascore API JSON desde dentro de Playwright
-// (asi Cloudflare lo acepta como same-origin del browser real).
-//
-// Flujo:
-//   1. BD: partidos L029 ultimos 10d con resultado pero sin boxscore.
-//   2. Playwright chromium: goto sofascore.com → establece cookies CF.
-//   3. page.evaluate(fetch api.sofascore.com/.../events) → mapea team+fecha → eventId.
-//   4. Para cada partido: fetch /event/{id} (periodScores) + /event/{id}/lineups (stats).
-//   5. UPSERT partido_boxscore + UPDATE parciales + sofascore_event_id.
+// Carga boxscore + parciales WNBL (L029) desde el endpoint publico de
+// schedule.nbl.com.au/api/calendar/match. Un simple fetch JSON: sin
+// Playwright, sin Sofascore, sin Cloudflare. Usa partidos.id_ext como
+// match UUID.
 
-import { chromium } from "playwright";
 import { createClient } from "@supabase/supabase-js";
 
 const SB_URL = process.env.SUPABASE_URL;
@@ -18,7 +12,6 @@ const SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!SB_URL || !SB_KEY) { console.error("Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY"); process.exit(1); }
 const sb = createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
 
-const WNBL_TOURNAMENT_ID = 1506;
 const WAIT = (ms) => new Promise(r => setTimeout(r, ms));
 const norm = (s) => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 
@@ -55,8 +48,8 @@ function mapearJug(idx, nombreCrudo) {
 async function listarPendientes() {
   const desde = new Date(Date.now() - 10 * 86400 * 1000).toISOString();
   const { data: partidos } = await sb.from("partidos")
-    .select("id,id_equipo_local,id_equipo_visitante,fecha_hora,resultado_local,resultado_visitante,sofascore_event_id,temporada,id_liga,eq_local:equipos!partidos_id_equipo_local_fkey(nombre),eq_visit:equipos!partidos_id_equipo_visitante_fkey(nombre)")
-    .eq("id_liga", "L029").gte("fecha_hora", desde).not("resultado_local", "is", null).order("fecha_hora", { ascending: false });
+    .select("id,id_ext,id_equipo_local,id_equipo_visitante,fecha_hora,resultado_local,resultado_visitante,temporada,id_liga")
+    .eq("id_liga", "L029").gte("fecha_hora", desde).not("resultado_local", "is", null).not("id_ext", "is", null).order("fecha_hora", { ascending: false });
   if (!partidos?.length) return [];
   const ids = partidos.map(p => p.id);
   const { data: boxes } = await sb.from("partido_boxscore").select("id_partido").in("id_partido", ids);
@@ -64,68 +57,11 @@ async function listarPendientes() {
   return partidos.filter(p => !conBox.has(p.id));
 }
 
-// Carga una URL HTML de sofascore.com y extrae el JSON __NEXT_DATA__.
-async function getNextData(page, url) {
-  const resp = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
-  await WAIT(2500);
-  const info = await page.evaluate(() => {
-    const el = document.getElementById("__NEXT_DATA__");
-    const html = document.documentElement.outerHTML || "";
-    return {
-      hasNext: !!el,
-      nextLen: el ? el.textContent.length : 0,
-      htmlLen: html.length,
-      title: document.title,
-      snippet: html.slice(0, 400),
-      hasCF: /just a moment|cf-challenge|cloudflare/i.test(html),
-      hasInitialState: /__INITIAL_STATE__|__NUXT__|__APOLLO_STATE__/.test(html),
-    };
-  });
-  console.log(`  [getNextData] ${url}`);
-  console.log(`    status=${resp?.status()} title="${info.title}" htmlLen=${info.htmlLen} hasNext=${info.hasNext}(${info.nextLen}) hasCF=${info.hasCF} hasInitialState=${info.hasInitialState}`);
-  if (!info.hasNext) {
-    console.log(`    snippet: ${info.snippet.replace(/\s+/g, " ").slice(0, 300)}`);
-    return { __err: "sin __NEXT_DATA__" };
-  }
-  const json = await page.evaluate(() => document.getElementById("__NEXT_DATA__").textContent);
-  try { return JSON.parse(json); } catch (e) { return { __err: `parse ${e.message}` }; }
-}
-
-async function obtenerEventosLiga(page) {
-  const url = `https://www.sofascore.com/basketball/tournament/australia/wnbl/${WNBL_TOURNAMENT_ID}`;
-  const nd = await getNextData(page, url);
-  if (nd?.__err) { console.log("err tournament page:", nd.__err); return []; }
-  // Buscar eventos recursivamente: cualquier array con objetos {id, homeTeam, awayTeam, startTimestamp}.
-  const vistos = new Set(); const eventos = [];
-  const walk = (o) => {
-    if (!o || typeof o !== "object") return;
-    if (Array.isArray(o)) { for (const v of o) walk(v); return; }
-    if (typeof o.id === "number" && o.homeTeam?.name && o.awayTeam?.name && typeof o.startTimestamp === "number") {
-      if (!vistos.has(o.id)) { vistos.add(o.id); eventos.push(o); }
-    }
-    for (const k of Object.keys(o)) walk(o[k]);
-  };
-  walk(nd);
-  console.log(`  eventos listados: ${eventos.length}`);
-  return eventos;
-}
-
-function matchEvento(eventos, partido) {
-  const lN = norm(partido.eq_local.nombre);
-  const vN = norm(partido.eq_visit.nombre);
-  const pDate = new Date(partido.fecha_hora).getTime();
-  for (const e of eventos) {
-    const h = norm(e.homeTeam?.name || "");
-    const a = norm(e.awayTeam?.name || "");
-    if (!h || !a) continue;
-    const matchHome = h.includes(lN) || lN.includes(h) || h.split(" ").some(w => lN.includes(w) && w.length > 3);
-    const matchAway = a.includes(vN) || vN.includes(a) || a.split(" ").some(w => vN.includes(w) && w.length > 3);
-    if (matchHome && matchAway) {
-      const ts = (e.startTimestamp || 0) * 1000;
-      if (Math.abs(ts - pDate) < 48 * 3600 * 1000) return e;
-    }
-  }
-  return null;
+async function fetchMatch(matchUuid) {
+  const url = `https://schedule.nbl.com.au/api/calendar/match?match=${encodeURIComponent(matchUuid)}&league=wnbl`;
+  const r = await fetch(url, { headers: { accept: "application/json" } });
+  if (!r.ok) return { __err: `HTTP ${r.status}` };
+  try { return await r.json(); } catch (e) { return { __err: `parse ${e.message}` }; }
 }
 
 async function cargarRosterEquipos(idLocal, idVisit, temporada, idLiga) {
@@ -155,70 +91,85 @@ async function cargarHuecosJug() {
   return huecos;
 }
 
-function segsAMinutos(s) {
-  if (!s) return null;
-  const m = Math.floor(s / 60); const r = s % 60;
-  return `${m}:${String(r).padStart(2, "0")}`;
-}
+// Mapea un match API payload a {parciales, box[]}.
+// period "0" o period_type regular + period "0" = agregado del partido.
+// period "1".."4" (regulares) + "5"+ (OT) = parciales.
+function parsearPayload(payload, idLocal, idVisit, extLocal, extVisit) {
+  const m = payload?.match;
+  if (!m) return { __err: "sin match en payload" };
+  const pms = Array.isArray(m.player_match_statistics) ? m.player_match_statistics : [];
+  const tms = Array.isArray(m.team_match_statistics) ? m.team_match_statistics : [];
 
-async function scrapePartido(page, p) {
-  // Event page
-  const nd1 = await getNextData(page, `https://www.sofascore.com/event/${p.sofascore_event_id}`);
-  if (nd1?.__err) return { ok: false, motivo: `event ${nd1.__err}` };
-  // Encontrar objeto event con homeScore/awayScore period1..period4
-  let periodScores = null;
-  const walkEvent = (o) => {
-    if (!o || typeof o !== "object" || periodScores) return;
-    if (Array.isArray(o)) { for (const v of o) walkEvent(v); return; }
-    if (o.homeScore && o.awayScore && typeof o.homeScore.period1 === "number") {
-      const periods = ["period1", "period2", "period3", "period4"];
-      const local = periods.map(k => o.homeScore[k]).filter(x => typeof x === "number");
-      const visit = periods.map(k => o.awayScore[k]).filter(x => typeof x === "number");
-      if (local.length >= 4 && visit.length >= 4) periodScores = { local, visitante: visit };
-      return;
-    }
-    for (const k of Object.keys(o)) walkEvent(o[k]);
-  };
-  walkEvent(nd1);
+  // Resolver external_id de cada team en payload
+  const extByTeam = {};
+  for (const t of tms) {
+    const tid = t.team?.id || t.team;
+    const tex = t.team?.external_id;
+    if (tid && tex) extByTeam[tid] = tex;
+  }
+  // Mapear external_id → id_equipo BD
+  function teamLocalId(payloadTeamId) {
+    const ext = extByTeam[payloadTeamId];
+    if (ext && ext === extLocal) return idLocal;
+    if (ext && ext === extVisit) return idVisit;
+    return null;
+  }
 
-  // Lineups page
-  const nd2 = await getNextData(page, `https://www.sofascore.com/event/${p.sofascore_event_id}/lineups`);
-  if (nd2?.__err) return { ok: false, motivo: `lineups ${nd2.__err}` };
-  // Encontrar objeto {home,away} con arrays de players con statistics
-  let lineups = null;
-  const walkLineups = (o) => {
-    if (!o || typeof o !== "object" || lineups) return;
-    if (Array.isArray(o)) { for (const v of o) walkLineups(v); return; }
-    if (o.home?.players && o.away?.players) { lineups = o; return; }
-    for (const k of Object.keys(o)) walkLineups(o[k]);
-  };
-  walkLineups(nd2);
-  if (!lineups) return { ok: false, motivo: "sin lineups en __NEXT_DATA__" };
-
-  const box = [];
-  for (const lado of ["home", "away"]) {
-    const equipo = lineups[lado];
-    if (!equipo?.players) continue;
-    for (const pl of equipo.players) {
-      const st = pl.statistics || {};
-      box.push({
-        lado,
-        nombre: pl.player?.name || "",
-        shortName: pl.player?.shortName || "",
-        titular: pl.substitute === false,
-        secondsPlayed: st.secondsPlayed || 0,
-        puntos: st.points || 0,
-        tc_m: st.fieldGoalsMade || 0, tc_a: st.fieldGoalAttempts || 0,
-        t3_m: st.threePointsMade || 0, t3_a: st.threePointAttempts || 0,
-        tl_m: st.freeThrowsMade || 0, tl_a: st.freeThrowAttempts || 0,
-        reb_o: st.offensiveRebounds || 0, reb_d: st.defensiveRebounds || 0,
-        reb_t: st.rebounds || ((st.offensiveRebounds || 0) + (st.defensiveRebounds || 0)),
-        ast: st.assists || 0, stl: st.steals || 0, blk: st.blocks || 0,
-        tov: st.turnovers || 0, pf: st.personalFouls || 0,
-      });
+  // Parciales: team_match_statistics con period "1","2","3","4" (regular)
+  const parcialesLocal = [0, 0, 0, 0], parcialesVisit = [0, 0, 0, 0];
+  const otLocal = [], otVisit = [];
+  for (const t of tms) {
+    const per = parseInt(t.period, 10);
+    if (isNaN(per) || per === 0) continue;
+    const tid = t.team?.id || t.team;
+    const esLocal = teamLocalId(tid) === idLocal;
+    const pts = t.points || 0;
+    if (per >= 1 && per <= 4) {
+      if (esLocal) parcialesLocal[per - 1] = pts; else parcialesVisit[per - 1] = pts;
+    } else if (per >= 5) {
+      if (esLocal) otLocal.push(pts); else otVisit.push(pts);
     }
   }
-  return { ok: true, periodScores, box };
+  const parciales = (parcialesLocal.some(x => x > 0) || parcialesVisit.some(x => x > 0))
+    ? { local: parcialesLocal.concat(otLocal), visitante: parcialesVisit.concat(otVisit) }
+    : null;
+
+  // Boxscore: player_match_statistics con period "0" (agregado partido)
+  const box = [];
+  for (const p of pms) {
+    if (String(p.period) !== "0") continue;
+    if (p.participated === false) continue;
+    const tid = p.team?.id || p.team;
+    const id_equipo_base = teamLocalId(tid);
+    if (!id_equipo_base) continue;
+    const first = p.player?.first_name || "";
+    const last = p.player?.last_name || p.player?.family_name || "";
+    const nombre = p.player?.name || `${first} ${last}`.trim();
+    box.push({
+      id_equipo_base,
+      lado: id_equipo_base === idLocal ? "home" : "away",
+      nombre,
+      dorsal: p.jersey_number || null,
+      titular: !!p.starter,
+      minutos: p.minutes || null,
+      puntos: p.points || 0,
+      tc_m: p.field_goals_made || 0, tc_a: p.field_goals_attempted || 0,
+      t3_m: p.three_points_made || 0, t3_a: p.three_points_attempted || 0,
+      tl_m: p.free_throws_made || 0, tl_a: p.free_throws_attempted || 0,
+      reb_o: p.offensive_rebounds || 0, reb_d: p.defensive_rebounds || 0,
+      reb_t: p.rebounds || 0,
+      ast: p.assists || 0, stl: p.steals || 0, blk: p.blocks || 0,
+      tov: p.turnovers || 0,
+      pf: p.personal_fouls || 0,
+      valoracion: p.efficiency || 0,
+    });
+  }
+  return { parciales, box };
+}
+
+async function obtenerExtEquipo(id_equipo) {
+  const { data } = await sb.from("equipos").select("codigo").eq("id_equipo", id_equipo).maybeSingle();
+  return data?.codigo || null;
 }
 
 async function main() {
@@ -226,40 +177,36 @@ async function main() {
   console.log(`Partidos L029 pendientes de boxscore (ultimos 10d): ${partidos.length}`);
   if (!partidos.length) return;
 
-  const browser = await chromium.launch({ headless: true });
-  const ctx = await browser.newContext({
-    userAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-    viewport: { width: 1280, height: 800 }, locale: "en-US",
-  });
-  const page = await ctx.newPage();
-  const eventos = await obtenerEventosLiga(page);
-  if (!eventos.length) { console.log("Sin eventos de la liga, abortando."); await browser.close(); return; }
-
-  for (const p of partidos) {
-    if (p.sofascore_event_id) continue;
-    const ev = matchEvento(eventos, p);
-    if (!ev) { console.log(`  NO MATCH ${p.eq_local.nombre} vs ${p.eq_visit.nombre} (${p.fecha_hora})`); continue; }
-    p.sofascore_event_id = ev.id;
-    await sb.from("partidos").update({ sofascore_event_id: ev.id }).eq("id", p.id);
-    console.log(`  mapped id=${p.id} ${p.eq_local.nombre} vs ${p.eq_visit.nombre} -> ${ev.id}`);
-  }
-
-  const rep = { intentados: 0, upserted: 0, sin_event: 0, sin_match_jug: [], errores: [] };
+  const rep = { intentados: 0, upserted: 0, errores: [], sin_match_jug: [] };
   let huecosJug = null; let huecosIdx = 0;
 
+  // Cache external_id por id_equipo
+  const extCache = new Map();
+  async function extDe(id_equipo) {
+    if (extCache.has(id_equipo)) return extCache.get(id_equipo);
+    // Preferir join via temporadas → jugadoras no sirve; usamos equipos table
+    const { data } = await sb.from("equipos").select("codigo,id_equipo").eq("id_equipo", id_equipo).maybeSingle();
+    // No tenemos external_id en equipos. Lo cogemos del propio payload siempre.
+    extCache.set(id_equipo, data?.codigo || null);
+    return extCache.get(id_equipo);
+  }
+
   for (const p of partidos) {
-    if (!p.sofascore_event_id) { rep.sin_event++; continue; }
     rep.intentados++;
-    const r = await scrapePartido(page, p);
-    if (!r.ok) { rep.errores.push({ id: p.id, motivo: r.motivo }); continue; }
-    console.log(`id=${p.id} event=${p.sofascore_event_id}: ${r.box.length} jugadoras, parciales=${!!r.periodScores}`);
+    const payload = await fetchMatch(p.id_ext);
+    if (payload?.__err) { rep.errores.push({ id: p.id, motivo: payload.__err }); continue; }
+    // external_id de teams en payload
+    const extLocal = payload?.match?.home_team?.external_id;
+    const extVisit = payload?.match?.away_team?.external_id;
+    const r = parsearPayload(payload, p.id_equipo_local, p.id_equipo_visitante, extLocal, extVisit);
+    if (r?.__err) { rep.errores.push({ id: p.id, motivo: r.__err }); continue; }
+    console.log(`id=${p.id} match=${p.id_ext}: ${r.box.length} jugadoras, parciales=${!!r.parciales}`);
 
     const { idxLocal, idxVisit } = await cargarRosterEquipos(p.id_equipo_local, p.id_equipo_visitante, p.temporada, p.id_liga);
     const filas = [];
     for (const b of r.box) {
       const idx = b.lado === "home" ? idxLocal : idxVisit;
-      const id_equipo_base = b.lado === "home" ? p.id_equipo_local : p.id_equipo_visitante;
-      let id_jug = mapearJug(idx, b.nombre) || mapearJug(idx, b.shortName);
+      let id_jug = mapearJug(idx, b.nombre);
       if (!id_jug) {
         if (!huecosJug) huecosJug = await cargarHuecosJug();
         if (huecosIdx < huecosJug.length) {
@@ -267,15 +214,15 @@ async function main() {
           const { error } = await sb.from("jugadoras").insert({ id_jugadora: nuevoId, nombre: b.nombre });
           if (!error) {
             id_jug = nuevoId;
-            await sb.from("temporadas").insert({ id_jugadora: nuevoId, id_equipo: id_equipo_base, id_liga: p.id_liga, temporada: p.temporada });
+            await sb.from("temporadas").insert({ id_jugadora: nuevoId, id_equipo: b.id_equipo_base, id_liga: p.id_liga, temporada: p.temporada });
           }
         }
         if (!id_jug) { rep.sin_match_jug.push(b.nombre); continue; }
       }
       filas.push({
-        id_partido: p.id, id_jugadora: id_jug, id_equipo: id_equipo_base,
-        nombre: b.nombre, dorsal: null, titular: b.titular,
-        minutos: segsAMinutos(b.secondsPlayed),
+        id_partido: p.id, id_jugadora: id_jug, id_equipo: b.id_equipo_base,
+        nombre: b.nombre, dorsal: b.dorsal, titular: b.titular,
+        minutos: b.minutos,
         puntos: b.puntos,
         tc_anotados: b.tc_m, tc_intentados: b.tc_a,
         t3_anotados: b.t3_m, t3_intentados: b.t3_a,
@@ -283,7 +230,7 @@ async function main() {
         reb_ofensivos: b.reb_o, reb_defensivos: b.reb_d, reb_totales: b.reb_t,
         asistencias: b.ast, robos: b.stl, tapones: b.blk,
         perdidas: b.tov, faltas: b.pf,
-        valoracion: 0,
+        valoracion: b.valoracion,
       });
     }
     if (filas.length > 0) {
@@ -292,10 +239,10 @@ async function main() {
       if (error) { rep.errores.push({ id: p.id, insert: error.message }); continue; }
       rep.upserted += filas.length;
     }
-    if (r.periodScores) await sb.from("partidos").update({ parciales: r.periodScores }).eq("id", p.id);
+    if (r.parciales) await sb.from("partidos").update({ parciales: r.parciales }).eq("id", p.id);
+    await WAIT(250);
   }
   console.log("Reporte:", JSON.stringify(rep, null, 2));
-  await browser.close();
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
