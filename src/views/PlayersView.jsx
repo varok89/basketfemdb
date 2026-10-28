@@ -868,7 +868,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
       </div>
       )}
       {ftab==="estadisticas"&&<StatsJugadora idJugadora={selected.id_jugadora} equipos={equipos} ligas={ligas} equiposNombres={equiposNombres} onOpenPartido={onGoToPartido}/>}
-      {isAdmin&&cardModal&&<PlayerCardModal jugadora={selected} equiposNombres={equiposNombres} onClose={()=>setCardModal(false)}/>}
+      {isAdmin&&cardModal&&<PlayerCardModal jugadora={selected} equipos={equipos} equiposNombres={equiposNombres} onClose={()=>setCardModal(false)}/>}
       {isAdmin&&seasonModal&&(()=>{
         const coachRecord=(coaches||[]).find(c=>String(c.id_jugadora)===String(selected.id_jugadora));
         return coachRecord?(<Modal title={seasonModal==="add"?"Añadir temporada coach":"Editar temporada coach"} onClose={()=>setSeasonModal(null)}>

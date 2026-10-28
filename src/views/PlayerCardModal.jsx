@@ -1,7 +1,9 @@
-import {useState,useEffect} from "react";
+import {useState,useEffect,useMemo} from "react";
 import {supabase} from "../lib/supabaseClient";
+import {resolveTeamName} from "../lib/ui";
 
-export function PlayerCardModal({jugadora,equiposNombres,onClose}){
+export function PlayerCardModal({jugadora,equipos,equiposNombres,onClose}){
+  const equipoMap=useMemo(()=>{const m={};(equipos||[]).forEach(e=>{m[e.id_equipo]=e;});return m;},[equipos]);
   const [rows,setRows]=useState(null);
   const [elegido,setElegido]=useState(null);
   const [loading,setLoading]=useState(false);
@@ -23,11 +25,7 @@ export function PlayerCardModal({jugadora,equiposNombres,onClose}){
     return()=>{cancel=true;};
   },[jugadora.id_jugadora]);
 
-  const nombreEq=(id)=>{
-    if(!id) return "";
-    if(equiposNombres && equiposNombres[id]) return equiposNombres[id];
-    return id;
-  };
+  const nombreEq=(id,temp)=>resolveTeamName(id,temp,equiposNombres,equipoMap);
 
   const url = elegido ? `/api/card?jugadora=${encodeURIComponent(jugadora.id_jugadora)}&partido=${elegido}` : null;
 
@@ -68,7 +66,7 @@ export function PlayerCardModal({jugadora,equiposNombres,onClose}){
             <select value={elegido||""} onChange={e=>setElegido(parseInt(e.target.value,10))} style={{width:"100%",padding:"9px 10px",borderRadius:"8px",border:"1px solid var(--fx-border)",background:"var(--fx-card)",color:"var(--fx-text)",fontSize:"13px"}}>
               {rows.map(r=>{
                 const dt = r.fecha_hora ? new Date(r.fecha_hora).toLocaleDateString("es-ES",{day:"2-digit",month:"short"}) : "";
-                const lab = `${dt} · ${nombreEq(r.id_equipo_local)} ${r.resultado_local}-${r.resultado_visitante} ${nombreEq(r.id_equipo_visitante)} (${r.puntos||0}p)`;
+                const lab = `${dt} · ${nombreEq(r.id_equipo_local,r.temporada)} ${r.resultado_local}-${r.resultado_visitante} ${nombreEq(r.id_equipo_visitante,r.temporada)} (${r.puntos||0}p)`;
                 return <option key={r.id_partido} value={r.id_partido}>{lab}</option>;
               })}
             </select>

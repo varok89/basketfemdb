@@ -63,31 +63,33 @@ function card(d, baseUrl) {
   const pT3 = pct(d.box.t3_anotados, d.box.t3_intentados);
   const pTL = pct(d.box.tl_anotados, d.box.tl_intentados);
 
+  const text = (txt, style) => el("div", { display: "flex", ...style }, txt);
+
   const statRow = (icon, label, value) => el("div", {
     display: "flex", alignItems: "center", gap: "14px", marginBottom: "10px",
   }, [
-    el("div", { fontSize: "38px" }, icon),
-    el("div", { fontSize: "32px", fontWeight: 800, color: COL_TEXT }, `${label}: ${value}`),
+    text(icon, { fontSize: "38px" }),
+    text(`${label}: ${value}`, { fontSize: "32px", fontWeight: 800, color: COL_TEXT }),
   ]);
 
   const root = el("div", {
     width: "100%", height: "100%", display: "flex", position: "relative",
     backgroundImage: `url(${BG})`, backgroundSize: "cover", backgroundPosition: "center",
-    padding: "40px", fontFamily: "'Inter', system-ui, sans-serif",
+    padding: "40px",
   }, [
     el("div", {
       flex: 1, display: "flex", flexDirection: "column",
       background: "#f5efe8", borderRadius: "28px", padding: "60px 48px 36px 48px",
-      position: "relative", boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+      position: "relative",
     }, [
       el("div", {
-        position: "absolute", top: "-30px", left: "50%", transform: "translateX(-50%)",
+        position: "absolute", top: "-30px", left: "390px",
         width: "150px", height: "150px", display: "flex",
       }, [
         el("img", { src: LOGO, width: 150, height: 150, style: { objectFit: "contain" } }, undefined),
       ]),
       el("div", {
-        display: "flex", flex: 1, marginTop: "80px", gap: "32px",
+        display: "flex", flex: 1, marginTop: "100px", gap: "32px",
       }, [
         el("div", {
           width: "440px", height: "440px", display: "flex", justifyContent: "center", alignItems: "center",
@@ -95,16 +97,16 @@ function card(d, baseUrl) {
         }, foto ? [
           el("img", { src: foto, width: 440, height: 440, style: { objectFit: "cover" } }, undefined),
         ] : [
-          el("div", { fontSize: "140px" }, "👤"),
+          text("👤", { fontSize: "140px" }),
         ]),
         el("div", {
           flex: 1, display: "flex", flexDirection: "column", gap: "10px",
         }, [
-          el("div", { fontSize: "28px", fontWeight: 800, color: COL_TEXT, textTransform: "uppercase", letterSpacing: "1px" }, liga.toUpperCase()),
+          text(liga.toUpperCase(), { fontSize: "26px", fontWeight: 800, color: COL_TEXT, letterSpacing: "1px" }),
           el("div", { display: "flex", alignItems: "center", gap: "16px", marginBottom: "18px" }, [
-            d.eqL.escudo ? el("img", { src: d.eqL.escudo, width: 72, height: 72, style: { objectFit: "contain" } }, undefined) : el("div", { width: 72, height: 72 }),
-            el("div", { fontSize: "56px", fontWeight: 900, color: COL_TEXT, flex: 1, textAlign: "center" }, score),
-            d.eqV.escudo ? el("img", { src: d.eqV.escudo, width: 72, height: 72, style: { objectFit: "contain" } }, undefined) : el("div", { width: 72, height: 72 }),
+            d.eqL.escudo ? el("img", { src: d.eqL.escudo, width: 72, height: 72, style: { objectFit: "contain" } }, undefined) : el("div", { width: 72, height: 72, display: "flex" }, []),
+            el("div", { display: "flex", flex: 1, justifyContent: "center", fontSize: "56px", fontWeight: 900, color: COL_TEXT }, score),
+            d.eqV.escudo ? el("img", { src: d.eqV.escudo, width: 72, height: 72, style: { objectFit: "contain" } }, undefined) : el("div", { width: 72, height: 72, display: "flex" }, []),
           ]),
           statRow("⏱️", "MINUTOS", mins),
           statRow("🏀", "PUNTOS", pts),
@@ -114,9 +116,9 @@ function card(d, baseUrl) {
         ]),
       ]),
       el("div", { display: "flex", flexDirection: "column", marginTop: "24px", alignItems: "center" }, [
-        el("div", { width: "60%", height: "3px", background: COL_TEXT, marginBottom: "16px" }, []),
-        el("div", { fontSize: "48px", fontWeight: 900, color: COL_TEXT, textTransform: "uppercase", letterSpacing: "1px", textAlign: "center" }, nombre.toUpperCase()),
-        el("div", { fontSize: "26px", fontWeight: 700, color: COL_MUTED, marginTop: "8px" }, `T2: ${pT2}%  |  T3: ${pT3}%  |  TL: ${pTL}%`),
+        el("div", { display: "flex", width: "60%", height: "3px", background: COL_TEXT, marginBottom: "16px" }, []),
+        text(nombre.toUpperCase(), { fontSize: "48px", fontWeight: 900, color: COL_TEXT, letterSpacing: "1px" }),
+        text(`T2: ${pT2}%  |  T3: ${pT3}%  |  TL: ${pTL}%`, { fontSize: "26px", fontWeight: 700, color: COL_MUTED, marginTop: "8px" }),
       ]),
     ]),
   ]);
