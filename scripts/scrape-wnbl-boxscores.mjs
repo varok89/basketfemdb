@@ -66,13 +66,28 @@ async function listarPendientes() {
 
 // Carga una URL HTML de sofascore.com y extrae el JSON __NEXT_DATA__.
 async function getNextData(page, url) {
-  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
-  await WAIT(1500);
-  const json = await page.evaluate(() => {
+  const resp = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+  await WAIT(2500);
+  const info = await page.evaluate(() => {
     const el = document.getElementById("__NEXT_DATA__");
-    return el ? el.textContent : null;
+    const html = document.documentElement.outerHTML || "";
+    return {
+      hasNext: !!el,
+      nextLen: el ? el.textContent.length : 0,
+      htmlLen: html.length,
+      title: document.title,
+      snippet: html.slice(0, 400),
+      hasCF: /just a moment|cf-challenge|cloudflare/i.test(html),
+      hasInitialState: /__INITIAL_STATE__|__NUXT__|__APOLLO_STATE__/.test(html),
+    };
   });
-  if (!json) return { __err: "sin __NEXT_DATA__" };
+  console.log(`  [getNextData] ${url}`);
+  console.log(`    status=${resp?.status()} title="${info.title}" htmlLen=${info.htmlLen} hasNext=${info.hasNext}(${info.nextLen}) hasCF=${info.hasCF} hasInitialState=${info.hasInitialState}`);
+  if (!info.hasNext) {
+    console.log(`    snippet: ${info.snippet.replace(/\s+/g, " ").slice(0, 300)}`);
+    return { __err: "sin __NEXT_DATA__" };
+  }
+  const json = await page.evaluate(() => document.getElementById("__NEXT_DATA__").textContent);
   try { return JSON.parse(json); } catch (e) { return { __err: `parse ${e.message}` }; }
 }
 
