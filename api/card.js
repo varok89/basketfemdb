@@ -92,7 +92,7 @@ function card(d, baseUrl) {
   }, [
     el("div", {
       flex: 1, display: "flex", flexDirection: "column",
-      background: "#f5efe8", borderRadius: "24px", padding: "60px 36px 28px 36px",
+      background: "#f5efe8", borderRadius: "24px", padding: "52px 32px 18px 32px",
       position: "relative",
     }, [
       el("div", {
@@ -119,7 +119,7 @@ function card(d, baseUrl) {
             foto ? img(foto, PHOTO, PHOTO, { objectFit: "contain", position: "relative" })
                  : text("👤", { fontSize: "120px" }),
           ].filter(Boolean)),
-          el("div", { display: "flex", width: "100%", height: "2px", background: COL_TEXT, marginTop: "12px", marginBottom: "10px" }, []),
+          el("div", { display: "flex", width: "100%", height: "2px", background: COL_TEXT, marginTop: "6px", marginBottom: "8px" }, []),
           text(nombre.toUpperCase(), { fontSize: "32px", fontWeight: 900, color: COL_TEXT, letterSpacing: "1px" }),
           text(`T2: ${pT2}%  |  T3: ${pT3}%  |  TL: ${pTL}%`, { fontSize: "18px", fontWeight: 700, color: COL_MUTED, marginTop: "4px" }),
         ]),
@@ -159,7 +159,7 @@ export default async function handler(req) {
     const d = await datos(jugadora, parseInt(partido, 10));
     if (!d) return new Response(JSON.stringify({ error: "sin datos (jugadora, partido o boxscore no existe)" }), { status: 404, headers: { "Content-Type": "application/json" } });
     return new ImageResponse(card(d, baseUrl), {
-      width: 1080, height: 1080,
+      width: 1080, height: 900,
       headers: { "cache-control": "public, max-age=300, s-maxage=300" },
     });
   } catch (e) {
