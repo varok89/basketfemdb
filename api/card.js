@@ -96,7 +96,7 @@ function card(d, baseUrl) {
       position: "relative",
     }, [
       el("div", {
-        position: "absolute", top: "-26px", left: "410px",
+        position: "absolute", top: "-26px", left: "452px",
         width: "120px", height: "120px", display: "flex",
       }, [
         img(LOGO, 120, 120),
