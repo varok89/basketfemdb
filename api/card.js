@@ -33,11 +33,18 @@ async function datos(jugadora, partido) {
   if (!j.data || !p.data || !bx.data) return null;
   const [eqs, liga] = await Promise.all([
     supa.from("equipos").select("id_equipo,nombre,escudo").in("id_equipo", [p.data.id_equipo_local, p.data.id_equipo_visitante]),
-    supa.from("ligas").select("nombre").eq("id_liga", p.data.id_liga).maybeSingle(),
+    supa.from("ligas").select("nombre,logo").eq("id_liga", p.data.id_liga).maybeSingle(),
   ]);
   const eqL = (eqs.data || []).find(e => e.id_equipo === p.data.id_equipo_local) || {};
   const eqV = (eqs.data || []).find(e => e.id_equipo === p.data.id_equipo_visitante) || {};
-  return { jug: j.data, par: p.data, box: bx.data, eqL, eqV, liga: liga.data?.nombre || "" };
+  return { jug: j.data, par: p.data, box: bx.data, eqL, eqV, liga: liga.data?.nombre || "", ligaLogo: liga.data?.logo || null };
+}
+
+// Si la URL es Cloudinary FIBA, inyecta e_bgremoval para quitar fondo.
+function fotoSinBg(url) {
+  if (!url) return url;
+  if (!url.includes("assets.fiba.basketball/image/upload/")) return url;
+  return url.replace("/image/upload/", "/image/upload/e_bgremoval,w_700,h_700,c_fit/");
 }
 
 function pct(a, i) { const A = Number(a) || 0, I = Number(i) || 0; return I ? Math.round(A / I * 1000) / 10 : 0; }
@@ -51,7 +58,7 @@ function parseMin(m) {
 function card(d, baseUrl) {
   const BG = `${baseUrl}/share-card/bg.jpg`;
   const LOGO = `${baseUrl}/share-card/logo.png`;
-  const foto = d.jug.foto;
+  const foto = fotoSinBg(d.jug.foto);
   const nombre = d.jug.nombre || "";
   const liga = d.liga || "";
   const score = `${d.par.resultado_local ?? "-"} - ${d.par.resultado_visitante ?? "-"}`;
@@ -95,26 +102,35 @@ function card(d, baseUrl) {
         img(LOGO, 120, 120),
       ]),
       el("div", {
-        display: "flex", flex: 1, marginTop: "72px", gap: "24px",
+        display: "flex", flex: 1, marginTop: "72px", gap: "28px",
       }, [
-        // Foto + escudo al 30% detras
-        el("div", {
-          width: `${PHOTO}px`, height: `${PHOTO}px`, display: "flex", position: "relative",
-          justifyContent: "center", alignItems: "center",
-        }, [
-          escudoJugadora ? el("div", {
-            position: "absolute", top: 0, left: 0, width: `${PHOTO}px`, height: `${PHOTO}px`,
-            display: "flex", justifyContent: "center", alignItems: "center", opacity: 0.28,
+        // Columna izquierda: foto + nombre + %tiros
+        el("div", { display: "flex", flexDirection: "column", width: `${PHOTO}px` }, [
+          el("div", {
+            width: `${PHOTO}px`, height: `${PHOTO}px`, display: "flex", position: "relative",
+            justifyContent: "center", alignItems: "center",
           }, [
-            img(escudoJugadora, PHOTO, PHOTO),
-          ]) : null,
-          foto ? img(foto, PHOTO, PHOTO, { objectFit: "contain", position: "relative" })
-               : text("👤", { fontSize: "120px" }),
-        ].filter(Boolean)),
+            escudoJugadora ? el("div", {
+              position: "absolute", top: 0, left: 0, width: `${PHOTO}px`, height: `${PHOTO}px`,
+              display: "flex", justifyContent: "center", alignItems: "center", opacity: 0.28,
+            }, [
+              img(escudoJugadora, PHOTO, PHOTO),
+            ]) : null,
+            foto ? img(foto, PHOTO, PHOTO, { objectFit: "contain", position: "relative" })
+                 : text("👤", { fontSize: "120px" }),
+          ].filter(Boolean)),
+          el("div", { display: "flex", width: "100%", height: "2px", background: COL_TEXT, marginTop: "12px", marginBottom: "10px" }, []),
+          text(nombre.toUpperCase(), { fontSize: "32px", fontWeight: 900, color: COL_TEXT, letterSpacing: "1px" }),
+          text(`T2: ${pT2}%  |  T3: ${pT3}%  |  TL: ${pTL}%`, { fontSize: "18px", fontWeight: 700, color: COL_MUTED, marginTop: "4px" }),
+        ]),
+        // Columna derecha: liga + score + stats
         el("div", {
           flex: 1, display: "flex", flexDirection: "column", gap: "8px",
         }, [
-          text(liga.toUpperCase(), { fontSize: "22px", fontWeight: 800, color: COL_TEXT, letterSpacing: "1px" }),
+          el("div", { display: "flex", alignItems: "center", gap: "10px" }, [
+            d.ligaLogo ? img(d.ligaLogo, 42, 42) : null,
+            text(liga.toUpperCase(), { fontSize: "22px", fontWeight: 800, color: COL_TEXT, letterSpacing: "1px" }),
+          ].filter(Boolean)),
           el("div", { display: "flex", alignItems: "center", gap: "14px", marginBottom: "10px" }, [
             d.eqL.escudo ? img(d.eqL.escudo, 60, 60) : el("div", { width: 60, height: 60, display: "flex" }, []),
             el("div", { display: "flex", flex: 1, justifyContent: "center", fontSize: "48px", fontWeight: 900, color: COL_TEXT }, score),
@@ -126,11 +142,6 @@ function card(d, baseUrl) {
           statRow("🤾", "ASISTENCIAS", ast),
           statRow("🏆", "VALORACIÓN", val),
         ]),
-      ]),
-      el("div", { display: "flex", flexDirection: "column", marginTop: "18px", alignItems: "center" }, [
-        el("div", { display: "flex", width: "60%", height: "2px", background: COL_TEXT, marginBottom: "12px" }, []),
-        text(nombre.toUpperCase(), { fontSize: "40px", fontWeight: 900, color: COL_TEXT, letterSpacing: "1px" }),
-        text(`T2: ${pT2}%  |  T3: ${pT3}%  |  TL: ${pTL}%`, { fontSize: "22px", fontWeight: 700, color: COL_MUTED, marginTop: "6px" }),
       ]),
     ]),
   ]);
