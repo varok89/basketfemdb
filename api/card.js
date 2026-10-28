@@ -19,6 +19,9 @@ function el(type, style, children) {
   if (children !== undefined) props.children = children;
   return { type, props };
 }
+function img(src, w, h, style = {}) {
+  return { type: "img", props: { src, width: w, height: h, style: { objectFit: "contain", ...style } } };
+}
 
 async function datos(jugadora, partido) {
   const supa = createClient(SUPA_URL, SUPA_KEY);
@@ -86,7 +89,7 @@ function card(d, baseUrl) {
         position: "absolute", top: "-30px", left: "390px",
         width: "150px", height: "150px", display: "flex",
       }, [
-        el("img", { src: LOGO, width: 150, height: 150, style: { objectFit: "contain" } }, undefined),
+        img(LOGO, 150, 150),
       ]),
       el("div", {
         display: "flex", flex: 1, marginTop: "100px", gap: "32px",
@@ -95,7 +98,7 @@ function card(d, baseUrl) {
           width: "440px", height: "440px", display: "flex", justifyContent: "center", alignItems: "center",
           background: "rgba(0,0,0,0.03)", borderRadius: "16px", overflow: "hidden",
         }, foto ? [
-          el("img", { src: foto, width: 440, height: 440, style: { objectFit: "cover" } }, undefined),
+          img(foto, 440, 440, { objectFit: "cover" }),
         ] : [
           text("👤", { fontSize: "140px" }),
         ]),
@@ -104,9 +107,9 @@ function card(d, baseUrl) {
         }, [
           text(liga.toUpperCase(), { fontSize: "26px", fontWeight: 800, color: COL_TEXT, letterSpacing: "1px" }),
           el("div", { display: "flex", alignItems: "center", gap: "16px", marginBottom: "18px" }, [
-            d.eqL.escudo ? el("img", { src: d.eqL.escudo, width: 72, height: 72, style: { objectFit: "contain" } }, undefined) : el("div", { width: 72, height: 72, display: "flex" }, []),
+            d.eqL.escudo ? img(d.eqL.escudo, 72, 72) : el("div", { width: 72, height: 72, display: "flex" }, []),
             el("div", { display: "flex", flex: 1, justifyContent: "center", fontSize: "56px", fontWeight: 900, color: COL_TEXT }, score),
-            d.eqV.escudo ? el("img", { src: d.eqV.escudo, width: 72, height: 72, style: { objectFit: "contain" } }, undefined) : el("div", { width: 72, height: 72, display: "flex" }, []),
+            d.eqV.escudo ? img(d.eqV.escudo, 72, 72) : el("div", { width: 72, height: 72, display: "flex" }, []),
           ]),
           statRow("⏱️", "MINUTOS", mins),
           statRow("🏀", "PUNTOS", pts),
