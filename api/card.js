@@ -104,23 +104,33 @@ function card(d, baseUrl) {
       el("div", {
         display: "flex", flex: 1, marginTop: "72px", gap: "28px",
       }, [
-        // Columna izquierda: foto + nombre + %tiros
+        // Columna izquierda: foto (que atraviesa la raya) + nombre
         el("div", { display: "flex", flexDirection: "column", width: `${PHOTO}px` }, [
+          // Zona foto + raya overlapping. La foto se dibuja encima de la raya.
           el("div", {
             width: `${PHOTO}px`, height: `${PHOTO}px`, display: "flex", position: "relative",
-            justifyContent: "center", alignItems: "flex-end",
           }, [
+            // Escudo semi-transparente de fondo
             escudoJugadora ? el("div", {
               position: "absolute", top: 0, left: 0, width: `${PHOTO}px`, height: `${PHOTO}px`,
               display: "flex", justifyContent: "center", alignItems: "center", opacity: 0.28,
             }, [
               img(escudoJugadora, PHOTO, PHOTO),
             ]) : null,
-            foto ? img(foto, PHOTO, PHOTO, { objectFit: "contain", position: "relative" })
-                 : text("👤", { fontSize: "120px" }),
+            // Raya horizontal cerca del borde inferior (foto la rompe)
+            el("div", {
+              position: "absolute", left: 0, bottom: "40px", width: "100%", height: "3px",
+              background: COL_TEXT, display: "flex",
+            }, []),
+            // Foto en primer plano, anclada al borde inferior
+            foto ? el("div", {
+              position: "absolute", left: 0, bottom: 0, width: `${PHOTO}px`, height: `${PHOTO}px`,
+              display: "flex", justifyContent: "center", alignItems: "flex-end",
+            }, [
+              img(foto, PHOTO, PHOTO, { objectFit: "contain" }),
+            ]) : text("👤", { fontSize: "120px" }),
           ].filter(Boolean)),
-          el("div", { display: "flex", width: "100%", height: "3px", background: COL_TEXT, marginTop: "6px", marginBottom: "10px" }, []),
-          text(nombre.toUpperCase(), { fontSize: "52px", fontWeight: 700, color: COL_TEXT, letterSpacing: "2px", fontFamily: "Oswald", lineHeight: 0.95 }),
+          text(nombre.toUpperCase(), { fontSize: "52px", fontWeight: 700, color: COL_TEXT, letterSpacing: "2px", fontFamily: "Oswald", lineHeight: 0.95, marginTop: "8px" }),
         ]),
         // Columna derecha: liga + score + stats
         el("div", {
