@@ -79,7 +79,7 @@ function card(d, baseUrl) {
     display: "flex", alignItems: "center", gap: "14px", flex: 1,
   }, [
     text(icon, { fontSize: "44px" }),
-    text(`${label}: ${value}`, { fontSize: "38px", fontWeight: 900, color: COL_TEXT, fontFamily: "Inter" }),
+    text(`${label}: ${value}`, { fontSize: "46px", fontWeight: 400, color: COL_TEXT, fontFamily: "Bebas Neue", letterSpacing: "1px" }),
   ]);
 
   const escudoJugadora = d.box.id_equipo === d.par.id_equipo_local ? d.eqL.escudo : d.eqV.escudo;
@@ -120,17 +120,17 @@ function card(d, baseUrl) {
                  : text("👤", { fontSize: "120px" }),
           ].filter(Boolean)),
           el("div", { display: "flex", width: "100%", height: "3px", background: COL_TEXT, marginTop: "6px", marginBottom: "10px" }, []),
-          text(nombre.toUpperCase(), { fontSize: "40px", fontWeight: 900, color: COL_TEXT, letterSpacing: "1px", fontFamily: "Inter", lineHeight: 1 }),
+          text(nombre.toUpperCase(), { fontSize: "52px", fontWeight: 400, color: COL_TEXT, letterSpacing: "2px", fontFamily: "Bebas Neue", lineHeight: 0.95 }),
           el("div", { display: "flex", flexDirection: "row", gap: "16px", marginTop: "14px", justifyContent: "space-around" }, [
             ["T2", pT2], ["T3", pT3], ["TL", pTL],
           ].map(([lbl, v]) => el("div", { display: "flex", flexDirection: "column", alignItems: "center" }, [
-            text(lbl, { fontSize: "18px", fontWeight: 900, color: COL_TEXT, fontFamily: "Inter", marginBottom: "4px" }),
+            text(lbl, { fontSize: "24px", fontWeight: 400, color: COL_TEXT, fontFamily: "Bebas Neue", marginBottom: "4px", letterSpacing: "2px" }),
             el("div", {
               display: "flex", justifyContent: "center", alignItems: "center",
               width: "100px", height: "100px", borderRadius: "50%",
               background: "#fff", border: `3px solid ${COL_TEXT}`,
             }, [
-              text(`${v}%`, { fontSize: "22px", fontWeight: 900, color: COL_TEXT, fontFamily: "Inter" }),
+              text(`${v}%`, { fontSize: "28px", fontWeight: 400, color: COL_TEXT, fontFamily: "Bebas Neue", letterSpacing: "1px" }),
             ]),
           ]))),
         ]),
@@ -140,11 +140,11 @@ function card(d, baseUrl) {
         }, [
           el("div", { display: "flex", alignItems: "center", gap: "12px", marginBottom: "4px" }, [
             d.ligaLogo ? img(d.ligaLogo, 54, 54) : null,
-            text(liga.toUpperCase(), { fontSize: "28px", fontWeight: 900, color: COL_TEXT, letterSpacing: "1px", fontFamily: "Inter" }),
+            text(liga.toUpperCase(), { fontSize: "36px", fontWeight: 400, color: COL_TEXT, letterSpacing: "2px", fontFamily: "Bebas Neue" }),
           ].filter(Boolean)),
           el("div", { display: "flex", alignItems: "center", gap: "14px", marginBottom: "14px" }, [
             d.eqL.escudo ? img(d.eqL.escudo, 90, 90) : el("div", { width: 90, height: 90, display: "flex" }, []),
-            el("div", { display: "flex", flex: 1, justifyContent: "center", fontSize: "72px", fontWeight: 900, color: COL_TEXT, fontFamily: "Inter", lineHeight: 1 }, score),
+            el("div", { display: "flex", flex: 1, justifyContent: "center", fontSize: "88px", fontWeight: 400, color: COL_TEXT, fontFamily: "Bebas Neue", lineHeight: 1, letterSpacing: "2px" }, score),
             d.eqV.escudo ? img(d.eqV.escudo, 90, 90) : el("div", { width: 90, height: 90, display: "flex" }, []),
           ]),
           statRow("⏱️", "MINUTOS", mins),
@@ -173,17 +173,17 @@ export default async function handler(req) {
 
   const baseUrl = `${url.protocol}//${url.host}`;
   try {
-    const [d, fontRegular, fontBlack] = await Promise.all([
+    const [d, fontBebas, fontInter] = await Promise.all([
       datos(jugadora, parseInt(partido, 10)),
-      loadFont("https://cdn.jsdelivr.net/npm/@fontsource/inter/files/inter-latin-400-normal.woff"),
-      loadFont("https://cdn.jsdelivr.net/npm/@fontsource/inter/files/inter-latin-900-normal.woff"),
+      loadFont("https://cdn.jsdelivr.net/npm/@fontsource/bebas-neue/files/bebas-neue-latin-400-normal.woff"),
+      loadFont("https://cdn.jsdelivr.net/npm/@fontsource/inter/files/inter-latin-700-normal.woff"),
     ]);
     if (!d) return new Response(JSON.stringify({ error: "sin datos (jugadora, partido o boxscore no existe)" }), { status: 404, headers: { "Content-Type": "application/json" } });
     return new ImageResponse(card(d, baseUrl), {
       width: 1080, height: 900,
       fonts: [
-        { name: "Inter", data: fontRegular, weight: 400, style: "normal" },
-        { name: "Inter", data: fontBlack, weight: 900, style: "normal" },
+        { name: "Bebas Neue", data: fontBebas, weight: 400, style: "normal" },
+        { name: "Inter", data: fontInter, weight: 700, style: "normal" },
       ],
       headers: { "cache-control": "public, max-age=300, s-maxage=300" },
     });
