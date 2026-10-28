@@ -131,6 +131,7 @@ function card(d, baseUrl) {
             ]) : text("👤", { fontSize: "120px" }),
           ].filter(Boolean)),
           text(nombre.toUpperCase(), { fontSize: "52px", fontWeight: 700, color: COL_TEXT, letterSpacing: "2px", fontFamily: "Oswald", lineHeight: 0.95, marginTop: "8px" }),
+          text(`T2: ${pT2}%  |  T3: ${pT3}%  |  TL: ${pTL}%`, { fontSize: "26px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", marginTop: "8px", letterSpacing: "1px" }),
         ]),
         // Columna derecha: liga + score + stats
         el("div", {
@@ -152,19 +153,6 @@ function card(d, baseUrl) {
           statRow("🏆", "VALORACIÓN", val),
         ]),
       ]),
-      // Fila completa de circulos T2/T3/TL abajo
-      el("div", { display: "flex", flexDirection: "row", width: "100%", marginTop: "18px", justifyContent: "space-between" }, [
-        ["T2", pT2], ["T3", pT3], ["TL", pTL],
-      ].map(([lbl, v]) => el("div", { display: "flex", flexDirection: "column", alignItems: "center" }, [
-        text(lbl, { fontSize: "28px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", marginBottom: "6px", letterSpacing: "2px" }),
-        el("div", {
-          display: "flex", justifyContent: "center", alignItems: "center",
-          width: "140px", height: "140px", borderRadius: "50%",
-          background: "#fff", border: `3px solid ${COL_TEXT}`,
-        }, [
-          text(`${v}%`, { fontSize: "40px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", letterSpacing: "1px" }),
-        ]),
-      ]))),
     ]),
   ]);
   return root;
