@@ -95,6 +95,14 @@ function card(d, baseUrl) {
       background: "#f5efe8", borderRadius: "24px", padding: "52px 32px 24px 32px",
       position: "relative",
     }, [
+      // Escudo del equipo cubriendo todo el inner card
+      escudoJugadora ? el("div", {
+        position: "absolute", top: 0, left: 0, bottom: 0, right: 0,
+        display: "flex", justifyContent: "center", alignItems: "center", opacity: 0.22,
+        borderRadius: "24px", overflow: "hidden",
+      }, [
+        img(escudoJugadora, 900, 900),
+      ]) : null,
       el("div", {
         position: "absolute", top: "-26px", left: "452px",
         width: "120px", height: "120px", display: "flex",
@@ -104,15 +112,8 @@ function card(d, baseUrl) {
       el("div", {
         display: "flex", flex: 1, marginTop: "72px", gap: "28px",
       }, [
-        // Columna izquierda: shield de fondo (todo el col) + foto + nombre + %tiros
+        // Columna izquierda: foto + nombre + %tiros
         el("div", { display: "flex", flexDirection: "column", width: `${PHOTO}px`, position: "relative" }, [
-          // Escudo semi-transparente ocupando TODO el left col
-          escudoJugadora ? el("div", {
-            position: "absolute", top: 0, left: 0, bottom: 0, right: 0,
-            display: "flex", justifyContent: "center", alignItems: "center", opacity: 0.28,
-          }, [
-            img(escudoJugadora, PHOTO, PHOTO),
-          ]) : null,
           // Zona foto + raya overlapping. La foto se dibuja encima de la raya.
           el("div", {
             width: `${PHOTO}px`, height: `${PHOTO}px`, display: "flex", position: "relative",
@@ -157,7 +158,7 @@ function card(d, baseUrl) {
           el("div", { display: "flex", flex: 5 }, []),
         ]),
       ]),
-    ]),
+    ].filter(Boolean)),
   ]);
   return root;
 }
