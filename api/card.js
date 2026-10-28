@@ -104,35 +104,33 @@ function card(d, baseUrl) {
       el("div", {
         display: "flex", flex: 1, marginTop: "72px", gap: "28px",
       }, [
-        // Columna izquierda: foto (que atraviesa la raya) + nombre
-        el("div", { display: "flex", flexDirection: "column", width: `${PHOTO}px` }, [
+        // Columna izquierda: shield de fondo (todo el col) + foto + nombre + %tiros
+        el("div", { display: "flex", flexDirection: "column", width: `${PHOTO}px`, position: "relative" }, [
+          // Escudo semi-transparente ocupando TODO el left col
+          escudoJugadora ? el("div", {
+            position: "absolute", top: 0, left: 0, bottom: 0, right: 0,
+            display: "flex", justifyContent: "center", alignItems: "center", opacity: 0.28,
+          }, [
+            img(escudoJugadora, PHOTO, PHOTO),
+          ]) : null,
           // Zona foto + raya overlapping. La foto se dibuja encima de la raya.
           el("div", {
             width: `${PHOTO}px`, height: `${PHOTO}px`, display: "flex", position: "relative",
           }, [
-            // Escudo semi-transparente de fondo
-            escudoJugadora ? el("div", {
-              position: "absolute", top: 0, left: 0, width: `${PHOTO}px`, height: `${PHOTO}px`,
-              display: "flex", justifyContent: "center", alignItems: "center", opacity: 0.28,
-            }, [
-              img(escudoJugadora, PHOTO, PHOTO),
-            ]) : null,
-            // Raya horizontal cerca del borde inferior (foto la rompe)
             el("div", {
               position: "absolute", left: 0, bottom: "40px", width: "100%", height: "3px",
               background: COL_TEXT, display: "flex",
             }, []),
-            // Foto en primer plano, anclada al borde inferior
             foto ? el("div", {
               position: "absolute", left: 0, bottom: 0, width: `${PHOTO}px`, height: `${PHOTO}px`,
               display: "flex", justifyContent: "center", alignItems: "flex-end",
             }, [
               img(foto, PHOTO, PHOTO, { objectFit: "contain" }),
             ]) : text("👤", { fontSize: "120px" }),
-          ].filter(Boolean)),
+          ]),
           text(nombre.toUpperCase(), { fontSize: "60px", fontWeight: 700, color: COL_TEXT, letterSpacing: "2px", fontFamily: "Oswald", lineHeight: 0.95, marginTop: "10px" }),
           text(`T2: ${pT2}%  |  T3: ${pT3}%  |  TL: ${pTL}%`, { fontSize: "32px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", marginTop: "10px", letterSpacing: "1px" }),
-        ]),
+        ].filter(Boolean)),
         // Columna derecha: liga+score arriba, stats centradas verticalmente
         el("div", {
           flex: 1, display: "flex", flexDirection: "column",
