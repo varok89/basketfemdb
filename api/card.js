@@ -76,15 +76,15 @@ function card(d, baseUrl) {
   const text = (txt, style) => el("div", { display: "flex", ...style }, txt);
 
   const statRow = (icon, label, value) => el("div", {
-    display: "flex", alignItems: "center", gap: "12px", marginBottom: "6px",
+    display: "flex", alignItems: "center", gap: "14px", flex: 1,
   }, [
-    text(icon, { fontSize: "30px" }),
-    text(`${label}: ${value}`, { fontSize: "26px", fontWeight: 800, color: COL_TEXT }),
+    text(icon, { fontSize: "44px" }),
+    text(`${label}: ${value}`, { fontSize: "38px", fontWeight: 900, color: COL_TEXT, fontFamily: "Inter" }),
   ]);
 
   const escudoJugadora = d.box.id_equipo === d.par.id_equipo_local ? d.eqL.escudo : d.eqV.escudo;
 
-  const PHOTO = 360;
+  const PHOTO = 440;
   const root = el("div", {
     width: "100%", height: "100%", display: "flex", position: "relative",
     backgroundImage: `url(${BG})`, backgroundSize: "cover", backgroundPosition: "center",
@@ -119,22 +119,22 @@ function card(d, baseUrl) {
             foto ? img(foto, PHOTO, PHOTO, { objectFit: "contain", position: "relative" })
                  : text("👤", { fontSize: "120px" }),
           ].filter(Boolean)),
-          el("div", { display: "flex", width: "100%", height: "2px", background: COL_TEXT, marginTop: "6px", marginBottom: "8px" }, []),
-          text(nombre.toUpperCase(), { fontSize: "32px", fontWeight: 900, color: COL_TEXT, letterSpacing: "1px" }),
-          text(`T2: ${pT2}%  |  T3: ${pT3}%  |  TL: ${pTL}%`, { fontSize: "18px", fontWeight: 700, color: COL_MUTED, marginTop: "4px" }),
+          el("div", { display: "flex", width: "100%", height: "3px", background: COL_TEXT, marginTop: "6px", marginBottom: "10px" }, []),
+          text(nombre.toUpperCase(), { fontSize: "40px", fontWeight: 900, color: COL_TEXT, letterSpacing: "1px", fontFamily: "Inter", lineHeight: 1 }),
+          text(`T2: ${pT2}%  |  T3: ${pT3}%  |  TL: ${pTL}%`, { fontSize: "22px", fontWeight: 700, color: COL_MUTED, marginTop: "8px", fontFamily: "Inter" }),
         ]),
         // Columna derecha: liga + score + stats
         el("div", {
           flex: 1, display: "flex", flexDirection: "column", gap: "8px",
         }, [
-          el("div", { display: "flex", alignItems: "center", gap: "10px" }, [
-            d.ligaLogo ? img(d.ligaLogo, 42, 42) : null,
-            text(liga.toUpperCase(), { fontSize: "22px", fontWeight: 800, color: COL_TEXT, letterSpacing: "1px" }),
+          el("div", { display: "flex", alignItems: "center", gap: "12px", marginBottom: "4px" }, [
+            d.ligaLogo ? img(d.ligaLogo, 54, 54) : null,
+            text(liga.toUpperCase(), { fontSize: "28px", fontWeight: 900, color: COL_TEXT, letterSpacing: "1px", fontFamily: "Inter" }),
           ].filter(Boolean)),
-          el("div", { display: "flex", alignItems: "center", gap: "14px", marginBottom: "10px" }, [
-            d.eqL.escudo ? img(d.eqL.escudo, 60, 60) : el("div", { width: 60, height: 60, display: "flex" }, []),
-            el("div", { display: "flex", flex: 1, justifyContent: "center", fontSize: "48px", fontWeight: 900, color: COL_TEXT }, score),
-            d.eqV.escudo ? img(d.eqV.escudo, 60, 60) : el("div", { width: 60, height: 60, display: "flex" }, []),
+          el("div", { display: "flex", alignItems: "center", gap: "14px", marginBottom: "14px" }, [
+            d.eqL.escudo ? img(d.eqL.escudo, 90, 90) : el("div", { width: 90, height: 90, display: "flex" }, []),
+            el("div", { display: "flex", flex: 1, justifyContent: "center", fontSize: "72px", fontWeight: 900, color: COL_TEXT, fontFamily: "Inter", lineHeight: 1 }, score),
+            d.eqV.escudo ? img(d.eqV.escudo, 90, 90) : el("div", { width: 90, height: 90, display: "flex" }, []),
           ]),
           statRow("⏱️", "MINUTOS", mins),
           statRow("🏀", "PUNTOS", pts),
@@ -148,6 +148,12 @@ function card(d, baseUrl) {
   return root;
 }
 
+async function loadFont(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`font ${url} ${r.status}`);
+  return await r.arrayBuffer();
+}
+
 export default async function handler(req) {
   const url = new URL(req.url);
   const jugadora = url.searchParams.get("jugadora");
@@ -156,10 +162,18 @@ export default async function handler(req) {
 
   const baseUrl = `${url.protocol}//${url.host}`;
   try {
-    const d = await datos(jugadora, parseInt(partido, 10));
+    const [d, fontRegular, fontBlack] = await Promise.all([
+      datos(jugadora, parseInt(partido, 10)),
+      loadFont("https://cdn.jsdelivr.net/npm/@fontsource/inter/files/inter-latin-400-normal.woff"),
+      loadFont("https://cdn.jsdelivr.net/npm/@fontsource/inter/files/inter-latin-900-normal.woff"),
+    ]);
     if (!d) return new Response(JSON.stringify({ error: "sin datos (jugadora, partido o boxscore no existe)" }), { status: 404, headers: { "Content-Type": "application/json" } });
     return new ImageResponse(card(d, baseUrl), {
       width: 1080, height: 900,
+      fonts: [
+        { name: "Inter", data: fontRegular, weight: 400, style: "normal" },
+        { name: "Inter", data: fontBlack, weight: 900, style: "normal" },
+      ],
       headers: { "cache-control": "public, max-age=300, s-maxage=300" },
     });
   } catch (e) {
