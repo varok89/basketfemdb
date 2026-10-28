@@ -12,6 +12,7 @@ import {
   Fld, Breadcrumbs, Modal, ConfirmDel, PhotoPicker,
   EmptyState, STATUS_BADGE, STATUS_BADGE_LG, PaisDropdown, CoachSeasonForm,
 } from "../lib/ui";
+import { PlayerCardModal } from "./PlayerCardModal";
 
 function PlayerForm({initial,onSave,onCancel,saving}){
   const [f,setF]=useState({nombre:"",posicion:"Base",posicion2:"",nacionalidad:"",nacionalidad2:"",fecha_nac:"",fecha_fallecimiento:"",altura_cm:"",foto:null,id_espn:"",fiba_person_id:"",id_feb:"",id_lfb:"",...initial});
@@ -426,6 +427,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
   const [selId,setSelId]           = useState(openPlayerId||null);
   const [shareMsg,setShareMsg]     = useState(false);
   const [lightboxPhoto,setLightboxPhoto] = useState(null);
+  const [cardModal,setCardModal]   = useState(false);
   const [visibleCount,setVisibleCount] = useState(60);
   const loadMoreRef = useRef(null);
   useEffect(()=>{
@@ -707,6 +709,18 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
           {shareMsg&&<span style={{fontSize:"12px",color:"#16a34a",fontWeight:600}}>¡Enlace copiado!</span>}
           {isAdmin&&!del&&(<>
           <div style={{display:"flex",gap:"8px"}}>
+            {(()=>{
+              const tempActual=getCurrentSeason(players||[]);
+              const enTempActual=(selected.seasons||[]).some(s=>s.temporada===tempActual);
+              return(
+                <button
+                  onClick={()=>enTempActual&&setCardModal(true)}
+                  disabled={!enTempActual}
+                  title={enTempActual?"Crear card de la jugadora en un partido":"Sin partidos en la temporada actual"}
+                  style={{background:enTempActual?"var(--fx-hover)":"var(--fx-border2)",border:"none",borderRadius:"10px",padding:"7px 14px",fontWeight:700,fontSize:"13px",cursor:enTempActual?"pointer":"not-allowed",color:enTempActual?"var(--fx-label)":"var(--fx-muted2)",opacity:enTempActual?1:0.6}}
+                >📸 Crear card</button>
+              );
+            })()}
             <button onClick={async()=>{
               // Fetch IDs externos + fuente antes de abrir el editor (no vienen en fase 1)
               try{
@@ -854,6 +868,7 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
       </div>
       )}
       {ftab==="estadisticas"&&<StatsJugadora idJugadora={selected.id_jugadora} equipos={equipos} ligas={ligas} equiposNombres={equiposNombres} onOpenPartido={onGoToPartido}/>}
+      {isAdmin&&cardModal&&<PlayerCardModal jugadora={selected} equiposNombres={equiposNombres} onClose={()=>setCardModal(false)}/>}
       {isAdmin&&seasonModal&&(()=>{
         const coachRecord=(coaches||[]).find(c=>String(c.id_jugadora)===String(selected.id_jugadora));
         return coachRecord?(<Modal title={seasonModal==="add"?"Añadir temporada coach":"Editar temporada coach"} onClose={()=>setSeasonModal(null)}>
