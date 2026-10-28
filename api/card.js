@@ -133,9 +133,9 @@ function card(d, baseUrl) {
           text(nombre.toUpperCase(), { fontSize: "60px", fontWeight: 700, color: COL_TEXT, letterSpacing: "2px", fontFamily: "Oswald", lineHeight: 0.95, marginTop: "10px" }),
           text(`T2: ${pT2}%  |  T3: ${pT3}%  |  TL: ${pTL}%`, { fontSize: "32px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", marginTop: "10px", letterSpacing: "1px" }),
         ]),
-        // Columna derecha: top (liga+score) y bottom (stats) anclados al borde inferior
+        // Columna derecha: liga+score arriba, stats centradas verticalmente
         el("div", {
-          flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between",
+          flex: 1, display: "flex", flexDirection: "column",
         }, [
           el("div", { display: "flex", flexDirection: "column" }, [
             el("div", { display: "flex", alignItems: "center", gap: "12px", marginBottom: "4px" }, [
@@ -148,7 +148,7 @@ function card(d, baseUrl) {
               d.eqV.escudo ? img(d.eqV.escudo, 70, 70) : el("div", { width: 70, height: 70, display: "flex" }, []),
             ]),
           ]),
-          el("div", { display: "flex", flexDirection: "column" }, [
+          el("div", { display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }, [
             statRow("⏱️", "MINUTOS", mins),
             statRow("🏀", "PUNTOS", pts),
             statRow("📊", "REBOTES", reb),
