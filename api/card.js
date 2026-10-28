@@ -69,47 +69,56 @@ function card(d, baseUrl) {
   const text = (txt, style) => el("div", { display: "flex", ...style }, txt);
 
   const statRow = (icon, label, value) => el("div", {
-    display: "flex", alignItems: "center", gap: "14px", marginBottom: "10px",
+    display: "flex", alignItems: "center", gap: "12px", marginBottom: "6px",
   }, [
-    text(icon, { fontSize: "38px" }),
-    text(`${label}: ${value}`, { fontSize: "32px", fontWeight: 800, color: COL_TEXT }),
+    text(icon, { fontSize: "30px" }),
+    text(`${label}: ${value}`, { fontSize: "26px", fontWeight: 800, color: COL_TEXT }),
   ]);
 
+  const escudoJugadora = d.box.id_equipo === d.par.id_equipo_local ? d.eqL.escudo : d.eqV.escudo;
+
+  const PHOTO = 360;
   const root = el("div", {
     width: "100%", height: "100%", display: "flex", position: "relative",
     backgroundImage: `url(${BG})`, backgroundSize: "cover", backgroundPosition: "center",
-    padding: "40px",
+    padding: "28px",
   }, [
     el("div", {
       flex: 1, display: "flex", flexDirection: "column",
-      background: "#f5efe8", borderRadius: "28px", padding: "60px 48px 36px 48px",
+      background: "#f5efe8", borderRadius: "24px", padding: "60px 36px 28px 36px",
       position: "relative",
     }, [
       el("div", {
-        position: "absolute", top: "-30px", left: "390px",
-        width: "150px", height: "150px", display: "flex",
+        position: "absolute", top: "-26px", left: "410px",
+        width: "120px", height: "120px", display: "flex",
       }, [
-        img(LOGO, 150, 150),
+        img(LOGO, 120, 120),
       ]),
       el("div", {
-        display: "flex", flex: 1, marginTop: "100px", gap: "32px",
+        display: "flex", flex: 1, marginTop: "72px", gap: "24px",
       }, [
+        // Foto + escudo al 30% detras
         el("div", {
-          width: "440px", height: "440px", display: "flex", justifyContent: "center", alignItems: "center",
-          background: "rgba(0,0,0,0.03)", borderRadius: "16px", overflow: "hidden",
-        }, foto ? [
-          img(foto, 440, 440, { objectFit: "cover" }),
-        ] : [
-          text("👤", { fontSize: "140px" }),
-        ]),
-        el("div", {
-          flex: 1, display: "flex", flexDirection: "column", gap: "10px",
+          width: `${PHOTO}px`, height: `${PHOTO}px`, display: "flex", position: "relative",
+          justifyContent: "center", alignItems: "center",
         }, [
-          text(liga.toUpperCase(), { fontSize: "26px", fontWeight: 800, color: COL_TEXT, letterSpacing: "1px" }),
-          el("div", { display: "flex", alignItems: "center", gap: "16px", marginBottom: "18px" }, [
-            d.eqL.escudo ? img(d.eqL.escudo, 72, 72) : el("div", { width: 72, height: 72, display: "flex" }, []),
-            el("div", { display: "flex", flex: 1, justifyContent: "center", fontSize: "56px", fontWeight: 900, color: COL_TEXT }, score),
-            d.eqV.escudo ? img(d.eqV.escudo, 72, 72) : el("div", { width: 72, height: 72, display: "flex" }, []),
+          escudoJugadora ? el("div", {
+            position: "absolute", top: 0, left: 0, width: `${PHOTO}px`, height: `${PHOTO}px`,
+            display: "flex", justifyContent: "center", alignItems: "center", opacity: 0.28,
+          }, [
+            img(escudoJugadora, PHOTO, PHOTO),
+          ]) : null,
+          foto ? img(foto, PHOTO, PHOTO, { objectFit: "contain", position: "relative" })
+               : text("👤", { fontSize: "120px" }),
+        ].filter(Boolean)),
+        el("div", {
+          flex: 1, display: "flex", flexDirection: "column", gap: "8px",
+        }, [
+          text(liga.toUpperCase(), { fontSize: "22px", fontWeight: 800, color: COL_TEXT, letterSpacing: "1px" }),
+          el("div", { display: "flex", alignItems: "center", gap: "14px", marginBottom: "10px" }, [
+            d.eqL.escudo ? img(d.eqL.escudo, 60, 60) : el("div", { width: 60, height: 60, display: "flex" }, []),
+            el("div", { display: "flex", flex: 1, justifyContent: "center", fontSize: "48px", fontWeight: 900, color: COL_TEXT }, score),
+            d.eqV.escudo ? img(d.eqV.escudo, 60, 60) : el("div", { width: 60, height: 60, display: "flex" }, []),
           ]),
           statRow("⏱️", "MINUTOS", mins),
           statRow("🏀", "PUNTOS", pts),
@@ -118,10 +127,10 @@ function card(d, baseUrl) {
           statRow("🏆", "VALORACIÓN", val),
         ]),
       ]),
-      el("div", { display: "flex", flexDirection: "column", marginTop: "24px", alignItems: "center" }, [
-        el("div", { display: "flex", width: "60%", height: "3px", background: COL_TEXT, marginBottom: "16px" }, []),
-        text(nombre.toUpperCase(), { fontSize: "48px", fontWeight: 900, color: COL_TEXT, letterSpacing: "1px" }),
-        text(`T2: ${pT2}%  |  T3: ${pT3}%  |  TL: ${pTL}%`, { fontSize: "26px", fontWeight: 700, color: COL_MUTED, marginTop: "8px" }),
+      el("div", { display: "flex", flexDirection: "column", marginTop: "18px", alignItems: "center" }, [
+        el("div", { display: "flex", width: "60%", height: "2px", background: COL_TEXT, marginBottom: "12px" }, []),
+        text(nombre.toUpperCase(), { fontSize: "40px", fontWeight: 900, color: COL_TEXT, letterSpacing: "1px" }),
+        text(`T2: ${pT2}%  |  T3: ${pT3}%  |  TL: ${pTL}%`, { fontSize: "22px", fontWeight: 700, color: COL_MUTED, marginTop: "6px" }),
       ]),
     ]),
   ]);
