@@ -1,0 +1,30 @@
+name: Scrape WNBL boxscores
+
+on:
+  schedule:
+    # Cada 30 minutos. Partidos WNBL son fines de semana AEST (viernes-domingo).
+    - cron: '*/30 * * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: scrape-wnbl
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install deps
+        run: |
+          npm install --no-save @supabase/supabase-js@^2.39 playwright@^1.48
+          npx playwright install --with-deps chromium
+      - name: Run scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/scrape-wnbl-boxscores.mjs
