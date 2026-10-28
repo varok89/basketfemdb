@@ -76,10 +76,10 @@ function card(d, baseUrl) {
   const text = (txt, style) => el("div", { display: "flex", ...style }, txt);
 
   const statRow = (icon, label, value) => el("div", {
-    display: "flex", alignItems: "center", gap: "16px", flex: 1,
+    display: "flex", alignItems: "center", gap: "14px", flex: 1,
   }, [
-    text(icon, { fontSize: "42px" }),
-    text(`${label}: ${value}`, { fontSize: "42px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", letterSpacing: "0.5px" }),
+    text(icon, { fontSize: "34px" }),
+    text(`${label}: ${value}`, { fontSize: "36px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", letterSpacing: "0.5px" }),
   ]);
 
   const escudoJugadora = d.box.id_equipo === d.par.id_equipo_local ? d.eqL.escudo : d.eqV.escudo;
@@ -138,13 +138,13 @@ function card(d, baseUrl) {
           flex: 1, display: "flex", flexDirection: "column", gap: "2px",
         }, [
           el("div", { display: "flex", alignItems: "center", gap: "12px", marginBottom: "4px" }, [
-            d.ligaLogo ? img(d.ligaLogo, 68, 68) : null,
-            text(liga.toUpperCase(), { fontSize: "36px", fontWeight: 700, color: COL_TEXT, letterSpacing: "2px", fontFamily: "Oswald" }),
+            d.ligaLogo ? img(d.ligaLogo, 54, 54) : null,
+            text(liga.toUpperCase(), { fontSize: "28px", fontWeight: 700, color: COL_TEXT, letterSpacing: "2px", fontFamily: "Oswald" }),
           ].filter(Boolean)),
           el("div", { display: "flex", alignItems: "center", gap: "14px", marginBottom: "14px" }, [
-            d.eqL.escudo ? img(d.eqL.escudo, 110, 110) : el("div", { width: 110, height: 110, display: "flex" }, []),
-            el("div", { display: "flex", flex: 1, justifyContent: "center", fontSize: "92px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", lineHeight: 1, letterSpacing: "2px" }, score),
-            d.eqV.escudo ? img(d.eqV.escudo, 110, 110) : el("div", { width: 110, height: 110, display: "flex" }, []),
+            d.eqL.escudo ? img(d.eqL.escudo, 88, 88) : el("div", { width: 88, height: 88, display: "flex" }, []),
+            el("div", { display: "flex", flex: 1, justifyContent: "center", fontSize: "70px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", lineHeight: 1, letterSpacing: "2px" }, score),
+            d.eqV.escudo ? img(d.eqV.escudo, 88, 88) : el("div", { width: 88, height: 88, display: "flex" }, []),
           ]),
           statRow("⏱️", "MINUTOS", mins),
           statRow("🏀", "PUNTOS", pts),
