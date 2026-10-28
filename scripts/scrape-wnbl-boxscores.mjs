@@ -1,18 +1,14 @@
 #!/usr/bin/env node
 // scrape-wnbl-boxscores.mjs
-// Scraper WNBL (L029) via Sofascore con Playwright.
-// Objetivo: traer boxscore + parciales para partidos sin box en BD.
-// Ejecucion: GitHub Actions cada 30 min (ver .github/workflows/scrape-wnbl.yml).
+// Scraper WNBL (L029) via Sofascore API JSON desde dentro de Playwright
+// (asi Cloudflare lo acepta como same-origin del browser real).
 //
 // Flujo:
-//   1. Supabase: partidos L029 ultimos 10d con resultado pero sin boxscore.
-//   2. Si no tienen sofascore_event_id, resolverlos scrapeando listado liga Sofascore.
-//   3. Para cada partido, scrape pagina Sofascore con Playwright (bypassa Cloudflare).
-//   4. Parse DOM: parciales + boxscore por jugadora.
-//   5. Match jugadoras por nombre. Auto-crear si no existe.
-//   6. UPSERT en partido_boxscore + UPDATE parciales en partidos.
-//
-// Env requeridos: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
+//   1. BD: partidos L029 ultimos 10d con resultado pero sin boxscore.
+//   2. Playwright chromium: goto sofascore.com → establece cookies CF.
+//   3. page.evaluate(fetch api.sofascore.com/.../events) → mapea team+fecha → eventId.
+//   4. Para cada partido: fetch /event/{id} (periodScores) + /event/{id}/lineups (stats).
+//   5. UPSERT partido_boxscore + UPDATE parciales + sofascore_event_id.
 
 import { chromium } from "playwright";
 import { createClient } from "@supabase/supabase-js";
@@ -22,7 +18,7 @@ const SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!SB_URL || !SB_KEY) { console.error("Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY"); process.exit(1); }
 const sb = createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
 
-const SOFA_WNBL_URL = "https://www.sofascore.com/basketball/tournament/australia/wnbl/1506";
+const WNBL_TOURNAMENT_ID = 1506;
 const WAIT = (ms) => new Promise(r => setTimeout(r, ms));
 const norm = (s) => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 
@@ -68,103 +64,51 @@ async function listarPendientes() {
   return partidos.filter(p => !conBox.has(p.id));
 }
 
-async function resolverEventIds(ctx, partidos) {
-  const pendientes = partidos.filter(p => !p.sofascore_event_id);
-  if (!pendientes.length) return;
-  console.log(`Resolviendo event IDs para ${pendientes.length} partidos...`);
-  const page = await ctx.newPage();
-  await page.goto(SOFA_WNBL_URL, { waitUntil: "networkidle", timeout: 30000 });
-  await WAIT(2500);
-  // Clicar "Matches" tab si no está activo, luego iterar rounds
-  const anchors = await page.$$eval('a[href*="/basketball/match/"]', (as) =>
-    as.map(a => ({ href: a.getAttribute("href"), text: a.innerText || "" })));
-  console.log(`  anchors en pagina: ${anchors.length}`);
-  for (const p of pendientes) {
-    const localN = norm(p.eq_local.nombre).split(" ")[0];
-    const visitN = norm(p.eq_visit.nombre).split(" ")[0];
-    const found = anchors.find(a => {
-      const h = (a.href || "").toLowerCase();
-      return h.includes(localN) && h.includes(visitN);
-    });
-    if (!found) { console.log(`  NO MATCH ${p.eq_local.nombre} vs ${p.eq_visit.nombre}`); continue; }
-    try {
-      const p2 = await ctx.newPage();
-      await p2.goto("https://www.sofascore.com" + found.href, { waitUntil: "domcontentloaded", timeout: 20000 });
-      const ogImg = await p2.$eval('meta[property="og:image"]', (el) => el.getAttribute("content")).catch(() => null);
-      const m = ogImg && ogImg.match(/\/event\/(\d+)\//);
-      if (m) {
-        p.sofascore_event_id = parseInt(m[1]);
-        await sb.from("partidos").update({ sofascore_event_id: p.sofascore_event_id }).eq("id", p.id);
-        console.log(`  mapped id=${p.id} ${p.eq_local.nombre} vs ${p.eq_visit.nombre} -> ${p.sofascore_event_id}`);
-      }
-      await p2.close();
-    } catch (e) { console.log(`  err resolver ${p.id}: ${e.message}`); }
-  }
-  await page.close();
+// Ejecuta un fetch dentro del context del browser (Cloudflare lo acepta porque viene con cookies CF).
+async function fetchInBrowser(page, url) {
+  return await page.evaluate(async (u) => {
+    const r = await fetch(u, { credentials: "include", headers: { accept: "application/json" } });
+    if (!r.ok) return { __err: `HTTP ${r.status}` };
+    return await r.json();
+  }, url);
 }
 
-function parseIntSafe(s) { const n = parseInt(String(s).trim(), 10); return isNaN(n) ? 0 : n; }
-function parseRatio(s) {
-  const m = String(s).trim().match(/^(\d+)\s*\/\s*(\d+)/);
-  return m ? { m: parseInt(m[1]), a: parseInt(m[2]) } : { m: 0, a: 0 };
+async function obtenerEventosLiga(page) {
+  const seas = await fetchInBrowser(page, `https://api.sofascore.com/api/v1/unique-tournament/${WNBL_TOURNAMENT_ID}/seasons`);
+  if (seas?.__err || !seas?.seasons?.length) { console.log("err seasons:", seas); return []; }
+  const seasonId = seas.seasons[0].id;
+  console.log(`  seasonId=${seasonId} (${seas.seasons[0].name})`);
+  const todos = [];
+  for (const tipo of ["last", "next"]) {
+    for (let pageNum = 0; pageNum < 5; pageNum++) {
+      const url = `https://api.sofascore.com/api/v1/unique-tournament/${WNBL_TOURNAMENT_ID}/season/${seasonId}/events/${tipo}/${pageNum}`;
+      const r = await fetchInBrowser(page, url);
+      if (r?.__err || !r?.events?.length) break;
+      todos.push(...r.events);
+      if (!r.hasNextPage) break;
+      await WAIT(300);
+    }
+  }
+  console.log(`  eventos listados: ${todos.length}`);
+  return todos;
 }
 
-async function scrapePartido(ctx, p) {
-  if (!p.sofascore_event_id) return { ok: false, motivo: "sin event_id" };
-  const url = `https://www.sofascore.com/event/${p.sofascore_event_id}`;
-  const page = await ctx.newPage();
-  try {
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
-    await WAIT(3000);
-    // Click tab box score
-    try {
-      await page.evaluate(() => {
-        const tabs = [...document.querySelectorAll("a,button")].filter(a => /box.?score/i.test(a.innerText));
-        if (tabs[0]) tabs[0].click();
-      });
-      await WAIT(1500);
-    } catch {}
-
-    // Parciales + boxscore via DOM scrape generico:
-    const data = await page.evaluate(() => {
-      // Parciales desde texto Q1..Q4 pattern
-      const txt = document.body.innerText || "";
-      let parciales = null;
-      const pm = txt.match(/Q1\s*\|\s*Q2\s*\|\s*Q3\s*\|\s*Q4[^\n]*\n([\d\s|]+)\n([\d\s|]+)/);
-      if (pm) {
-        const parse = (row) => row.split(/[|\s]+/).map(x => parseInt(x)).filter(x => !isNaN(x));
-        const local = parse(pm[1]);
-        const visit = parse(pm[2]);
-        if (local.length >= 4 && visit.length >= 4) parciales = { local, visitante: visit };
-      }
-      // Boxscore: tomar todos los links a jugadoras y, para cada uno, extraer la fila contenedora
-      const box = [];
-      const anchors = document.querySelectorAll('a[href*="/basketball/player/"]');
-      const seen = new Set();
-      for (const a of anchors) {
-        const href = a.getAttribute("href");
-        if (seen.has(href)) continue; seen.add(href);
-        const nombre = (a.innerText || "").trim();
-        if (!nombre || nombre.length < 2) continue;
-        // La fila boxscore no suele ser un <tr> en sofascore sino divs. Buscar el ancestro con muchos numeros.
-        let container = a;
-        for (let i = 0; i < 8; i++) { if (!container.parentElement) break; container = container.parentElement; }
-        const text = container.innerText || "";
-        // Patron tipico: minutos (NN'), seguido de N numeros grandes y N/N ratios
-        const minsM = text.match(/(\d{1,2})\s*['′]/);
-        const mins = minsM ? parseInt(minsM[1]) : 0;
-        // Separar numeros
-        const nums = text.match(/-?\d+/g) || [];
-        box.push({ nombre, href, mins, numsPreview: nums.slice(0, 20) });
-      }
-      return { parciales, box, bodyLength: txt.length };
-    });
-    await page.close();
-    return { ok: true, ...data };
-  } catch (e) {
-    await page.close().catch(() => {});
-    return { ok: false, motivo: e.message };
+function matchEvento(eventos, partido) {
+  const lN = norm(partido.eq_local.nombre);
+  const vN = norm(partido.eq_visit.nombre);
+  const pDate = new Date(partido.fecha_hora).getTime();
+  for (const e of eventos) {
+    const h = norm(e.homeTeam?.name || "");
+    const a = norm(e.awayTeam?.name || "");
+    if (!h || !a) continue;
+    const matchHome = h.includes(lN) || lN.includes(h) || h.split(" ").some(w => lN.includes(w) && w.length > 3);
+    const matchAway = a.includes(vN) || vN.includes(a) || a.split(" ").some(w => vN.includes(w) && w.length > 3);
+    if (matchHome && matchAway) {
+      const ts = (e.startTimestamp || 0) * 1000;
+      if (Math.abs(ts - pDate) < 48 * 3600 * 1000) return e;
+    }
   }
+  return null;
 }
 
 async function cargarRosterEquipos(idLocal, idVisit, temporada, idLiga) {
@@ -194,6 +138,52 @@ async function cargarHuecosJug() {
   return huecos;
 }
 
+function segsAMinutos(s) {
+  if (!s) return null;
+  const m = Math.floor(s / 60); const r = s % 60;
+  return `${m}:${String(r).padStart(2, "0")}`;
+}
+
+async function scrapePartido(page, p) {
+  const ev = await fetchInBrowser(page, `https://api.sofascore.com/api/v1/event/${p.sofascore_event_id}`);
+  if (ev?.__err) return { ok: false, motivo: `event ${ev.__err}` };
+  const periodScores = (() => {
+    const h = ev?.event?.homeScore, a = ev?.event?.awayScore;
+    if (!h || !a) return null;
+    const periods = ["period1", "period2", "period3", "period4"];
+    const local = periods.map(k => h[k]).filter(x => typeof x === "number");
+    const visit = periods.map(k => a[k]).filter(x => typeof x === "number");
+    if (local.length < 4 || visit.length < 4) return null;
+    return { local, visitante: visit };
+  })();
+  const lu = await fetchInBrowser(page, `https://api.sofascore.com/api/v1/event/${p.sofascore_event_id}/lineups`);
+  if (lu?.__err) return { ok: false, motivo: `lineups ${lu.__err}` };
+  const box = [];
+  for (const lado of ["home", "away"]) {
+    const equipo = lu?.[lado];
+    if (!equipo?.players) continue;
+    for (const pl of equipo.players) {
+      const st = pl.statistics || {};
+      box.push({
+        lado,
+        nombre: pl.player?.name || "",
+        shortName: pl.player?.shortName || "",
+        titular: pl.substitute === false,
+        secondsPlayed: st.secondsPlayed || 0,
+        puntos: st.points || 0,
+        tc_m: st.fieldGoalsMade || 0, tc_a: st.fieldGoalAttempts || 0,
+        t3_m: st.threePointsMade || 0, t3_a: st.threePointAttempts || 0,
+        tl_m: st.freeThrowsMade || 0, tl_a: st.freeThrowAttempts || 0,
+        reb_o: st.offensiveRebounds || 0, reb_d: st.defensiveRebounds || 0,
+        reb_t: st.rebounds || ((st.offensiveRebounds || 0) + (st.defensiveRebounds || 0)),
+        ast: st.assists || 0, stl: st.steals || 0, blk: st.blocks || 0,
+        tov: st.turnovers || 0, pf: st.personalFouls || 0,
+      });
+    }
+  }
+  return { ok: true, periodScores, box };
+}
+
 async function main() {
   const partidos = await listarPendientes();
   console.log(`Partidos L029 pendientes de boxscore (ultimos 10d): ${partidos.length}`);
@@ -201,11 +191,24 @@ async function main() {
 
   const browser = await chromium.launch({ headless: true });
   const ctx = await browser.newContext({
-    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-    viewport: { width: 1280, height: 800 }, locale: "en-AU",
+    userAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    viewport: { width: 1280, height: 800 }, locale: "en-US",
   });
+  const page = await ctx.newPage();
+  await page.goto("https://www.sofascore.com/", { waitUntil: "domcontentloaded", timeout: 30000 });
+  await WAIT(5000);
 
-  await resolverEventIds(ctx, partidos);
+  const eventos = await obtenerEventosLiga(page);
+  if (!eventos.length) { console.log("Sin eventos de la liga, abortando."); await browser.close(); return; }
+
+  for (const p of partidos) {
+    if (p.sofascore_event_id) continue;
+    const ev = matchEvento(eventos, p);
+    if (!ev) { console.log(`  NO MATCH ${p.eq_local.nombre} vs ${p.eq_visit.nombre} (${p.fecha_hora})`); continue; }
+    p.sofascore_event_id = ev.id;
+    await sb.from("partidos").update({ sofascore_event_id: ev.id }).eq("id", p.id);
+    console.log(`  mapped id=${p.id} ${p.eq_local.nombre} vs ${p.eq_visit.nombre} -> ${ev.id}`);
+  }
 
   const rep = { intentados: 0, upserted: 0, sin_event: 0, sin_match_jug: [], errores: [] };
   let huecosJug = null; let huecosIdx = 0;
@@ -213,19 +216,16 @@ async function main() {
   for (const p of partidos) {
     if (!p.sofascore_event_id) { rep.sin_event++; continue; }
     rep.intentados++;
-    const r = await scrapePartido(ctx, p);
+    const r = await scrapePartido(page, p);
     if (!r.ok) { rep.errores.push({ id: p.id, motivo: r.motivo }); continue; }
-    console.log(`id=${p.id} event=${p.sofascore_event_id}: ${r.box.length} jugadoras, parciales=${!!r.parciales}, bodyLen=${r.bodyLength}`);
+    console.log(`id=${p.id} event=${p.sofascore_event_id}: ${r.box.length} jugadoras, parciales=${!!r.periodScores}`);
 
-    // Rosters
     const { idxLocal, idxVisit } = await cargarRosterEquipos(p.id_equipo_local, p.id_equipo_visitante, p.temporada, p.id_liga);
     const filas = [];
     for (const b of r.box) {
-      // Decidir equipo: por posicion en array (primeras ~N son local, siguientes visitante). Heuristica fragil.
-      // Mejor: usar href + logo team cercano. Lazy: pasar por ambos indices.
-      let id_jug = mapearJug(idxLocal, b.nombre);
-      let id_equipo = p.id_equipo_local;
-      if (!id_jug) { id_jug = mapearJug(idxVisit, b.nombre); id_equipo = p.id_equipo_visitante; }
+      const idx = b.lado === "home" ? idxLocal : idxVisit;
+      const id_equipo_base = b.lado === "home" ? p.id_equipo_local : p.id_equipo_visitante;
+      let id_jug = mapearJug(idx, b.nombre) || mapearJug(idx, b.shortName);
       if (!id_jug) {
         if (!huecosJug) huecosJug = await cargarHuecosJug();
         if (huecosIdx < huecosJug.length) {
@@ -233,24 +233,22 @@ async function main() {
           const { error } = await sb.from("jugadoras").insert({ id_jugadora: nuevoId, nombre: b.nombre });
           if (!error) {
             id_jug = nuevoId;
-            await sb.from("temporadas").insert({ id_jugadora: nuevoId, id_equipo, id_liga: p.id_liga, temporada: p.temporada });
+            await sb.from("temporadas").insert({ id_jugadora: nuevoId, id_equipo: id_equipo_base, id_liga: p.id_liga, temporada: p.temporada });
           }
         }
         if (!id_jug) { rep.sin_match_jug.push(b.nombre); continue; }
       }
-      // Parsear nums: [mins, pts, reb, ast, stl, blk, pf, tov, oreb, dreb, fg_m, fg_a, ft_m, ft_a, 3p_m, 3p_a, +/-]
-      // Como el DOM scraping es generico puede variar. Primera version solo pts/reb/ast desde nums[1-3].
-      const n = b.numsPreview;
       filas.push({
-        id_partido: p.id, id_jugadora: id_jug, id_equipo,
-        nombre: b.nombre, dorsal: null, titular: null,
-        minutos: b.mins ? `${b.mins}:00` : null,
-        puntos: n[1] || 0,
-        reb_totales: n[2] || 0, asistencias: n[3] || 0,
-        robos: n[4] || 0, tapones: n[5] || 0,
-        faltas: n[6] || 0, perdidas: n[7] || 0,
-        reb_ofensivos: n[8] || 0, reb_defensivos: n[9] || 0,
-        tc_anotados: 0, tc_intentados: 0, t3_anotados: 0, t3_intentados: 0, tl_anotados: 0, tl_intentados: 0,
+        id_partido: p.id, id_jugadora: id_jug, id_equipo: id_equipo_base,
+        nombre: b.nombre, dorsal: null, titular: b.titular,
+        minutos: segsAMinutos(b.secondsPlayed),
+        puntos: b.puntos,
+        tc_anotados: b.tc_m, tc_intentados: b.tc_a,
+        t3_anotados: b.t3_m, t3_intentados: b.t3_a,
+        tl_anotados: b.tl_m, tl_intentados: b.tl_a,
+        reb_ofensivos: b.reb_o, reb_defensivos: b.reb_d, reb_totales: b.reb_t,
+        asistencias: b.ast, robos: b.stl, tapones: b.blk,
+        perdidas: b.tov, faltas: b.pf,
         valoracion: 0,
       });
     }
@@ -260,7 +258,7 @@ async function main() {
       if (error) { rep.errores.push({ id: p.id, insert: error.message }); continue; }
       rep.upserted += filas.length;
     }
-    if (r.parciales) await sb.from("partidos").update({ parciales: r.parciales }).eq("id", p.id);
+    if (r.periodScores) await sb.from("partidos").update({ parciales: r.periodScores }).eq("id", p.id);
   }
   console.log("Reporte:", JSON.stringify(rep, null, 2));
   await browser.close();
