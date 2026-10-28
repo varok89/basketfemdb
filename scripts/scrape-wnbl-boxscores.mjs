@@ -64,17 +64,15 @@ async function listarPendientes() {
   return partidos.filter(p => !conBox.has(p.id));
 }
 
-// Ejecuta un fetch dentro del context del browser (Cloudflare lo acepta porque viene con cookies CF).
-async function fetchInBrowser(page, url) {
-  return await page.evaluate(async (u) => {
-    const r = await fetch(u, { credentials: "include", headers: { accept: "application/json" } });
-    if (!r.ok) return { __err: `HTTP ${r.status}` };
-    return await r.json();
-  }, url);
+// Usa ctx.request (server-side con cookies del context, sin CORS).
+async function fetchInBrowser(ctx, url) {
+  const r = await ctx.request.get(url, { headers: { accept: "application/json" } });
+  if (!r.ok()) return { __err: `HTTP ${r.status()}` };
+  try { return await r.json(); } catch (e) { return { __err: `parse ${e.message}` }; }
 }
 
-async function obtenerEventosLiga(page) {
-  const seas = await fetchInBrowser(page, `https://api.sofascore.com/api/v1/unique-tournament/${WNBL_TOURNAMENT_ID}/seasons`);
+async function obtenerEventosLiga(ctx) {
+  const seas = await fetchInBrowser(ctx, `https://api.sofascore.com/api/v1/unique-tournament/${WNBL_TOURNAMENT_ID}/seasons`);
   if (seas?.__err || !seas?.seasons?.length) { console.log("err seasons:", seas); return []; }
   const seasonId = seas.seasons[0].id;
   console.log(`  seasonId=${seasonId} (${seas.seasons[0].name})`);
@@ -82,7 +80,7 @@ async function obtenerEventosLiga(page) {
   for (const tipo of ["last", "next"]) {
     for (let pageNum = 0; pageNum < 5; pageNum++) {
       const url = `https://api.sofascore.com/api/v1/unique-tournament/${WNBL_TOURNAMENT_ID}/season/${seasonId}/events/${tipo}/${pageNum}`;
-      const r = await fetchInBrowser(page, url);
+      const r = await fetchInBrowser(ctx, url);
       if (r?.__err || !r?.events?.length) break;
       todos.push(...r.events);
       if (!r.hasNextPage) break;
@@ -144,8 +142,8 @@ function segsAMinutos(s) {
   return `${m}:${String(r).padStart(2, "0")}`;
 }
 
-async function scrapePartido(page, p) {
-  const ev = await fetchInBrowser(page, `https://api.sofascore.com/api/v1/event/${p.sofascore_event_id}`);
+async function scrapePartido(ctx, p) {
+  const ev = await fetchInBrowser(ctx, `https://api.sofascore.com/api/v1/event/${p.sofascore_event_id}`);
   if (ev?.__err) return { ok: false, motivo: `event ${ev.__err}` };
   const periodScores = (() => {
     const h = ev?.event?.homeScore, a = ev?.event?.awayScore;
@@ -156,7 +154,7 @@ async function scrapePartido(page, p) {
     if (local.length < 4 || visit.length < 4) return null;
     return { local, visitante: visit };
   })();
-  const lu = await fetchInBrowser(page, `https://api.sofascore.com/api/v1/event/${p.sofascore_event_id}/lineups`);
+  const lu = await fetchInBrowser(ctx, `https://api.sofascore.com/api/v1/event/${p.sofascore_event_id}/lineups`);
   if (lu?.__err) return { ok: false, motivo: `lineups ${lu.__err}` };
   const box = [];
   for (const lado of ["home", "away"]) {
@@ -198,7 +196,7 @@ async function main() {
   await page.goto("https://www.sofascore.com/", { waitUntil: "domcontentloaded", timeout: 30000 });
   await WAIT(5000);
 
-  const eventos = await obtenerEventosLiga(page);
+  const eventos = await obtenerEventosLiga(ctx);
   if (!eventos.length) { console.log("Sin eventos de la liga, abortando."); await browser.close(); return; }
 
   for (const p of partidos) {
@@ -216,7 +214,7 @@ async function main() {
   for (const p of partidos) {
     if (!p.sofascore_event_id) { rep.sin_event++; continue; }
     rep.intentados++;
-    const r = await scrapePartido(page, p);
+    const r = await scrapePartido(ctx, p);
     if (!r.ok) { rep.errores.push({ id: p.id, motivo: r.motivo }); continue; }
     console.log(`id=${p.id} event=${p.sofascore_event_id}: ${r.box.length} jugadoras, parciales=${!!r.periodScores}`);
 
