@@ -64,31 +64,35 @@ async function listarPendientes() {
   return partidos.filter(p => !conBox.has(p.id));
 }
 
-// Usa ctx.request (server-side con cookies del context, sin CORS).
-async function fetchInBrowser(ctx, url) {
-  const r = await ctx.request.get(url, { headers: { accept: "application/json" } });
-  if (!r.ok()) return { __err: `HTTP ${r.status()}` };
-  try { return await r.json(); } catch (e) { return { __err: `parse ${e.message}` }; }
+// Carga una URL HTML de sofascore.com y extrae el JSON __NEXT_DATA__.
+async function getNextData(page, url) {
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+  await WAIT(1500);
+  const json = await page.evaluate(() => {
+    const el = document.getElementById("__NEXT_DATA__");
+    return el ? el.textContent : null;
+  });
+  if (!json) return { __err: "sin __NEXT_DATA__" };
+  try { return JSON.parse(json); } catch (e) { return { __err: `parse ${e.message}` }; }
 }
 
-async function obtenerEventosLiga(ctx) {
-  const seas = await fetchInBrowser(ctx, `https://api.sofascore.com/api/v1/unique-tournament/${WNBL_TOURNAMENT_ID}/seasons`);
-  if (seas?.__err || !seas?.seasons?.length) { console.log("err seasons:", seas); return []; }
-  const seasonId = seas.seasons[0].id;
-  console.log(`  seasonId=${seasonId} (${seas.seasons[0].name})`);
-  const todos = [];
-  for (const tipo of ["last", "next"]) {
-    for (let pageNum = 0; pageNum < 5; pageNum++) {
-      const url = `https://api.sofascore.com/api/v1/unique-tournament/${WNBL_TOURNAMENT_ID}/season/${seasonId}/events/${tipo}/${pageNum}`;
-      const r = await fetchInBrowser(ctx, url);
-      if (r?.__err || !r?.events?.length) break;
-      todos.push(...r.events);
-      if (!r.hasNextPage) break;
-      await WAIT(300);
+async function obtenerEventosLiga(page) {
+  const url = `https://www.sofascore.com/basketball/tournament/australia/wnbl/${WNBL_TOURNAMENT_ID}`;
+  const nd = await getNextData(page, url);
+  if (nd?.__err) { console.log("err tournament page:", nd.__err); return []; }
+  // Buscar eventos recursivamente: cualquier array con objetos {id, homeTeam, awayTeam, startTimestamp}.
+  const vistos = new Set(); const eventos = [];
+  const walk = (o) => {
+    if (!o || typeof o !== "object") return;
+    if (Array.isArray(o)) { for (const v of o) walk(v); return; }
+    if (typeof o.id === "number" && o.homeTeam?.name && o.awayTeam?.name && typeof o.startTimestamp === "number") {
+      if (!vistos.has(o.id)) { vistos.add(o.id); eventos.push(o); }
     }
-  }
-  console.log(`  eventos listados: ${todos.length}`);
-  return todos;
+    for (const k of Object.keys(o)) walk(o[k]);
+  };
+  walk(nd);
+  console.log(`  eventos listados: ${eventos.length}`);
+  return eventos;
 }
 
 function matchEvento(eventos, partido) {
@@ -142,23 +146,43 @@ function segsAMinutos(s) {
   return `${m}:${String(r).padStart(2, "0")}`;
 }
 
-async function scrapePartido(ctx, p) {
-  const ev = await fetchInBrowser(ctx, `https://api.sofascore.com/api/v1/event/${p.sofascore_event_id}`);
-  if (ev?.__err) return { ok: false, motivo: `event ${ev.__err}` };
-  const periodScores = (() => {
-    const h = ev?.event?.homeScore, a = ev?.event?.awayScore;
-    if (!h || !a) return null;
-    const periods = ["period1", "period2", "period3", "period4"];
-    const local = periods.map(k => h[k]).filter(x => typeof x === "number");
-    const visit = periods.map(k => a[k]).filter(x => typeof x === "number");
-    if (local.length < 4 || visit.length < 4) return null;
-    return { local, visitante: visit };
-  })();
-  const lu = await fetchInBrowser(ctx, `https://api.sofascore.com/api/v1/event/${p.sofascore_event_id}/lineups`);
-  if (lu?.__err) return { ok: false, motivo: `lineups ${lu.__err}` };
+async function scrapePartido(page, p) {
+  // Event page
+  const nd1 = await getNextData(page, `https://www.sofascore.com/event/${p.sofascore_event_id}`);
+  if (nd1?.__err) return { ok: false, motivo: `event ${nd1.__err}` };
+  // Encontrar objeto event con homeScore/awayScore period1..period4
+  let periodScores = null;
+  const walkEvent = (o) => {
+    if (!o || typeof o !== "object" || periodScores) return;
+    if (Array.isArray(o)) { for (const v of o) walkEvent(v); return; }
+    if (o.homeScore && o.awayScore && typeof o.homeScore.period1 === "number") {
+      const periods = ["period1", "period2", "period3", "period4"];
+      const local = periods.map(k => o.homeScore[k]).filter(x => typeof x === "number");
+      const visit = periods.map(k => o.awayScore[k]).filter(x => typeof x === "number");
+      if (local.length >= 4 && visit.length >= 4) periodScores = { local, visitante: visit };
+      return;
+    }
+    for (const k of Object.keys(o)) walkEvent(o[k]);
+  };
+  walkEvent(nd1);
+
+  // Lineups page
+  const nd2 = await getNextData(page, `https://www.sofascore.com/event/${p.sofascore_event_id}/lineups`);
+  if (nd2?.__err) return { ok: false, motivo: `lineups ${nd2.__err}` };
+  // Encontrar objeto {home,away} con arrays de players con statistics
+  let lineups = null;
+  const walkLineups = (o) => {
+    if (!o || typeof o !== "object" || lineups) return;
+    if (Array.isArray(o)) { for (const v of o) walkLineups(v); return; }
+    if (o.home?.players && o.away?.players) { lineups = o; return; }
+    for (const k of Object.keys(o)) walkLineups(o[k]);
+  };
+  walkLineups(nd2);
+  if (!lineups) return { ok: false, motivo: "sin lineups en __NEXT_DATA__" };
+
   const box = [];
   for (const lado of ["home", "away"]) {
-    const equipo = lu?.[lado];
+    const equipo = lineups[lado];
     if (!equipo?.players) continue;
     for (const pl of equipo.players) {
       const st = pl.statistics || {};
@@ -193,10 +217,7 @@ async function main() {
     viewport: { width: 1280, height: 800 }, locale: "en-US",
   });
   const page = await ctx.newPage();
-  await page.goto("https://www.sofascore.com/", { waitUntil: "domcontentloaded", timeout: 30000 });
-  await WAIT(5000);
-
-  const eventos = await obtenerEventosLiga(ctx);
+  const eventos = await obtenerEventosLiga(page);
   if (!eventos.length) { console.log("Sin eventos de la liga, abortando."); await browser.close(); return; }
 
   for (const p of partidos) {
@@ -214,7 +235,7 @@ async function main() {
   for (const p of partidos) {
     if (!p.sofascore_event_id) { rep.sin_event++; continue; }
     rep.intentados++;
-    const r = await scrapePartido(ctx, p);
+    const r = await scrapePartido(page, p);
     if (!r.ok) { rep.errores.push({ id: p.id, motivo: r.motivo }); continue; }
     console.log(`id=${p.id} event=${p.sofascore_event_id}: ${r.box.length} jugadoras, parciales=${!!r.periodScores}`);
 
