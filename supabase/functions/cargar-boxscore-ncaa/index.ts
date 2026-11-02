@@ -1,6 +1,9 @@
-// cargar-boxscore-ncaa v1
-// Clon de cargar-boxscore-wnba adaptado a NCAA (L020) con endpoint ESPN
-// /leagues/womens-college-basketball/events/{gid}/competitions/{gid}/competitors.
+// cargar-boxscore-ncaa v5
+// v5: insert jugadoras incluye nombre placeholder (NOT NULL). Despues se
+//   actualiza con displayName real al parsear roster entries.
+// v4: parciales desde header.competitions[0].competitors[*].linescores.
+// v3: pagina carga de jugadoras con id_espn.
+// v2: auto-crear jugadoras NCAA no mapeadas + parciales desde Site summary.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { z } from "npm:zod@3.23.8";
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
@@ -8,76 +11,129 @@ const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const sb = createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const UA = { "User-Agent": "Mozilla/5.0" };
+const SITE_SUMMARY = "https://site.api.espn.com/apis/site/v2/sports/basketball/womens-college-basketball/summary";
 
-const Params = z.object({
-  id_ext: z.string().regex(/^\d+$/, "id_ext debe ser el gameId numerico de ESPN"),
-}).strict();
+const Params = z.object({ id_ext: z.string().regex(/^\d+$/) }).strict();
 
-async function j(url: string) {
-  const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(10000) });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.json();
-}
+async function j(url) { const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(10000) }); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }
+function getStat(cats, name) { for (const c of (cats||[])) { for (const s of (c.stats||[])) { if (s.name === name) return parseFloat(s.value) || 0; } } return 0; }
 
-function getStat(cats: any[], name: string): number {
-  for (const c of (cats||[])) {
-    for (const s of (c.stats||[])) {
-      if (s.name === name) return parseFloat(s.value) || 0;
-    }
+async function cargarHuecosJug() {
+  const all = new Set<number>();
+  for (let off = 0; off < 30; off++) {
+    const { data } = await sb.from("jugadoras").select("id_jugadora").order("id_jugadora", { ascending: true }).range(off * 1000, off * 1000 + 999);
+    if (!data?.length) break;
+    for (const r of data) { const n = parseInt(String(r.id_jugadora).slice(1), 10); if (!isNaN(n)) all.add(n); }
+    if (data.length < 1000) break;
   }
-  return 0;
+  const max = all.size ? Math.max(...all) : 0;
+  const huecos: number[] = [];
+  for (let i = 1; i <= max + 200; i++) { if (!all.has(i)) huecos.push(i); if (huecos.length >= 200) break; }
+  return huecos;
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
-  const jr = (b: any, s = 200) => new Response(JSON.stringify(b, null, 2), { status: s, headers: { ...CORS, "Content-Type": "application/json" } });
-  let body: any = {}; try { body = await req.json(); } catch {}
+  const jr = (b, s = 200) => new Response(JSON.stringify(b, null, 2), { status: s, headers: { ...CORS, "Content-Type": "application/json" } });
+  let body = {}; try { body = await req.json(); } catch {}
   const parsed = Params.safeParse(body);
-  if (!parsed.success) return jr({ ok: false, error: "Params invalidos", detalles: parsed.error.issues.map(i => ({ campo: i.path.join("."), mensaje: i.message })) }, 400);
+  if (!parsed.success) return jr({ ok: false, error: "Params invalidos", detalles: parsed.error.issues }, 400);
   const idExt = parsed.data.id_ext;
 
-  const { data: part } = await sb.from("partidos")
-    .select("id,id_liga,id_equipo_local,id_equipo_visitante")
-    .eq("id_liga", "L020").eq("id_ext", idExt).maybeSingle();
+  const { data: part } = await sb.from("partidos").select("id,id_liga,id_equipo_local,id_equipo_visitante").eq("id_liga", "L020").eq("id_ext", idExt).maybeSingle();
   if (!part) return jr({ ok: false, error: `Partido ${idExt} no en BD L020` }, 404);
 
-  const { data: jugsAll } = await sb.from("jugadoras").select("id_jugadora,nombre,id_espn").not("id_espn","is",null);
-  const byEspnId = new Map<string,{id_jugadora:string,nombre:string}>((jugsAll||[]).map((x:any)=>[String(x.id_espn),{id_jugadora:x.id_jugadora,nombre:x.nombre}]));
+  const rep: any = { id_ext: idExt, id_partido: part.id, upserted: 0, creadas: 0, parciales: null, sin_match: [], errores: [] };
 
-  const { data: tempsL020 } = await sb.from("temporadas").select("id_equipo").eq("id_liga","L020");
-  const ncaaSet = new Set((tempsL020||[]).map((r:any)=>r.id_equipo));
-  const { data: eqAll } = await sb.from("equipos").select("id_equipo,id_espn").not("id_espn","is",null);
-  const eqByEspn = new Map<string,string>();
-  for (const e of eqAll||[]) if (ncaaSet.has(e.id_equipo)) eqByEspn.set(String(e.id_espn), e.id_equipo);
+  // 1) Parciales desde header.competitions[0].competitors[*].linescores
+  let sum: any = null;
+  try { sum = await j(`${SITE_SUMMARY}?event=${idExt}`); } catch (e) { rep.errores.push(`summary: ${e}`); }
+  if (sum) {
+    try {
+      const hdrComps = sum?.header?.competitions?.[0]?.competitors || [];
+      let locArr: number[] | null = null, visArr: number[] | null = null;
+      for (const c of hdrComps) {
+        const ls = (c?.linescores || []).map((l: any) => parseInt(String(l.displayValue ?? l.value)) || 0);
+        if (!ls.length) continue;
+        if (c.homeAway === "home") locArr = ls;
+        else if (c.homeAway === "away") visArr = ls;
+      }
+      if (locArr && visArr && locArr.length >= 4 && visArr.length >= 4) {
+        const parciales = { local: locArr, visitante: visArr };
+        await sb.from("partidos").update({ parciales }).eq("id", part.id);
+        rep.parciales = parciales;
+      }
+    } catch (e) { rep.errores.push(`parciales: ${e}`); }
+  }
 
-  let compets: any;
-  try {
-    compets = await j(`https://sports.core.api.espn.com/v2/sports/basketball/leagues/womens-college-basketball/events/${idExt}/competitions/${idExt}/competitors`);
-  } catch (e) { return jr({ ok:false, error: `ESPN competitors: ${e}` }, 502); }
+  // 2) Boxscore via Core API competitors + roster
+  let compets;
+  try { compets = await j(`https://sports.core.api.espn.com/v2/sports/basketball/leagues/womens-college-basketball/events/${idExt}/competitions/${idExt}/competitors`); }
+  catch (e) { return jr({ ok:false, error: `ESPN competitors: ${e}` }, 502); }
 
-  const rep: any = { id_ext: idExt, id_partido: part.id, upserted: 0, sin_match: [], errores: [] };
-  const filas: any[] = [];
-
+  const compDatos: any[] = [];
   for (const it of compets.items || []) {
-    let comp: any;
-    try { comp = await j(it.$ref); } catch { continue; }
-    const teamEspnId = String(comp.id);
-    const teamBd = eqByEspn.get(teamEspnId) || (comp.homeAway === "home" ? part.id_equipo_local : part.id_equipo_visitante);
-    const rosterRef = comp.roster?.$ref; if (!rosterRef) continue;
-    let roster: any;
-    try { roster = await j(rosterRef); } catch { continue; }
+    let comp; try { comp = await j(it.$ref); } catch { continue; }
+    const teamBd = comp.homeAway === "home" ? part.id_equipo_local : part.id_equipo_visitante;
+    compDatos.push({ comp, teamBd });
+  }
 
-    for (const e of roster.entries || []) {
-      if (e.didNotPlay) continue;
-      const playerId = String(e.playerId || "");
+  const allPlayerIds = new Set<string>();
+  const rosterData: any[] = [];
+  for (const { comp, teamBd } of compDatos) {
+    const rosterRef = comp.roster?.$ref; if (!rosterRef) continue;
+    let roster; try { roster = await j(rosterRef); } catch { continue; }
+    const entries = (roster.entries || []).filter((e: any) => !e.didNotPlay && e.playerId);
+    for (const e of entries) allPlayerIds.add(String(e.playerId));
+    rosterData.push({ teamBd, entries });
+  }
+
+  // Pre-fetch existentes por id_espn (chunks de 200)
+  const byEspnId = new Map<string, { id_jugadora: string; nombre: string }>();
+  const idsArr = [...allPlayerIds];
+  for (let i = 0; i < idsArr.length; i += 200) {
+    const chunk = idsArr.slice(i, i + 200).map((x) => parseInt(x));
+    const { data } = await sb.from("jugadoras").select("id_jugadora,nombre,id_espn").in("id_espn", chunk);
+    for (const r of data || []) byEspnId.set(String(r.id_espn), { id_jugadora: r.id_jugadora, nombre: r.nombre });
+  }
+
+  // Para construir nuevas, necesitamos displayName del roster
+  const nombrePorEspn = new Map<string, string>();
+  for (const { entries } of rosterData) {
+    for (const e of entries) {
+      const pid = String(e.playerId);
+      if (e.displayName) nombrePorEspn.set(pid, e.displayName);
+    }
+  }
+
+  let huecosJug: number[] | null = null, huecosIdx = 0;
+  const nuevasJug: any[] = [];
+  for (const playerId of allPlayerIds) {
+    if (byEspnId.has(playerId)) continue;
+    if (!huecosJug) huecosJug = await cargarHuecosJug();
+    if (huecosIdx >= huecosJug.length) continue;
+    const nuevoId = `J${huecosJug[huecosIdx++]}`;
+    const nombre = nombrePorEspn.get(playerId) || `ESPN ${playerId}`;
+    nuevasJug.push({ id_jugadora: nuevoId, id_espn: parseInt(playerId), nombre });
+    byEspnId.set(playerId, { id_jugadora: nuevoId, nombre });
+  }
+
+  if (nuevasJug.length > 0) {
+    const { error } = await sb.from("jugadoras").insert(nuevasJug);
+    if (error) rep.errores.push(`insert jugadoras: ${error.message}`);
+    else rep.creadas = nuevasJug.length;
+  }
+
+  // Fetch stats y construir filas
+  const filas: any[] = [];
+  for (const { teamBd, entries } of rosterData) {
+    for (const e of entries) {
+      const playerId = String(e.playerId);
       const bdJug = byEspnId.get(playerId);
       if (!bdJug) { rep.sin_match.push({ playerId, displayName: e.displayName || "" }); continue; }
-
       const statsRef = e.statistics?.$ref; if (!statsRef) continue;
-      let stats: any;
-      try { stats = await j(statsRef); } catch { continue; }
+      let stats; try { stats = await j(statsRef); } catch { continue; }
       const cats = stats?.splits?.categories || [];
-
       filas.push({
         id_partido: part.id, id_jugadora: bdJug.id_jugadora, id_equipo: teamBd,
         nombre: bdJug.nombre, dorsal: String(e.jersey || ""), titular: !!e.starter,
@@ -94,10 +150,8 @@ Deno.serve(async (req) => {
 
   if (filas.length > 0) {
     const { error } = await sb.from("partido_boxscore").upsert(filas, { onConflict: "id_partido,id_jugadora" });
-    if (error) rep.errores.push(error.message);
-    else rep.upserted = filas.length;
+    if (error) rep.errores.push(error.message); else rep.upserted = filas.length;
   }
-
   rep.sin_match = rep.sin_match.slice(0, 20);
   return jr({ ok: true, ...rep });
 });
