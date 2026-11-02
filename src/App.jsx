@@ -67,6 +67,7 @@ import TeamsView from "./views/TeamsView";
 import LeaguesView from "./views/LeaguesView";
 import CoachesView from "./views/CoachesView";
 import Landing from "./views/Landing";
+import { CardEditorView } from "./views/CardEditorView";
 
 /* ── GlobalSearch ───────────────────────────────────────── */
 function GlobalSearch({players,equipos,ligas,coaches,onGoToPlayer,onGoToTeam,onGoToLeague,onGoToCoach,fullscreen,onClose}){
@@ -1886,6 +1887,7 @@ export default function App(){
     if(parts[0]==="jugadoras"||parts[0]==="equipos"||parts[0]==="coaches"||parts[0]==="ligas"||parts[0]==="partidos")setTab(parts[0]==="coaches"?"cuerpo_tecnico":parts[0]);
     else if(parts[0]==="comparar")setTab("comparar");
     else if(parts[0]==="mercado")setTab("home");
+    else if(parts[0]==="card-editor")setTab("card-editor");
     else if(parts.length===0)setTab("hoy");
   };
 
@@ -2059,6 +2061,7 @@ export default function App(){
         {showPerfil&&user&&<PerfilView user={user} favoritos={favoritos} onClose={()=>setShowPerfil(false)} onLogout={()=>{handleLogout();setShowPerfil(false);}}/>}
         {showPrivacidad&&<Suspense fallback={<GridSkel n={6} cards={false}/>}><PrivacidadView onBack={()=>{setShowPrivacidad(false);window.history.back();}}/></Suspense>}
         {!showPrivacidad&&!showPerfil&&tab==="favoritos"&&user&&<FavoritosView players={players} equipos={equipos} ligas={ligas} partidos={partidos} favoritos={favoritos} user={user} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToPartido={goToPartido} isFavFn={isFav} onToggleFav={toggleFav}/>}
+        {!showPrivacidad&&!showPerfil&&tab==="card-editor"&&<CardEditorView user={user}/>}
         {!showPrivacidad&&!showPerfil&&tab==="hoy"&&<Suspense fallback={<GridSkel n={6} cards={false}/>}><HoyView partidos={partidos} equipos={equipos} ligas={ligas} user={user} favoritos={favoritos} onToggleFav={toggleFav} onGoToPartido={goToPartido} onGoToTeam={goToTeam} onGoToLeague={goToLeague} onGoToClasificacion={(ligaId,temporada)=>setOpenClasiKey(`${ligaId}|${temporada||""}`)} lang={lang}/></Suspense>}
         {!showPrivacidad&&!showPerfil&&tab==="home"&&<HomeView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onGoToPlayer={goToPlayer} onGoToTeam={goToTeam} onGoToTab={t=>setTab(t)} equiposNombres={equiposNombres} user={user} favoritos={favoritos} onGoToLeague={goToLeague}/>}
         {!showPrivacidad&&!showPerfil&&tab==="jugadoras"&&<PlayersView players={players} equipos={equipos} ligas={ligas} palmares={palmares} coaches={coaches} tempCoach={tempCoach} onReload={loadAll} onGoToTeam={goToTeam} onGoToCoach={goToCoach} openPlayerId={openPlayerId} onClearPlayer={()=>setOpenPlayerId(null)} isAdmin={isAdmin} onGoToTab={t=>setTab(t)} navHistory={navHistory} onGoBack={goBack} equiposNombres={equiposNombres} setPlayers={setPlayers} setTempCoach={setTempCoach} onGoToPartido={goToPartido} regExtra={regExtra} isFavFn={isFav} onToggleFav={toggleFav}/>}

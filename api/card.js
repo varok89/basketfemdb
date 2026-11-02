@@ -1,7 +1,7 @@
-// Genera card 1080x1080 de jugadora en partido concreto.
+// Genera card de jugadora en partido concreto.
 // URL: /api/card?jugadora=J0123&partido=38717
-// Layout: fondo halftone + card blanco con logo centrado, foto a la izquierda,
-// marcador + stats a la derecha, nombre + %tiros en pie.
+// Config leida de public.app_config key='card' (editable vía /#admin/card-editor).
+// Query params extra sobreescriben config (preview sin tocar BD).
 
 import { ImageResponse } from "@vercel/og";
 import { createClient } from "@supabase/supabase-js";
@@ -11,8 +11,56 @@ export const config = { runtime: "edge" };
 const SUPA_URL = process.env.SUPABASE_URL;
 const SUPA_KEY = process.env.SUPABASE_KEY;
 
-const COL_TEXT = "#1f2937";
-const COL_MUTED = "#6b7280";
+const DEFAULTS = {
+  fontFamily: "Oswald",
+  fontWeight: 700,
+  colText: "#1f2937",
+  colMuted: "#6b7280",
+  cardBg: "#f5efe8",
+  cardBorderRadius: 24,
+  outerPadding: 28,
+  innerPaddingTop: 52,
+  innerPaddingSide: 32,
+  innerPaddingBottom: 24,
+  colGap: 64,
+  photoSize: 560,
+  logoSize: 120,
+  logoLeft: 452,
+  logoTop: -26,
+  rayaBottom: 40,
+  escudoOpacity: 0.22,
+  equipoLogoSize: 70,
+  ligaLogoSize: 44,
+  nombreSize: 60,
+  ligaSize: 22,
+  scoreSize: 54,
+  tirosSize: 24,
+  statSize: 36,
+  statIconSize: 34,
+  divisorHeight: 3,
+  statSpacerTop: 2,
+  statSpacerBottom: 5,
+  width: 1080,
+  height: 1080,
+};
+
+const FONT_URLS = {
+  "Oswald": [
+    ["https://cdn.jsdelivr.net/npm/@fontsource/oswald/files/oswald-latin-400-normal.woff", 400],
+    ["https://cdn.jsdelivr.net/npm/@fontsource/oswald/files/oswald-latin-700-normal.woff", 700],
+  ],
+  "Bebas Neue": [
+    ["https://cdn.jsdelivr.net/npm/@fontsource/bebas-neue/files/bebas-neue-latin-400-normal.woff", 400],
+  ],
+  "Barlow Condensed": [
+    ["https://cdn.jsdelivr.net/npm/@fontsource/barlow-condensed/files/barlow-condensed-latin-400-normal.woff", 400],
+    ["https://cdn.jsdelivr.net/npm/@fontsource/barlow-condensed/files/barlow-condensed-latin-800-normal.woff", 800],
+  ],
+  "Inter": [
+    ["https://cdn.jsdelivr.net/npm/@fontsource/inter/files/inter-latin-400-normal.woff", 400],
+    ["https://cdn.jsdelivr.net/npm/@fontsource/inter/files/inter-latin-700-normal.woff", 700],
+  ],
+};
 
 function el(type, style, children) {
   const props = { style };
@@ -40,7 +88,14 @@ async function datos(jugadora, partido) {
   return { jug: j.data, par: p.data, box: bx.data, eqL, eqV, liga: liga.data?.nombre || "", ligaLogo: liga.data?.logo || null };
 }
 
-// Si la URL es Cloudinary FIBA, inyecta e_bgremoval para quitar fondo.
+async function loadConfig() {
+  try {
+    const supa = createClient(SUPA_URL, SUPA_KEY);
+    const { data } = await supa.from("app_config").select("value").eq("key", "card").maybeSingle();
+    return { ...DEFAULTS, ...(data?.value || {}) };
+  } catch { return { ...DEFAULTS }; }
+}
+
 function fotoSinBg(url) {
   if (!url) return url;
   if (!url.includes("assets.fiba.basketball/image/upload/")) return url;
@@ -55,7 +110,7 @@ function parseMin(m) {
   return Math.floor(Number(s) || 0);
 }
 
-function card(d, baseUrl) {
+function card(d, baseUrl, cfg) {
   const BG = `${baseUrl}/share-card/bg.jpg`;
   const LOGO = `${baseUrl}/share-card/logo.png`;
   const foto = fotoSinBg(d.jug.foto);
@@ -73,54 +128,54 @@ function card(d, baseUrl) {
   const pT3 = pct(d.box.t3_anotados, d.box.t3_intentados);
   const pTL = pct(d.box.tl_anotados, d.box.tl_intentados);
 
+  const FF = cfg.fontFamily;
+  const FW = cfg.fontWeight;
   const text = (txt, style) => el("div", { display: "flex", ...style }, txt);
 
   const statRow = (icon, label, value) => el("div", {
-    display: "flex", alignItems: "center", gap: "14px", marginBottom: "6px",
+    display: "flex", alignItems: "center", gap: "14px",
   }, [
-    text(icon, { fontSize: "34px" }),
-    text(`${label}: ${value}`, { fontSize: "36px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", letterSpacing: "0.5px" }),
+    text(icon, { fontSize: `${cfg.statIconSize}px` }),
+    text(`${label}: ${value}`, { fontSize: `${cfg.statSize}px`, fontWeight: FW, color: cfg.colText, fontFamily: FF, letterSpacing: "0.5px" }),
   ]);
 
   const escudoJugadora = d.box.id_equipo === d.par.id_equipo_local ? d.eqL.escudo : d.eqV.escudo;
+  const PHOTO = cfg.photoSize;
 
-  const PHOTO = 560;
   const root = el("div", {
     width: "100%", height: "100%", display: "flex", position: "relative",
     backgroundImage: `url(${BG})`, backgroundSize: "cover", backgroundPosition: "center",
-    padding: "28px",
+    padding: `${cfg.outerPadding}px`,
   }, [
     el("div", {
       flex: 1, display: "flex", flexDirection: "column",
-      background: "#f5efe8", borderRadius: "24px", padding: "52px 32px 24px 32px",
+      background: cfg.cardBg, borderRadius: `${cfg.cardBorderRadius}px`,
+      padding: `${cfg.innerPaddingTop}px ${cfg.innerPaddingSide}px ${cfg.innerPaddingBottom}px ${cfg.innerPaddingSide}px`,
       position: "relative",
     }, [
-      // Escudo del equipo cubriendo todo el inner card
       escudoJugadora ? el("div", {
         position: "absolute", top: 0, left: 0, bottom: 0, right: 0,
-        display: "flex", justifyContent: "center", alignItems: "center", opacity: 0.22,
-        borderRadius: "24px", overflow: "hidden",
+        display: "flex", justifyContent: "center", alignItems: "center", opacity: cfg.escudoOpacity,
+        borderRadius: `${cfg.cardBorderRadius}px`, overflow: "hidden",
       }, [
         img(escudoJugadora, 900, 900),
       ]) : null,
       el("div", {
-        position: "absolute", top: "-26px", left: "452px",
-        width: "120px", height: "120px", display: "flex",
+        position: "absolute", top: `${cfg.logoTop}px`, left: `${cfg.logoLeft}px`,
+        width: `${cfg.logoSize}px`, height: `${cfg.logoSize}px`, display: "flex",
       }, [
-        img(LOGO, 120, 120),
+        img(LOGO, cfg.logoSize, cfg.logoSize),
       ]),
       el("div", {
-        display: "flex", flex: 1, marginTop: "72px", gap: "64px",
+        display: "flex", flex: 1, marginTop: "72px", gap: `${cfg.colGap}px`,
       }, [
-        // Columna izquierda: foto + nombre + %tiros
         el("div", { display: "flex", flexDirection: "column", width: `${PHOTO}px`, position: "relative" }, [
-          // Zona foto + raya overlapping. La foto se dibuja encima de la raya.
           el("div", {
             width: `${PHOTO}px`, height: `${PHOTO}px`, display: "flex", position: "relative",
           }, [
             el("div", {
-              position: "absolute", left: 0, bottom: "40px", width: "100%", height: "3px",
-              background: COL_TEXT, display: "flex",
+              position: "absolute", left: 0, bottom: `${cfg.rayaBottom}px`, width: "100%", height: `${cfg.divisorHeight}px`,
+              background: cfg.colText, display: "flex",
             }, []),
             foto ? el("div", {
               position: "absolute", left: 0, bottom: 0, width: `${PHOTO}px`, height: `${PHOTO}px`,
@@ -129,25 +184,24 @@ function card(d, baseUrl) {
               img(foto, PHOTO, PHOTO, { objectFit: "contain" }),
             ]) : text("👤", { fontSize: "120px" }),
           ]),
-          text(nombre.toUpperCase(), { fontSize: "60px", fontWeight: 700, color: COL_TEXT, letterSpacing: "2px", fontFamily: "Oswald", lineHeight: 0.95, marginTop: "10px" }),
-          text(`T2 ${t2m}/${t2i} (${pT2}%)  |  T3 ${d.box.t3_anotados || 0}/${d.box.t3_intentados || 0} (${pT3}%)  |  TL ${d.box.tl_anotados || 0}/${d.box.tl_intentados || 0} (${pTL}%)`, { fontSize: "24px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", marginTop: "10px", letterSpacing: "0.5px" }),
+          text(nombre.toUpperCase(), { fontSize: `${cfg.nombreSize}px`, fontWeight: FW, color: cfg.colText, letterSpacing: "2px", fontFamily: FF, lineHeight: 0.95, marginTop: "10px" }),
+          text(`T2 ${t2m}/${t2i} (${pT2}%)  |  T3 ${d.box.t3_anotados || 0}/${d.box.t3_intentados || 0} (${pT3}%)  |  TL ${d.box.tl_anotados || 0}/${d.box.tl_intentados || 0} (${pTL}%)`, { fontSize: `${cfg.tirosSize}px`, fontWeight: FW, color: cfg.colText, fontFamily: FF, marginTop: "10px", letterSpacing: "0.5px" }),
         ].filter(Boolean)),
-        // Columna derecha: liga+score arriba, stats centradas verticalmente
         el("div", {
           flex: 1, display: "flex", flexDirection: "column",
         }, [
           el("div", { display: "flex", flexDirection: "column" }, [
             el("div", { display: "flex", alignItems: "center", gap: "12px", marginBottom: "4px" }, [
-              d.ligaLogo ? img(d.ligaLogo, 44, 44) : null,
-              text(liga.toUpperCase(), { fontSize: "22px", fontWeight: 700, color: COL_TEXT, letterSpacing: "1px", fontFamily: "Oswald" }),
+              d.ligaLogo ? img(d.ligaLogo, cfg.ligaLogoSize, cfg.ligaLogoSize) : null,
+              text(liga.toUpperCase(), { fontSize: `${cfg.ligaSize}px`, fontWeight: FW, color: cfg.colText, letterSpacing: "1px", fontFamily: FF }),
             ].filter(Boolean)),
             el("div", { display: "flex", alignItems: "center", gap: "14px" }, [
-              d.eqL.escudo ? img(d.eqL.escudo, 70, 70) : el("div", { width: 70, height: 70, display: "flex" }, []),
-              el("div", { display: "flex", flex: 1, justifyContent: "center", fontSize: "54px", fontWeight: 700, color: COL_TEXT, fontFamily: "Oswald", lineHeight: 1, letterSpacing: "1px", whiteSpace: "nowrap" }, score),
-              d.eqV.escudo ? img(d.eqV.escudo, 70, 70) : el("div", { width: 70, height: 70, display: "flex" }, []),
+              d.eqL.escudo ? img(d.eqL.escudo, cfg.equipoLogoSize, cfg.equipoLogoSize) : el("div", { width: cfg.equipoLogoSize, height: cfg.equipoLogoSize, display: "flex" }, []),
+              el("div", { display: "flex", flex: 1, justifyContent: "center", fontSize: `${cfg.scoreSize}px`, fontWeight: FW, color: cfg.colText, fontFamily: FF, lineHeight: 1, letterSpacing: "1px", whiteSpace: "nowrap" }, score),
+              d.eqV.escudo ? img(d.eqV.escudo, cfg.equipoLogoSize, cfg.equipoLogoSize) : el("div", { width: cfg.equipoLogoSize, height: cfg.equipoLogoSize, display: "flex" }, []),
             ]),
           ]),
-          el("div", { display: "flex", flex: 2 }, []),
+          el("div", { display: "flex", flex: cfg.statSpacerTop }, []),
           el("div", { display: "flex", flexDirection: "column" }, [
             statRow("⏱️", "MINUTOS", mins),
             statRow("🏀", "PUNTOS", pts),
@@ -155,7 +209,7 @@ function card(d, baseUrl) {
             statRow("🤾", "ASISTENCIAS", ast),
             statRow("🏆", "VALORACIÓN", val),
           ]),
-          el("div", { display: "flex", flex: 5 }, []),
+          el("div", { display: "flex", flex: cfg.statSpacerBottom }, []),
         ]),
       ]),
     ].filter(Boolean)),
@@ -177,19 +231,27 @@ export default async function handler(req) {
 
   const baseUrl = `${url.protocol}//${url.host}`;
   try {
-    const [d, fontOswald700, fontOswald400] = await Promise.all([
+    const cfg = await loadConfig();
+    for (const [k, v] of url.searchParams.entries()) {
+      if (k === "jugadora" || k === "partido" || k === "preview" || k === "bust") continue;
+      if (k in cfg) {
+        const num = Number(v);
+        cfg[k] = isNaN(num) || v === "" ? v : num;
+      }
+    }
+
+    const fontList = FONT_URLS[cfg.fontFamily] || FONT_URLS["Oswald"];
+    const [d, ...fonts] = await Promise.all([
       datos(jugadora, parseInt(partido, 10)),
-      loadFont("https://cdn.jsdelivr.net/npm/@fontsource/oswald/files/oswald-latin-700-normal.woff"),
-      loadFont("https://cdn.jsdelivr.net/npm/@fontsource/oswald/files/oswald-latin-400-normal.woff"),
+      ...fontList.map(([u]) => loadFont(u)),
     ]);
     if (!d) return new Response(JSON.stringify({ error: "sin datos (jugadora, partido o boxscore no existe)" }), { status: 404, headers: { "Content-Type": "application/json" } });
-    return new ImageResponse(card(d, baseUrl), {
-      width: 1080, height: 1080,
-      fonts: [
-        { name: "Oswald", data: fontOswald400, weight: 400, style: "normal" },
-        { name: "Oswald", data: fontOswald700, weight: 700, style: "normal" },
-      ],
-      headers: { "cache-control": "public, max-age=300, s-maxage=300" },
+
+    const isPreview = url.searchParams.get("preview") === "1";
+    return new ImageResponse(card(d, baseUrl, cfg), {
+      width: cfg.width, height: cfg.height,
+      fonts: fonts.map((data, i) => ({ name: cfg.fontFamily, data, weight: fontList[i][1], style: "normal" })),
+      headers: { "cache-control": isPreview ? "no-store" : "public, max-age=60, s-maxage=60" },
     });
   } catch (e) {
     console.error("[card]", e.message);
