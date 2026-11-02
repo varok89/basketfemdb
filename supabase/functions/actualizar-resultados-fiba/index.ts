@@ -1,4 +1,8 @@
-// actualizar-resultados-fiba v41
+// actualizar-resultados-fiba v42
+// v42: sube limite de boxscores por tick de 5 → 20. Causa raiz detectada
+//   29-oct: L004 EuroLeague + L005 EuroCup tienen 20+ partidos/dia pero
+//   la vieja cuota de 5 por tick no daba abasto (120 partidos L005 por
+//   un fin de semana nunca se cargaban a tiempo).
 // v41: refrescarLiveOnce excluye partidos de ligas con fuente_live='genius'
 //   (L004 EuroLeague Women, L005 EuroCup Women). Esos los gestiona
 //   actualizar-resultados-genius que sí lee parciales por cuarto. Antes este
@@ -490,8 +494,8 @@ async function procesarEvento(ev:{url:string;idLiga:string;temporada:string;slug
   const{data:sinBox}=await sb.from('partidos').select('id,id_ext').eq('id_liga',ev.idLiga).eq('temporada',ev.temporada).eq('fuente','fiba').not('resultado_local','is',null).not('id_ext','is',null).limit(200);
   if(sinBox?.length){const ids=sinBox.map(p=>p.id);const{data:conBox}=await sb.from('partido_boxscore').select('id_partido').in('id_partido',ids).limit(1000);
     const conBoxSet=new Set((conBox||[]).map(b=>b.id_partido));let n=0;
-    for(const p of sinBox){if(!conBoxSet.has(p.id)&&p.id_ext&&!gameIdsProcesar.has(String(p.id_ext))){gameIdsProcesar.add(String(p.id_ext));n++;if(n>=5)break;}}}
-  for(const gameId of [...gameIdsProcesar].slice(0,5)){try{
+    for(const p of sinBox){if(!conBoxSet.has(p.id)&&p.id_ext&&!gameIdsProcesar.has(String(p.id_ext))){gameIdsProcesar.add(String(p.id_ext));n++;if(n>=20)break;}}}
+  for(const gameId of [...gameIdsProcesar].slice(0,20)){try{
     const r=await fetch(`${SB_URL}/functions/v1/cargar-boxscores-fiba`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`},body:JSON.stringify({id_liga:ev.idLiga,temporada:ev.temporada,slug:ev.slug,id_ext:gameId,force:true}),signal:AbortSignal.timeout(25000)});
     const d=await r.json();if((d.filas??d.hechos??0)>0){detalles.push(`boxscore ${gameId}: ${d.filas??0} líneas`);boxscoresNuevos+=d.filas??0;}}catch(e){detalles.push(`boxscore ${gameId}: ERROR`);}}
   return{fiba:juegos.length,candidatos:candidatos.length,cruces,actualizados,fechas_refrescadas:fechasRefrescadas,boxscores_nuevos:boxscoresNuevos,detalles};}
