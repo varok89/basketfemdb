@@ -108,7 +108,7 @@ export function CardEditorView({user}){
 
   useEffect(()=>{
     clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(()=>setBust(Date.now()), 400);
+    debounceRef.current = setTimeout(()=>setBust(Date.now()), 150);
     return ()=>clearTimeout(debounceRef.current);
   },[cfg]);
 
@@ -199,7 +199,7 @@ export function CardEditorView({user}){
         {previewUrl ? (
           <div style={{maxWidth:"min(700px, 100%)",width:"100%"}}>
             <img src={previewUrl} alt="preview" style={{width:"100%",height:"auto",display:"block",borderRadius:"12px",boxShadow:"0 4px 20px rgba(0,0,0,0.3)"}}/>
-            <div style={{marginTop:"8px",fontSize:"11px",color:"var(--fx-muted2)",textAlign:"center",wordBreak:"break-all"}}>Preview (parámetros en URL) — Guarda para aplicar como default.</div>
+            <div style={{marginTop:"8px",fontSize:"11px",color:"var(--fx-muted2)",textAlign:"center"}}>Preview automática — refresca al instante. <b>Guardar</b> solo persiste la config para que todas las cards generadas desde /api/card la usen por defecto.</div>
           </div>
         ) : (
           <div style={{padding:"40px",textAlign:"center",color:"var(--fx-muted2)"}}>Elige jugadora y partido para previsualizar.</div>
