@@ -1,4 +1,8 @@
-// cargar-boxscore-ncaa v5
+// cargar-boxscore-ncaa v6
+// v6: antes de crear jugadora nueva, cruzar displayName contra existentes
+//   por apellido + equipo del partido (via temporadas L020). Si hay match
+//   unico sin id_espn → UPDATE id_espn en vez de insertar duplicado. Evita
+//   que ficha completa (FIBA/FEB/LFB) choque con la auto al editar id_espn.
 // v5: insert jugadoras incluye nombre placeholder (NOT NULL). Despues se
 //   actualiza con displayName real al parsear roster entries.
 // v4: parciales desde header.competitions[0].competitors[*].linescores.
@@ -106,16 +110,50 @@ Deno.serve(async (req) => {
     }
   }
 
+  // Mapeo playerId → teamBd (para cruce apellido+equipo)
+  const teamPorEspn = new Map<string, string>();
+  for (const { teamBd, entries } of rosterData) {
+    for (const e of entries) teamPorEspn.set(String(e.playerId), teamBd);
+  }
+
+  // v6: cruce por apellido+equipo antes de crear duplicado
   let huecosJug: number[] | null = null, huecosIdx = 0;
   const nuevasJug: any[] = [];
+  const matchesPorApellido: any[] = [];
+  rep.matcheadas = 0;
   for (const playerId of allPlayerIds) {
     if (byEspnId.has(playerId)) continue;
+    const displayName = nombrePorEspn.get(playerId);
+    const teamBd = teamPorEspn.get(playerId);
+    const apellido = displayName?.replace(/^[A-Z]\.\s+/, "").trim().split(/\s+/).pop();
+    if (apellido && apellido.length >= 3 && teamBd) {
+      const { data } = await sb.from("jugadoras")
+        .select("id_jugadora,nombre,temporadas!inner(id_equipo,id_liga)")
+        .is("id_espn", null)
+        .ilike("nombre", `% ${apellido}`)
+        .eq("temporadas.id_equipo", teamBd)
+        .eq("temporadas.id_liga", "L020")
+        .limit(2);
+      if (data?.length === 1) {
+        const unico = data[0];
+        matchesPorApellido.push({ id_jugadora: unico.id_jugadora, id_espn: parseInt(playerId) });
+        byEspnId.set(playerId, { id_jugadora: unico.id_jugadora, nombre: unico.nombre });
+        rep.matcheadas++;
+        continue;
+      }
+    }
     if (!huecosJug) huecosJug = await cargarHuecosJug();
     if (huecosIdx >= huecosJug.length) continue;
     const nuevoId = `J${huecosJug[huecosIdx++]}`;
-    const nombre = nombrePorEspn.get(playerId) || `ESPN ${playerId}`;
+    const nombre = displayName || `ESPN ${playerId}`;
     nuevasJug.push({ id_jugadora: nuevoId, id_espn: parseInt(playerId), nombre });
     byEspnId.set(playerId, { id_jugadora: nuevoId, nombre });
+  }
+
+  // Aplicar matches: UPDATE id_espn en jugadoras existentes
+  for (const m of matchesPorApellido) {
+    const { error } = await sb.from("jugadoras").update({ id_espn: m.id_espn }).eq("id_jugadora", m.id_jugadora);
+    if (error) rep.errores.push(`match id_espn ${m.id_jugadora}: ${error.message}`);
   }
 
   if (nuevasJug.length > 0) {

@@ -603,7 +603,21 @@ function PlayersView({players,equipos,ligas,palmares,coaches,tempCoach,onReload,
       if(!data)throw new Error("La fila no se actualizo (posible RLS o sesion invalida). Recarga y vuelve a intentar.");
       setPlayers(prev=>prev.map(p=>p.id_jugadora!==selId?p:{...p,...payload}));
       setModal(null);
-    }catch(e){alert("Error: "+e.message);}
+    }catch(e){
+      // Traducir unique_violation en IDs externos a mensaje legible con enlace
+      const m=/ux_jugadoras_(id_espn|fiba_person_id|id_feb|id_lfb)/i.exec(e.message||"");
+      if(m){
+        const col=m[1]; const val=payload[col];
+        try{
+          const {data:dup}=await supabase.from("jugadoras").select("id_jugadora,nombre").eq(col,val).neq("id_jugadora",selId).maybeSingle();
+          if(dup){
+            alert(`El ${col} "${val}" ya lo tiene ${dup.nombre} (${dup.id_jugadora}). Ve a esa ficha, borra el id duplicado o fusiona las jugadoras.`);
+            setSaving(false); return;
+          }
+        }catch(_){}
+      }
+      alert("Error: "+e.message);
+    }
     finally{setSaving(false);}
   };
   const delPlayer=async()=>{
