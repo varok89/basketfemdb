@@ -62,12 +62,14 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
   },[monitorOpen]);
   // ── Jugadoras huérfanas creadas desde boxscore (fusionar) ──
   var [huerfanas,setHuerfanas]=useState([]);
+  var [huerfTodas,setHuerfTodas]=useState(false); // false = últimos 30d; true = todas
   useEffect(function(){
     if(!isAdmin||tab!=="fusionar-jug")return;
     (async function(){
-      // Paso 1: IDs de partidos recientes (últimos 30 días)
-      var desde=new Date(Date.now()-30*24*3600*1000).toISOString();
-      var {data:parts}=await supabase.from("partidos").select("id,fecha_hora,id_liga").gte("fecha_hora",desde).limit(5000);
+      // Paso 1: IDs de partidos (todos o últimos 30 días según toggle)
+      var q=supabase.from("partidos").select("id,fecha_hora,id_liga");
+      if(!huerfTodas){ var desde=new Date(Date.now()-30*24*3600*1000).toISOString(); q=q.gte("fecha_hora",desde); }
+      var {data:parts}=await q.limit(huerfTodas?50000:5000);
       var pIds=(parts||[]).map(p=>p.id);
       if(!pIds.length){setHuerfanas([]);return;}
       // Paso 2: id_jugadora + fecha + equipo + liga del boxscore de esos partidos
@@ -104,7 +106,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       all.sort((a,b)=>(b.ultFecha||"").localeCompare(a.ultFecha||""));
       setHuerfanas(all);
     })();
-  },[isAdmin,tab]);
+  },[isAdmin,tab,huerfTodas]);
   // ── Estado del sistema (pestaña Ops) ──
   var [estadoData,setEstadoData]=useState(null);
   var [estadoBusy,setEstadoBusy]=useState(false);
@@ -1349,7 +1351,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
       {key:"lotes",label:"Alta por lotes",count:0},
       {key:"genius",label:"🔗 Genius Match",count:0},
       {key:"scrapers-custom",label:"🔧 Scrapers custom",count:0},
-      {key:"fusionar-jug",label:"🔀 Fusionar jugadoras",count:huerfanas.length},
+      {key:"fusionar-jug",label:"🤖 Jugadoras auto",count:huerfanas.length},
     ]},{title:"🩺 Ops",items:[
       {key:"estado",label:"Estado sistema",count:0},
       {key:"auto-saneo",label:"🤖 Auto-saneo",count:0},
@@ -1651,7 +1653,7 @@ function CalidadModal({players,equipos,ligas,coaches,tempCoach,palmares,onClose,
           )}
           {tab==="genius"&&<GeniusMatchTab ligas={ligas} equipos={equipos} setEquipos={setEquipos} setLigas={setLigas}/>}
           {tab==="scrapers-custom"&&<ScrapersCustomTab ligas={ligas}/>}
-          {tab==="fusionar-jug"&&<FusionarJugadorasTab huerfanas={huerfanas} setHuerfanas={setHuerfanas} players={players} equipos={equipos} ligas={ligas}/>}
+          {tab==="fusionar-jug"&&<FusionarJugadorasTab huerfanas={huerfanas} setHuerfanas={setHuerfanas} players={players} equipos={equipos} ligas={ligas} huerfTodas={huerfTodas} setHuerfTodas={setHuerfTodas}/>}
           {tab==="lleno_fiba"&&(
             <div style={{padding:"4px"}}>
               <p style={{color: "var(--fx-muted)",fontSize:"13px",marginBottom:"14px"}}>
@@ -3389,12 +3391,14 @@ function ScrapersCustomTab({ ligas }) {
   );
 }
 
-function FusionarJugadorasTab({huerfanas,setHuerfanas,players,equipos,ligas}){
+function FusionarJugadorasTab({huerfanas,setHuerfanas,players,equipos,ligas,huerfTodas,setHuerfTodas}){
   const [q,setQ]=useState("");
   const [qFiltro,setQFiltro]=useState("");
   const [sel,setSel]=useState(null); // {origen, destino}
   const [busy,setBusy]=useState(false);
   const [msg,setMsg]=useState("");
+  const [candEq,setCandEq]=useState([]); // candidatas del mismo equipo
+  const [loadingCand,setLoadingCand]=useState(false);
   const normalize=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
   const equipoMap=useMemo(()=>{const m={};(equipos||[]).forEach(e=>m[e.id_equipo]=e);return m;},[equipos]);
   const ligaMap=useMemo(()=>{const m={};(ligas||[]).forEach(l=>m[l.id_liga]=l);return m;},[ligas]);
@@ -3410,8 +3414,40 @@ function FusionarJugadorasTab({huerfanas,setHuerfanas,players,equipos,ligas}){
   const candidatas=useMemo(function(){
     if(!q.trim()||!sel)return [];
     const nq=normalize(q.trim());
-    return (players||[]).filter(p=>p.id_jugadora!==sel.origen&&normalize(p.nombre).includes(nq)).slice(0,30);
+    return (players||[]).filter(p=>p.id_jugadora!==sel.origen.id_jugadora&&normalize(p.nombre).includes(nq)).slice(0,30);
   },[q,sel,players]);
+  // Al seleccionar huérfana: sugerir candidatas del mismo equipo sin el mismo id externo
+  useEffect(()=>{
+    if(!sel){setCandEq([]);return;}
+    const idEq=sel.origen.idEquipo; if(!idEq){setCandEq([]);return;}
+    const extCols=["id_feb","fiba_person_id","id_russia","id_fpb","id_espn","id_lfb"];
+    const extUsado=extCols.find(c=>sel.origen[c]);
+    setLoadingCand(true);setCandEq([]);
+    (async()=>{
+      const {data:temps}=await supabase.from("temporadas").select("id_jugadora").eq("id_equipo",idEq).limit(2000);
+      const ids=[...new Set((temps||[]).map(t=>t.id_jugadora))].filter(id=>id!==sel.origen.id_jugadora);
+      if(!ids.length){setCandEq([]);setLoadingCand(false);return;}
+      let qc=supabase.from("jugadoras").select("id_jugadora,nombre,foto,altura_cm,posicion,id_feb,fiba_person_id,id_russia,id_fpb,id_espn,id_lfb").in("id_jugadora",ids).limit(100);
+      if(extUsado) qc=qc.is(extUsado,null);
+      const {data:cands}=await qc;
+      const arr=(cands||[]).sort((a,b)=>((b.altura_cm||b.posicion)?1:0)-((a.altura_cm||a.posicion)?1:0));
+      setCandEq(arr);setLoadingCand(false);
+    })();
+  },[sel]);
+  async function promover(){
+    if(!sel||busy)return;
+    const sugerido=sel.origen.nombre.replace(/^[A-Z]\.\s+/,"").replace(/^(ESPN|FIBA|FEB|LFB|RUSSIA|FPB)\s+\d+$/i,"");
+    const nuevo=window.prompt("Nombre completo para "+sel.origen.nombre+":",sugerido||sel.origen.nombre);
+    if(!nuevo||!nuevo.trim())return;
+    setBusy(true);setMsg("");
+    try{
+      const {error}=await supabase.from("jugadoras").update({nombre:nuevo.trim()}).eq("id_jugadora",sel.origen.id_jugadora);
+      if(error)throw error;
+      setHuerfanas(prev=>prev.filter(h=>h.id_jugadora!==sel.origen.id_jugadora));
+      setMsg("✅ Promovida: "+nuevo.trim());setSel(null);setQ("");
+    }catch(e){setMsg("❌ "+e.message);}
+    setBusy(false);
+  }
   async function fusionar(destino){
     if(!sel||busy)return;
     setBusy(true);setMsg("");
@@ -3451,9 +3487,15 @@ function FusionarJugadorasTab({huerfanas,setHuerfanas,players,equipos,ligas}){
   }
   return(
     <div>
-      <p style={{color:"var(--fx-muted)",fontSize:"13px",marginBottom:"14px"}}>
-        Jugadoras creadas automáticamente desde boxscores de los <b>últimos 30 días</b> (con id externo + sin altura/posición). Fusiona cada una con la jugadora real de tu BD. La fusión reasigna boxscores, temporadas, copia foto + ids externos y borra el placeholder.
+      <p style={{color:"var(--fx-muted)",fontSize:"13px",marginBottom:"10px"}}>
+        Jugadoras creadas automáticamente desde boxscores (con id externo + sin altura/posición). Al seleccionar una, se sugieren candidatas del mismo equipo. Si no existe, promuévela a ficha completa editando el nombre.
       </p>
+      <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"10px",fontSize:"11px",color:"var(--fx-muted)"}}>
+        <label style={{display:"flex",alignItems:"center",gap:"6px",cursor:"pointer"}}>
+          <input type="checkbox" checked={!!huerfTodas} onChange={e=>setHuerfTodas&&setHuerfTodas(e.target.checked)}/>
+          Mostrar <b>todas</b> (no solo últimos 30 días)
+        </label>
+      </div>
       <input value={qFiltro} onChange={e=>setQFiltro(e.target.value)} placeholder="Filtrar por nombre, equipo o liga…" style={{width:"100%",padding:"8px 10px",borderRadius:"8px",border:"1.5px solid var(--fx-border)",fontSize:"12px",boxSizing:"border-box",marginBottom:"10px"}}/>
       {msg&&<div style={{padding:"8px 12px",marginBottom:"10px",borderRadius:"8px",background:"var(--fx-hover)",fontSize:"12px"}}>{msg}</div>}
       <div style={{fontSize:"11px",color:"var(--fx-muted2)",marginBottom:"8px"}}>{huerfFiltradas.length} {huerfFiltradas.length===1?"huérfana":"huérfanas"}</div>
@@ -3477,8 +3519,30 @@ function FusionarJugadorasTab({huerfanas,setHuerfanas,players,equipos,ligas}){
       {sel&&(
         <div style={{marginTop:"14px",padding:"12px",background:"var(--fx-card)",border:"2px solid #9333ea",borderRadius:"12px"}}>
           <div style={{fontSize:"12px",fontWeight:700,color:"var(--fx-text)",marginBottom:"8px"}}>Fusionar <span style={{color:"#9333ea"}}>{sel.origen.nombre}</span> con:</div>
+          {/* (a) Candidatas del mismo equipo */}
+          <div style={{marginBottom:"10px"}}>
+            <div style={{fontSize:"10px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"4px",textTransform:"uppercase",letterSpacing:"0.5px"}}>📍 Del mismo equipo ({equipoMap[sel.origen.idEquipo]?.nombre||sel.origen.idEquipo||"?"})</div>
+            {loadingCand?<div style={{padding:"6px",fontSize:"11px",color:"var(--fx-muted2)"}}>Buscando…</div>:
+              candEq.length===0?<div style={{padding:"6px",fontSize:"11px",color:"var(--fx-muted2)"}}>Sin candidatas sin ese id externo en este equipo</div>:
+                <div style={{maxHeight:"160px",overflowY:"auto",border:"1px solid var(--fx-border)",borderRadius:"6px"}}>
+                  {candEq.map(c=>{
+                    const completa=c.altura_cm||c.posicion;
+                    return(
+                    <button key={c.id_jugadora} onClick={()=>fusionar(c)} disabled={busy} style={{display:"flex",alignItems:"center",gap:"8px",width:"100%",textAlign:"left",background:"transparent",border:"none",padding:"6px 8px",cursor:"pointer",borderRadius:"4px"}} onMouseEnter={e=>e.currentTarget.style.background="var(--fx-hover)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                      {c.foto?<img src={c.foto} alt="" style={{width:"26px",height:"26px",borderRadius:"50%",objectFit:"cover"}}/>:<div style={{width:"26px",height:"26px",borderRadius:"50%",background:"var(--fx-border)"}}/>}
+                      <div style={{flex:1,minWidth:0,fontSize:"12px",color:"var(--fx-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                        {completa&&<span title="Ficha completa" style={{marginRight:"4px"}}>✅</span>}
+                        {c.nombre} <span style={{color:"var(--fx-muted2)",fontSize:"10px"}}>({c.id_jugadora})</span>
+                      </div>
+                    </button>
+                  );})}
+                </div>
+            }
+          </div>
+          {/* (b) Buscador global */}
+          <div style={{fontSize:"10px",fontWeight:700,color:"var(--fx-muted)",marginBottom:"4px",textTransform:"uppercase",letterSpacing:"0.5px"}}>🔎 Buscar en toda la BD</div>
           <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Buscar jugadora de la BD…" style={{width:"100%",padding:"8px 10px",borderRadius:"8px",border:"1.5px solid var(--fx-border)",fontSize:"13px",boxSizing:"border-box",marginBottom:"8px"}}/>
-          <div style={{maxHeight:"240px",overflowY:"auto"}}>
+          <div style={{maxHeight:"200px",overflowY:"auto"}}>
             {q.trim().length<2?<div style={{padding:"8px",fontSize:"11px",color:"var(--fx-muted2)"}}>Escribe 2 letras…</div>:
               candidatas.length===0?<div style={{padding:"8px",fontSize:"11px",color:"var(--fx-muted2)"}}>Sin resultados</div>:
                 candidatas.map(c=>(
@@ -3489,7 +3553,11 @@ function FusionarJugadorasTab({huerfanas,setHuerfanas,players,equipos,ligas}){
                 ))
             }
           </div>
-          <button onClick={()=>{setSel(null);setQ("");}} style={{marginTop:"8px",background:"transparent",border:"1px solid var(--fx-border)",borderRadius:"6px",padding:"4px 10px",fontSize:"11px",cursor:"pointer",color:"var(--fx-muted)"}}>Cancelar</button>
+          {/* (c) Promover */}
+          <div style={{marginTop:"10px",paddingTop:"10px",borderTop:"1px solid var(--fx-border)",display:"flex",gap:"8px",alignItems:"center",justifyContent:"space-between"}}>
+            <button onClick={promover} disabled={busy} style={{background:"var(--fx-green-bg)",color:"var(--fx-green-text)",border:"1.5px solid var(--fx-green-border)",borderRadius:"8px",padding:"6px 12px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>✅ Es nueva — promover ficha</button>
+            <button onClick={()=>{setSel(null);setQ("");}} style={{background:"transparent",border:"1px solid var(--fx-border)",borderRadius:"6px",padding:"4px 10px",fontSize:"11px",cursor:"pointer",color:"var(--fx-muted)"}}>Cancelar</button>
+          </div>
         </div>
       )}
     </div>
