@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1350" width="1080" height="1350">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#3d2a0a"/>
+<stop offset=".5" stop-color="#a16207"/>
+<stop offset="1" stop-color="#eab308"/>
+</linearGradient>
+<linearGradient id="shine" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#fef3c7" stop-opacity=".9"/>
+<stop offset=".5" stop-color="#fde68a" stop-opacity=".4"/>
+<stop offset="1" stop-color="#f59e0b" stop-opacity=".8"/>
+</linearGradient>
+<linearGradient id="frame" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#fef9c3"/>
+<stop offset=".3" stop-color="#facc15"/>
+<stop offset=".7" stop-color="#a16207"/>
+<stop offset="1" stop-color="#3d2a0a"/>
+</linearGradient>
+<clipPath id="shield">
+<path d="M80 110 L80 60 L490 60 L520 20 L540 60 L560 20 L590 60 L1000 60 L1000 110 L1020 170 L1020 1020 L1000 1070 L970 1120 L910 1200 L850 1280 L800 1320 L540 1300 L280 1320 L230 1280 L170 1200 L110 1120 L80 1070 L60 1020 L60 170 Z"/>
+</clipPath>
+</defs>
+<path d="M80 110 L80 60 L490 60 L520 20 L540 60 L560 20 L590 60 L1000 60 L1000 110 L1020 170 L1020 1020 L1000 1070 L970 1120 L910 1200 L850 1280 L800 1320 L540 1300 L280 1320 L230 1280 L170 1200 L110 1120 L80 1070 L60 1020 L60 170 Z" fill="url(#frame)"/>
+<g clip-path="url(#shield)">
+<rect x="60" y="20" width="960" height="1300" fill="url(#bg)"/>
+<path d="M60 380 L1020 110 L1020 480 L60 680 Z" fill="url(#shine)" opacity=".7"/>
+<path d="M60 820 L1020 580 L1020 900 L60 1060 Z" fill="#fcd34d" opacity=".35"/>
+<path d="M100 220 L980 180 L940 340 L140 360 Z" fill="#fef3c7" opacity=".35"/>
+<path d="M100 540 L760 450 L740 570 L140 650 Z" fill="#ffffff" opacity=".18"/>
+<g stroke="#fde68a" stroke-width="4" opacity=".55" fill="none">
+<path d="M60 760 Q540 680 1020 800"/>
+<path d="M60 800 Q540 720 1020 840"/>
+</g>
+<g stroke="#facc15" stroke-width="3" opacity=".5" fill="none">
+<path d="M60 980 Q540 920 1020 1000"/>
+</g>
+</g>
+</svg>

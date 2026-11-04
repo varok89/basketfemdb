@@ -238,8 +238,10 @@ const PAIS_A_ISO2 = {
   "República Democrática del Congo":"cd",
 };
 
-function cardEspecial(d, baseUrl) {
-  const BG = `${baseUrl}/share-card/especial-bg.svg`;
+function cardEspecial(d, baseUrl, variante = "azul") {
+  const BG = `${baseUrl}/share-card/especial-bg${variante === "dorado" ? "-dorado" : ""}.svg`;
+  const COL_LABEL = variante === "dorado" ? "#fef3c7" : "#fed7aa";
+  const COL_LINE = variante === "dorado" ? "#fde68a" : "#f97316";
   const LOGO = `${baseUrl}/share-card/logo.png`;
   const foto = fotoSinBg(d.jug.foto);
   const nombre = (d.jug.nombre || "").toUpperCase();
@@ -261,7 +263,7 @@ function cardEspecial(d, baseUrl) {
     alignItems: "center", fontFamily: FF, color: "#ffffff",
   }), [
     el("div", { display: "flex", fontSize: "70px", fontWeight: 800, lineHeight: 1 }, String(num)),
-    el("div", { display: "flex", fontSize: "26px", fontWeight: 700, color: "#fed7aa", marginTop: "4px", letterSpacing: "2px" }, label),
+    el("div", { display: "flex", fontSize: "26px", fontWeight: 700, color: COL_LABEL, marginTop: "4px", letterSpacing: "2px" }, label),
   ]);
 
   return el("div", {
@@ -282,8 +284,8 @@ function cardEspecial(d, baseUrl) {
       img(foto, 640, 720, { objectFit: "contain" }),
     ]) : null,
     el("div", abs({ top: "905px", left: 0, width: "1080px", justifyContent: "center", fontFamily: FF, color: "#ffffff", fontSize: "66px", fontWeight: 800, letterSpacing: "3px" }), nombre),
-    el("div", abs({ top: "985px", left: "140px", width: "800px", height: "4px", background: "#f97316" }), []),
-    el("div", abs({ top: "1140px", left: "140px", width: "800px", height: "4px", background: "#f97316" }), []),
+    el("div", abs({ top: "985px", left: "140px", width: "800px", height: "4px", background: COL_LINE }), []),
+    el("div", abs({ top: "1140px", left: "140px", width: "800px", height: "4px", background: COL_LINE }), []),
     stat(120, pts, "PTS"),
     stat(300, reb, "REB"),
     stat(470, ast, "AST"),
@@ -329,8 +331,9 @@ export default async function handler(req) {
 
     const isPreview = url.searchParams.get("preview") === "1";
     const forzar = url.searchParams.get("estilo");
-    const esEspecial = forzar === "especial" || (forzar !== "dorada" && (d.box.valoracion || 0) >= UMBRAL_ESPECIAL);
-    const tree = esEspecial ? cardEspecial(d, baseUrl) : card(d, baseUrl, cfg);
+    const esEspecial = forzar === "especial" || forzar === "doradoplus" || (forzar !== "dorada" && (d.box.valoracion || 0) >= UMBRAL_ESPECIAL);
+    const variante = forzar === "doradoplus" ? "dorado" : "azul";
+    const tree = esEspecial ? cardEspecial(d, baseUrl, variante) : card(d, baseUrl, cfg);
     const [w, h] = esEspecial ? [1080, 1350] : [cfg.width, cfg.height];
     return new ImageResponse(tree, {
       width: w, height: h,
