@@ -278,8 +278,8 @@ function cardEspecial(d, baseUrl) {
       el("div", { display: "flex", fontSize: "180px", fontWeight: 800, lineHeight: 0.9, letterSpacing: "-4px" }, String(val)),
       el("div", { display: "flex", fontSize: "48px", fontWeight: 700, letterSpacing: "4px", marginTop: "10px" }, "VAL"),
     ]),
-    foto ? el("div", abs({ top: "300px", left: "340px", width: "400px", height: "500px", justifyContent: "center", alignItems: "flex-end" }), [
-      img(foto, 400, 500, { objectFit: "contain" }),
+    foto ? el("div", abs({ top: "220px", left: "280px", width: "520px", height: "640px", justifyContent: "center", alignItems: "flex-end" }), [
+      img(foto, 520, 640, { objectFit: "contain" }),
     ]) : null,
     el("div", abs({ top: "870px", left: 0, width: "1080px", justifyContent: "center", fontFamily: FF, color: "#ffffff", fontSize: "70px", fontWeight: 800, letterSpacing: "3px" }), nombre),
     el("div", abs({ top: "975px", left: "140px", width: "800px", height: "4px", background: "#f97316" }), []),
@@ -292,7 +292,7 @@ function cardEspecial(d, baseUrl) {
     el("div", abs({ top: "1190px", left: 0, width: "1080px", justifyContent: "center", alignItems: "center", gap: "40px" }), [
       banderaUrl ? img(banderaUrl, 80, 54) : el("div", { display: "flex", width: "80px", height: "54px" }, []),
       d.ligaLogo ? img(d.ligaLogo, 80, 80) : el("div", { display: "flex", width: "80px", height: "80px" }, []),
-      escudo ? img(escudo, 90, 90) : el("div", { display: "flex", width: "90px", height: "90px" }, []),
+      escudo ? img(fotoSinBg(escudo), 90, 90) : el("div", { display: "flex", width: "90px", height: "90px" }, []),
     ]),
   ].filter(Boolean));
 }
