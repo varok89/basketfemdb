@@ -6,13 +6,14 @@ export function PlayerCardModal({jugadora,equipos,equiposNombres,onClose}){
   const equipoMap=useMemo(()=>{const m={};(equipos||[]).forEach(e=>{m[e.id_equipo]=e;});return m;},[equipos]);
   const [rows,setRows]=useState(null);
   const [elegido,setElegido]=useState(null);
+  const [estilo,setEstilo]=useState("dorada");
   const [loading,setLoading]=useState(false);
 
   useEffect(()=>{
     let cancel=false;
     (async()=>{
       const {data}=await supabase.from("partido_boxscore")
-        .select("id_partido,minutos,puntos,partidos!inner(id,temporada,fecha_hora,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante)")
+        .select("id_partido,minutos,puntos,valoracion,partidos!inner(id,temporada,fecha_hora,id_equipo_local,id_equipo_visitante,resultado_local,resultado_visitante)")
         .eq("id_jugadora",jugadora.id_jugadora);
       if(cancel) return;
       const flat=(data||[]).map(x=>({...x,...(x.partidos||{})})).filter(x=>x.resultado_local!=null);
@@ -27,7 +28,15 @@ export function PlayerCardModal({jugadora,equipos,equiposNombres,onClose}){
 
   const nombreEq=(id,temp)=>resolveTeamName(id,temp,equiposNombres,equipoMap);
 
-  const url = elegido ? `/api/card?jugadora=${encodeURIComponent(jugadora.id_jugadora)}&partido=${elegido}` : null;
+  const valElegido = useMemo(()=>{
+    const r = (rows||[]).find(x=>x.id_partido===elegido);
+    return r?.valoracion || 0;
+  },[rows,elegido]);
+  const puedeEspecial = valElegido >= 25;
+  const estiloFinal = (!puedeEspecial && estilo==="especial") ? "dorada" : estilo;
+  const url = elegido ? `/api/card?jugadora=${encodeURIComponent(jugadora.id_jugadora)}&partido=${elegido}&estilo=${estiloFinal}` : null;
+  const esEspecial = estiloFinal==="especial" || estiloFinal==="doradoplus";
+  const aspect = esEspecial ? "1080/1350" : "1/1";
 
   async function compartirODescargar(){
     if(!url) return;
@@ -71,8 +80,19 @@ export function PlayerCardModal({jugadora,equipos,equiposNombres,onClose}){
               })}
             </select>
           </div>
+          <div style={{display:"flex",gap:"6px",marginBottom:"14px",flexWrap:"wrap"}}>
+            {[
+              {id:"dorada",label:"🟡 Clásica"},
+              {id:"doradoplus",label:"✨ Dorada escudo"},
+              ...(puedeEspecial?[{id:"especial",label:`🔵 Especial (VAL ${valElegido})`}]:[]),
+            ].map(op=>(
+              <button key={op.id} onClick={()=>setEstilo(op.id)} style={{flex:"1 1 auto",padding:"8px 10px",borderRadius:"8px",border:estiloFinal===op.id?"2px solid #f97316":"1px solid var(--fx-border)",background:estiloFinal===op.id?"var(--fx-amber-bg)":"var(--fx-card)",color:"var(--fx-text)",fontSize:"12px",fontWeight:700,cursor:"pointer"}}>
+                {op.label}
+              </button>
+            ))}
+          </div>
           {url && (
-            <div style={{marginBottom:"14px",background:"#000",borderRadius:"12px",overflow:"hidden",aspectRatio:"1/1",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <div style={{marginBottom:"14px",background:"#000",borderRadius:"12px",overflow:"hidden",aspectRatio:aspect,display:"flex",alignItems:"center",justifyContent:"center"}}>
               <img src={url} alt="preview" style={{width:"100%",height:"auto",display:"block"}} loading="lazy"/>
             </div>
           )}
