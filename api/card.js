@@ -268,7 +268,7 @@ function cardEspecial(d, baseUrl, variante = "azul") {
 
   return el("div", {
     width: "100%", height: "100%", display: "flex", position: "relative",
-    background: "#000000",
+    background: "transparent",
   }, [
     el("div", abs({ top: 0, left: 0, width: "1080px", height: "1350px" }), [
       img(BG, 1080, 1350, { objectFit: "fill" }),
