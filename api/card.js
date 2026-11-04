@@ -278,11 +278,11 @@ function cardEspecial(d, baseUrl) {
       el("div", { display: "flex", fontSize: "180px", fontWeight: 800, lineHeight: 0.9, letterSpacing: "-4px" }, String(val)),
       el("div", { display: "flex", fontSize: "48px", fontWeight: 700, letterSpacing: "4px", marginTop: "10px" }, "VAL"),
     ]),
-    foto ? el("div", abs({ top: "220px", left: "280px", width: "520px", height: "640px", justifyContent: "center", alignItems: "flex-end" }), [
-      img(foto, 520, 640, { objectFit: "contain" }),
+    foto ? el("div", abs({ top: "180px", left: "220px", width: "640px", height: "720px", justifyContent: "center", alignItems: "flex-end" }), [
+      img(foto, 640, 720, { objectFit: "contain" }),
     ]) : null,
-    el("div", abs({ top: "870px", left: 0, width: "1080px", justifyContent: "center", fontFamily: FF, color: "#ffffff", fontSize: "70px", fontWeight: 800, letterSpacing: "3px" }), nombre),
-    el("div", abs({ top: "975px", left: "140px", width: "800px", height: "4px", background: "#f97316" }), []),
+    el("div", abs({ top: "905px", left: 0, width: "1080px", justifyContent: "center", fontFamily: FF, color: "#ffffff", fontSize: "66px", fontWeight: 800, letterSpacing: "3px" }), nombre),
+    el("div", abs({ top: "985px", left: "140px", width: "800px", height: "4px", background: "#f97316" }), []),
     el("div", abs({ top: "1140px", left: "140px", width: "800px", height: "4px", background: "#f97316" }), []),
     stat(120, pts, "PTS"),
     stat(300, reb, "REB"),
