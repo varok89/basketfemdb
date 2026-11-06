@@ -1,4 +1,6 @@
-// cargar-boxscore-ncaa v6
+// cargar-boxscore-ncaa v7
+// v7: calcular valoracion (ESPN no la trae). Formula sin FR/TAP recibidos:
+//     VAL = (PTS+REB+AST+ROB+TAP) - (TC_fall + TL_fall + TO + FP)
 // v6: antes de crear jugadora nueva, cruzar displayName contra existentes
 //   por apellido + equipo del partido (via temporadas L020). Si hay match
 //   unico sin id_espn → UPDATE id_espn en vez de insertar duplicado. Evita
@@ -172,16 +174,22 @@ Deno.serve(async (req) => {
       const statsRef = e.statistics?.$ref; if (!statsRef) continue;
       let stats; try { stats = await j(statsRef); } catch { continue; }
       const cats = stats?.splits?.categories || [];
+      const pts = getStat(cats,"points"), reb = getStat(cats,"rebounds");
+      const ast = getStat(cats,"assists"), rob = getStat(cats,"steals"), tap = getStat(cats,"blocks");
+      const tcm = getStat(cats,"fieldGoalsMade"), tci = getStat(cats,"fieldGoalsAttempted");
+      const tlm = getStat(cats,"freeThrowsMade"), tli = getStat(cats,"freeThrowsAttempted");
+      const to = getStat(cats,"turnovers"), fp = getStat(cats,"fouls");
+      const val = (pts+reb+ast+rob+tap) - ((tci-tcm) + (tli-tlm) + to + fp);
       filas.push({
         id_partido: part.id, id_jugadora: bdJug.id_jugadora, id_equipo: teamBd,
         nombre: bdJug.nombre, dorsal: String(e.jersey || ""), titular: !!e.starter,
-        minutos: String(getStat(cats,"minutes")), puntos: getStat(cats,"points"),
-        tc_anotados: getStat(cats,"fieldGoalsMade"), tc_intentados: getStat(cats,"fieldGoalsAttempted"),
+        minutos: String(getStat(cats,"minutes")), puntos: pts,
+        tc_anotados: tcm, tc_intentados: tci,
         t3_anotados: getStat(cats,"threePointFieldGoalsMade"), t3_intentados: getStat(cats,"threePointFieldGoalsAttempted"),
-        tl_anotados: getStat(cats,"freeThrowsMade"), tl_intentados: getStat(cats,"freeThrowsAttempted"),
-        reb_ofensivos: getStat(cats,"offensiveRebounds"), reb_defensivos: getStat(cats,"defensiveRebounds"), reb_totales: getStat(cats,"rebounds"),
-        asistencias: getStat(cats,"assists"), robos: getStat(cats,"steals"), tapones: getStat(cats,"blocks"),
-        perdidas: getStat(cats,"turnovers"), faltas: getStat(cats,"fouls"), valoracion: 0,
+        tl_anotados: tlm, tl_intentados: tli,
+        reb_ofensivos: getStat(cats,"offensiveRebounds"), reb_defensivos: getStat(cats,"defensiveRebounds"), reb_totales: reb,
+        asistencias: ast, robos: rob, tapones: tap,
+        perdidas: to, faltas: fp, valoracion: val,
       });
     }
   }
